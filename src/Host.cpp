@@ -1,0 +1,53 @@
+#include "Host.hpp"
+#include "Assert.hpp"
+#include <thread>
+
+
+namespace HexGPU
+{
+
+
+Host::Host()
+	:  system_window_()
+	, window_vulkan_(system_window_)
+	, init_time_(Clock::now())
+	, prev_tick_time_(init_time_)
+{
+}
+
+bool Host::Loop()
+{
+	const Clock::time_point tick_start_time= Clock::now();
+	const auto dt= tick_start_time - prev_tick_time_;
+	HEX_UNUSED(dt);
+	prev_tick_time_ = tick_start_time;
+
+	window_vulkan_.BeginFrame();
+
+	window_vulkan_.EndFrame(
+		{
+			[&](const vk::CommandBuffer command_buffer)
+			{
+				HEX_UNUSED(command_buffer);
+			},
+			[&](const vk::CommandBuffer command_buffer)
+			{
+				HEX_UNUSED(command_buffer);
+			},
+		});
+
+	const Clock::time_point tick_end_time= Clock::now();
+	const auto frame_dt= tick_end_time - tick_start_time;
+
+	const float max_fps= 20.0f;
+
+	const std::chrono::milliseconds min_frame_duration(uint32_t(1000.0f / max_fps));
+	if(frame_dt <= min_frame_duration)
+	{
+		std::this_thread::sleep_for(min_frame_duration - frame_dt);
+	}
+
+	return quit_requested_;
+}
+
+} // namespace HexGPU

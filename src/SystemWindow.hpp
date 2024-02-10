@@ -1,5 +1,7 @@
 #pragma once
+#include <SDL_events.h>
 #include <SDL_video.h>
+#include <vector>
 
 namespace HexGPU
 {
@@ -11,6 +13,8 @@ public:
 	~SystemWindow();
 
 	SDL_Window* GetSDLWindow() const;
+
+	std::vector<SDL_Event> ProcessEvents();
 
 private:
 	SDL_Window* window_= nullptr;

@@ -43,4 +43,15 @@ SDL_Window* SystemWindow::GetSDLWindow() const
 	return window_;
 }
 
+std::vector<SDL_Event> SystemWindow::ProcessEvents()
+{
+	std::vector<SDL_Event> result_events;
+
+	SDL_Event event;
+	while( SDL_PollEvent(&event) != 0 )
+		result_events.push_back( event );
+
+	return result_events;
+}
+
 } // namespace HexGPU

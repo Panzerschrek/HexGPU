@@ -6,9 +6,8 @@
 namespace HexGPU
 {
 
-
 Host::Host()
-	:  system_window_()
+	: system_window_()
 	, window_vulkan_(system_window_)
 	, init_time_(Clock::now())
 	, prev_tick_time_(init_time_)
@@ -21,6 +20,14 @@ bool Host::Loop()
 	const auto dt= tick_start_time - prev_tick_time_;
 	HEX_UNUSED(dt);
 	prev_tick_time_ = tick_start_time;
+
+	for( const SDL_Event& event : system_window_.ProcessEvents() )
+	{
+		if( event.type == SDL_QUIT )
+			quit_requested_= true;
+		if( event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE )
+			quit_requested_= true;
+	}
 
 	window_vulkan_.BeginFrame();
 

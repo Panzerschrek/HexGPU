@@ -274,7 +274,7 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 		vk::AttachmentDescriptionFlags(),
 		surface_format.format,
 		vk::SampleCountFlagBits::e1,
-		vk::AttachmentLoadOp::eDontCare,
+		vk::AttachmentLoadOp::eClear, // TODO - eDontCare if we do not clear the result
 		vk::AttachmentStoreOp::eStore,
 		vk::AttachmentLoadOp::eDontCare,
 		vk::AttachmentStoreOp::eDontCare,
@@ -380,7 +380,7 @@ vk::CommandBuffer WindowVulkan::BeginFrame()
 	return command_buffer;
 }
 
-void WindowVulkan::EndFrame(const DrawFunctions& draw_functions)
+void WindowVulkan::EndFrame(const DrawFunction& draw_function)
 {
 	const vk::CommandBuffer command_buffer= *current_frame_command_buffer_->command_buffer;
 
@@ -393,19 +393,20 @@ void WindowVulkan::EndFrame(const DrawFunctions& draw_functions)
 			vk::Fence()).value;
 
 	// Begin render pass.
+
+	// TODO - avoid clearing result buffer.
+	const vk::ClearValue clear_value{ vk::ClearColorValue(std::array<float,4>{0.2f, 0.1f, 0.1f, 0.5f}) };
+
 	command_buffer.beginRenderPass(
 		vk::RenderPassBeginInfo(
 			*vk_render_pass_,
 			*framebuffers_[swapchain_image_index].framebuffer,
 			vk::Rect2D(vk::Offset2D(0, 0), viewport_size_),
-			0u, nullptr),
+			1u, &clear_value),
 		vk::SubpassContents::eInline);
 
 	// Draw into framebuffer.
-	for(const DrawFunction& draw_function : draw_functions)
-	{
-		draw_function(command_buffer);
-	}
+	draw_function(command_buffer);
 
 	// End render pass.
 	command_buffer.endRenderPass();
@@ -449,11 +450,6 @@ uint32_t WindowVulkan::GetQueueFamilyIndex() const
 vk::RenderPass WindowVulkan::GetRenderPass() const
 {
 	return *vk_render_pass_;
-}
-
-bool WindowVulkan::HasDepthBuffer() const
-{
-	return false;
 }
 
 vk::PhysicalDeviceMemoryProperties WindowVulkan::GetMemoryProperties() const

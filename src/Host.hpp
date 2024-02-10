@@ -1,8 +1,8 @@
 #pragma once
 #include "SystemWindow.hpp"
 #include "WindowVulkan.hpp"
+#include "WorldRenderer.hpp"
 #include <chrono>
-
 
 namespace HexGPU
 {
@@ -21,6 +21,7 @@ private:
 
 	SystemWindow system_window_;
 	WindowVulkan window_vulkan_;
+	WorldRenderer world_renderer_;
 
 	const Clock::time_point init_time_;
 	Clock::time_point prev_tick_time_;

@@ -10,20 +10,18 @@ class WindowVulkan final
 {
 public:
 	using DrawFunction= std::function<void(vk::CommandBuffer)>;
-	using DrawFunctions= std::vector<DrawFunction>;
 
 public:
 	explicit WindowVulkan(const SystemWindow& system_window);
 	~WindowVulkan();
 
 	vk::CommandBuffer BeginFrame();
-	void EndFrame(const DrawFunctions& draw_functions);
+	void EndFrame(const DrawFunction& draw_function);
 
 	vk::Device GetVulkanDevice() const;
 	vk::Extent2D GetViewportSize() const;
 	uint32_t GetQueueFamilyIndex() const;
 	vk::RenderPass GetRenderPass() const; // Render pass for rendering directly into screen.
-	bool HasDepthBuffer() const;
 	vk::PhysicalDeviceMemoryProperties GetMemoryProperties() const;
 	vk::PhysicalDevice GetPhysicalDevice() const;
 

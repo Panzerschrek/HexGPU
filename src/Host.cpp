@@ -9,6 +9,7 @@ namespace HexGPU
 Host::Host()
 	: system_window_()
 	, window_vulkan_(system_window_)
+	, world_renderer_(window_vulkan_)
 	, init_time_(Clock::now())
 	, prev_tick_time_(init_time_)
 {
@@ -33,10 +34,6 @@ bool Host::Loop()
 
 	window_vulkan_.EndFrame(
 		{
-			[&](const vk::CommandBuffer command_buffer)
-			{
-				HEX_UNUSED(command_buffer);
-			},
 			[&](const vk::CommandBuffer command_buffer)
 			{
 				HEX_UNUSED(command_buffer);

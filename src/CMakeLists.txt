@@ -18,6 +18,10 @@ else()
 	add_compile_options(-Werror -Wall -Wextra -Wconversion)
 endif()
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+	add_definitions(-DDEBUG)
+endif()
+
 # Search dependencies.
 find_package(SDL2 REQUIRED)
 find_package(Vulkan REQUIRED)

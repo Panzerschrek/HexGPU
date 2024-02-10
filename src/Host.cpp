@@ -22,6 +22,9 @@ bool Host::Loop()
 	HEX_UNUSED(dt);
 	prev_tick_time_ = tick_start_time;
 
+	const float frame_time=
+		float(std::chrono::duration_cast<std::chrono::milliseconds>(tick_start_time - init_time_).count()) / 1000.0f;
+
 	for( const SDL_Event& event : system_window_.ProcessEvents() )
 	{
 		if( event.type == SDL_QUIT )
@@ -33,11 +36,9 @@ bool Host::Loop()
 	window_vulkan_.BeginFrame();
 
 	window_vulkan_.EndFrame(
+		[&](const vk::CommandBuffer command_buffer)
 		{
-			[&](const vk::CommandBuffer command_buffer)
-			{
-				HEX_UNUSED(command_buffer);
-			},
+			world_renderer_.Draw(command_buffer, frame_time);
 		});
 
 	const Clock::time_point tick_end_time= Clock::now();

@@ -33,32 +33,32 @@ void CameraController::Update(const float time_delta_s, const std::vector<bool>&
 
 	m_Vec3 move_vector(0.0f, 0.0f, 0.0f);
 
-	if(keyboard_state[size_t(SDLK_w & ~SDLK_SCANCODE_MASK)])
+	if(keyboard_state[size_t(SDL_SCANCODE_W)])
 		move_vector+= forward_vector;
-	if(keyboard_state[size_t(SDLK_s & ~SDLK_SCANCODE_MASK)])
+	if(keyboard_state[size_t(SDL_SCANCODE_S)])
 		move_vector-= forward_vector;
-	if(keyboard_state[size_t(SDLK_d & ~SDLK_SCANCODE_MASK)])
+	if(keyboard_state[size_t(SDL_SCANCODE_D)])
 		move_vector+= left_vector;
-	if(keyboard_state[size_t(SDLK_a & ~SDLK_SCANCODE_MASK)])
+	if(keyboard_state[size_t(SDL_SCANCODE_A)])
 		move_vector-= left_vector;
 
 	const float move_vector_length= move_vector.GetLength();
 	if(move_vector_length > 0.0f)
 		pos_+= move_vector * (time_delta_s * speed / move_vector_length);
 
-	if(keyboard_state[size_t(SDLK_SPACE & ~SDLK_SCANCODE_MASK)])
+	if(keyboard_state[size_t(SDL_SCANCODE_SPACE)])
 		pos_.z+= time_delta_s * jump_speed;
-	if(keyboard_state[size_t(SDLK_c & ~SDLK_SCANCODE_MASK)])
+	if(keyboard_state[size_t(SDL_SCANCODE_C)])
 		pos_.z-= time_delta_s * jump_speed;
 
-	if(keyboard_state[size_t(SDLK_LEFT & ~SDLK_SCANCODE_MASK)])
+	if(keyboard_state[size_t(SDL_SCANCODE_LEFT)])
 		azimuth_+= time_delta_s * angle_speed;
-	if(keyboard_state[size_t(SDLK_RIGHT & ~SDLK_SCANCODE_MASK)])
+	if(keyboard_state[size_t(SDL_SCANCODE_RIGHT)])
 		azimuth_-= time_delta_s * angle_speed;
 
-	if(keyboard_state[size_t(SDLK_UP & ~SDLK_SCANCODE_MASK)])
+	if(keyboard_state[size_t(SDL_SCANCODE_UP)])
 		elevation_+= time_delta_s * angle_speed;
-	if(keyboard_state[size_t(SDLK_DOWN & ~SDLK_SCANCODE_MASK)])
+	if(keyboard_state[size_t(SDL_SCANCODE_DOWN)])
 		elevation_-= time_delta_s * angle_speed;
 
 	while(azimuth_ > +g_pi)

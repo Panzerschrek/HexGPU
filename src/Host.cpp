@@ -32,9 +32,6 @@ bool Host::Loop()
 	const auto dt= tick_start_time - prev_tick_time_;
 	prev_tick_time_ = tick_start_time;
 
-	const float frame_time_s=
-		float(std::chrono::duration_cast<std::chrono::milliseconds>(tick_start_time - init_time_).count()) / 1000.0f;
-
 	const float dt_s= float(dt.count()) * float(Clock::duration::period::num) / float(Clock::duration::period::den);
 
 	for( const SDL_Event& event : system_window_.ProcessEvents() )
@@ -52,7 +49,7 @@ bool Host::Loop()
 	window_vulkan_.EndFrame(
 		[&](const vk::CommandBuffer command_buffer)
 		{
-			world_renderer_.Draw(command_buffer, frame_time_s);
+			world_renderer_.Draw(command_buffer, camera_controller_.CalculateFullViewMatrix());
 		});
 
 	const Clock::time_point tick_end_time= Clock::now();

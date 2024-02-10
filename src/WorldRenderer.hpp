@@ -1,4 +1,5 @@
 #pragma once
+#include "Mat.hpp"
 #include "WindowVulkan.hpp"
 
 namespace HexGPU
@@ -11,7 +12,7 @@ public:
 
 	~WorldRenderer();
 
-	void Draw(vk::CommandBuffer command_buffer, float frame_time_s);
+	void Draw(vk::CommandBuffer command_buffer, const m_Mat4& view_matrix);
 
 private:
 	const vk::Device vk_device_;

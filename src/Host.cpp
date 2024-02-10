@@ -6,10 +6,21 @@
 namespace HexGPU
 {
 
+namespace
+{
+
+float CalculateAspect(const vk::Extent2D& viewport_size)
+{
+	return float(viewport_size.width) / float(viewport_size.height);
+}
+
+} // namespace
+
 Host::Host()
 	: system_window_()
 	, window_vulkan_(system_window_)
 	, world_renderer_(window_vulkan_)
+	, camera_controller_(CalculateAspect(window_vulkan_.GetViewportSize()))
 	, init_time_(Clock::now())
 	, prev_tick_time_(init_time_)
 {
@@ -19,11 +30,12 @@ bool Host::Loop()
 {
 	const Clock::time_point tick_start_time= Clock::now();
 	const auto dt= tick_start_time - prev_tick_time_;
-	HEX_UNUSED(dt);
 	prev_tick_time_ = tick_start_time;
 
-	const float frame_time=
+	const float frame_time_s=
 		float(std::chrono::duration_cast<std::chrono::milliseconds>(tick_start_time - init_time_).count()) / 1000.0f;
+
+	const float dt_s= float(dt.count()) * float(Clock::duration::period::num) / float(Clock::duration::period::den);
 
 	for( const SDL_Event& event : system_window_.ProcessEvents() )
 	{
@@ -33,12 +45,14 @@ bool Host::Loop()
 			quit_requested_= true;
 	}
 
+	camera_controller_.Update(dt_s, system_window_.GetKeyboardState());
+
 	window_vulkan_.BeginFrame();
 
 	window_vulkan_.EndFrame(
 		[&](const vk::CommandBuffer command_buffer)
 		{
-			world_renderer_.Draw(command_buffer, frame_time);
+			world_renderer_.Draw(command_buffer, frame_time_s);
 		});
 
 	const Clock::time_point tick_end_time= Clock::now();

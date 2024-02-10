@@ -15,6 +15,7 @@ public:
 	SDL_Window* GetSDLWindow() const;
 
 	std::vector<SDL_Event> ProcessEvents();
+	std::vector<bool> GetKeyboardState();
 
 private:
 	SDL_Window* window_= nullptr;

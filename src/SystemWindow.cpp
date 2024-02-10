@@ -54,4 +54,18 @@ std::vector<SDL_Event> SystemWindow::ProcessEvents()
 	return result_events;
 }
 
+std::vector<bool> SystemWindow::GetKeyboardState()
+{
+	int key_count= 0;
+	const Uint8* const keyboard_state= SDL_GetKeyboardState(&key_count);
+
+	std::vector<bool> result;
+	result.resize(size_t(key_count));
+
+	for(int i= 0; i < key_count; ++i)
+		result[size_t(i)]= keyboard_state[i] != 0;
+
+	return result;
+}
+
 } // namespace HexGPU

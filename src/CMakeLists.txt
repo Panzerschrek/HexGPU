@@ -16,6 +16,12 @@ if(MSVC)
 		-D_CRT_SECURE_NO_WARNINGS)
 else()
 	add_compile_options(-Werror -Wall -Wextra -Wconversion)
+	add_compile_options(-fvisibility=hidden -fvisibility-inlines-hidden)
+	add_compile_options(-fdata-sections -ffunction-sections) # simplify later gc-sections.
+
+	# Clear garbage.
+	string(APPEND CMAKE_EXE_LINKER_FLAGS_RELEASE " -s -Wl,--gc-sections")
+	string(APPEND CMAKE_SHARED_LINKER_FLAGS_RELEASE " -s -Wl,--gc-sections")
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")

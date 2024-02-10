@@ -1,0 +1,42 @@
+#include "ShaderList.hpp"
+#include <utility>
+#include <cstdint>
+#include <cstddef>
+
+
+namespace HexGPU
+{
+
+namespace
+{
+
+${SHADER_INCLUDES_LIST}
+
+
+using ShaderSourceRef= std::pair<const uint32_t*, size_t>;
+ShaderSourceRef GetShaderSource(const ShaderNames shader_name)
+{
+	switch(shader_name)
+	{
+		#define PROCESS_SHADER(X) case ShaderNames::X: return ShaderSourceRef(X, sizeof(X));
+		${SHADER_LOOKUP_LIST}
+	}
+	return ShaderSourceRef(nullptr, 0u);
+}
+
+} // namespace
+
+vk::UniqueShaderModule CreateShader(const vk::Device vk_device, const ShaderNames shader_name)
+{
+	const ShaderSourceRef source= GetShaderSource(shader_name);
+	if(source.first == nullptr)
+		return vk::UniqueShaderModule();
+
+	return vk_device.createShaderModuleUnique(
+		vk::ShaderModuleCreateInfo(
+			vk::ShaderModuleCreateFlags(),
+			source.second,
+			source.first));
+}
+
+} // namespace HexGPU

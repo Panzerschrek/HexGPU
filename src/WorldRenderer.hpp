@@ -1,6 +1,6 @@
 #pragma once
 #include "Mat.hpp"
-#include "WindowVulkan.hpp"
+#include "WorldGeometryGenerator.hpp"
 
 namespace HexGPU
 {
@@ -17,12 +17,11 @@ public:
 
 private:
 	const vk::Device vk_device_;
-	const vk::Extent2D viewport_size_;
-	const vk::RenderPass vk_render_pass_;
+
+	WorldGeometryGenerator geometry_generator_;
 
 	vk::UniqueShaderModule shader_vert_;
 	vk::UniqueShaderModule shader_frag_;
-	vk::UniqueShaderModule geometry_gen_shader_;
 
 	vk::UniqueDescriptorSetLayout vk_decriptor_set_layout_;
 	vk::UniquePipelineLayout vk_pipeline_layout_;
@@ -31,17 +30,8 @@ private:
 	vk::UniqueDescriptorPool vk_descriptor_pool_;
 	vk::UniqueDescriptorSet vk_descriptor_set_;
 
-	vk::UniqueBuffer vk_vertex_buffer_;
-	vk::UniqueDeviceMemory vk_vertex_buffer_memory_;
-
 	vk::UniqueBuffer vk_index_buffer_;
 	vk::UniqueDeviceMemory vk_index_buffer_memory_;
-
-	vk::UniqueDescriptorSetLayout vk_geometry_gen_decriptor_set_layout_;
-	vk::UniquePipelineLayout vk_geometry_gen_pipeline_layout_;
-	vk::UniquePipeline vk_geometry_gen_pipeline_;
-	vk::UniqueDescriptorPool vk_geometry_gen_descriptor_pool_;
-	vk::UniqueDescriptorSet vk_geometry_gen_descriptor_set_;
 };
 
 } // namespace HexGPU

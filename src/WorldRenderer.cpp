@@ -11,13 +11,6 @@ namespace HexGPU
 namespace
 {
 
-struct WorldVertex
-{
-	float pos[4];
-	uint8_t color[4];
-	uint8_t reserved[12];
-};
-
 // Returns indeces for quads with size - maximum uint16_t vertex index.
 std::vector<uint16_t> GetQuadsIndices()
 {
@@ -39,19 +32,15 @@ std::vector<uint16_t> GetQuadsIndices()
 
 using QuadVertices= std::array<WorldVertex, 4>;
 
-const uint32_t g_quad_grid_size[]{16, 16};
-
 } // namespace
 
 WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan)
 	: vk_device_(window_vulkan.GetVulkanDevice())
-	, viewport_size_(window_vulkan.GetViewportSize())
-	, vk_render_pass_(window_vulkan.GetRenderPass())
+	, geometry_generator_(window_vulkan)
 {
 	// Create shaders
 	shader_vert_= CreateShader(vk_device_, ShaderNames::triangle_vert);
 	shader_frag_= CreateShader(vk_device_, ShaderNames::triangle_frag);
-	geometry_gen_shader_= CreateShader(vk_device_, ShaderNames::geometry_gen_comp);
 
 	// Create pipeline layout
 
@@ -123,8 +112,9 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan)
 		vk::PipelineInputAssemblyStateCreateFlags(),
 		vk::PrimitiveTopology::eTriangleList);
 
-	const vk::Viewport vk_viewport(0.0f, 0.0f, float(viewport_size_.width), float(viewport_size_.height), 0.0f, 1.0f);
-	const vk::Rect2D vk_scissor(vk::Offset2D(0, 0), viewport_size_);
+	const vk::Extent2D viewport_size= window_vulkan.GetViewportSize();
+	const vk::Viewport vk_viewport(0.0f, 0.0f, float(viewport_size.width), float(viewport_size.height), 0.0f, 1.0f);
+	const vk::Rect2D vk_scissor(vk::Offset2D(0, 0), viewport_size);
 
 	const vk::PipelineViewportStateCreateInfo vk_pipieline_viewport_state_create_info(
 		vk::PipelineViewportStateCreateFlags(),
@@ -184,45 +174,12 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan)
 				&vk_pipeline_color_blend_state_create_info,
 				nullptr,
 				*vk_pipeline_layout_,
-				vk_render_pass_,
+				window_vulkan.GetRenderPass(),
 				0u));
 
 	const auto memory_properties= window_vulkan.GetMemoryProperties();
 
-	// Create vertex buffer
-
-	{
-		const size_t quads_data_size= g_quad_grid_size[0] * g_quad_grid_size[1] * sizeof(QuadVertices);
-
-		vk_vertex_buffer_=
-			vk_device_.createBufferUnique(
-				vk::BufferCreateInfo(
-					vk::BufferCreateFlags(),
-					quads_data_size,
-					vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eStorageBuffer));
-
-		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*vk_vertex_buffer_);
-
-		vk::MemoryAllocateInfo vk_memory_allocate_info(buffer_memory_requirements.size);
-		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
-		{
-			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible) != vk::MemoryPropertyFlags() &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent) != vk::MemoryPropertyFlags())
-				vk_memory_allocate_info.memoryTypeIndex= i;
-		}
-
-		vk_vertex_buffer_memory_= vk_device_.allocateMemoryUnique(vk_memory_allocate_info);
-		vk_device_.bindBufferMemory(*vk_vertex_buffer_, *vk_vertex_buffer_memory_, 0u);
-
-		// Fill the buffer with zeros (to prevent warnings).
-		// Anyway this buffer will be filled by the shader later.
-		void* vertex_data_gpu_size= nullptr;
-		vk_device_.mapMemory(*vk_vertex_buffer_memory_, 0u, vk_memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &vertex_data_gpu_size);
-		std::memset(vertex_data_gpu_size, 0, quads_data_size);
-		vk_device_.unmapMemory(*vk_vertex_buffer_memory_);
-	}
-
+	// Create index buffer.
 	{
 		const std::vector<uint16_t> world_indeces= GetQuadsIndices();
 
@@ -272,92 +229,6 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan)
 				*vk_descriptor_pool_,
 				1u, &*vk_decriptor_set_layout_)).front());
 
-	// Create compute shader pipeline.
-	{
-		const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[1]
-		{
-			{
-				0u,
-				vk::DescriptorType::eStorageBuffer,
-				1u,
-				vk::ShaderStageFlagBits::eCompute,
-				nullptr,
-			},
-		};
-		vk_geometry_gen_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
-			vk::DescriptorSetLayoutCreateInfo(
-				vk::DescriptorSetLayoutCreateFlags(),
-				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
-
-		vk_geometry_gen_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
-			vk::PipelineLayoutCreateInfo(
-				vk::PipelineLayoutCreateFlags(),
-				1u, &*vk_geometry_gen_decriptor_set_layout_,
-				0u, nullptr));
-
-		vk_geometry_gen_pipeline_= vk_device_.createComputePipelineUnique(
-			nullptr,
-			vk::ComputePipelineCreateInfo(
-				vk::PipelineCreateFlags(),
-				vk::PipelineShaderStageCreateInfo(
-					vk::PipelineShaderStageCreateFlags(),
-					vk::ShaderStageFlagBits::eCompute,
-					*geometry_gen_shader_,
-					"main"),
-				*vk_geometry_gen_pipeline_layout_));
-
-		// Create descriptor set pool.
-		const vk::DescriptorSetLayoutBinding vk_descriptor_set_layout_bindings[]
-		{
-			{
-				0u,
-				vk::DescriptorType::eStorageBuffer,
-				1u,
-				vk::ShaderStageFlagBits::eCompute
-			},
-		};
-
-		vk_geometry_gen_decriptor_set_layout_=
-			vk_device_.createDescriptorSetLayoutUnique(
-				vk::DescriptorSetLayoutCreateInfo(
-					vk::DescriptorSetLayoutCreateFlags(),
-					uint32_t(std::size(vk_descriptor_set_layout_bindings)), vk_descriptor_set_layout_bindings));
-
-		const vk::DescriptorPoolSize vk_descriptor_pool_size(vk::DescriptorType::eStorageBuffer, 1u);
-		vk_geometry_gen_descriptor_pool_=
-			vk_device_.createDescriptorPoolUnique(
-				vk::DescriptorPoolCreateInfo(
-					vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-					4u, // max sets.
-					1u, &vk_descriptor_pool_size));
-
-		vk_geometry_gen_descriptor_set_=
-			std::move(
-				vk_device_.allocateDescriptorSetsUnique(
-					vk::DescriptorSetAllocateInfo(
-						*vk_geometry_gen_descriptor_pool_,
-						1u, &*vk_geometry_gen_decriptor_set_layout_)).front());
-
-		const vk::DescriptorBufferInfo descriptor_buffer_info(
-			*vk_vertex_buffer_,
-			0u,
-			g_quad_grid_size[0] * g_quad_grid_size[1] * sizeof(QuadVertices));
-
-		vk_device_.updateDescriptorSets(
-			{
-				{
-					*vk_geometry_gen_descriptor_set_,
-					0u,
-					0u,
-					1u,
-					vk::DescriptorType::eStorageBuffer,
-					nullptr,
-					&descriptor_buffer_info,
-					nullptr
-				},
-			},
-			{});
-	}
 }
 
 WorldRenderer::~WorldRenderer()
@@ -368,16 +239,7 @@ WorldRenderer::~WorldRenderer()
 
 void WorldRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
 {
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *vk_geometry_gen_pipeline_);
-
-	command_buffer.bindDescriptorSets(
-		vk::PipelineBindPoint::eCompute,
-		*vk_geometry_gen_pipeline_layout_,
-		0u,
-		1u, &*vk_geometry_gen_descriptor_set_,
-		0u, nullptr);
-
-	command_buffer.dispatch(g_quad_grid_size[0], g_quad_grid_size[1], 1);
+	geometry_generator_.PrepareFrame(command_buffer);
 
 }
 
@@ -386,7 +248,8 @@ void WorldRenderer::Draw(const vk::CommandBuffer command_buffer, const m_Mat4& v
 	// TODO - synchronize with vertex buffer generation.
 
 	const vk::DeviceSize offsets= 0u;
-	command_buffer.bindVertexBuffers(0u, 1u, &*vk_vertex_buffer_, &offsets);
+	const vk::Buffer vertex_buffer= geometry_generator_.GetVertexBuffer();
+	command_buffer.bindVertexBuffers(0u, 1u, &vertex_buffer, &offsets);
 	command_buffer.bindIndexBuffer(*vk_index_buffer_, 0u, vk::IndexType::eUint16);
 	command_buffer.bindDescriptorSets(
 		vk::PipelineBindPoint::eGraphics,

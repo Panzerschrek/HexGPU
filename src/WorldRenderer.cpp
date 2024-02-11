@@ -215,6 +215,12 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan)
 		vk_vertex_buffer_memory_= vk_device_.allocateMemoryUnique(vk_memory_allocate_info);
 		vk_device_.bindBufferMemory(*vk_vertex_buffer_, *vk_vertex_buffer_memory_, 0u);
 
+		// Fill the buffer with zeros (to prevent warnings).
+		// Anyway this buffer will be filled by the shader later.
+		void* vertex_data_gpu_size= nullptr;
+		vk_device_.mapMemory(*vk_vertex_buffer_memory_, 0u, vk_memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &vertex_data_gpu_size);
+		std::memset(vertex_data_gpu_size, 0, quads_data_size);
+		vk_device_.unmapMemory(*vk_vertex_buffer_memory_);
 	}
 
 	{

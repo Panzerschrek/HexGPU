@@ -4,8 +4,8 @@
 struct WorldVertex
 {
 	vec4 pos;
-	uint8_t color[4];
-	uint8_t reserved[12];
+	u8vec4 color;
+	u8vec4 reserved[3];
 };
 
 struct Quad
@@ -49,8 +49,10 @@ void main()
 	int block_global_y= chunk_offset_y + block_local_y;
 	int z= GetBlockZ(block_global_x, block_global_y);
 
+	// Perform calculations in integers - for simplicity.
+	// Hexagon grid vertices are nicely aligned to scaled square grid.
 	int base_x= 3 * block_global_x;
-	int base_y= 2 * block_global_y - (block_global_x&1) + 1;
+	int base_y= 2 * block_global_y - (block_global_x & 1) + 1;
 
 	{
 		// Add two hexagon quads.
@@ -60,21 +62,10 @@ void main()
 		{
 			Quad quad;
 
-			quad.vertices[0].pos.x= float(base_x);
-			quad.vertices[0].pos.y= float(base_y);
-			quad.vertices[0].pos.z= float(z);
-
-			quad.vertices[1].pos.x= float(base_x + 2);
-			quad.vertices[1].pos.y= float(base_y);
-			quad.vertices[1].pos.z= float(z);
-
-			quad.vertices[2].pos.x= float(base_x + 3);
-			quad.vertices[2].pos.y= float(base_y + 1);
-			quad.vertices[2].pos.z= float(z);
-
-			quad.vertices[3].pos.x= float(base_x - 1);
-			quad.vertices[3].pos.y= float(base_y + 1);
-			quad.vertices[3].pos.z= float(z);
+			quad.vertices[0].pos= vec4(float(base_x), float(base_y), float(z), 0.0);
+			quad.vertices[1].pos= vec4(float(base_x + 2), float(base_y), float(z), 0.0);
+			quad.vertices[2].pos= vec4(float(base_x + 3), float(base_y + 1), float(z), 0.0);
+			quad.vertices[3].pos= vec4(float(base_x - 1), float(base_y + 1), float(z), 0.0);
 
 			quad.vertices[0].color[0]= uint8_t((invocation.x + 1) * 32);
 			quad.vertices[0].color[1]= uint8_t((invocation.y + 1) * 32);
@@ -94,21 +85,10 @@ void main()
 		{
 			Quad quad;
 
-			quad.vertices[0].pos.x= float(base_x - 1);
-			quad.vertices[0].pos.y= float(base_y + 1);
-			quad.vertices[0].pos.z= float(z);
-
-			quad.vertices[1].pos.x= float(base_x + 3);
-			quad.vertices[1].pos.y= float(base_y + 1);
-			quad.vertices[1].pos.z= float(z);
-
-			quad.vertices[2].pos.x= float(base_x + 2);
-			quad.vertices[2].pos.y= float(base_y + 2);
-			quad.vertices[2].pos.z= float(z);
-
-			quad.vertices[3].pos.x= float(base_x);
-			quad.vertices[3].pos.y= float(base_y + 2);
-			quad.vertices[3].pos.z= float(z);
+			quad.vertices[0].pos= vec4(float(base_x - 1), float(base_y + 1), float(z), 0.0);
+			quad.vertices[1].pos= vec4(float(base_x + 3), float(base_y + 1), float(z), 0.0);
+			quad.vertices[2].pos= vec4(float(base_x + 2), float(base_y + 2), float(z), 0.0);
+			quad.vertices[3].pos= vec4(float(base_x), float(base_y + 2), float(z), 0.0);
 
 			quad.vertices[0].color[0]= uint8_t((invocation.x + 1) * 32);
 			quad.vertices[0].color[1]= uint8_t((invocation.y + 1) * 32);
@@ -136,21 +116,10 @@ void main()
 
 		Quad quad;
 
-		quad.vertices[0].pos.x= float(base_x);
-		quad.vertices[0].pos.y= float(base_y + 2);
-		quad.vertices[0].pos.z= float(z);
-
-		quad.vertices[1].pos.x= float(base_x);
-		quad.vertices[1].pos.y= float(base_y + 2);
-		quad.vertices[1].pos.z= float(z + 1);
-
-		quad.vertices[2].pos.x= float(base_x + 2);
-		quad.vertices[2].pos.y= float(base_y + 2);
-		quad.vertices[2].pos.z= float(z + 1);
-
-		quad.vertices[3].pos.x= float(base_x + 2);
-		quad.vertices[3].pos.y= float(base_y + 2);
-		quad.vertices[3].pos.z= float(z);
+		quad.vertices[0].pos= vec4(float(base_x), float(base_y + 2), float(z), 0.0);
+		quad.vertices[1].pos= vec4(float(base_x), float(base_y + 2), float(z + 1), 0.0);
+		quad.vertices[2].pos= vec4(float(base_x + 2), float(base_y + 2), float(z + 1), 0.0);
+		quad.vertices[3].pos= vec4(float(base_x + 2), float(base_y + 2), float(z), 0.0);
 
 		quad.vertices[0].color[0]= uint8_t((invocation.x + 1) * 32);
 		quad.vertices[0].color[1]= uint8_t((invocation.y + 1) * 32);

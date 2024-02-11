@@ -33,6 +33,8 @@ private:
 
 	vk::UniqueBuffer vk_index_buffer_;
 	vk::UniqueDeviceMemory vk_index_buffer_memory_;
+
+	size_t num_quads_= 0;
 };
 
 } // namespace HexGPU

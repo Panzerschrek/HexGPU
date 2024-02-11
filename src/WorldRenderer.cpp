@@ -17,6 +17,72 @@ struct WorldVertex
 	uint8_t color[4];
 };
 
+// Returns indeces for quads with size - maximum uint16_t vertex index.
+std::vector<uint16_t> GetQuadsIndices()
+{
+	size_t quad_count= 65536 / 6 - 1;
+	std::vector<uint16_t> indeces( quad_count * 6 );
+
+	for(uint32_t i= 0, v= 0; i< quad_count * 6; i+= 6, v+= 4)
+	{
+		indeces[i+0]= uint16_t(v + 0);
+		indeces[i+1]= uint16_t(v + 1);
+		indeces[i+2]= uint16_t(v + 2);
+		indeces[i+3]= uint16_t(v + 0);
+		indeces[i+4]= uint16_t(v + 2);
+		indeces[i+5]= uint16_t(v + 3);
+	}
+
+	return indeces;
+}
+
+using QuadVertices= std::array<WorldVertex, 4>;
+
+std::vector<QuadVertices> GenQuads()
+{
+	std::vector<QuadVertices> quads;
+
+	for(uint32_t x= 0; x < 16; ++x)
+	for(uint32_t y= 0; y < 16; ++y)
+	{
+		const float z= float(x + y) * 0.25f;
+
+		QuadVertices vertices;
+
+		vertices[0].pos[0]= float(x);
+		vertices[0].pos[1]= float(y);
+		vertices[0].pos[2]= z;
+		vertices[0].color[0]= uint8_t((x + 1u) * 32);
+		vertices[0].color[1]= uint8_t((y + 1u) * 32);
+		vertices[0].color[2]= 0;
+
+		vertices[1].pos[0]= float(x + 1u);
+		vertices[1].pos[1]= float(y);
+		vertices[1].pos[2]= z;
+		vertices[1].color[0]= uint8_t(x * 32);
+		vertices[1].color[1]= uint8_t((y + 1u) * 32);
+		vertices[1].color[2]= 0;
+
+		vertices[2].pos[0]= float(x + 1u);
+		vertices[2].pos[1]= float(y + 1u);
+		vertices[2].pos[2]= z;
+		vertices[2].color[0]= uint8_t(x * 32);
+		vertices[2].color[1]= uint8_t(y * 32);
+		vertices[2].color[2]= 0;
+
+		vertices[3].pos[0]= float(x);
+		vertices[3].pos[1]= float(y + 1u);
+		vertices[3].pos[2]= z;
+		vertices[3].color[0]= uint8_t((x + 1u) * 32);
+		vertices[3].color[1]= uint8_t(y * 32);
+		vertices[3].color[2]= 0;
+
+		quads.push_back( std::move(vertices) );
+	}
+
+	return quads;
+}
+
 } // namespace
 
 WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan)
@@ -154,22 +220,18 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan)
 
 	// Create vertex buffer
 
-	const std::vector<WorldVertex> world_vertices
-	{
-		{ { -0.5f, 2.0f, -0.5f }, { 255, 0, 0, 0 }, },
-		{ { +0.5f, 2.0f, -0.5f }, { 0, 255, 0, 0 }, },
-		{ { +0.5f, 2.0f, +0.5f }, { 0, 0, 255, 0 }, },
-		{ { -0.5f, 2.0f, +0.5f }, { 0, 0, 0,   0 }, },
-	};
-
-	const std::vector<uint16_t> world_indeces{ 0, 1, 2, 0, 2, 3 };
 
 	{
+		const std::vector<QuadVertices> world_vertices= GenQuads();
+		num_quads_= world_vertices.size();
+
+		const size_t quads_data_size= world_vertices.size() * sizeof(QuadVertices);
+
 		vk_vertex_buffer_=
 			vk_device_.createBufferUnique(
 				vk::BufferCreateInfo(
 					vk::BufferCreateFlags(),
-					world_vertices.size() * sizeof(WorldVertex),
+					quads_data_size,
 					vk::BufferUsageFlagBits::eVertexBuffer));
 
 		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*vk_vertex_buffer_);
@@ -188,16 +250,20 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan)
 
 		void* vertex_data_gpu_size= nullptr;
 		vk_device_.mapMemory(*vk_vertex_buffer_memory_, 0u, vk_memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &vertex_data_gpu_size);
-		std::memcpy(vertex_data_gpu_size, world_vertices.data(), world_vertices.size() * sizeof(WorldVertex));
+		std::memcpy(vertex_data_gpu_size, world_vertices.data(), quads_data_size);
 		vk_device_.unmapMemory(*vk_vertex_buffer_memory_);
 	}
 
 	{
+		const std::vector<uint16_t> world_indeces= GetQuadsIndices();
+
+		const size_t indices_size= world_indeces.size() * sizeof(uint16_t);
+
 		vk_index_buffer_=
 			vk_device_.createBufferUnique(
 				vk::BufferCreateInfo(
 					vk::BufferCreateFlags(),
-					world_indeces.size() * sizeof(uint16_t),
+					indices_size,
 					vk::BufferUsageFlagBits::eIndexBuffer));
 
 		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*vk_index_buffer_);
@@ -216,7 +282,7 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan)
 
 		void* vertex_data_gpu_size= nullptr;
 		vk_device_.mapMemory(*vk_index_buffer_memory_, 0u, vk_memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &vertex_data_gpu_size);
-		std::memcpy(vertex_data_gpu_size, world_indeces.data(), world_indeces.size() * sizeof(uint16_t));
+		std::memcpy(vertex_data_gpu_size, world_indeces.data(), indices_size);
 		vk_device_.unmapMemory(*vk_index_buffer_memory_);
 	}
 
@@ -259,7 +325,7 @@ void WorldRenderer::Draw(const vk::CommandBuffer command_buffer, const m_Mat4& v
 	command_buffer.pushConstants(*vk_pipeline_layout_, vk::ShaderStageFlagBits::eVertex, 0, sizeof(view_matrix), &view_matrix);
 
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *vk_pipeline_);
-	command_buffer.drawIndexed(6u, 1u, 0u, 0u, 0u);
+	command_buffer.drawIndexed(uint32_t(num_quads_) * 6u, 1u, 0u, 0u, 0u);
 }
 
 } // namespace HexGPU

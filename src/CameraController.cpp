@@ -24,7 +24,7 @@ void CameraController::SetAspect(const float aspect)
 
 void CameraController::Update(const float time_delta_s, const std::vector<bool>& keyboard_state)
 {
-	const float speed= 1.0f;
+	const float speed= 4.0f;
 	const float jump_speed= 0.8f * speed;
 	const float angle_speed= 1.0f;
 

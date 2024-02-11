@@ -39,6 +39,10 @@ private:
 		vk::Image image;
 		vk::UniqueImageView image_view;
 		vk::UniqueFramebuffer framebuffer;
+
+		vk::UniqueImage depth_image;
+		vk::UniqueDeviceMemory depth_image_memory;
+		vk::UniqueImageView depth_image_view;
 	};
 
 private:

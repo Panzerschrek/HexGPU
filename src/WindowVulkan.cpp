@@ -160,6 +160,9 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 		}
 	}
 
+	physical_device_= physical_device;
+	memory_properties_= physical_device.getMemoryProperties();
+
 	{
 		const vk::PhysicalDeviceProperties properties= physical_device.getProperties();
 		Log::Info("");
@@ -235,6 +238,34 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 	}
 	Log::Info("Swapchan surface format: ", vk::to_string(surface_format.format), " ", vk::to_string(surface_format.colorSpace));
 
+	// TODO - avoid creating depth buffer here.
+
+	// Select depth buffer format.
+	const vk::Format depth_formats[]
+	{
+		// Depth formats by priority.
+		vk::Format::eD32Sfloat,
+		vk::Format::eD24UnormS8Uint,
+		vk::Format::eX8D24UnormPack32,
+		vk::Format::eD32SfloatS8Uint,
+		vk::Format::eD16Unorm,
+		vk::Format::eD16UnormS8Uint,
+	};
+	vk::Format framebuffer_depth_format= vk::Format::eD16Unorm;
+	for(const vk::Format depth_format_candidate : depth_formats)
+	{
+		const vk::FormatProperties format_properties=
+			physical_device.getFormatProperties(depth_format_candidate);
+
+		const vk::FormatFeatureFlags required_falgs= vk::FormatFeatureFlagBits::eDepthStencilAttachment;
+		if((format_properties.optimalTilingFeatures & required_falgs) == required_falgs)
+		{
+			framebuffer_depth_format= depth_format_candidate;
+			break;
+		}
+	}
+	Log::Info("Framebuffer depth format: ", vk::to_string(framebuffer_depth_format));
+
 	// Select present mode. Prefer usage of tripple buffering, than double buffering.
 	const std::vector<vk::PresentModeKHR> present_modes= physical_device.getSurfacePresentModesKHR(*vk_surface_);
 	vk::PresentModeKHR present_mode= present_modes.front();
@@ -270,39 +301,97 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 
 	// Create render pass and framebuffers for drawing into screen.
 
-	const vk::AttachmentDescription vk_attachment_description(
-		vk::AttachmentDescriptionFlags(),
-		surface_format.format,
-		vk::SampleCountFlagBits::e1,
-		vk::AttachmentLoadOp::eClear, // TODO - eDontCare if we do not clear the result
-		vk::AttachmentStoreOp::eStore,
-		vk::AttachmentLoadOp::eDontCare,
-		vk::AttachmentStoreOp::eDontCare,
-		vk::ImageLayout::eUndefined,
-		vk::ImageLayout::ePresentSrcKHR);
+	const vk::AttachmentDescription vk_attachment_descriptions[]
+	{
+		{
+			vk::AttachmentDescriptionFlags(),
+			surface_format.format,
+			vk::SampleCountFlagBits::e1,
+			vk::AttachmentLoadOp::eClear, // TODO - eDontCare if we do not clear the result
+			vk::AttachmentStoreOp::eStore,
+			vk::AttachmentLoadOp::eDontCare,
+			vk::AttachmentStoreOp::eDontCare,
+			vk::ImageLayout::eUndefined,
+			vk::ImageLayout::ePresentSrcKHR
+		},
+		{
+			vk::AttachmentDescriptionFlags(),
+			framebuffer_depth_format,
+			vk::SampleCountFlagBits::e1,
+			vk::AttachmentLoadOp::eClear,
+			vk::AttachmentStoreOp::eStore,
+			vk::AttachmentLoadOp::eDontCare,
+			vk::AttachmentStoreOp::eDontCare,
+			vk::ImageLayout::eUndefined,
+			vk::ImageLayout::eUndefined,
+		},
+	};
 
-	const vk::AttachmentReference vk_attachment_reference(
-		0u,
-		vk::ImageLayout::eColorAttachmentOptimal);
+	const vk::AttachmentReference vk_attachment_reference_color(0u, vk::ImageLayout::eColorAttachmentOptimal);
+	const vk::AttachmentReference vk_attachment_reference_depth(1u, vk::ImageLayout::eGeneral);
 
 	const vk::SubpassDescription vk_subpass_description(
 		vk::SubpassDescriptionFlags(),
 		vk::PipelineBindPoint::eGraphics,
 		0u, nullptr,
-		1u, &vk_attachment_reference);
+		1u, &vk_attachment_reference_color,
+		nullptr,
+		&vk_attachment_reference_depth);
 
 	vk_render_pass_=
 		vk_device_->createRenderPassUnique(
 			vk::RenderPassCreateInfo(
 				vk::RenderPassCreateFlags(),
-				1u, &vk_attachment_description,
+				uint32_t(std::size(vk_attachment_descriptions)), vk_attachment_descriptions,
 				1u, &vk_subpass_description));
 
 	const std::vector<vk::Image> swapchain_images= vk_device_->getSwapchainImagesKHR(*vk_swapchain_);
 	framebuffers_.resize(swapchain_images.size());
 	for(size_t i= 0u; i < framebuffers_.size(); ++i)
 	{
+		{
+			framebuffers_[i].depth_image=
+				vk_device_->createImageUnique(
+					vk::ImageCreateInfo(
+						vk::ImageCreateFlags(),
+						vk::ImageType::e2D,
+						framebuffer_depth_format,
+						vk::Extent3D(viewport_size_.width, viewport_size_.height, 1u),
+						1u,
+						1u,
+						vk::SampleCountFlagBits::e1,
+						vk::ImageTiling::eOptimal,
+						vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled,
+						vk::SharingMode::eExclusive,
+						0u, nullptr,
+						vk::ImageLayout::eUndefined));
+
+			const vk::MemoryRequirements image_memory_requirements= vk_device_->getImageMemoryRequirements(*framebuffers_[i].depth_image);
+
+			vk::MemoryAllocateInfo vk_memory_allocate_info(image_memory_requirements.size);
+			for(uint32_t i= 0u; i < memory_properties_.memoryTypeCount; ++i)
+			{
+				if((image_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
+					(memory_properties_.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
+					vk_memory_allocate_info.memoryTypeIndex= i;
+			}
+
+			framebuffers_[i].depth_image_memory= vk_device_->allocateMemoryUnique(vk_memory_allocate_info);
+			vk_device_->bindImageMemory(*framebuffers_[i].depth_image, *framebuffers_[i].depth_image_memory, 0u);
+
+			framebuffers_[i].depth_image_view=
+				vk_device_->createImageViewUnique(
+					vk::ImageViewCreateInfo(
+						vk::ImageViewCreateFlags(),
+						*framebuffers_[i].depth_image,
+						vk::ImageViewType::e2D,
+						framebuffer_depth_format,
+						vk::ComponentMapping(),
+						vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0u, 1u, 0u, 1u)));
+		}
+
 		framebuffers_[i].image= swapchain_images[i];
+
 		framebuffers_[i].image_view=
 			vk_device_->createImageViewUnique(
 				vk::ImageViewCreateInfo(
@@ -312,13 +401,16 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 					surface_format.format,
 					vk::ComponentMapping(),
 					vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, 1u, 0u, 1u)));
+
+		const vk::ImageView attachments[]{ *framebuffers_[i].image_view, *framebuffers_[i].depth_image_view };
 		framebuffers_[i].framebuffer=
 			vk_device_->createFramebufferUnique(
 				vk::FramebufferCreateInfo(
 					vk::FramebufferCreateFlags(),
 					*vk_render_pass_,
-					1u, &*framebuffers_[i].image_view,
-					viewport_size_.width , viewport_size_.height, 1u));
+					uint32_t(std::size(attachments)), attachments,
+					viewport_size_.width, viewport_size_.height, 1u));
+
 	}
 
 	// Create command pull.
@@ -343,9 +435,6 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 		frame_data.rendering_finished_semaphore= vk_device_->createSemaphoreUnique(vk::SemaphoreCreateInfo());
 		frame_data.submit_fence= vk_device_->createFenceUnique(vk::FenceCreateInfo(vk::FenceCreateFlagBits::eSignaled));
 	}
-
-	memory_properties_= physical_device.getMemoryProperties();
-	physical_device_= physical_device;
 }
 
 WindowVulkan::~WindowVulkan()
@@ -395,14 +484,18 @@ void WindowVulkan::EndFrame(const DrawFunction& draw_function)
 	// Begin render pass.
 
 	// TODO - avoid clearing result buffer.
-	const vk::ClearValue clear_value{ vk::ClearColorValue(std::array<float,4>{0.2f, 0.1f, 0.1f, 0.5f}) };
+	const vk::ClearValue clear_values[]
+	{
+		vk::ClearColorValue(std::array<float,4>{0.2f, 0.1f, 0.1f, 0.5f}),
+		vk::ClearDepthStencilValue(1.0f, 0u),
+	};
 
 	command_buffer.beginRenderPass(
 		vk::RenderPassBeginInfo(
 			*vk_render_pass_,
 			*framebuffers_[swapchain_image_index].framebuffer,
 			vk::Rect2D(vk::Offset2D(0, 0), viewport_size_),
-			1u, &clear_value),
+			uint32_t(std::size(clear_values)), clear_values),
 		vk::SubpassContents::eInline);
 
 	// Draw into framebuffer.

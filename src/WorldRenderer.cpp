@@ -184,6 +184,18 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan)
 
 	const vk::PipelineMultisampleStateCreateInfo vk_pipeline_multisample_state_create_info;
 
+	const vk::PipelineDepthStencilStateCreateInfo vk_pipeline_depth_state_create_info(
+		vk::PipelineDepthStencilStateCreateFlags(),
+		VK_TRUE,
+		VK_TRUE,
+		vk::CompareOp::eLess,
+		VK_FALSE,
+		VK_FALSE,
+		vk::StencilOpState(),
+		vk::StencilOpState(),
+		0.0f,
+		1.0f);
+
 	const vk::PipelineColorBlendAttachmentState vk_pipeline_color_blend_attachment_state(
 		VK_FALSE,
 		vk::BlendFactor::eOne, vk::BlendFactor::eZero, vk::BlendOp::eAdd,
@@ -209,7 +221,7 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan)
 				&vk_pipieline_viewport_state_create_info,
 				&vk_pipilane_rasterization_state_create_info,
 				&vk_pipeline_multisample_state_create_info,
-				nullptr,
+				&vk_pipeline_depth_state_create_info,
 				&vk_pipeline_color_blend_state_create_info,
 				nullptr,
 				*vk_pipeline_layout_,
@@ -219,7 +231,6 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan)
 	const auto memory_properties= window_vulkan.GetMemoryProperties();
 
 	// Create vertex buffer
-
 
 	{
 		const std::vector<QuadVertices> world_vertices= GenQuads();

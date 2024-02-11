@@ -13,8 +13,9 @@ namespace
 
 struct WorldVertex
 {
-	float pos[3];
+	float pos[4];
 	uint8_t color[4];
+	uint8_t reserved[12];
 };
 
 // Returns indeces for quads with size - maximum uint16_t vertex index.
@@ -45,7 +46,7 @@ std::vector<QuadVertices> GenQuads()
 	for(uint32_t x= 0; x < 16; ++x)
 	for(uint32_t y= 0; y < 16; ++y)
 	{
-		const float z= float(x + y) * 0.25f;
+		const float z= 0.0f;
 
 		QuadVertices vertices;
 
@@ -93,6 +94,7 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan)
 	// Create shaders
 	shader_vert_= CreateShader(vk_device_, ShaderNames::triangle_vert);
 	shader_frag_= CreateShader(vk_device_, ShaderNames::triangle_frag);
+	geometry_gen_shader_= CreateShader(vk_device_, ShaderNames::geometry_gen_comp);
 
 	// Create pipeline layout
 
@@ -152,7 +154,7 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan)
 	const vk::VertexInputAttributeDescription vk_vertex_input_attribute_description[2]
 	{
 		{0u, 0u, vk::Format::eR32G32B32Sfloat, 0u},
-		{1u, 0u, vk::Format::eR8G8B8A8Unorm, sizeof(float) * 3},
+		{1u, 0u, vk::Format::eR8G8B8A8Unorm, sizeof(float) * 4},
 	};
 
 	const vk::PipelineVertexInputStateCreateInfo vk_pipiline_vertex_input_state_create_info(
@@ -243,7 +245,7 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan)
 				vk::BufferCreateInfo(
 					vk::BufferCreateFlags(),
 					quads_data_size,
-					vk::BufferUsageFlagBits::eVertexBuffer));
+					vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eStorageBuffer));
 
 		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*vk_vertex_buffer_);
 
@@ -313,12 +315,114 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan)
 			vk::DescriptorSetAllocateInfo(
 				*vk_descriptor_pool_,
 				1u, &*vk_decriptor_set_layout_)).front());
+
+	// Create compute shader pipeline.
+	{
+		const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[1]
+		{
+			{
+				0u,
+				vk::DescriptorType::eStorageBuffer,
+				1u,
+				vk::ShaderStageFlagBits::eCompute,
+				nullptr,
+			},
+		};
+		vk_geometry_gen_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
+			vk::DescriptorSetLayoutCreateInfo(
+				vk::DescriptorSetLayoutCreateFlags(),
+				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
+
+		vk_geometry_gen_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
+			vk::PipelineLayoutCreateInfo(
+				vk::PipelineLayoutCreateFlags(),
+				1u, &*vk_geometry_gen_decriptor_set_layout_,
+				0u, nullptr));
+
+		vk_geometry_gen_pipeline_= vk_device_.createComputePipelineUnique(
+			nullptr,
+			vk::ComputePipelineCreateInfo(
+				vk::PipelineCreateFlags(),
+				vk::PipelineShaderStageCreateInfo(
+					vk::PipelineShaderStageCreateFlags(),
+					vk::ShaderStageFlagBits::eCompute,
+					*geometry_gen_shader_,
+					"main"),
+				*vk_geometry_gen_pipeline_layout_));
+
+		// Create descriptor set pool.
+		const vk::DescriptorSetLayoutBinding vk_descriptor_set_layout_bindings[]
+		{
+			{
+				0u,
+				vk::DescriptorType::eStorageBuffer,
+				1u,
+				vk::ShaderStageFlagBits::eCompute
+			},
+		};
+
+		vk_geometry_gen_decriptor_set_layout_=
+			vk_device_.createDescriptorSetLayoutUnique(
+				vk::DescriptorSetLayoutCreateInfo(
+					vk::DescriptorSetLayoutCreateFlags(),
+					uint32_t(std::size(vk_descriptor_set_layout_bindings)), vk_descriptor_set_layout_bindings));
+
+		const vk::DescriptorPoolSize vk_descriptor_pool_size(vk::DescriptorType::eStorageBuffer, 1u);
+		vk_geometry_gen_descriptor_pool_=
+			vk_device_.createDescriptorPoolUnique(
+				vk::DescriptorPoolCreateInfo(
+					vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
+					4u, // max sets.
+					1u, &vk_descriptor_pool_size));
+
+		vk_geometry_gen_descriptor_set_=
+			std::move(
+				vk_device_.allocateDescriptorSetsUnique(
+					vk::DescriptorSetAllocateInfo(
+						*vk_geometry_gen_descriptor_pool_,
+						1u, &*vk_geometry_gen_decriptor_set_layout_)).front());
+
+		const vk::DescriptorBufferInfo descriptor_buffer_info(
+			*vk_vertex_buffer_,
+			0u,
+			num_quads_ * sizeof(QuadVertices));
+
+		vk_device_.updateDescriptorSets(
+			{
+				{
+					*vk_geometry_gen_descriptor_set_,
+					0u,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_buffer_info,
+					nullptr
+				},
+			},
+			{});
+	}
 }
 
 WorldRenderer::~WorldRenderer()
 {
 	// Sync before destruction.
 	vk_device_.waitIdle();
+}
+
+void WorldRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
+{
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *vk_geometry_gen_pipeline_);
+
+	command_buffer.bindDescriptorSets(
+		vk::PipelineBindPoint::eCompute,
+		*vk_geometry_gen_pipeline_layout_,
+		0u,
+		1u, &*vk_geometry_gen_descriptor_set_,
+		0u, nullptr);
+
+	command_buffer.dispatch(16, 16, 1);
+
 }
 
 void WorldRenderer::Draw(const vk::CommandBuffer command_buffer, const m_Mat4& view_matrix)

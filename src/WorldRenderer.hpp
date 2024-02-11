@@ -12,6 +12,7 @@ public:
 
 	~WorldRenderer();
 
+	void PrepareFrame(vk::CommandBuffer command_buffer);
 	void Draw(vk::CommandBuffer command_buffer, const m_Mat4& view_matrix);
 
 private:
@@ -21,6 +22,8 @@ private:
 
 	vk::UniqueShaderModule shader_vert_;
 	vk::UniqueShaderModule shader_frag_;
+	vk::UniqueShaderModule geometry_gen_shader_;
+
 	vk::UniqueDescriptorSetLayout vk_decriptor_set_layout_;
 	vk::UniquePipelineLayout vk_pipeline_layout_;
 	vk::UniquePipeline vk_pipeline_;
@@ -33,6 +36,12 @@ private:
 
 	vk::UniqueBuffer vk_index_buffer_;
 	vk::UniqueDeviceMemory vk_index_buffer_memory_;
+
+	vk::UniqueDescriptorSetLayout vk_geometry_gen_decriptor_set_layout_;
+	vk::UniquePipelineLayout vk_geometry_gen_pipeline_layout_;
+	vk::UniquePipeline vk_geometry_gen_pipeline_;
+	vk::UniqueDescriptorPool vk_geometry_gen_descriptor_pool_;
+	vk::UniqueDescriptorSet vk_geometry_gen_descriptor_set_;
 
 	size_t num_quads_= 0;
 };

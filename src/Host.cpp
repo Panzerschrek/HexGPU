@@ -44,7 +44,9 @@ bool Host::Loop()
 
 	camera_controller_.Update(dt_s, system_window_.GetKeyboardState());
 
-	window_vulkan_.BeginFrame();
+	const vk::CommandBuffer command_buffer= window_vulkan_.BeginFrame();
+
+	world_renderer_.PrepareFrame(command_buffer);
 
 	window_vulkan_.EndFrame(
 		[&](const vk::CommandBuffer command_buffer)

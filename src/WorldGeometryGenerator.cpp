@@ -63,7 +63,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
 				vk::BufferCreateInfo(
 					vk::BufferCreateFlags(),
 					buffer_size,
-					vk::BufferUsageFlagBits::eIndirectBuffer | vk::BufferUsageFlagBits::eStorageBuffer));
+					vk::BufferUsageFlagBits::eIndirectBuffer | vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst));
 
 		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*vk_draw_indirect_buffer_);
 
@@ -199,6 +199,17 @@ WorldGeometryGenerator::~WorldGeometryGenerator()
 
 void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer)
 {
+	// Reset draw command.
+	{
+		vk::DrawIndexedIndirectCommand command{};
+		command.indexCount= 0;
+		command.instanceCount= 1;
+		command.firstIndex= 0;
+		command.vertexOffset= 0;
+		command.firstInstance= 0;
+		command_buffer.updateBuffer(*vk_draw_indirect_buffer_, 0, sizeof(command), static_cast<const void*>(&command));
+	}
+
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *vk_geometry_gen_pipeline_);
 
 	command_buffer.bindDescriptorSets(

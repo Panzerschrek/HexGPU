@@ -36,16 +36,6 @@ void main()
 {
 	uvec3 invocation= gl_GlobalInvocationID;
 
-	// TODO - perform initializations in separate shader.
-	if( invocation.x == 0 && invocation.y == 0 )
-	{
-		command.indexCount= 16 * 16 * 6;
-		command.instanceCount= 1;
-		command.firstIndex= 0;
-		command.vertexOffset= 0;
-		command.firstInstance= 0;
-	}
-
 	float z= float(invocation.x + invocation.y) * 0.25f;
 	uint quad_index= invocation.x + invocation.y * 16;
 
@@ -78,6 +68,9 @@ void main()
 	quad.vertices[3].color[0]= uint8_t((invocation.x + 1) * 32);
 	quad.vertices[3].color[1]= uint8_t(invocation.y * 32);
 	quad.vertices[3].color[2]= uint8_t(0);
+
+	// Add this quad.
+	atomicAdd(command.indexCount, 6);
 
 	quads[quad_index]= quad;
 }

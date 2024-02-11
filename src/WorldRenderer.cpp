@@ -30,16 +30,14 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan)
 
 	// Create pipeline layout
 
-	const vk::DescriptorSetLayoutBinding vk_descriptor_set_layout_bindings[0]
+	const vk::DescriptorSetLayoutBinding vk_descriptor_set_layout_bindings[]
 	{
-		/*
 		{
 			0u,
 			vk::DescriptorType::eUniformBuffer,
 			1u,
 			vk::ShaderStageFlagBits::eVertex
 		},
-		*/
 	};
 
 	vk_decriptor_set_layout_=

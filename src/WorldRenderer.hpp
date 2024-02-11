@@ -42,8 +42,6 @@ private:
 	vk::UniquePipeline vk_geometry_gen_pipeline_;
 	vk::UniqueDescriptorPool vk_geometry_gen_descriptor_pool_;
 	vk::UniqueDescriptorSet vk_geometry_gen_descriptor_set_;
-
-	size_t num_quads_= 0;
 };
 
 } // namespace HexGPU

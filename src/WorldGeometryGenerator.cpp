@@ -8,8 +8,6 @@ namespace HexGPU
 namespace
 {
 
-const uint32_t g_quad_grid_size[]{16, 16};
-
 } // namespace
 
 WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
@@ -19,8 +17,10 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
 	geometry_gen_shader_= CreateShader(vk_device_, ShaderNames::geometry_gen_comp);
 
 	// Create vertex buffer.
+	// TODO - make it bigger.
+	vertex_buffer_num_quads_= 65536 / 4 - 1;
 	{
-		const size_t quads_data_size= g_quad_grid_size[0] * g_quad_grid_size[1] * sizeof(QuadVertices);
+		const size_t quads_data_size= vertex_buffer_num_quads_ * sizeof(QuadVertices);
 
 		vk_vertex_buffer_=
 			vk_device_.createBufferUnique(
@@ -157,7 +157,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
 		const vk::DescriptorBufferInfo descriptor_vertex_buffer_info(
 			*vk_vertex_buffer_,
 			0u,
-			g_quad_grid_size[0] * g_quad_grid_size[1] * sizeof(QuadVertices));
+			vertex_buffer_num_quads_ * sizeof(QuadVertices));
 
 		const vk::DescriptorBufferInfo descriptor_draw_indirect_buffer_info(
 			*vk_draw_indirect_buffer_,
@@ -222,7 +222,7 @@ void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer
 		1u, &*vk_geometry_gen_descriptor_set_,
 		0u, nullptr);
 
-	command_buffer.dispatch(g_quad_grid_size[0], g_quad_grid_size[1], 1);
+	command_buffer.dispatch(16, 16, 1);
 }
 
 vk::Buffer WorldGeometryGenerator::GetVertexBuffer() const

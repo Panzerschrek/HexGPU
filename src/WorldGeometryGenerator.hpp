@@ -11,8 +11,6 @@ struct WorldVertex
 	uint8_t reserved[12];
 };
 
-const uint32_t g_quad_grid_size[]{16, 16};
-
 using QuadVertices= std::array<WorldVertex, 4>;
 
 class WorldGeometryGenerator
@@ -24,6 +22,7 @@ public:
 	void PrepareFrame(vk::CommandBuffer command_buffer);
 
 	vk::Buffer GetVertexBuffer() const;
+	vk::Buffer GetDrawIndirectBuffer() const;
 
 private:
 	const vk::Device vk_device_;
@@ -32,6 +31,9 @@ private:
 
 	vk::UniqueBuffer vk_vertex_buffer_;
 	vk::UniqueDeviceMemory vk_vertex_buffer_memory_;
+
+	vk::UniqueBuffer vk_draw_indirect_buffer_;
+	vk::UniqueDeviceMemory vk_draw_indirect_buffer_memory_;
 
 	vk::UniqueDescriptorSetLayout vk_geometry_gen_decriptor_set_layout_;
 	vk::UniquePipelineLayout vk_geometry_gen_pipeline_layout_;

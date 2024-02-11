@@ -5,6 +5,12 @@
 namespace HexGPU
 {
 
+namespace
+{
+
+const uint32_t g_quad_grid_size[]{16, 16};
+
+} // namespace
 
 WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
 	: vk_device_(window_vulkan.GetVulkanDevice())
@@ -45,6 +51,51 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
 		vk_device_.mapMemory(*vk_vertex_buffer_memory_, 0u, vk_memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &vertex_data_gpu_size);
 		std::memset(vertex_data_gpu_size, 0, quads_data_size);
 		vk_device_.unmapMemory(*vk_vertex_buffer_memory_);
+	}
+
+	// Create draw indirect buffer.
+	{
+		const size_t num_commands= 1;
+		const size_t buffer_size= sizeof(vk::DrawIndexedIndirectCommand) * num_commands;
+
+		vk_draw_indirect_buffer_=
+			vk_device_.createBufferUnique(
+				vk::BufferCreateInfo(
+					vk::BufferCreateFlags(),
+					buffer_size,
+					vk::BufferUsageFlagBits::eIndirectBuffer));
+
+		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*vk_draw_indirect_buffer_);
+
+		const auto memory_properties= window_vulkan.GetMemoryProperties();
+
+		vk::MemoryAllocateInfo vk_memory_allocate_info(buffer_memory_requirements.size);
+		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
+		{
+			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
+				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible) != vk::MemoryPropertyFlags() &&
+				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent) != vk::MemoryPropertyFlags())
+				vk_memory_allocate_info.memoryTypeIndex= i;
+		}
+
+		vk_draw_indirect_buffer_memory_= vk_device_.allocateMemoryUnique(vk_memory_allocate_info);
+		vk_device_.bindBufferMemory(*vk_draw_indirect_buffer_, *vk_draw_indirect_buffer_memory_, 0u);
+
+		// Fill the buffer with zeros (to prevent warnings).
+		// Anyway this buffer will be filled by the shader later.
+		void* data_gpu_size= nullptr;
+		vk_device_.mapMemory(*vk_draw_indirect_buffer_memory_, 0u, vk_memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_size);
+		std::memset(data_gpu_size, 0, buffer_size);
+
+		vk::DrawIndexedIndirectCommand command;
+		command.indexCount= g_quad_grid_size[0] * g_quad_grid_size[1] * 6;
+		command.instanceCount= 1;
+		command.firstIndex= 0;
+		command.vertexOffset= 0;
+		command.firstInstance= 0;
+		std::memcpy(data_gpu_size, &command, sizeof(command));
+
+		vk_device_.unmapMemory(*vk_draw_indirect_buffer_memory_);
 	}
 
 	// Create descriptor set layout.
@@ -150,6 +201,11 @@ void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer
 vk::Buffer WorldGeometryGenerator::GetVertexBuffer() const
 {
 	return vk_vertex_buffer_.get();
+}
+
+vk::Buffer WorldGeometryGenerator::GetDrawIndirectBuffer() const
+{
+	return vk_draw_indirect_buffer_.get();
 }
 
 } // namespace HexGPU

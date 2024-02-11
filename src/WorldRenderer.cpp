@@ -261,7 +261,12 @@ void WorldRenderer::Draw(const vk::CommandBuffer command_buffer, const m_Mat4& v
 	command_buffer.pushConstants(*vk_pipeline_layout_, vk::ShaderStageFlagBits::eVertex, 0, sizeof(view_matrix), &view_matrix);
 
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *vk_pipeline_);
-	command_buffer.drawIndexed(g_quad_grid_size[0] * g_quad_grid_size[1] * 6u, 1u, 0u, 0u, 0u);
+
+	command_buffer.drawIndexedIndirect(
+		geometry_generator_.GetDrawIndirectBuffer(),
+		0,
+		1,
+		sizeof(vk::DrawIndexedIndirectCommand));
 }
 
 } // namespace HexGPU

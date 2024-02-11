@@ -16,8 +16,8 @@ SystemWindow::SystemWindow()
 
 	const Uint32 window_flags= SDL_WINDOW_SHOWN | SDL_WINDOW_VULKAN;
 
-	const int width = 640;
-	const int height= 480;
+	const int width = 960;
+	const int height= 720;
 
 	window_=
 		SDL_CreateWindow(

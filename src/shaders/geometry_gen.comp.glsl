@@ -2,6 +2,7 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 
+// If this chanhed, vertex attributes specification in C++ code must be chaned too!
 struct WorldVertex
 {
 	i16vec4 pos;
@@ -14,6 +15,7 @@ struct Quad
 	WorldVertex vertices[4];
 };
 
+// Command struct as it is defined in C.
 struct VkDrawIndexedIndirectCommand
 {
 	uint indexCount;
@@ -25,13 +27,17 @@ struct VkDrawIndexedIndirectCommand
 
 layout(binding= 0, std430) buffer vertices_buffer
 {
+	// Populate here quads list.
 	Quad quads[];
 };
 
 layout(binding= 1, std430) buffer draw_indirect_buffer
 {
+	// Populate here result number of indices.
 	VkDrawIndexedIndirectCommand command;
 };
+
+const int c_indices_per_quad= 6;
 
 int GetBlockZ( int x, int y )
 {
@@ -57,7 +63,7 @@ void main()
 
 	{
 		// Add two hexagon quads.
-		uint prev_index_count= atomicAdd(command.indexCount, 12);
+		uint prev_index_count= atomicAdd(command.indexCount, c_indices_per_quad * 2);
 		uint quad_index= prev_index_count / 6;
 
 		{
@@ -112,7 +118,7 @@ void main()
 	if(z < north_z)
 	{
 		// Add north quad.
-		uint prev_index_count= atomicAdd(command.indexCount, 6);
+		uint prev_index_count= atomicAdd(command.indexCount, c_indices_per_quad);
 		uint quad_index= prev_index_count / 6;
 
 		Quad quad;

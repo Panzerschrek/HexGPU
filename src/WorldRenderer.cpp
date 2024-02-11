@@ -99,8 +99,8 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan)
 
 	const vk::VertexInputAttributeDescription vk_vertex_input_attribute_description[2]
 	{
-		{0u, 0u, vk::Format::eR32G32B32Sfloat, 0u},
-		{1u, 0u, vk::Format::eR8G8B8A8Unorm, sizeof(float) * 4},
+		{0u, 0u, vk::Format::eR16G16B16A16Sscaled, 0u},
+		{1u, 0u, vk::Format::eR8G8B8A8Unorm, sizeof(int16_t) * 4},
 	};
 
 	const vk::PipelineVertexInputStateCreateInfo vk_pipiline_vertex_input_state_create_info(

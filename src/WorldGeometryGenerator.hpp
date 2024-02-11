@@ -6,7 +6,8 @@ namespace HexGPU
 
 struct WorldVertex
 {
-	float pos[4];
+	// Use 16 bit for position in order to make this struct more compact (relative to floats).
+	int16_t pos[4];
 	uint8_t color[4];
 	uint8_t reserved[12];
 };

@@ -1,9 +1,10 @@
 #version 450
 #extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
+#extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 
 struct WorldVertex
 {
-	vec4 pos;
+	i16vec4 pos;
 	u8vec4 color;
 	u8vec4 reserved[3];
 };
@@ -62,10 +63,10 @@ void main()
 		{
 			Quad quad;
 
-			quad.vertices[0].pos= vec4(float(base_x), float(base_y), float(z), 0.0);
-			quad.vertices[1].pos= vec4(float(base_x + 2), float(base_y), float(z), 0.0);
-			quad.vertices[2].pos= vec4(float(base_x + 3), float(base_y + 1), float(z), 0.0);
-			quad.vertices[3].pos= vec4(float(base_x - 1), float(base_y + 1), float(z), 0.0);
+			quad.vertices[0].pos= i16vec4(int16_t(base_x), int16_t(base_y), int16_t(z), 0.0);
+			quad.vertices[1].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y), int16_t(z), 0.0);
+			quad.vertices[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z), 0.0);
+			quad.vertices[3].pos= i16vec4(int16_t(base_x - 1), int16_t(base_y + 1), int16_t(z), 0.0);
 
 			quad.vertices[0].color[0]= uint8_t((invocation.x + 1) * 32);
 			quad.vertices[0].color[1]= uint8_t((invocation.y + 1) * 32);
@@ -85,10 +86,10 @@ void main()
 		{
 			Quad quad;
 
-			quad.vertices[0].pos= vec4(float(base_x - 1), float(base_y + 1), float(z), 0.0);
-			quad.vertices[1].pos= vec4(float(base_x + 3), float(base_y + 1), float(z), 0.0);
-			quad.vertices[2].pos= vec4(float(base_x + 2), float(base_y + 2), float(z), 0.0);
-			quad.vertices[3].pos= vec4(float(base_x), float(base_y + 2), float(z), 0.0);
+			quad.vertices[0].pos= i16vec4(int16_t(base_x - 1), int16_t(base_y + 1), int16_t(z), 0.0);
+			quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z), 0.0);
+			quad.vertices[2].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z), 0.0);
+			quad.vertices[3].pos= i16vec4(int16_t(base_x), int16_t(base_y + 2), int16_t(z), 0.0);
 
 			quad.vertices[0].color[0]= uint8_t((invocation.x + 1) * 32);
 			quad.vertices[0].color[1]= uint8_t((invocation.y + 1) * 32);
@@ -116,10 +117,10 @@ void main()
 
 		Quad quad;
 
-		quad.vertices[0].pos= vec4(float(base_x), float(base_y + 2), float(z), 0.0);
-		quad.vertices[1].pos= vec4(float(base_x), float(base_y + 2), float(z + 1), 0.0);
-		quad.vertices[2].pos= vec4(float(base_x + 2), float(base_y + 2), float(z + 1), 0.0);
-		quad.vertices[3].pos= vec4(float(base_x + 2), float(base_y + 2), float(z), 0.0);
+		quad.vertices[0].pos= i16vec4(int16_t(base_x), int16_t(base_y + 2), int16_t(z), 0.0);
+		quad.vertices[1].pos= i16vec4(int16_t(base_x), int16_t(base_y + 2), int16_t(z + 1), 0.0);
+		quad.vertices[2].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z + 1), 0.0);
+		quad.vertices[3].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z), 0.0);
 
 		quad.vertices[0].color[0]= uint8_t((invocation.x + 1) * 32);
 		quad.vertices[0].color[1]= uint8_t((invocation.y + 1) * 32);

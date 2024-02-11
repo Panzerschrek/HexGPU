@@ -3,3 +3,6 @@ build*/
 
 # QtCreator settings
 CMakeLists.txt.user
+
+# Log
+HexGPU.log

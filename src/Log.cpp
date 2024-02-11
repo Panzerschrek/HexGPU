@@ -6,7 +6,7 @@ namespace HexGPU
 {
 
 Log::LogCallback Log::log_callback_;
-std::ofstream Log::log_file_{ "HexGPU_log.log" };
+std::ofstream Log::log_file_{ "HexGPU.log" };
 
 void Log::SetLogCallback(LogCallback callback)
 {

@@ -73,7 +73,7 @@ endforeach()
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/ShaderList.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/ShaderList.hpp)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/ShaderList.cpp.in ${CMAKE_CURRENT_BINARY_DIR}/ShaderList.cpp)
 set(GENERATED_SOURCES ${CMAKE_CURRENT_BINARY_DIR}/ShaderList.hpp ${CMAKE_CURRENT_BINARY_DIR}/ShaderList.cpp)
-set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/ShaderList.cpp PROPERTIES OBJECT_DEPENDS ${SHADERS_COMPILED})
+set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/ShaderList.cpp PROPERTIES OBJECT_DEPENDS "${SHADERS_COMPILED}")
 
 # Add main executable.
 file(GLOB_RECURSE SOURCES "*.cpp" "*.hpp")

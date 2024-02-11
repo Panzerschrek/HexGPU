@@ -14,7 +14,10 @@ namespace
 // Returns indeces for quads with size - maximum uint16_t vertex index.
 std::vector<uint16_t> GetQuadsIndices()
 {
-	size_t quad_count= 65536 / 6 - 1;
+	// Each quad contains 4 unique vertices.
+	// So, whe have maximum number of quads equal to maximal possible index devided by 4.
+	// Add for sequrity extra -1.
+	size_t quad_count= 65536 / 4 - 1;
 	std::vector<uint16_t> indeces( quad_count * 6 );
 
 	for(uint32_t i= 0, v= 0; i< quad_count * 6; i+= 6, v+= 4)

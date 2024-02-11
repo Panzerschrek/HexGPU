@@ -1,6 +1,6 @@
 #pragma once
 #include "SystemWindow.hpp"
-#include <vulkan/vulkan.hpp>
+#include "HexGPUVulkan.hpp"
 #include <functional>
 
 namespace HexGPU

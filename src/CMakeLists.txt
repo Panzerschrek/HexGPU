@@ -88,6 +88,7 @@ add_executable(
 target_include_directories(
 	HexGPU
 		PRIVATE
+			${CMAKE_CURRENT_SOURCE_DIR}
 			${CMAKE_CURRENT_BINARY_DIR}
 			${SDL2_INCLUDE_DIRS}
 			${Vulkan_INCLUDE_DIRS}

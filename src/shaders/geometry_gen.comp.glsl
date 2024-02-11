@@ -117,10 +117,10 @@ void main()
 
 		Quad quad;
 
-		quad.vertices[0].pos= i16vec4(int16_t(base_x), int16_t(base_y + 2), int16_t(z), 0.0);
-		quad.vertices[1].pos= i16vec4(int16_t(base_x), int16_t(base_y + 2), int16_t(z + 1), 0.0);
-		quad.vertices[2].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z + 1), 0.0);
-		quad.vertices[3].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z), 0.0);
+		quad.vertices[0].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z), 0.0);
+		quad.vertices[1].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z + 1), 0.0);
+		quad.vertices[2].pos= i16vec4(int16_t(base_x), int16_t(base_y + 2), int16_t(z + 1), 0.0);
+		quad.vertices[3].pos= i16vec4(int16_t(base_x), int16_t(base_y + 2), int16_t(z), 0.0);
 
 		quad.vertices[0].color[0]= uint8_t((invocation.x + 1) * 32);
 		quad.vertices[0].color[1]= uint8_t((invocation.y + 1) * 32);

@@ -126,7 +126,7 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan)
 		VK_FALSE,
 		VK_FALSE,
 		vk::PolygonMode::eFill,
-		vk::CullModeFlagBits::eNone,
+		vk::CullModeFlagBits::eBack, // Use back-face culling.
 		vk::FrontFace::eCounterClockwise,
 		VK_FALSE, 0.0f, 0.0f, 0.0f,
 		1.0f);

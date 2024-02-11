@@ -63,7 +63,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
 				vk::BufferCreateInfo(
 					vk::BufferCreateFlags(),
 					buffer_size,
-					vk::BufferUsageFlagBits::eIndirectBuffer));
+					vk::BufferUsageFlagBits::eIndirectBuffer | vk::BufferUsageFlagBits::eStorageBuffer));
 
 		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*vk_draw_indirect_buffer_);
 
@@ -86,24 +86,22 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
 		void* data_gpu_size= nullptr;
 		vk_device_.mapMemory(*vk_draw_indirect_buffer_memory_, 0u, vk_memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_size);
 		std::memset(data_gpu_size, 0, buffer_size);
-
-		vk::DrawIndexedIndirectCommand command;
-		command.indexCount= g_quad_grid_size[0] * g_quad_grid_size[1] * 6;
-		command.instanceCount= 1;
-		command.firstIndex= 0;
-		command.vertexOffset= 0;
-		command.firstInstance= 0;
-		std::memcpy(data_gpu_size, &command, sizeof(command));
-
 		vk_device_.unmapMemory(*vk_draw_indirect_buffer_memory_);
 	}
 
 	// Create descriptor set layout.
 	{
-		const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[1]
+		const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
 		{
 			{
 				0u,
+				vk::DescriptorType::eStorageBuffer,
+				1u,
+				vk::ShaderStageFlagBits::eCompute,
+				nullptr,
+			},
+			{
+				1u,
 				vk::DescriptorType::eStorageBuffer,
 				1u,
 				vk::ShaderStageFlagBits::eCompute,
@@ -156,10 +154,15 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
 
 	// Update descriptor set.
 	{
-		const vk::DescriptorBufferInfo descriptor_buffer_info(
+		const vk::DescriptorBufferInfo descriptor_vertex_buffer_info(
 			*vk_vertex_buffer_,
 			0u,
 			g_quad_grid_size[0] * g_quad_grid_size[1] * sizeof(QuadVertices));
+
+		const vk::DescriptorBufferInfo descriptor_draw_indirect_buffer_info(
+			*vk_draw_indirect_buffer_,
+			0u,
+			1 * sizeof(vk::DrawIndexedIndirectCommand));
 
 		vk_device_.updateDescriptorSets(
 			{
@@ -170,7 +173,17 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
 					1u,
 					vk::DescriptorType::eStorageBuffer,
 					nullptr,
-					&descriptor_buffer_info,
+					&descriptor_vertex_buffer_info,
+					nullptr
+				},
+				{
+					*vk_geometry_gen_descriptor_set_,
+					1u,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_draw_indirect_buffer_info,
 					nullptr
 				},
 			},

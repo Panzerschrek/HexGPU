@@ -13,14 +13,38 @@ struct Quad
 	WorldVertex vertices[4];
 };
 
+struct VkDrawIndexedIndirectCommand
+{
+	uint indexCount;
+	uint instanceCount;
+	uint firstIndex;
+	int vertexOffset;
+	uint firstInstance;
+};
+
 layout(binding= 0, std430) buffer vertices_buffer
 {
 	Quad quads[];
 };
 
+layout(binding= 1, std430) buffer draw_indirect_buffer
+{
+	VkDrawIndexedIndirectCommand command;
+};
+
 void main()
 {
 	uvec3 invocation= gl_GlobalInvocationID;
+
+	// TODO - perform initializations in separate shader.
+	if( invocation.x == 0 && invocation.y == 0 )
+	{
+		command.indexCount= 16 * 16 * 6;
+		command.instanceCount= 1;
+		command.firstIndex= 0;
+		command.vertexOffset= 0;
+		command.firstInstance= 0;
+	}
 
 	float z= float(invocation.x + invocation.y) * 0.25f;
 	uint quad_index= invocation.x + invocation.y * 16;

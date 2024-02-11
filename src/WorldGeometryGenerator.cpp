@@ -210,7 +210,24 @@ void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer
 		command_buffer.updateBuffer(*vk_draw_indirect_buffer_, 0, sizeof(command), static_cast<const void*>(&command));
 	}
 
-	// TODO - synchronize here buffer update and compute shader dispatch.
+	// Create barrier between update buffer and its usage in shader.
+	// TODO - check this is correct.
+	{
+		vk::BufferMemoryBarrier barrier;
+		barrier.srcAccessMask= vk::AccessFlagBits::eTransferWrite;
+		barrier.dstAccessMask= vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite;
+		barrier.size= VK_WHOLE_SIZE;
+		barrier.buffer= *vk_draw_indirect_buffer_;
+		// TODO - set queue family index?
+
+		command_buffer.pipelineBarrier(
+			vk::PipelineStageFlagBits::eTransfer,
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::DependencyFlags(),
+			0, nullptr,
+			1, &barrier,
+			0, nullptr);
+	}
 
 	// Perform geometry generation.
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *vk_geometry_gen_pipeline_);

@@ -241,14 +241,55 @@ void WorldRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
 {
 	geometry_generator_.PrepareFrame(command_buffer);
 
+	const vk::Buffer vertex_buffer= geometry_generator_.GetVertexBuffer();
+
+	// Create barrier between update vertex buffer and its usage for rendering.
+	// TODO - check this is correct.
+	{
+		vk::BufferMemoryBarrier barrier;
+		barrier.srcAccessMask= vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite;
+		barrier.dstAccessMask= vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite;
+		barrier.size= VK_WHOLE_SIZE;
+		barrier.buffer= vertex_buffer;
+		// TODO - set queue family index?
+
+		command_buffer.pipelineBarrier(
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::PipelineStageFlagBits::eVertexShader,
+			vk::DependencyFlags(),
+			0, nullptr,
+			1, &barrier,
+			0, nullptr);
+	}
+
+	const vk::Buffer draw_indirect_buffer= geometry_generator_.GetDrawIndirectBuffer();
+
+	// Create barrier between update indirect draw buffer and its usage for rendering.
+	// TODO - check this is correct.
+	{
+		vk::BufferMemoryBarrier barrier;
+		barrier.srcAccessMask= vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite;
+		barrier.dstAccessMask= vk::AccessFlagBits::eIndirectCommandRead;
+		barrier.size= VK_WHOLE_SIZE;
+		barrier.buffer= draw_indirect_buffer;
+		// TODO - set queue family index?
+
+		command_buffer.pipelineBarrier(
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::PipelineStageFlagBits::eDrawIndirect,
+			vk::DependencyFlags(),
+			0, nullptr,
+			1, &barrier,
+			0, nullptr);
+	}
 }
 
 void WorldRenderer::Draw(const vk::CommandBuffer command_buffer, const m_Mat4& view_matrix)
 {
-	// TODO - synchronize with vertex buffer generation.
+	const vk::Buffer vertex_buffer= geometry_generator_.GetVertexBuffer();
+	const vk::Buffer draw_indirect_buffer= geometry_generator_.GetDrawIndirectBuffer();
 
 	const vk::DeviceSize offsets= 0u;
-	const vk::Buffer vertex_buffer= geometry_generator_.GetVertexBuffer();
 	command_buffer.bindVertexBuffers(0u, 1u, &vertex_buffer, &offsets);
 	command_buffer.bindIndexBuffer(*vk_index_buffer_, 0u, vk::IndexType::eUint16);
 	command_buffer.bindDescriptorSets(
@@ -267,11 +308,7 @@ void WorldRenderer::Draw(const vk::CommandBuffer command_buffer, const m_Mat4& v
 
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *vk_pipeline_);
 
-	command_buffer.drawIndexedIndirect(
-		geometry_generator_.GetDrawIndirectBuffer(),
-		0,
-		1,
-		sizeof(vk::DrawIndexedIndirectCommand));
+	command_buffer.drawIndexedIndirect(draw_indirect_buffer, 0, 1, sizeof(vk::DrawIndexedIndirectCommand));
 }
 
 } // namespace HexGPU

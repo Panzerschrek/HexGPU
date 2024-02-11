@@ -29,7 +29,18 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif()
 
 # Search dependencies.
-find_package(SDL2 REQUIRED)
+if(WIN32)
+	set(SDL2_INCLUDE_DIRS ${SDL2_DIR}/include)
+	if(${CMAKE_SIZEOF_VOID_P} EQUAL 8)
+		set(ARCH_DIR x64)
+	else()
+		set(ARCH_DIR x86)
+	endif()
+	set(SDL2_LIBRARIES ${SDL2_DIR}/lib/${ARCH_DIR}/SDL2.lib ${SDL2_DIR}/lib/${ARCH_DIR}/SDL2main.lib)
+else()
+	find_package(SDL2 REQUIRED)
+endif()
+
 find_package(Vulkan REQUIRED)
 
 find_program(GLSLANGVALIDATOR glslangValidator)

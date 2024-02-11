@@ -37,7 +37,6 @@ void main()
 	uvec3 invocation= gl_GlobalInvocationID;
 
 	float z= float(invocation.x + invocation.y) * 0.25f;
-	uint quad_index= invocation.x + invocation.y * 16;
 
 	Quad quad;
 
@@ -70,7 +69,8 @@ void main()
 	quad.vertices[3].color[2]= uint8_t(0);
 
 	// Add this quad.
-	atomicAdd(command.indexCount, 6);
+	uint prev_index_count= atomicAdd(command.indexCount, 6);
+	uint quad_index= prev_index_count / 6;
 
 	quads[quad_index]= quad;
 }

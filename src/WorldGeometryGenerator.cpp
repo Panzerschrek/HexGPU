@@ -210,6 +210,9 @@ void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer
 		command_buffer.updateBuffer(*vk_draw_indirect_buffer_, 0, sizeof(command), static_cast<const void*>(&command));
 	}
 
+	// TODO - synchronize here buffer update and compute shader dispatch.
+
+	// Perform geometry generation.
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *vk_geometry_gen_pipeline_);
 
 	command_buffer.bindDescriptorSets(

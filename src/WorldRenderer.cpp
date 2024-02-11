@@ -258,7 +258,12 @@ void WorldRenderer::Draw(const vk::CommandBuffer command_buffer, const m_Mat4& v
 		1u, &*vk_descriptor_set_,
 		0u, nullptr);
 
-	command_buffer.pushConstants(*vk_pipeline_layout_, vk::ShaderStageFlagBits::eVertex, 0, sizeof(view_matrix), &view_matrix);
+	const m_Vec3 scale_vec(0.5f / std::sqrt(3.0f), 0.5f, 1.0f );
+	m_Mat4 scale_mat;
+	scale_mat.Scale(scale_vec);
+	const m_Mat4 final_mat= scale_mat * view_matrix;
+
+	command_buffer.pushConstants(*vk_pipeline_layout_, vk::ShaderStageFlagBits::eVertex, 0, sizeof(view_matrix), &final_mat);
 
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *vk_pipeline_);
 

@@ -75,9 +75,15 @@ void main()
 	int block_address_north_east= block_address_in_chunk + (((block_local_x + 1) & 1) << (c_chunk_height_log2)) + (1 <<(c_chunk_width_log2 + c_chunk_height_log2));
 	int block_address_south_east= block_address_north_east - (1 << c_chunk_height_log2);
 
+	uint8_t block_value= chunk_data[ block_address_in_chunk ];
+	uint8_t block_value_up= chunk_data[ block_address_up ];
+	uint8_t block_value_north= chunk_data[ block_address_north ];
+	uint8_t block_value_north_east= chunk_data[ block_address_north_east ];
+	uint8_t block_value_south_east= chunk_data[ block_address_south_east ];
+
 	const int tex_scale= 1; // TODO - read block properties to determine texture scale.
 
-	if( chunk_data[ block_address_in_chunk ] != chunk_data[ block_address_up ] )
+	if( block_value != block_value_up )
 	{
 		// Add two hexagon quads.
 		uint prev_index_count= atomicAdd(command.indexCount, c_indices_per_quad * 2);
@@ -86,106 +92,177 @@ void main()
 		int tc_base_x= base_x * tex_scale;
 		int tc_base_y= base_y * tex_scale;
 
+		// TODO - optimize calculations for adjusted vertices of two hexagon quads.
 		{
+			WorldVertex v[4];
+
+			v[0].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 0), int16_t(z + 1), 0.0);
+			v[1].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 0), int16_t(z + 1), 0.0);
+			v[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 1), 0.0);
+			v[3].pos= i16vec4(int16_t(base_x - 1), int16_t(base_y + 1), int16_t(z + 1), 0.0);
+
+			v[0].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_y + 0 * tex_scale));
+			v[1].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_y + 0 * tex_scale));
+			v[2].tex_coord= i16vec2(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_y + 1 * tex_scale));
+			v[3].tex_coord= i16vec2(int16_t(tc_base_x - 1 * tex_scale), int16_t(tc_base_y + 1 * tex_scale));
+
 			Quad quad;
-
-			quad.vertices[0].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 0), int16_t(z + 1), 0.0);
-			quad.vertices[1].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 0), int16_t(z + 1), 0.0);
-			quad.vertices[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 1), 0.0);
-			quad.vertices[3].pos= i16vec4(int16_t(base_x - 1), int16_t(base_y + 1), int16_t(z + 1), 0.0);
-
-			quad.vertices[0].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_y + 0 * tex_scale));
-			quad.vertices[1].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_y + 0 * tex_scale));
-			quad.vertices[2].tex_coord= i16vec2(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_y + 1 * tex_scale));
-			quad.vertices[3].tex_coord= i16vec2(int16_t(tc_base_x - 1 * tex_scale), int16_t(tc_base_y + 1 * tex_scale));
+			quad.vertices[1]= v[1];
+			quad.vertices[3]= v[3];
+			if( block_value > block_value_up )
+			{
+				quad.vertices[0]= v[0];
+				quad.vertices[2]= v[2];
+			}
+			else
+			{
+				quad.vertices[0]= v[2];
+				quad.vertices[2]= v[0];
+			}
 
 			quads[quad_index]= quad;
 		}
 		{
+			WorldVertex v[4];
+
+			v[0].pos= i16vec4(int16_t(base_x - 1), int16_t(base_y + 1), int16_t(z + 1), 0.0);
+			v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 1), 0.0);
+			v[2].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z + 1), 0.0);
+			v[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 2), int16_t(z + 1), 0.0);
+
+			v[0].tex_coord= i16vec2(int16_t(tc_base_x - 1 * tex_scale), int16_t(tc_base_y + 1 * tex_scale));
+			v[1].tex_coord= i16vec2(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_y + 1 * tex_scale));
+			v[2].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_y + 2 * tex_scale));
+			v[3].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_y + 2 * tex_scale));
+
 			Quad quad;
-
-			quad.vertices[0].pos= i16vec4(int16_t(base_x - 1), int16_t(base_y + 1), int16_t(z + 1), 0.0);
-			quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 1), 0.0);
-			quad.vertices[2].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z + 1), 0.0);
-			quad.vertices[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 2), int16_t(z + 1), 0.0);
-
-			quad.vertices[0].tex_coord= i16vec2(int16_t(tc_base_x - 1 * tex_scale), int16_t(tc_base_y + 1 * tex_scale));
-			quad.vertices[1].tex_coord= i16vec2(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_y + 1 * tex_scale));
-			quad.vertices[2].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_y + 2 * tex_scale));
-			quad.vertices[3].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_y + 2 * tex_scale));
+			quad.vertices[1]= v[1];
+			quad.vertices[3]= v[3];
+			if( block_value > block_value_up )
+			{
+				quad.vertices[0]= v[0];
+				quad.vertices[2]= v[2];
+			}
+			else
+			{
+				quad.vertices[0]= v[2];
+				quad.vertices[2]= v[0];
+			}
 
 			quads[quad_index + 1]= quad;
 		}
 	}
 
-	if( chunk_data[ block_address_in_chunk ] != chunk_data[ block_address_north ] )
+	if( block_value != block_value_north )
 	{
 		// Add north quad.
 		uint prev_index_count= atomicAdd(command.indexCount, c_indices_per_quad);
 		uint quad_index= prev_index_count / 6;
 
-		Quad quad;
+		WorldVertex v[4];
 
-		quad.vertices[0].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z + 0), 0.0);
-		quad.vertices[1].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z + 1), 0.0);
-		quad.vertices[2].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 2), int16_t(z + 1), 0.0);
-		quad.vertices[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 2), int16_t(z + 0), 0.0);
+		v[0].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z + 0), 0.0);
+		v[1].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z + 1), 0.0);
+		v[2].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 2), int16_t(z + 1), 0.0);
+		v[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 2), int16_t(z + 0), 0.0);
 
 		int tc_base_x= base_x * tex_scale;
 		int tc_base_z= z * (2 * tex_scale);
 
-		quad.vertices[0].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 0 * tex_scale));
-		quad.vertices[1].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 2 * tex_scale));
-		quad.vertices[2].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 2 * tex_scale));
-		quad.vertices[3].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 0 * tex_scale));
+		v[0].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 0 * tex_scale));
+		v[1].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 2 * tex_scale));
+		v[2].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 2 * tex_scale));
+		v[3].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 0 * tex_scale));
+
+		Quad quad;
+		quad.vertices[1]= v[1];
+		quad.vertices[3]= v[3];
+		if( block_value > block_value_north )
+		{
+			quad.vertices[0]= v[2];
+			quad.vertices[2]= v[0];
+		}
+		else
+		{
+			quad.vertices[0]= v[0];
+			quad.vertices[2]= v[2];
+		}
 
 		quads[quad_index]= quad;
 	}
 
-	if( chunk_data[ block_address_in_chunk ] != chunk_data[ block_address_north_east ] )
+	if( block_value != block_value_north_east )
 	{
 		// Add north-east quad.
 		uint prev_index_count= atomicAdd(command.indexCount, c_indices_per_quad);
 		uint quad_index= prev_index_count / 6;
 
-		Quad quad;
+		WorldVertex v[4];
 
-		quad.vertices[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 0), 0.0);
-		quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 1), 0.0);
-		quad.vertices[2].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z + 1), 0.0);
-		quad.vertices[3].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z + 0), 0.0);
+		v[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 0), 0.0);
+		v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 1), 0.0);
+		v[2].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z + 1), 0.0);
+		v[3].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z + 0), 0.0);
 
 		int tc_base_x= base_x * tex_scale;
 		int tc_base_z= z * (2 * tex_scale);
 
-		quad.vertices[0].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 0 * tex_scale));
-		quad.vertices[1].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 2 * tex_scale));
-		quad.vertices[2].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 2 * tex_scale));
-		quad.vertices[3].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 0 * tex_scale));
+		v[0].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 0 * tex_scale));
+		v[1].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 2 * tex_scale));
+		v[2].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 2 * tex_scale));
+		v[3].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 0 * tex_scale));
+
+		Quad quad;
+		quad.vertices[1]= v[1];
+		quad.vertices[3]= v[3];
+		if( block_value > block_value_north_east )
+		{
+			quad.vertices[0]= v[2];
+			quad.vertices[2]= v[0];
+		}
+		else
+		{
+			quad.vertices[0]= v[0];
+			quad.vertices[2]= v[2];
+		}
 
 		quads[quad_index]= quad;
 	}
 
-	if( chunk_data[ block_address_in_chunk ] != chunk_data[ block_address_south_east ] )
+	if( block_value != block_value_south_east )
 	{
 		// Add south-east quad.
 		uint prev_index_count= atomicAdd(command.indexCount, c_indices_per_quad);
 		uint quad_index= prev_index_count / 6;
 
-		Quad quad;
+		WorldVertex v[4];
 
-		quad.vertices[0].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 0), int16_t(z + 0), 0.0);
-		quad.vertices[1].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 0), int16_t(z + 1), 0.0);
-		quad.vertices[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 1), 0.0);
-		quad.vertices[3].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 0), 0.0);
+		v[0].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 0), int16_t(z + 0), 0.0);
+		v[1].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 0), int16_t(z + 1), 0.0);
+		v[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 1), 0.0);
+		v[3].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 0), 0.0);
 
 		int tc_base_x= base_x * tex_scale;
 		int tc_base_z= z * (2 * tex_scale);
 
-		quad.vertices[0].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 0 * tex_scale));
-		quad.vertices[1].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 2 * tex_scale));
-		quad.vertices[2].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 2 * tex_scale));
-		quad.vertices[3].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 0 * tex_scale));
+		v[0].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 0 * tex_scale));
+		v[1].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 2 * tex_scale));
+		v[2].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 2 * tex_scale));
+		v[3].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 0 * tex_scale));
+
+		Quad quad;
+		quad.vertices[1]= v[1];
+		quad.vertices[3]= v[3];
+		if( block_value > block_value_south_east )
+		{
+			quad.vertices[0]= v[2];
+			quad.vertices[2]= v[0];
+		}
+		else
+		{
+			quad.vertices[0]= v[0];
+			quad.vertices[2]= v[2];
+		}
 
 		quads[quad_index]= quad;
 	}

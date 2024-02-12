@@ -37,6 +37,11 @@ layout(binding= 1, std430) buffer draw_indirect_buffer
 	VkDrawIndexedIndirectCommand command;
 };
 
+layout(binding= 1, std430) buffer chunk_data_buffer
+{
+	uint8_t chunk_data[];
+};
+
 const int c_indices_per_quad= 6;
 
 int GetBlockZ( int x, int y )

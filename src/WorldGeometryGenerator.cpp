@@ -19,6 +19,16 @@ void FillChunkData(uint8_t* data)
 	}
 }
 
+namespace GeometryGenShaderBindings
+{
+
+// This should match bindings in the shader itself!
+const uint32_t vertices_buffer= 0;
+const uint32_t draw_indirect_buffer= 1;
+const uint32_t chunk_data_buffer= 2;
+
+}
+
 } // namespace
 
 WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
@@ -139,14 +149,21 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
 		const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
 		{
 			{
-				0u,
+				GeometryGenShaderBindings::vertices_buffer,
 				vk::DescriptorType::eStorageBuffer,
 				1u,
 				vk::ShaderStageFlagBits::eCompute,
 				nullptr,
 			},
 			{
+				GeometryGenShaderBindings::draw_indirect_buffer,
+				vk::DescriptorType::eStorageBuffer,
 				1u,
+				vk::ShaderStageFlagBits::eCompute,
+				nullptr,
+			},
+			{
+				GeometryGenShaderBindings::chunk_data_buffer,
 				vk::DescriptorType::eStorageBuffer,
 				1u,
 				vk::ShaderStageFlagBits::eCompute,
@@ -180,7 +197,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
 
 	// Create descriptor set pool.
 	{
-		const vk::DescriptorPoolSize vk_descriptor_pool_size(vk::DescriptorType::eStorageBuffer, 1u);
+		const vk::DescriptorPoolSize vk_descriptor_pool_size(vk::DescriptorType::eStorageBuffer, 3u /*num descriptors*/);
 		vk_geometry_gen_descriptor_pool_=
 			vk_device_.createDescriptorPoolUnique(
 				vk::DescriptorPoolCreateInfo(
@@ -209,11 +226,16 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
 			0u,
 			1 * sizeof(vk::DrawIndexedIndirectCommand));
 
+		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
+			*vk_chunk_data_buffer_,
+			0u,
+			c_chunk_volume);
+
 		vk_device_.updateDescriptorSets(
 			{
 				{
 					*vk_geometry_gen_descriptor_set_,
-					0u,
+					GeometryGenShaderBindings::vertices_buffer,
 					0u,
 					1u,
 					vk::DescriptorType::eStorageBuffer,
@@ -223,12 +245,22 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
 				},
 				{
 					*vk_geometry_gen_descriptor_set_,
-					1u,
+					GeometryGenShaderBindings::draw_indirect_buffer,
 					0u,
 					1u,
 					vk::DescriptorType::eStorageBuffer,
 					nullptr,
 					&descriptor_draw_indirect_buffer_info,
+					nullptr
+				},
+				{
+					*vk_geometry_gen_descriptor_set_,
+					GeometryGenShaderBindings::chunk_data_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_chunk_data_buffer_info,
 					nullptr
 				},
 			},

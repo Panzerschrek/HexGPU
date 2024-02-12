@@ -92,65 +92,46 @@ void main()
 		int tc_base_x= base_x * tex_scale;
 		int tc_base_y= base_y * tex_scale;
 
-		// TODO - optimize calculations for adjusted vertices of two hexagon quads.
+		// Calculate hexagon vertices.
+		WorldVertex v[6];
+
+		v[0].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 0), int16_t(z + 1), 0.0);
+		v[1].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 0), int16_t(z + 1), 0.0);
+		v[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 1), 0.0);
+		v[3].pos= i16vec4(int16_t(base_x - 1), int16_t(base_y + 1), int16_t(z + 1), 0.0);
+		v[4].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z + 1), 0.0);
+		v[5].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 2), int16_t(z + 1), 0.0);
+
+		v[0].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_y + 0 * tex_scale));
+		v[1].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_y + 0 * tex_scale));
+		v[2].tex_coord= i16vec2(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_y + 1 * tex_scale));
+		v[3].tex_coord= i16vec2(int16_t(tc_base_x - 1 * tex_scale), int16_t(tc_base_y + 1 * tex_scale));
+		v[4].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_y + 2 * tex_scale));
+		v[5].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_y + 2 * tex_scale));
+
+		// Create quads from hexagon vertices. Two vertices are shared.
+		Quad quad_south, quad_north;
+		quad_south.vertices[1]= v[1];
+		quad_south.vertices[3]= v[3];
+		quad_north.vertices[1]= v[2];
+		quad_north.vertices[3]= v[5];
+		if( block_value > block_value_up )
 		{
-			WorldVertex v[4];
-
-			v[0].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 0), int16_t(z + 1), 0.0);
-			v[1].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 0), int16_t(z + 1), 0.0);
-			v[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 1), 0.0);
-			v[3].pos= i16vec4(int16_t(base_x - 1), int16_t(base_y + 1), int16_t(z + 1), 0.0);
-
-			v[0].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_y + 0 * tex_scale));
-			v[1].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_y + 0 * tex_scale));
-			v[2].tex_coord= i16vec2(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_y + 1 * tex_scale));
-			v[3].tex_coord= i16vec2(int16_t(tc_base_x - 1 * tex_scale), int16_t(tc_base_y + 1 * tex_scale));
-
-			Quad quad;
-			quad.vertices[1]= v[1];
-			quad.vertices[3]= v[3];
-			if( block_value > block_value_up )
-			{
-				quad.vertices[0]= v[0];
-				quad.vertices[2]= v[2];
-			}
-			else
-			{
-				quad.vertices[0]= v[2];
-				quad.vertices[2]= v[0];
-			}
-
-			quads[quad_index]= quad;
+			quad_south.vertices[0]= v[0];
+			quad_south.vertices[2]= v[2];
+			quad_north.vertices[0]= v[3];
+			quad_north.vertices[2]= v[4];
 		}
+		else
 		{
-			WorldVertex v[4];
-
-			v[0].pos= i16vec4(int16_t(base_x - 1), int16_t(base_y + 1), int16_t(z + 1), 0.0);
-			v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 1), 0.0);
-			v[2].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z + 1), 0.0);
-			v[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 2), int16_t(z + 1), 0.0);
-
-			v[0].tex_coord= i16vec2(int16_t(tc_base_x - 1 * tex_scale), int16_t(tc_base_y + 1 * tex_scale));
-			v[1].tex_coord= i16vec2(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_y + 1 * tex_scale));
-			v[2].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_y + 2 * tex_scale));
-			v[3].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_y + 2 * tex_scale));
-
-			Quad quad;
-			quad.vertices[1]= v[1];
-			quad.vertices[3]= v[3];
-			if( block_value > block_value_up )
-			{
-				quad.vertices[0]= v[0];
-				quad.vertices[2]= v[2];
-			}
-			else
-			{
-				quad.vertices[0]= v[2];
-				quad.vertices[2]= v[0];
-			}
-
-			quads[quad_index + 1]= quad;
+			quad_south.vertices[0]= v[2];
+			quad_south.vertices[2]= v[0];
+			quad_north.vertices[0]= v[4];
+			quad_north.vertices[2]= v[3];
 		}
+
+		quads[quad_index]= quad_south;
+		quads[quad_index + 1]= quad_north;
 	}
 
 	if( block_value != block_value_north )

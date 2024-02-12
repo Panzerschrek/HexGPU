@@ -17,6 +17,7 @@ vk::PhysicalDeviceFeatures GetRequiredDeviceFeatures()
 	// http://vulkan.gpuinfo.org/listfeatures.php
 
 	vk::PhysicalDeviceFeatures features;
+	features.shaderInt16= true;
 	features.multiDrawIndirect= true;
 	features.geometryShader= true;
 	return features;
@@ -89,7 +90,7 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window, Settings& settings
 		VK_MAKE_VERSION(0, 0, 1),
 		"HexGPU",
 		VK_MAKE_VERSION(0, 0, 1),
-		VK_MAKE_VERSION(1, 1, 0));
+		VK_MAKE_VERSION(1, 2, 0));
 
 	vk::InstanceCreateInfo instance_create_info(
 		vk::InstanceCreateFlags(),
@@ -228,16 +229,30 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window, Settings& settings
 		queue_family_index,
 		1u, &queue_priority);
 
-	const char* const device_extension_names[]{ VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+	const char* const device_extension_names[]{ VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_8BIT_STORAGE_EXTENSION_NAME };
 
 	const vk::PhysicalDeviceFeatures physical_device_features= GetRequiredDeviceFeatures();
 
-	const vk::DeviceCreateInfo device_create_info(
+	vk::PhysicalDevice16BitStorageFeatures storage_features;
+	storage_features.storageBuffer16BitAccess= true;
+	storage_features.uniformAndStorageBuffer16BitAccess= true;
+	storage_features.storagePushConstant16= true;
+
+	vk::PhysicalDeviceFeatures2 physical_device_features2(physical_device_features, &storage_features);
+
+	vk::PhysicalDeviceVulkan12Features physical_device_vulkan12_features;
+	physical_device_vulkan12_features.shaderInt8= true;
+	physical_device_vulkan12_features.uniformAndStorageBuffer8BitAccess= true;
+	physical_device_vulkan12_features.storagePushConstant8= true;
+	physical_device_vulkan12_features.pNext= &physical_device_features2;
+
+	vk::DeviceCreateInfo device_create_info(
 		vk::DeviceCreateFlags(),
 		1u, &device_queue_create_info,
 		0u, nullptr,
-		uint32_t(std::size(device_extension_names)), device_extension_names,
-		&physical_device_features);
+		uint32_t(std::size(device_extension_names)), device_extension_names);
+
+	device_create_info.pNext= &physical_device_vulkan12_features;
 
 	// Create physical device.
 #ifdef VK_API_VERSION_1_3

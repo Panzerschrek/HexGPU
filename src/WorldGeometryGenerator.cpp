@@ -9,6 +9,16 @@ namespace HexGPU
 namespace
 {
 
+void FillChunkData(uint8_t* data)
+{
+	for(uint32_t x= 0; x < c_chunk_width; ++x)
+	for(uint32_t y= 0; y < c_chunk_width; ++y)
+	for(uint32_t z= 0; z < c_chunk_height; ++z)
+	{
+		data[ChunkBlockAddress(x, y, z)]= z > c_chunk_height / 2 ? 0 : 1;
+	}
+}
+
 } // namespace
 
 WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
@@ -44,10 +54,10 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
 		vk_chunk_data_buffer_memory_= vk_device_.allocateMemoryUnique(vk_memory_allocate_info);
 		vk_device_.bindBufferMemory(*vk_chunk_data_buffer_, *vk_chunk_data_buffer_memory_, 0u);
 
-		// Fill the buffer with zeros (to prevent warnings).
+		// Fil lthe buffer with initial values.
 		void* data_gpu_size= nullptr;
 		vk_device_.mapMemory(*vk_chunk_data_buffer_memory_, 0u, vk_memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_size);
-		std::memset(data_gpu_size, 0, data_size);
+		FillChunkData(reinterpret_cast<uint8_t*>(data_gpu_size));
 		vk_device_.unmapMemory(*vk_chunk_data_buffer_memory_);
 	}
 

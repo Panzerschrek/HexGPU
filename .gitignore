@@ -6,3 +6,6 @@ CMakeLists.txt.user
 
 # Log
 HexGPU.log
+
+# Screenshotsh directory
+screenshots/

@@ -13,9 +13,12 @@ void FillChunkData(uint8_t* data)
 {
 	for(uint32_t x= 0; x < c_chunk_width; ++x)
 	for(uint32_t y= 0; y < c_chunk_width; ++y)
-	for(uint32_t z= 0; z < c_chunk_height; ++z)
 	{
-		data[ChunkBlockAddress(x, y, z)]= z > c_chunk_height / 2 ? 0 : 1;
+		const uint32_t ground_z= 2 + ((x + y) >> 2);
+		for(uint32_t z= 0; z < c_chunk_height; ++z)
+		{
+			data[ChunkBlockAddress(x, y, z)]= z >= ground_z ? 0 : 1;
+		}
 	}
 }
 
@@ -316,7 +319,8 @@ void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer
 		1u, &*vk_geometry_gen_descriptor_set_,
 		0u, nullptr);
 
-	command_buffer.dispatch(c_chunk_width, c_chunk_width, 1);
+	// Ignore borders.
+	command_buffer.dispatch(c_chunk_width - 2, c_chunk_width - 2, c_chunk_height - 2);
 }
 
 vk::Buffer WorldGeometryGenerator::GetVertexBuffer() const

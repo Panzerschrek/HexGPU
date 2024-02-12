@@ -37,16 +37,18 @@ layout(binding= 1, std430) buffer draw_indirect_buffer
 	VkDrawIndexedIndirectCommand command;
 };
 
-layout(binding= 1, std430) buffer chunk_data_buffer
+layout(binding= 2, std430) buffer chunk_data_buffer
 {
 	uint8_t chunk_data[];
 };
 
 const int c_indices_per_quad= 6;
 
-int GetBlockZ( int x, int y )
+const int c_chunk_width_log2= 4;
+
+int ChunkBlockAddress(int x, int y, int z)
 {
-	return (x + y) >> 2;
+	return z + (y << c_chunk_width_log2) + (x << (c_chunk_width_log2 * 2));
 }
 
 void main()
@@ -55,17 +57,19 @@ void main()
 
 	int chunk_offset_x= 0;
 	int chunk_offset_y= 0;
-	int block_local_x= int(invocation.x);
-	int block_local_y= int(invocation.y);
+	int block_local_x= int(invocation.x + 1); // Skip borders.
+	int block_local_y= int(invocation.y + 1); // Skip borders.
+	int z= int(invocation.z + 1); // Skip borders.
 	int block_global_x= chunk_offset_x + block_local_x;
 	int block_global_y= chunk_offset_y + block_local_y;
-	int z= GetBlockZ(block_global_x, block_global_y);
 
 	// Perform calculations in integers - for simplicity.
 	// Hexagon grid vertices are nicely aligned to scaled square grid.
 	int base_x= 3 * block_global_x;
 	int base_y= 2 * block_global_y - (block_global_x & 1) + 1;
 
+	int block_address_in_chunk= ChunkBlockAddress( block_local_x, block_local_y, z );
+	if( chunk_data[ block_address_in_chunk ] != chunk_data[ block_address_in_chunk + 1 ] )
 	{
 		// Add two hexagon quads.
 		uint prev_index_count= atomicAdd(command.indexCount, c_indices_per_quad * 2);
@@ -119,8 +123,7 @@ void main()
 		}
 	}
 
-	int north_z= GetBlockZ(block_global_x, block_global_y + 1);
-	if(z < north_z)
+	if(false)
 	{
 		// Add north quad.
 		uint prev_index_count= atomicAdd(command.indexCount, c_indices_per_quad);

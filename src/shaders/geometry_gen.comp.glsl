@@ -78,10 +78,10 @@ void main()
 		{
 			Quad quad;
 
-			quad.vertices[0].pos= i16vec4(int16_t(base_x), int16_t(base_y), int16_t(z), 0.0);
-			quad.vertices[1].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y), int16_t(z), 0.0);
-			quad.vertices[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z), 0.0);
-			quad.vertices[3].pos= i16vec4(int16_t(base_x - 1), int16_t(base_y + 1), int16_t(z), 0.0);
+			quad.vertices[0].pos= i16vec4(int16_t(base_x), int16_t(base_y), int16_t(z + 1), 0.0);
+			quad.vertices[1].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y), int16_t(z + 1), 0.0);
+			quad.vertices[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 1), 0.0);
+			quad.vertices[3].pos= i16vec4(int16_t(base_x - 1), int16_t(base_y + 1), int16_t(z + 1), 0.0);
 
 			quad.vertices[0].color[0]= uint8_t((invocation.x + 1) * 32);
 			quad.vertices[0].color[1]= uint8_t((invocation.y + 1) * 32);
@@ -101,10 +101,10 @@ void main()
 		{
 			Quad quad;
 
-			quad.vertices[0].pos= i16vec4(int16_t(base_x - 1), int16_t(base_y + 1), int16_t(z), 0.0);
-			quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z), 0.0);
-			quad.vertices[2].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z), 0.0);
-			quad.vertices[3].pos= i16vec4(int16_t(base_x), int16_t(base_y + 2), int16_t(z), 0.0);
+			quad.vertices[0].pos= i16vec4(int16_t(base_x - 1), int16_t(base_y + 1), int16_t(z + 1), 0.0);
+			quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 1), 0.0);
+			quad.vertices[2].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z + 1), 0.0);
+			quad.vertices[3].pos= i16vec4(int16_t(base_x), int16_t(base_y + 2), int16_t(z + 1), 0.0);
 
 			quad.vertices[0].color[0]= uint8_t((invocation.x + 1) * 32);
 			quad.vertices[0].color[1]= uint8_t((invocation.y + 1) * 32);
@@ -123,7 +123,7 @@ void main()
 		}
 	}
 
-	if(false)
+	if( chunk_data[ block_address_in_chunk ] != chunk_data[ block_address_in_chunk + (1 << (c_chunk_width_log2 * 2)) ] )
 	{
 		// Add north quad.
 		uint prev_index_count= atomicAdd(command.indexCount, c_indices_per_quad);

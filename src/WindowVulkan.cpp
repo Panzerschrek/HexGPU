@@ -323,7 +323,7 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 			vk::AttachmentLoadOp::eDontCare,
 			vk::AttachmentStoreOp::eDontCare,
 			vk::ImageLayout::eUndefined,
-			vk::ImageLayout::eUndefined,
+			vk::ImageLayout::eDepthStencilAttachmentOptimal, // Actually we do not care about layout after this pass.
 		},
 	};
 

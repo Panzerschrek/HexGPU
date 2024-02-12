@@ -68,9 +68,9 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
 		vk_device_.bindBufferMemory(*vk_chunk_data_buffer_, *vk_chunk_data_buffer_memory_, 0u);
 
 		// Fil lthe buffer with initial values.
-		void* data_gpu_size= nullptr;
-		vk_device_.mapMemory(*vk_chunk_data_buffer_memory_, 0u, vk_memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_size);
-		FillChunkData(reinterpret_cast<uint8_t*>(data_gpu_size));
+		void* data_gpu_side= nullptr;
+		vk_device_.mapMemory(*vk_chunk_data_buffer_memory_, 0u, vk_memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_side);
+		FillChunkData(reinterpret_cast<uint8_t*>(data_gpu_side));
 		vk_device_.unmapMemory(*vk_chunk_data_buffer_memory_);
 	}
 

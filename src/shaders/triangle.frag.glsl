@@ -7,5 +7,7 @@ layout(location = 0) out vec4 out_color;
 
 void main()
 {
-	out_color= vec4(fract(f_tex_coord), 0.0, 1.0);
+	vec2 fract_lo= fract(f_tex_coord);
+	vec2 fract_hi= fract(f_tex_coord / 8.0);
+	out_color= vec4(fract_lo, abs(fract_hi.x - fract_hi.y), 1.0);
 }

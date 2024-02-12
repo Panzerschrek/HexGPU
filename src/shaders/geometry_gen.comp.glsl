@@ -85,16 +85,17 @@ void main()
 
 		int tc_base_x= base_x * tex_scale;
 		int tc_base_y= base_y * tex_scale;
+
 		{
 			Quad quad;
 
-			quad.vertices[0].pos= i16vec4(int16_t(base_x), int16_t(base_y), int16_t(z + 1), 0.0);
-			quad.vertices[1].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y), int16_t(z + 1), 0.0);
+			quad.vertices[0].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 0), int16_t(z + 1), 0.0);
+			quad.vertices[1].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 0), int16_t(z + 1), 0.0);
 			quad.vertices[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 1), 0.0);
 			quad.vertices[3].pos= i16vec4(int16_t(base_x - 1), int16_t(base_y + 1), int16_t(z + 1), 0.0);
 
-			quad.vertices[0].tex_coord= i16vec2(int16_t(tc_base_x), int16_t(tc_base_y));
-			quad.vertices[1].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_y));
+			quad.vertices[0].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_y + 0 * tex_scale));
+			quad.vertices[1].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_y + 0 * tex_scale));
 			quad.vertices[2].tex_coord= i16vec2(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_y + 1 * tex_scale));
 			quad.vertices[3].tex_coord= i16vec2(int16_t(tc_base_x - 1 * tex_scale), int16_t(tc_base_y + 1 * tex_scale));
 
@@ -106,12 +107,12 @@ void main()
 			quad.vertices[0].pos= i16vec4(int16_t(base_x - 1), int16_t(base_y + 1), int16_t(z + 1), 0.0);
 			quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 1), 0.0);
 			quad.vertices[2].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z + 1), 0.0);
-			quad.vertices[3].pos= i16vec4(int16_t(base_x), int16_t(base_y + 2), int16_t(z + 1), 0.0);
+			quad.vertices[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 2), int16_t(z + 1), 0.0);
 
 			quad.vertices[0].tex_coord= i16vec2(int16_t(tc_base_x - 1 * tex_scale), int16_t(tc_base_y + 1 * tex_scale));
 			quad.vertices[1].tex_coord= i16vec2(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_y + 1 * tex_scale));
 			quad.vertices[2].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_y + 2 * tex_scale));
-			quad.vertices[3].tex_coord= i16vec2(int16_t(tc_base_x), int16_t(tc_base_y + 2 * tex_scale));
+			quad.vertices[3].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_y + 2 * tex_scale));
 
 			quads[quad_index + 1]= quad;
 		}
@@ -125,18 +126,18 @@ void main()
 
 		Quad quad;
 
-		quad.vertices[0].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z), 0.0);
+		quad.vertices[0].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z + 0), 0.0);
 		quad.vertices[1].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z + 1), 0.0);
-		quad.vertices[2].pos= i16vec4(int16_t(base_x), int16_t(base_y + 2), int16_t(z + 1), 0.0);
-		quad.vertices[3].pos= i16vec4(int16_t(base_x), int16_t(base_y + 2), int16_t(z), 0.0);
+		quad.vertices[2].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 2), int16_t(z + 1), 0.0);
+		quad.vertices[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 2), int16_t(z + 0), 0.0);
 
 		int tc_base_x= base_x * tex_scale;
-		int tc_base_z= z * tex_scale;
+		int tc_base_z= z * (2 * tex_scale);
 
-		quad.vertices[0].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z));
+		quad.vertices[0].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 0 * tex_scale));
 		quad.vertices[1].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 2 * tex_scale));
-		quad.vertices[2].tex_coord= i16vec2(int16_t(tc_base_x), int16_t(tc_base_z + 2 * tex_scale));
-		quad.vertices[3].tex_coord= i16vec2(int16_t(tc_base_x), int16_t(tc_base_z));
+		quad.vertices[2].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 2 * tex_scale));
+		quad.vertices[3].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 0 * tex_scale));
 
 		quads[quad_index]= quad;
 	}
@@ -149,18 +150,18 @@ void main()
 
 		Quad quad;
 
-		quad.vertices[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z), 0.0);
+		quad.vertices[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 0), 0.0);
 		quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 1), 0.0);
 		quad.vertices[2].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z + 1), 0.0);
-		quad.vertices[3].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z), 0.0);
+		quad.vertices[3].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z + 0), 0.0);
 
 		int tc_base_x= base_x * tex_scale;
-		int tc_base_z= z * tex_scale;
+		int tc_base_z= z * (2 * tex_scale);
 
-		quad.vertices[0].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z));
+		quad.vertices[0].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 0 * tex_scale));
 		quad.vertices[1].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 2 * tex_scale));
-		quad.vertices[2].tex_coord= i16vec2(int16_t(tc_base_x), int16_t(tc_base_z + 2 * tex_scale));
-		quad.vertices[3].tex_coord= i16vec2(int16_t(tc_base_x), int16_t(tc_base_z));
+		quad.vertices[2].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 2 * tex_scale));
+		quad.vertices[3].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 0 * tex_scale));
 
 		quads[quad_index]= quad;
 	}
@@ -173,18 +174,18 @@ void main()
 
 		Quad quad;
 
-		quad.vertices[0].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y), int16_t(z), 0.0);
-		quad.vertices[1].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y), int16_t(z + 1), 0.0);
+		quad.vertices[0].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 0), int16_t(z + 0), 0.0);
+		quad.vertices[1].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 0), int16_t(z + 1), 0.0);
 		quad.vertices[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 1), 0.0);
-		quad.vertices[3].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z), 0.0);
+		quad.vertices[3].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 0), 0.0);
 
 		int tc_base_x= base_x * tex_scale;
-		int tc_base_z= z * tex_scale;
+		int tc_base_z= z * (2 * tex_scale);
 
-		quad.vertices[0].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z));
+		quad.vertices[0].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 0 * tex_scale));
 		quad.vertices[1].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 2 * tex_scale));
-		quad.vertices[2].tex_coord= i16vec2(int16_t(tc_base_x), int16_t(tc_base_z + 2 * tex_scale));
-		quad.vertices[3].tex_coord= i16vec2(int16_t(tc_base_x), int16_t(tc_base_z));
+		quad.vertices[2].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 2 * tex_scale));
+		quad.vertices[3].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 0 * tex_scale));
 
 		quads[quad_index]= quad;
 	}

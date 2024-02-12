@@ -1,4 +1,5 @@
 #include "WorldGeometryGenerator.hpp"
+#include "Constants.hpp"
 #include "Assert.hpp"
 #include "ShaderList.hpp"
 
@@ -15,6 +16,40 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
 {
 	// Create shaders.
 	geometry_gen_shader_= CreateShader(vk_device_, ShaderNames::geometry_gen_comp);
+
+	// Create chung data buffer.
+	{
+		const size_t data_size= c_chunk_volume;
+
+		vk_chunk_data_buffer_=
+			vk_device_.createBufferUnique(
+				vk::BufferCreateInfo(
+					vk::BufferCreateFlags(),
+					data_size,
+					vk::BufferUsageFlagBits::eStorageBuffer));
+
+		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*vk_chunk_data_buffer_);
+
+		const auto memory_properties= window_vulkan.GetMemoryProperties();
+
+		vk::MemoryAllocateInfo vk_memory_allocate_info(buffer_memory_requirements.size);
+		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
+		{
+			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
+				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible) != vk::MemoryPropertyFlags() &&
+				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent) != vk::MemoryPropertyFlags())
+				vk_memory_allocate_info.memoryTypeIndex= i;
+		}
+
+		vk_chunk_data_buffer_memory_= vk_device_.allocateMemoryUnique(vk_memory_allocate_info);
+		vk_device_.bindBufferMemory(*vk_chunk_data_buffer_, *vk_chunk_data_buffer_memory_, 0u);
+
+		// Fill the buffer with zeros (to prevent warnings).
+		void* data_gpu_size= nullptr;
+		vk_device_.mapMemory(*vk_chunk_data_buffer_memory_, 0u, vk_memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_size);
+		std::memset(data_gpu_size, 0, data_size);
+		vk_device_.unmapMemory(*vk_chunk_data_buffer_memory_);
+	}
 
 	// Create vertex buffer.
 	// TODO - make it bigger.
@@ -239,7 +274,7 @@ void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer
 		1u, &*vk_geometry_gen_descriptor_set_,
 		0u, nullptr);
 
-	command_buffer.dispatch(16, 16, 1);
+	command_buffer.dispatch(c_chunk_width, c_chunk_width, 1);
 }
 
 vk::Buffer WorldGeometryGenerator::GetVertexBuffer() const

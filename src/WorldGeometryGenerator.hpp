@@ -30,6 +30,9 @@ private:
 
 	vk::UniqueShaderModule geometry_gen_shader_;
 
+	vk::UniqueBuffer vk_chunk_data_buffer_;
+	vk::UniqueDeviceMemory vk_chunk_data_buffer_memory_;
+
 	size_t vertex_buffer_num_quads_= 0;
 	vk::UniqueBuffer vk_vertex_buffer_;
 	vk::UniqueDeviceMemory vk_vertex_buffer_memory_;

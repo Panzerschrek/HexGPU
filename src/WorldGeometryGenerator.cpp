@@ -14,7 +14,7 @@ void FillChunkData(uint8_t* data)
 	for(uint32_t x= 0; x < c_chunk_width; ++x)
 	for(uint32_t y= 0; y < c_chunk_width; ++y)
 	{
-		const uint32_t ground_z= 2 + ((x + y) >> 2);
+		const uint32_t ground_z= uint32_t(5.0f + 1.0f * std::sin(float(x) * 0.75f) + 1.5f * std::sin(float(y) * 0.5f));
 		for(uint32_t z= 0; z < c_chunk_height; ++z)
 		{
 			data[ChunkBlockAddress(x, y, z)]= z >= ground_z ? 0 : 1;

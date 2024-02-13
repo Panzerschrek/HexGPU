@@ -7,7 +7,7 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 
-// If this chanhed, vertex attributes specification in C++ code must be chaned too!
+// If this changed, vertex attributes specification in C++ code must be chaned too!
 struct WorldVertex
 {
 	i16vec4 pos;
@@ -34,7 +34,7 @@ layout(binding= 1, std430) buffer draw_indirect_buffer
 
 layout(binding= 2, std430) buffer chunk_data_buffer
 {
-	uint8_t chunk_data[];
+	uint8_t chunk_data[c_chunk_volume];
 };
 
 const int c_indices_per_quad= 6;

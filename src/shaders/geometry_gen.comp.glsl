@@ -46,10 +46,28 @@ const int c_indices_per_quad= 6;
 
 const int c_max_quads_per_chunk= 65536 / 4;
 
+const int c_max_global_x= (c_chunk_matrix_size[0] << c_chunk_width_log2) - 1;
+const int c_max_global_y= (c_chunk_matrix_size[1] << c_chunk_width_log2) - 1;
+
+// Input coordinates must be properly clamped.
+uint8_t FetchBlock(int global_x, int global_y, int z)
+{
+	int chunk_x= global_x >> c_chunk_width_log2;
+	int chunk_y= global_y >> c_chunk_width_log2;
+	int local_x= global_x & (c_chunk_width - 1);
+	int local_y= global_y & (c_chunk_width - 1);
+
+	int chunk_index= chunk_x + chunk_y * c_chunk_matrix_size[0];
+	int chunk_data_offset= chunk_index * c_chunk_volume;
+
+	int block_address= ChunkBlockAddress(local_x, local_y, z);
+
+	return chunks_data[chunk_data_offset + block_address];
+}
+
 void main()
 {
 	int chunk_index= chunk_position[0] + chunk_position[1] * c_chunk_matrix_size[0];
-	int chunk_data_offset= chunk_index * c_chunk_volume;
 
 	// For now use same capacity for quads of all chunks.
 	// TODO - allocate memory for chunk quads on per-chunk basis, read here offset to allocated memory.
@@ -57,31 +75,24 @@ void main()
 
 	uvec3 invocation= gl_GlobalInvocationID;
 
-	int chunk_offset_x= chunk_position[0] << c_chunk_width_log2;
-	int chunk_offset_y= chunk_position[1] << c_chunk_width_log2;
-	int block_local_x= int(invocation.x + 1); // Skip borders.
-	int block_local_y= int(invocation.y + 1); // Skip borders.
-	int z= int(invocation.z + 1); // Skip borders.
-	int block_global_x= chunk_offset_x + block_local_x;
-	int block_global_y= chunk_offset_y + block_local_y;
+	int block_global_x= (chunk_position[0] << c_chunk_width_log2) + int(invocation.x);
+	int block_global_y= (chunk_position[1] << c_chunk_width_log2) + int(invocation.y);
+	int z= int(invocation.z);
+
+	// TODO - uptimize this. Reuse calculations in the same chunk.
+	uint8_t block_value= FetchBlock(block_global_x, block_global_y, z);
+	uint8_t block_value_up= FetchBlock(block_global_x, block_global_y, z + 1); // Assume Z is never for the last layer of blocks.
+	uint8_t block_value_north= FetchBlock(block_global_x, min(block_global_y + 1, c_max_global_y), z);
+
+	int east_x_clamped= min(block_global_x + 1, c_max_global_x);
+	int east_y_base= block_global_y + ((block_global_x + 1) & 1);
+	uint8_t block_value_north_east= FetchBlock(east_x_clamped, max(0, min(east_y_base - 0, c_max_global_y)), z);
+	uint8_t block_value_south_east= FetchBlock(east_x_clamped, max(0, min(east_y_base - 1, c_max_global_y)), z);
 
 	// Perform calculations in integers - for simplicity.
 	// Hexagon grid vertices are nicely aligned to scaled square grid.
 	int base_x= 3 * block_global_x;
 	int base_y= 2 * block_global_y - (block_global_x & 1) + 1;
-
-	int block_address_in_chunk= ChunkBlockAddress( block_local_x, block_local_y, z );
-	int block_address_up= block_address_in_chunk + 1;
-	int block_address_north= block_address_in_chunk + (1 << c_chunk_height_log2);
-	int block_address_north_east= block_address_in_chunk + (((block_local_x + 1) & 1) << (c_chunk_height_log2)) + (1 <<(c_chunk_width_log2 + c_chunk_height_log2));
-	int block_address_south_east= block_address_north_east - (1 << c_chunk_height_log2);
-
-	uint8_t block_value= chunks_data[ chunk_data_offset + block_address_in_chunk ];
-	uint8_t block_value_up= chunks_data[ chunk_data_offset + block_address_up ];
-	uint8_t block_value_north= chunks_data[ chunk_data_offset + block_address_north ];
-	uint8_t block_value_north_east= chunks_data[ chunk_data_offset + block_address_north_east ];
-	uint8_t block_value_south_east= chunks_data[ chunk_data_offset + block_address_south_east ];
-
 	const int tex_scale= 1; // TODO - read block properties to determine texture scale.
 
 	if( block_value != block_value_up )

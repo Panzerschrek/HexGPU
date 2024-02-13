@@ -368,7 +368,7 @@ void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer
 			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
 
 		// Ignore borders.
-		command_buffer.dispatch(c_chunk_width - 2, c_chunk_width - 2, c_chunk_height - 2);
+		command_buffer.dispatch(c_chunk_width, c_chunk_width , c_chunk_height - 1 /*skip last blocks layer*/);
 	}
 }
 

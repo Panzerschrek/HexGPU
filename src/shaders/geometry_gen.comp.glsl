@@ -29,55 +29,75 @@ layout(binding= 0, std430) buffer vertices_buffer
 layout(binding= 1, std430) buffer draw_indirect_buffer
 {
 	// Populate here result number of indices.
-	VkDrawIndexedIndirectCommand command;
+	VkDrawIndexedIndirectCommand draw_commands[c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
 };
 
-layout(binding= 2, std430) buffer chunk_data_buffer
+layout(binding= 2, std430) buffer chunks_data_buffer
 {
-	uint8_t chunk_data[c_chunk_volume];
+	uint8_t chunks_data[c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
+};
+
+layout(push_constant) uniform uniforms_block
+{
+	int chunk_position[2];
 };
 
 const int c_indices_per_quad= 6;
 
+const int c_max_quads_per_chunk= 65536 / 4;
+
+const int c_max_global_x= (c_chunk_matrix_size[0] << c_chunk_width_log2) - 1;
+const int c_max_global_y= (c_chunk_matrix_size[1] << c_chunk_width_log2) - 1;
+
+// Input coordinates must be properly clamped.
+uint8_t FetchBlock(int global_x, int global_y, int z)
+{
+	int chunk_x= global_x >> c_chunk_width_log2;
+	int chunk_y= global_y >> c_chunk_width_log2;
+	int local_x= global_x & (c_chunk_width - 1);
+	int local_y= global_y & (c_chunk_width - 1);
+
+	int chunk_index= chunk_x + chunk_y * c_chunk_matrix_size[0];
+	int chunk_data_offset= chunk_index * c_chunk_volume;
+
+	int block_address= ChunkBlockAddress(local_x, local_y, z);
+
+	return chunks_data[chunk_data_offset + block_address];
+}
+
 void main()
 {
+	int chunk_index= chunk_position[0] + chunk_position[1] * c_chunk_matrix_size[0];
+
+	// For now use same capacity for quads of all chunks.
+	// TODO - allocate memory for chunk quads on per-chunk basis, read here offset to allocated memory.
+	const uint quads_offset= uint(c_max_quads_per_chunk * chunk_index);
+
 	uvec3 invocation= gl_GlobalInvocationID;
 
-	int chunk_offset_x= 0;
-	int chunk_offset_y= 0;
-	int block_local_x= int(invocation.x + 1); // Skip borders.
-	int block_local_y= int(invocation.y + 1); // Skip borders.
-	int z= int(invocation.z + 1); // Skip borders.
-	int block_global_x= chunk_offset_x + block_local_x;
-	int block_global_y= chunk_offset_y + block_local_y;
+	int block_global_x= (chunk_position[0] << c_chunk_width_log2) + int(invocation.x);
+	int block_global_y= (chunk_position[1] << c_chunk_width_log2) + int(invocation.y);
+	int z= int(invocation.z);
+
+	// TODO - optimize this. Reuse calculations in the same chunk.
+	uint8_t block_value= FetchBlock(block_global_x, block_global_y, z);
+	uint8_t block_value_up= FetchBlock(block_global_x, block_global_y, z + 1); // Assume Z is never for the last layer of blocks.
+	uint8_t block_value_north= FetchBlock(block_global_x, min(block_global_y + 1, c_max_global_y), z);
+
+	int east_x_clamped= min(block_global_x + 1, c_max_global_x);
+	int east_y_base= block_global_y + ((block_global_x + 1) & 1);
+	uint8_t block_value_north_east= FetchBlock(east_x_clamped, max(0, min(east_y_base - 0, c_max_global_y)), z);
+	uint8_t block_value_south_east= FetchBlock(east_x_clamped, max(0, min(east_y_base - 1, c_max_global_y)), z);
 
 	// Perform calculations in integers - for simplicity.
 	// Hexagon grid vertices are nicely aligned to scaled square grid.
 	int base_x= 3 * block_global_x;
 	int base_y= 2 * block_global_y - (block_global_x & 1) + 1;
-
-	int block_address_in_chunk= ChunkBlockAddress( block_local_x, block_local_y, z );
-	int block_address_up= block_address_in_chunk + 1;
-	int block_address_north= block_address_in_chunk + (1 << c_chunk_height_log2);
-	int block_address_north_east= block_address_in_chunk + (((block_local_x + 1) & 1) << (c_chunk_height_log2)) + (1 <<(c_chunk_width_log2 + c_chunk_height_log2));
-	int block_address_south_east= block_address_north_east - (1 << c_chunk_height_log2);
-
-	uint8_t block_value= chunk_data[ block_address_in_chunk ];
-	uint8_t block_value_up= chunk_data[ block_address_up ];
-	uint8_t block_value_north= chunk_data[ block_address_north ];
-	uint8_t block_value_north_east= chunk_data[ block_address_north_east ];
-	uint8_t block_value_south_east= chunk_data[ block_address_south_east ];
-
 	const int tex_scale= 1; // TODO - read block properties to determine texture scale.
 
 	if( block_value != block_value_up )
 	{
 		// Add two hexagon quads.
-		uint prev_index_count= atomicAdd(command.indexCount, c_indices_per_quad * 2);
-		uint quad_index= prev_index_count / 6;
-
-		int tc_base_x= base_x * tex_scale;
-		int tc_base_y= base_y * tex_scale;
 
 		// Calculate hexagon vertices.
 		WorldVertex v[6];
@@ -88,6 +108,9 @@ void main()
 		v[3].pos= i16vec4(int16_t(base_x - 1), int16_t(base_y + 1), int16_t(z + 1), 0.0);
 		v[4].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z + 1), 0.0);
 		v[5].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 2), int16_t(z + 1), 0.0);
+
+		int tc_base_x= base_x * tex_scale;
+		int tc_base_y= base_y * tex_scale;
 
 		v[0].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_y + 0 * tex_scale));
 		v[1].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_y + 0 * tex_scale));
@@ -117,6 +140,8 @@ void main()
 			quad_north.vertices[2]= v[3];
 		}
 
+		uint prev_index_count= atomicAdd(draw_commands[chunk_index].indexCount, c_indices_per_quad * 2);
+		uint quad_index= quads_offset + prev_index_count / 6;
 		quads[quad_index]= quad_south;
 		quads[quad_index + 1]= quad_north;
 	}
@@ -124,9 +149,6 @@ void main()
 	if( block_value != block_value_north )
 	{
 		// Add north quad.
-		uint prev_index_count= atomicAdd(command.indexCount, c_indices_per_quad);
-		uint quad_index= prev_index_count / 6;
-
 		WorldVertex v[4];
 
 		v[0].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z + 0), 0.0);
@@ -156,15 +178,14 @@ void main()
 			quad.vertices[2]= v[2];
 		}
 
+		uint prev_index_count= atomicAdd(draw_commands[chunk_index].indexCount, c_indices_per_quad);
+		uint quad_index= quads_offset + prev_index_count / 6;
 		quads[quad_index]= quad;
 	}
 
 	if( block_value != block_value_north_east )
 	{
 		// Add north-east quad.
-		uint prev_index_count= atomicAdd(command.indexCount, c_indices_per_quad);
-		uint quad_index= prev_index_count / 6;
-
 		WorldVertex v[4];
 
 		v[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 0), 0.0);
@@ -194,15 +215,13 @@ void main()
 			quad.vertices[2]= v[2];
 		}
 
+		uint prev_index_count= atomicAdd(draw_commands[chunk_index].indexCount, c_indices_per_quad);
+		uint quad_index= quads_offset + prev_index_count / 6;
 		quads[quad_index]= quad;
 	}
 
 	if( block_value != block_value_south_east )
 	{
-		// Add south-east quad.
-		uint prev_index_count= atomicAdd(command.indexCount, c_indices_per_quad);
-		uint quad_index= prev_index_count / 6;
-
 		WorldVertex v[4];
 
 		v[0].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 0), int16_t(z + 0), 0.0);
@@ -232,6 +251,9 @@ void main()
 			quad.vertices[2]= v[2];
 		}
 
+		// Add south-east quad.
+		uint prev_index_count= atomicAdd(draw_commands[chunk_index].indexCount, c_indices_per_quad);
+		uint quad_index= quads_offset + prev_index_count / 6;
 		quads[quad_index]= quad;
 	}
 }

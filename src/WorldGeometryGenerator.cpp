@@ -9,12 +9,14 @@ namespace HexGPU
 namespace
 {
 
-void FillChunkData(uint8_t* data)
+void FillChunkData(const uint32_t chunk_x, const uint32_t chunk_y, uint8_t* const data)
 {
 	for(uint32_t x= 0; x < c_chunk_width; ++x)
 	for(uint32_t y= 0; y < c_chunk_width; ++y)
 	{
-		const uint32_t ground_z= uint32_t(5.0f + 1.0f * std::sin(float(x) * 0.75f) + 1.5f * std::sin(float(y) * 0.5f));
+		const uint32_t global_x= x + (chunk_x << c_chunk_width_log2);
+		const uint32_t global_y= y + (chunk_y << c_chunk_width_log2);
+		const uint32_t ground_z= uint32_t(6.0f + 1.5f * std::sin(float(global_x) * 0.5f) + 2.0f * std::sin(float(global_y) * 0.3f));
 		for(uint32_t z= 0; z < c_chunk_height; ++z)
 		{
 			data[ChunkBlockAddress(x, y, z)]= z >= ground_z ? 0 : 1;
@@ -32,6 +34,17 @@ const uint32_t chunk_data_buffer= 2;
 
 }
 
+// Size limit of this struct is 128 bytes.
+// 128 bytes is guaranted maximum size of push constants uniform block.
+struct ChunkPositionUniforms
+{
+	int32_t chunk_position[2];
+};
+
+// For now allocate for each chunk maximum possible vertex count.
+// TODO - improve this, use some kind of allocator for vertices.
+const uint32_t c_max_quads_per_chunk= 65536 / 4;
+
 } // namespace
 
 WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
@@ -42,7 +55,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
 
 	// Create chung data buffer.
 	{
-		const size_t data_size= c_chunk_volume;
+		const size_t data_size= c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1];
 
 		vk_chunk_data_buffer_=
 			vk_device_.createBufferUnique(
@@ -70,13 +83,19 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
 		// Fil lthe buffer with initial values.
 		void* data_gpu_side= nullptr;
 		vk_device_.mapMemory(*vk_chunk_data_buffer_memory_, 0u, vk_memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_side);
-		FillChunkData(reinterpret_cast<uint8_t*>(data_gpu_side));
+
+		for(uint32_t x= 0; x < c_chunk_matrix_size[0]; ++x)
+		for(uint32_t y= 0; y < c_chunk_matrix_size[1]; ++y)
+			FillChunkData(
+				x,
+				y,
+				reinterpret_cast<uint8_t*>(data_gpu_side) + (x + y * c_chunk_matrix_size[0]) * c_chunk_volume);
+
 		vk_device_.unmapMemory(*vk_chunk_data_buffer_memory_);
 	}
 
 	// Create vertex buffer.
-	// TODO - make it bigger.
-	vertex_buffer_num_quads_= 65536 / 4 - 1;
+	vertex_buffer_num_quads_= c_max_quads_per_chunk * c_chunk_matrix_size[0] * c_chunk_matrix_size[1];
 	{
 		const size_t quads_data_size= vertex_buffer_num_quads_ * sizeof(QuadVertices);
 
@@ -113,7 +132,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
 
 	// Create draw indirect buffer.
 	{
-		const size_t num_commands= 1;
+		const size_t num_commands= c_chunk_matrix_size[0] * c_chunk_matrix_size[1];
 		const size_t buffer_size= sizeof(vk::DrawIndexedIndirectCommand) * num_commands;
 
 		vk_draw_indirect_buffer_=
@@ -180,11 +199,18 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
 	}
 
 	// Create pipeline layout.
-	vk_geometry_gen_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
-		vk::PipelineLayoutCreateInfo(
-			vk::PipelineLayoutCreateFlags(),
-			1u, &*vk_geometry_gen_decriptor_set_layout_,
-			0u, nullptr));
+	{
+		const vk::PushConstantRange vk_push_constant_range(
+			vk::ShaderStageFlagBits::eCompute,
+			0u,
+			sizeof(ChunkPositionUniforms));
+
+		vk_geometry_gen_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
+			vk::PipelineLayoutCreateInfo(
+				vk::PipelineLayoutCreateFlags(),
+				1u, &*vk_geometry_gen_decriptor_set_layout_,
+				1u, &vk_push_constant_range));
+	}
 
 	// Create pipeline.
 	vk_geometry_gen_pipeline_= vk_device_.createComputePipelineUnique(
@@ -227,12 +253,12 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
 		const vk::DescriptorBufferInfo descriptor_draw_indirect_buffer_info(
 			*vk_draw_indirect_buffer_,
 			0u,
-			1 * sizeof(vk::DrawIndexedIndirectCommand));
+			sizeof(vk::DrawIndexedIndirectCommand) * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]);
 
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
 			*vk_chunk_data_buffer_,
 			0u,
-			c_chunk_volume);
+			c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]);
 
 		vk_device_.updateDescriptorSets(
 			{
@@ -279,15 +305,26 @@ WorldGeometryGenerator::~WorldGeometryGenerator()
 
 void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer)
 {
-	// Reset draw command.
+	// Reset draw commands.
 	{
-		vk::DrawIndexedIndirectCommand command{};
-		command.indexCount= 0;
-		command.instanceCount= 1;
-		command.firstIndex= 0;
-		command.vertexOffset= 0;
-		command.firstInstance= 0;
-		command_buffer.updateBuffer(*vk_draw_indirect_buffer_, 0, sizeof(command), static_cast<const void*>(&command));
+		vk::DrawIndexedIndirectCommand commands[ c_chunk_matrix_size[0] * c_chunk_matrix_size[1] ];
+		for(uint32_t x= 0; x < c_chunk_matrix_size[0]; ++x)
+		for(uint32_t y= 0; y < c_chunk_matrix_size[1]; ++y)
+		{
+			const uint32_t chunk_index= x + y * c_chunk_matrix_size[0];
+			vk::DrawIndexedIndirectCommand& command= commands[ chunk_index ];
+			command.indexCount= 0;
+			command.instanceCount= 1;
+			command.firstIndex= 0;
+			command.vertexOffset= chunk_index * c_max_quads_per_chunk * 4;
+			command.firstInstance= 0;
+		}
+
+		command_buffer.updateBuffer(
+			*vk_draw_indirect_buffer_,
+			0,
+			sizeof(vk::DrawIndexedIndirectCommand) * c_chunk_matrix_size[0] * c_chunk_matrix_size[1],
+			static_cast<const void*>(commands));
 	}
 
 	// Create barrier between update buffer and its usage in shader.
@@ -309,7 +346,6 @@ void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer
 			0, nullptr);
 	}
 
-	// Perform geometry generation.
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *vk_geometry_gen_pipeline_);
 
 	command_buffer.bindDescriptorSets(
@@ -319,8 +355,24 @@ void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer
 		1u, &*vk_geometry_gen_descriptor_set_,
 		0u, nullptr);
 
-	// Ignore borders.
-	command_buffer.dispatch(c_chunk_width - 2, c_chunk_width - 2, c_chunk_height - 2);
+	// Execute geometry generation for all chunks.
+	// TODO - do this no each frame and not for each chunk.
+	for(uint32_t x= 0; x < c_chunk_matrix_size[0]; ++x)
+	for(uint32_t y= 0; y < c_chunk_matrix_size[1]; ++y)
+	{
+		ChunkPositionUniforms chunk_position_uniforms;
+		chunk_position_uniforms.chunk_position[0]= int32_t(x);
+		chunk_position_uniforms.chunk_position[1]= int32_t(y);
+
+		command_buffer.pushConstants(
+			*vk_geometry_gen_pipeline_layout_,
+			vk::ShaderStageFlagBits::eCompute,
+			0,
+			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
+
+		// Ignore borders.
+		command_buffer.dispatch(c_chunk_width, c_chunk_width , c_chunk_height - 1 /*skip last blocks layer*/);
+	}
 }
 
 vk::Buffer WorldGeometryGenerator::GetVertexBuffer() const

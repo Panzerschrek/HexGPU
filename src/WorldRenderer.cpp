@@ -1,5 +1,6 @@
 #include "WorldRenderer.hpp"
 #include "Assert.hpp"
+#include "Constants.hpp"
 #include "ShaderList.hpp"
 #include <cmath>
 #include <cstring>
@@ -311,7 +312,11 @@ void WorldRenderer::Draw(const vk::CommandBuffer command_buffer, const m_Mat4& v
 
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *vk_pipeline_);
 
-	command_buffer.drawIndexedIndirect(draw_indirect_buffer, 0, 1, sizeof(vk::DrawIndexedIndirectCommand));
+	command_buffer.drawIndexedIndirect(
+		draw_indirect_buffer,
+		0,
+		c_chunk_matrix_size[0] * c_chunk_matrix_size[1],
+		sizeof(vk::DrawIndexedIndirectCommand));
 }
 
 } // namespace HexGPU

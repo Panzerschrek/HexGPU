@@ -41,6 +41,8 @@ struct ChunkPositionUniforms
 	int32_t chunk_position[2];
 };
 
+const uint32_t c_max_quads_per_chunk= 65536 / 4;
+
 } // namespace
 
 WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
@@ -91,8 +93,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
 	}
 
 	// Create vertex buffer.
-	// TODO - make it bigger.
-	vertex_buffer_num_quads_= 65536 / 4 - 1;
+	vertex_buffer_num_quads_= c_max_quads_per_chunk * c_chunk_matrix_size[0] * c_chunk_matrix_size[1];
 	{
 		const size_t quads_data_size= vertex_buffer_num_quads_ * sizeof(QuadVertices);
 
@@ -129,7 +130,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
 
 	// Create draw indirect buffer.
 	{
-		const size_t num_commands= 1;
+		const size_t num_commands= c_chunk_matrix_size[0] * c_chunk_matrix_size[1];
 		const size_t buffer_size= sizeof(vk::DrawIndexedIndirectCommand) * num_commands;
 
 		vk_draw_indirect_buffer_=
@@ -250,7 +251,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
 		const vk::DescriptorBufferInfo descriptor_draw_indirect_buffer_info(
 			*vk_draw_indirect_buffer_,
 			0u,
-			1 * sizeof(vk::DrawIndexedIndirectCommand));
+			sizeof(vk::DrawIndexedIndirectCommand) * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]);
 
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
 			*vk_chunk_data_buffer_,
@@ -302,15 +303,26 @@ WorldGeometryGenerator::~WorldGeometryGenerator()
 
 void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer)
 {
-	// Reset draw command.
+	// Reset draw commands.
 	{
-		vk::DrawIndexedIndirectCommand command{};
-		command.indexCount= 0;
-		command.instanceCount= 1;
-		command.firstIndex= 0;
-		command.vertexOffset= 0;
-		command.firstInstance= 0;
-		command_buffer.updateBuffer(*vk_draw_indirect_buffer_, 0, sizeof(command), static_cast<const void*>(&command));
+		vk::DrawIndexedIndirectCommand commands[ c_chunk_matrix_size[0] * c_chunk_matrix_size[1] ];
+		for(uint32_t x= 0; x < c_chunk_matrix_size[0]; ++x)
+		for(uint32_t y= 0; y < c_chunk_matrix_size[1]; ++y)
+		{
+			const uint32_t chunk_index= x + y * c_chunk_matrix_size[0];
+			vk::DrawIndexedIndirectCommand& command= commands[ chunk_index ];
+			command.indexCount= 0;
+			command.instanceCount= 1;
+			command.firstIndex= 0;
+			command.vertexOffset= chunk_index * c_max_quads_per_chunk * 4;
+			command.firstInstance= 0;
+		}
+
+		command_buffer.updateBuffer(
+			*vk_draw_indirect_buffer_,
+			0,
+			sizeof(vk::DrawIndexedIndirectCommand) * c_chunk_matrix_size[0] * c_chunk_matrix_size[1],
+			static_cast<const void*>(commands));
 	}
 
 	// Create barrier between update buffer and its usage in shader.

@@ -29,7 +29,7 @@ layout(binding= 0, std430) buffer vertices_buffer
 layout(binding= 1, std430) buffer draw_indirect_buffer
 {
 	// Populate here result number of indices.
-	VkDrawIndexedIndirectCommand command;
+	VkDrawIndexedIndirectCommand draw_commands[c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
 };
 
 layout(binding= 2, std430) buffer chunks_data_buffer
@@ -44,8 +44,14 @@ layout(push_constant) uniform uniforms_block
 
 const int c_indices_per_quad= 6;
 
+const int c_max_quads_per_chunk= 65536 / 4;
+
 void main()
 {
+	int chunk_index= chunk_position[0] + chunk_position[1] * c_chunk_matrix_size[0];
+	int chunk_data_offset= chunk_index * c_chunk_volume;
+	const uint quads_offset= uint(c_max_quads_per_chunk * chunk_index);
+
 	uvec3 invocation= gl_GlobalInvocationID;
 
 	int chunk_offset_x= chunk_position[0] << c_chunk_width_log2;
@@ -67,8 +73,6 @@ void main()
 	int block_address_north_east= block_address_in_chunk + (((block_local_x + 1) & 1) << (c_chunk_height_log2)) + (1 <<(c_chunk_width_log2 + c_chunk_height_log2));
 	int block_address_south_east= block_address_north_east - (1 << c_chunk_height_log2);
 
-	int chunk_data_offset= (chunk_position[0] + chunk_position[1] * c_chunk_matrix_size[0]) * c_chunk_volume;
-
 	uint8_t block_value= chunks_data[ chunk_data_offset + block_address_in_chunk ];
 	uint8_t block_value_up= chunks_data[ chunk_data_offset + block_address_up ];
 	uint8_t block_value_north= chunks_data[ chunk_data_offset + block_address_north ];
@@ -80,8 +84,8 @@ void main()
 	if( block_value != block_value_up )
 	{
 		// Add two hexagon quads.
-		uint prev_index_count= atomicAdd(command.indexCount, c_indices_per_quad * 2);
-		uint quad_index= prev_index_count / 6;
+		uint prev_index_count= atomicAdd(draw_commands[chunk_index].indexCount, c_indices_per_quad * 2);
+		uint quad_index= quads_offset + prev_index_count / 6;
 
 		int tc_base_x= base_x * tex_scale;
 		int tc_base_y= base_y * tex_scale;
@@ -131,8 +135,8 @@ void main()
 	if( block_value != block_value_north )
 	{
 		// Add north quad.
-		uint prev_index_count= atomicAdd(command.indexCount, c_indices_per_quad);
-		uint quad_index= prev_index_count / 6;
+		uint prev_index_count= atomicAdd(draw_commands[chunk_index].indexCount, c_indices_per_quad);
+		uint quad_index= quads_offset + prev_index_count / 6;
 
 		WorldVertex v[4];
 
@@ -169,8 +173,8 @@ void main()
 	if( block_value != block_value_north_east )
 	{
 		// Add north-east quad.
-		uint prev_index_count= atomicAdd(command.indexCount, c_indices_per_quad);
-		uint quad_index= prev_index_count / 6;
+		uint prev_index_count= atomicAdd(draw_commands[chunk_index].indexCount, c_indices_per_quad);
+		uint quad_index= quads_offset + prev_index_count / 6;
 
 		WorldVertex v[4];
 
@@ -207,8 +211,8 @@ void main()
 	if( block_value != block_value_south_east )
 	{
 		// Add south-east quad.
-		uint prev_index_count= atomicAdd(command.indexCount, c_indices_per_quad);
-		uint quad_index= prev_index_count / 6;
+		uint prev_index_count= atomicAdd(draw_commands[chunk_index].indexCount, c_indices_per_quad);
+		uint quad_index= quads_offset + prev_index_count / 6;
 
 		WorldVertex v[4];
 

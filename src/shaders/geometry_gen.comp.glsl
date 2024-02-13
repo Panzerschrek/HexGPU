@@ -1,4 +1,9 @@
 #version 450
+
+#extension GL_GOOGLE_include_directive : require
+#include "inc/constants.glsl"
+#include "inc/vulkan_structs.glsl"
+
 #extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 
@@ -13,16 +18,6 @@ struct WorldVertex
 struct Quad
 {
 	WorldVertex vertices[4];
-};
-
-// Command struct as it is defined in C.
-struct VkDrawIndexedIndirectCommand
-{
-	uint indexCount;
-	uint instanceCount;
-	uint firstIndex;
-	int vertexOffset;
-	uint firstInstance;
 };
 
 layout(binding= 0, std430) buffer vertices_buffer
@@ -43,14 +38,6 @@ layout(binding= 2, std430) buffer chunk_data_buffer
 };
 
 const int c_indices_per_quad= 6;
-
-const int c_chunk_width_log2= 4;
-const int c_chunk_height_log2= 7;
-
-int ChunkBlockAddress(int x, int y, int z)
-{
-	return z + (y << c_chunk_height_log2) + (x << (c_chunk_width_log2 + c_chunk_height_log2));
-}
 
 void main()
 {

@@ -49,7 +49,8 @@ if(NOT GLSLANGVALIDATOR)
 endif()
 
 # Compile shaders.
-file(GLOB SHADERS "shaders/*")
+file(GLOB SHADERS "shaders/*.glsl")
+file(GLOB SHADERS_INCLUDE "shaders/inc/*")
 foreach(SHADER_FILE ${SHADERS})
 	file(RELATIVE_PATH OUT_FILE ${CMAKE_CURRENT_SOURCE_DIR} ${SHADER_FILE})
 	set(OUT_FILE_BASE ${CMAKE_CURRENT_BINARY_DIR}/${OUT_FILE})
@@ -59,7 +60,7 @@ foreach(SHADER_FILE ${SHADERS})
 	string(REPLACE "." "_" VARIABLE_NAME ${VARIABLE_NAME})
 	add_custom_command(
 		OUTPUT ${OUT_FILE_H}
-		DEPENDS ${SHADER_FILE}
+		DEPENDS ${SHADER_FILE} ${SHADERS_INCLUDE}
 		COMMAND ${GLSLANGVALIDATOR} -V ${SHADER_FILE} --vn ${VARIABLE_NAME} -o ${OUT_FILE_H}
 		)
 
@@ -83,6 +84,7 @@ add_executable(
 		${SOURCES}
 		${GENERATED_SOURCES}
 		${SHADERS}
+		${SHADERS_INCLUDE}
 		${SHADERS_COMPILED})
 
 target_include_directories(

@@ -37,14 +37,19 @@ layout(binding= 2, std430) buffer chunk_data_buffer
 	uint8_t chunk_data[c_chunk_volume];
 };
 
+layout(push_constant) uniform uniforms_block
+{
+	int chunk_position[2];
+};
+
 const int c_indices_per_quad= 6;
 
 void main()
 {
 	uvec3 invocation= gl_GlobalInvocationID;
 
-	int chunk_offset_x= 0;
-	int chunk_offset_y= 0;
+	int chunk_offset_x= chunk_position[0] << c_chunk_width_log2;
+	int chunk_offset_y= chunk_position[1] << c_chunk_width_log2;
 	int block_local_x= int(invocation.x + 1); // Skip borders.
 	int block_local_y= int(invocation.y + 1); // Skip borders.
 	int z= int(invocation.z + 1); // Skip borders.

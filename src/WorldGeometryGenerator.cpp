@@ -32,6 +32,13 @@ const uint32_t chunk_data_buffer= 2;
 
 }
 
+// The limit of this struct is 128 bytes.
+// 128 bytes is guaranted maximum size of push constants uniform block.
+struct ChunkPositionUniforms
+{
+	int32_t chunk_position[2];
+};
+
 } // namespace
 
 WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
@@ -180,11 +187,18 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
 	}
 
 	// Create pipeline layout.
-	vk_geometry_gen_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
-		vk::PipelineLayoutCreateInfo(
-			vk::PipelineLayoutCreateFlags(),
-			1u, &*vk_geometry_gen_decriptor_set_layout_,
-			0u, nullptr));
+	{
+		const vk::PushConstantRange vk_push_constant_range(
+			vk::ShaderStageFlagBits::eCompute,
+			0u,
+			sizeof(ChunkPositionUniforms));
+
+		vk_geometry_gen_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
+			vk::PipelineLayoutCreateInfo(
+				vk::PipelineLayoutCreateFlags(),
+				1u, &*vk_geometry_gen_decriptor_set_layout_,
+				1u, &vk_push_constant_range));
+	}
 
 	// Create pipeline.
 	vk_geometry_gen_pipeline_= vk_device_.createComputePipelineUnique(
@@ -319,8 +333,22 @@ void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer
 		1u, &*vk_geometry_gen_descriptor_set_,
 		0u, nullptr);
 
-	// Ignore borders.
-	command_buffer.dispatch(c_chunk_width - 2, c_chunk_width - 2, c_chunk_height - 2);
+	for(uint32_t x= 0; x < 2; ++x)
+	for(uint32_t y= 0; y < 2; ++y)
+	{
+		ChunkPositionUniforms chunk_position_uniforms;
+		chunk_position_uniforms.chunk_position[0]= int32_t(x);
+		chunk_position_uniforms.chunk_position[1]= int32_t(y);
+
+		command_buffer.pushConstants(
+			*vk_geometry_gen_pipeline_layout_,
+			vk::ShaderStageFlagBits::eCompute,
+			0,
+			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
+
+		// Ignore borders.
+		command_buffer.dispatch(c_chunk_width - 2, c_chunk_width - 2, c_chunk_height - 2);
+	}
 }
 
 vk::Buffer WorldGeometryGenerator::GetVertexBuffer() const

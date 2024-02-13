@@ -50,6 +50,9 @@ void main()
 {
 	int chunk_index= chunk_position[0] + chunk_position[1] * c_chunk_matrix_size[0];
 	int chunk_data_offset= chunk_index * c_chunk_volume;
+
+	// For now use same capacity for quads of all chunks.
+	// TODO - allocate memory for chunk quads on per-chunk basis, read here offset to allocated memory.
 	const uint quads_offset= uint(c_max_quads_per_chunk * chunk_index);
 
 	uvec3 invocation= gl_GlobalInvocationID;
@@ -84,11 +87,6 @@ void main()
 	if( block_value != block_value_up )
 	{
 		// Add two hexagon quads.
-		uint prev_index_count= atomicAdd(draw_commands[chunk_index].indexCount, c_indices_per_quad * 2);
-		uint quad_index= quads_offset + prev_index_count / 6;
-
-		int tc_base_x= base_x * tex_scale;
-		int tc_base_y= base_y * tex_scale;
 
 		// Calculate hexagon vertices.
 		WorldVertex v[6];
@@ -99,6 +97,9 @@ void main()
 		v[3].pos= i16vec4(int16_t(base_x - 1), int16_t(base_y + 1), int16_t(z + 1), 0.0);
 		v[4].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z + 1), 0.0);
 		v[5].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 2), int16_t(z + 1), 0.0);
+
+		int tc_base_x= base_x * tex_scale;
+		int tc_base_y= base_y * tex_scale;
 
 		v[0].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_y + 0 * tex_scale));
 		v[1].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_y + 0 * tex_scale));
@@ -128,6 +129,8 @@ void main()
 			quad_north.vertices[2]= v[3];
 		}
 
+		uint prev_index_count= atomicAdd(draw_commands[chunk_index].indexCount, c_indices_per_quad * 2);
+		uint quad_index= quads_offset + prev_index_count / 6;
 		quads[quad_index]= quad_south;
 		quads[quad_index + 1]= quad_north;
 	}
@@ -135,9 +138,6 @@ void main()
 	if( block_value != block_value_north )
 	{
 		// Add north quad.
-		uint prev_index_count= atomicAdd(draw_commands[chunk_index].indexCount, c_indices_per_quad);
-		uint quad_index= quads_offset + prev_index_count / 6;
-
 		WorldVertex v[4];
 
 		v[0].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z + 0), 0.0);
@@ -167,15 +167,14 @@ void main()
 			quad.vertices[2]= v[2];
 		}
 
+		uint prev_index_count= atomicAdd(draw_commands[chunk_index].indexCount, c_indices_per_quad);
+		uint quad_index= quads_offset + prev_index_count / 6;
 		quads[quad_index]= quad;
 	}
 
 	if( block_value != block_value_north_east )
 	{
 		// Add north-east quad.
-		uint prev_index_count= atomicAdd(draw_commands[chunk_index].indexCount, c_indices_per_quad);
-		uint quad_index= quads_offset + prev_index_count / 6;
-
 		WorldVertex v[4];
 
 		v[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 0), 0.0);
@@ -205,15 +204,13 @@ void main()
 			quad.vertices[2]= v[2];
 		}
 
+		uint prev_index_count= atomicAdd(draw_commands[chunk_index].indexCount, c_indices_per_quad);
+		uint quad_index= quads_offset + prev_index_count / 6;
 		quads[quad_index]= quad;
 	}
 
 	if( block_value != block_value_south_east )
 	{
-		// Add south-east quad.
-		uint prev_index_count= atomicAdd(draw_commands[chunk_index].indexCount, c_indices_per_quad);
-		uint quad_index= quads_offset + prev_index_count / 6;
-
 		WorldVertex v[4];
 
 		v[0].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 0), int16_t(z + 0), 0.0);
@@ -243,6 +240,9 @@ void main()
 			quad.vertices[2]= v[2];
 		}
 
+		// Add south-east quad.
+		uint prev_index_count= atomicAdd(draw_commands[chunk_index].indexCount, c_indices_per_quad);
+		uint quad_index= quads_offset + prev_index_count / 6;
 		quads[quad_index]= quad;
 	}
 }

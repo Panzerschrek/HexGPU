@@ -9,12 +9,14 @@ namespace HexGPU
 namespace
 {
 
-void FillChunkData(uint8_t* data)
+void FillChunkData(const uint32_t chunk_x, const uint32_t chunk_y, uint8_t* const data)
 {
 	for(uint32_t x= 0; x < c_chunk_width; ++x)
 	for(uint32_t y= 0; y < c_chunk_width; ++y)
 	{
-		const uint32_t ground_z= uint32_t(5.0f + 1.0f * std::sin(float(x) * 0.75f) + 1.5f * std::sin(float(y) * 0.5f));
+		const uint32_t global_x= x + (chunk_x << c_chunk_width_log2);
+		const uint32_t global_y= y + (chunk_y << c_chunk_width_log2);
+		const uint32_t ground_z= uint32_t(6.0f + 1.5f * std::sin(float(global_x) * 0.5f) + 2.0f * std::sin(float(global_y) * 0.3f));
 		for(uint32_t z= 0; z < c_chunk_height; ++z)
 		{
 			data[ChunkBlockAddress(x, y, z)]= z >= ground_z ? 0 : 1;
@@ -49,7 +51,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
 
 	// Create chung data buffer.
 	{
-		const size_t data_size= c_chunk_volume;
+		const size_t data_size= c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1];
 
 		vk_chunk_data_buffer_=
 			vk_device_.createBufferUnique(
@@ -77,7 +79,14 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
 		// Fil lthe buffer with initial values.
 		void* data_gpu_side= nullptr;
 		vk_device_.mapMemory(*vk_chunk_data_buffer_memory_, 0u, vk_memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_side);
-		FillChunkData(reinterpret_cast<uint8_t*>(data_gpu_side));
+
+		for(uint32_t x= 0; x < c_chunk_matrix_size[0]; ++x)
+		for(uint32_t y= 0; y < c_chunk_matrix_size[1]; ++y)
+			FillChunkData(
+				x,
+				y,
+				reinterpret_cast<uint8_t*>(data_gpu_side) + (x + y * c_chunk_matrix_size[0]) * c_chunk_volume);
+
 		vk_device_.unmapMemory(*vk_chunk_data_buffer_memory_);
 	}
 
@@ -246,7 +255,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
 			*vk_chunk_data_buffer_,
 			0u,
-			c_chunk_volume);
+			c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]);
 
 		vk_device_.updateDescriptorSets(
 			{
@@ -333,8 +342,8 @@ void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer
 		1u, &*vk_geometry_gen_descriptor_set_,
 		0u, nullptr);
 
-	for(uint32_t x= 0; x < 2; ++x)
-	for(uint32_t y= 0; y < 2; ++y)
+	for(uint32_t x= 0; x < c_chunk_matrix_size[0]; ++x)
+	for(uint32_t y= 0; y < c_chunk_matrix_size[1]; ++y)
 	{
 		ChunkPositionUniforms chunk_position_uniforms;
 		chunk_position_uniforms.chunk_position[0]= int32_t(x);

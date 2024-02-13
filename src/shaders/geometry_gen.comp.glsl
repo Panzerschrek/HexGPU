@@ -32,9 +32,9 @@ layout(binding= 1, std430) buffer draw_indirect_buffer
 	VkDrawIndexedIndirectCommand command;
 };
 
-layout(binding= 2, std430) buffer chunk_data_buffer
+layout(binding= 2, std430) buffer chunks_data_buffer
 {
-	uint8_t chunk_data[c_chunk_volume];
+	uint8_t chunks_data[c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
 };
 
 layout(push_constant) uniform uniforms_block
@@ -67,11 +67,13 @@ void main()
 	int block_address_north_east= block_address_in_chunk + (((block_local_x + 1) & 1) << (c_chunk_height_log2)) + (1 <<(c_chunk_width_log2 + c_chunk_height_log2));
 	int block_address_south_east= block_address_north_east - (1 << c_chunk_height_log2);
 
-	uint8_t block_value= chunk_data[ block_address_in_chunk ];
-	uint8_t block_value_up= chunk_data[ block_address_up ];
-	uint8_t block_value_north= chunk_data[ block_address_north ];
-	uint8_t block_value_north_east= chunk_data[ block_address_north_east ];
-	uint8_t block_value_south_east= chunk_data[ block_address_south_east ];
+	int chunk_data_offset= (chunk_position[0] + chunk_position[1] * c_chunk_matrix_size[0]) * c_chunk_volume;
+
+	uint8_t block_value= chunks_data[ chunk_data_offset + block_address_in_chunk ];
+	uint8_t block_value_up= chunks_data[ chunk_data_offset + block_address_up ];
+	uint8_t block_value_north= chunks_data[ chunk_data_offset + block_address_north ];
+	uint8_t block_value_north_east= chunks_data[ chunk_data_offset + block_address_north_east ];
+	uint8_t block_value_south_east= chunks_data[ chunk_data_offset + block_address_south_east ];
 
 	const int tex_scale= 1; // TODO - read block properties to determine texture scale.
 

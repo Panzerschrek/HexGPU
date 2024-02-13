@@ -1,11 +1,12 @@
 Here is the list of futures that needs to be implemented.
 The order represents importance and/or dependency.
-* Multiple chunks in the world
 * World generation
 * Fire lighting
 * Sun lighting
 * Textures
 * Building/destroying
+* GPU-side allocator for chunk vertices - in order to allow to some chunks have huge meshes but use not so huge overall vertex buffer
+* Variable number of chunks in the world
 * World movement
 * Chunks save/load
 * Flowing water

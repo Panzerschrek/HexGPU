@@ -10,7 +10,7 @@ const int c_chunk_height= 1 << c_chunk_height_log2;
 const int c_chunk_volume= c_chunk_width * c_chunk_width * c_chunk_height;
 
 // TODO - make non-constant.
-const int c_chunk_matrix_size[2]= int[2]( 2, 2 );
+const int c_chunk_matrix_size[2]= int[2](4, 4);
 
 int ChunkBlockAddress(int x, int y, int z)
 {

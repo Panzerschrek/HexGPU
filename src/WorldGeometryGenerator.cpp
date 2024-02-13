@@ -34,13 +34,15 @@ const uint32_t chunk_data_buffer= 2;
 
 }
 
-// The limit of this struct is 128 bytes.
+// Size limit of this struct is 128 bytes.
 // 128 bytes is guaranted maximum size of push constants uniform block.
 struct ChunkPositionUniforms
 {
 	int32_t chunk_position[2];
 };
 
+// For now allocate for each chunk maximum possible vertex count.
+// TODO - improve this, use some kind of allocator for vertices.
 const uint32_t c_max_quads_per_chunk= 65536 / 4;
 
 } // namespace
@@ -344,7 +346,6 @@ void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer
 			0, nullptr);
 	}
 
-	// Perform geometry generation.
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *vk_geometry_gen_pipeline_);
 
 	command_buffer.bindDescriptorSets(
@@ -354,6 +355,8 @@ void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer
 		1u, &*vk_geometry_gen_descriptor_set_,
 		0u, nullptr);
 
+	// Execute geometry generation for all chunks.
+	// TODO - do this no each frame and not for each chunk.
 	for(uint32_t x= 0; x < c_chunk_matrix_size[0]; ++x)
 	for(uint32_t y= 0; y < c_chunk_matrix_size[1]; ++y)
 	{

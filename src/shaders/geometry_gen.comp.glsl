@@ -79,7 +79,7 @@ void main()
 	int block_global_y= (chunk_position[1] << c_chunk_width_log2) + int(invocation.y);
 	int z= int(invocation.z);
 
-	// TODO - uptimize this. Reuse calculations in the same chunk.
+	// TODO - optimize this. Reuse calculations in the same chunk.
 	uint8_t block_value= FetchBlock(block_global_x, block_global_y, z);
 	uint8_t block_value_up= FetchBlock(block_global_x, block_global_y, z + 1); // Assume Z is never for the last layer of blocks.
 	uint8_t block_value_north= FetchBlock(block_global_x, min(block_global_y + 1, c_max_global_y), z);

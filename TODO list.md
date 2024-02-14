@@ -1,9 +1,9 @@
 Here is the list of futures that needs to be implemented.
 The order represents importance and/or dependency.
-* World generation
+* Textures
+* World generation - support different block types
 * Fire lighting
 * Sun lighting
-* Textures
 * Building/destroying
 * GPU-side allocator for chunk vertices - in order to allow to some chunks have huge meshes but use not so huge overall vertex buffer
 * Variable number of chunks in the world
@@ -11,6 +11,8 @@ The order represents importance and/or dependency.
 * Chunks save/load
 * Flowing water
 * Growing grass
+* Biome-based world generation
+* Trees generation
 * Fire (that burns some blocks)
 * Player collision against the world
 * Settings

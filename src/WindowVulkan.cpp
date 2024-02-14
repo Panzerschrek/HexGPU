@@ -180,12 +180,14 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 	// Select queue family.
 	const std::vector<vk::QueueFamilyProperties> queue_family_properties= physical_device.getQueueFamilyProperties();
 	uint32_t queue_family_index= ~0u;
+	// Use for now the queue with both graphics and compute capabilities - for code simplicity.
+	const vk::Flags<vk::QueueFlagBits> required_queue_family_flags= vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute;
 	for(uint32_t i= 0u; i < queue_family_properties.size(); ++i)
 	{
 		const VkBool32 supported= physical_device.getSurfaceSupportKHR(i, *vk_surface_);
 		if(supported != 0 &&
 			queue_family_properties[i].queueCount > 0 &&
-			(queue_family_properties[i].queueFlags & vk::QueueFlagBits::eGraphics) != vk::QueueFlagBits(0))
+			(queue_family_properties[i].queueFlags & required_queue_family_flags) == required_queue_family_flags)
 		{
 			queue_family_index= i;
 			break;
@@ -194,6 +196,8 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 
 	if(queue_family_index == ~0u)
 		Log::FatalError("Could not select queue family index");
+	else
+		Log::Info("Queue familiy index: ", queue_family_index);
 
 	vk_queue_family_index_= queue_family_index;
 

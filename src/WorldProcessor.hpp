@@ -20,6 +20,15 @@ private:
 	vk::UniqueBuffer vk_chunk_data_buffer_;
 	vk::UniqueDeviceMemory vk_chunk_data_buffer_memory_;
 	uint32_t chunk_data_buffer_size_= 0;
+
+	vk::UniqueShaderModule world_gen_shader_;
+
+	vk::UniqueDescriptorSetLayout vk_world_gen_decriptor_set_layout_;
+	vk::UniquePipelineLayout vk_world_gen_pipeline_layout_;
+	vk::UniquePipeline vk_world_gen_pipeline_;
+	vk::UniqueDescriptorPool vk_world_gen_descriptor_pool_;
+	vk::UniqueDescriptorSet vk_world_gen_descriptor_set_;
+
 };
 
 } // namespace HexGPU

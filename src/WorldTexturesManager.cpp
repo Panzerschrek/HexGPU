@@ -58,12 +58,26 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 	vk_device_.mapMemory(*image_memory_, 0u, memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &image_data_gpu_size);
 	FillTestImage(c_texture_size, c_texture_size, reinterpret_cast<uint32_t*>(image_data_gpu_size));
 	vk_device_.unmapMemory(*image_memory_);
+
+	image_view_= vk_device_.createImageViewUnique(
+		vk::ImageViewCreateInfo(
+			vk::ImageViewCreateFlags(),
+			*image_,
+			vk::ImageViewType::e2D,
+			vk::Format::eR8G8B8A8Unorm,
+			vk::ComponentMapping(),
+			vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, 0u, 1u)));
 }
 
 WorldTexturesManager::~WorldTexturesManager()
 {
 	// Sync before destruction.
 	vk_device_.waitIdle();
+}
+
+vk::ImageView WorldTexturesManager::GetImageView() const
+{
+	return image_view_.get();
 }
 
 } // namespace HexGPU

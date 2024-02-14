@@ -26,6 +26,8 @@ private:
 	vk::UniqueShaderModule shader_vert_;
 	vk::UniqueShaderModule shader_frag_;
 
+	vk::UniqueSampler vk_texture_sampler_;
+
 	vk::UniqueDescriptorSetLayout vk_decriptor_set_layout_;
 	vk::UniquePipelineLayout vk_pipeline_layout_;
 	vk::UniquePipeline vk_pipeline_;

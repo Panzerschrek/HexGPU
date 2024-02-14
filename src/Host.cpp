@@ -47,6 +47,7 @@ bool Host::Loop()
 
 	const vk::CommandBuffer command_buffer= window_vulkan_.BeginFrame();
 
+	world_processor_.PrepareFrame(command_buffer);
 	world_renderer_.PrepareFrame(command_buffer);
 
 	window_vulkan_.EndFrame(

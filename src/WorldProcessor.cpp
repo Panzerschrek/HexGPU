@@ -8,21 +8,6 @@ namespace HexGPU
 namespace
 {
 
-void FillChunkData(const uint32_t chunk_x, const uint32_t chunk_y, uint8_t* const data)
-{
-	for(uint32_t x= 0; x < c_chunk_width; ++x)
-	for(uint32_t y= 0; y < c_chunk_width; ++y)
-	{
-		const uint32_t global_x= x + (chunk_x << c_chunk_width_log2);
-		const uint32_t global_y= y + (chunk_y << c_chunk_width_log2);
-		const uint32_t ground_z= uint32_t(6.0f + 1.5f * std::sin(float(global_x) * 0.5f) + 2.0f * std::sin(float(global_y) * 0.3f));
-		for(uint32_t z= 0; z < c_chunk_height; ++z)
-		{
-			data[ChunkBlockAddress(x, y, z)]= z >= ground_z ? 0 : 1;
-		}
-	}
-}
-
 namespace WorldGenShaderBindings
 {
 
@@ -70,17 +55,10 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 		vk_chunk_data_buffer_memory_= vk_device_.allocateMemoryUnique(vk_memory_allocate_info);
 		vk_device_.bindBufferMemory(*vk_chunk_data_buffer_, *vk_chunk_data_buffer_memory_, 0u);
 
-		// Fil lthe buffer with initial values.
+		// Fill the buffer with zeros to prevent later warnings.
 		void* data_gpu_side= nullptr;
 		vk_device_.mapMemory(*vk_chunk_data_buffer_memory_, 0u, vk_memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_side);
-
-		for(uint32_t x= 0; x < c_chunk_matrix_size[0]; ++x)
-		for(uint32_t y= 0; y < c_chunk_matrix_size[1]; ++y)
-			FillChunkData(
-				x,
-				y,
-				reinterpret_cast<uint8_t*>(data_gpu_side) + (x + y * c_chunk_matrix_size[0]) * c_chunk_volume);
-
+		std::memset(data_gpu_side, 0, chunk_data_buffer_size_);
 		vk_device_.unmapMemory(*vk_chunk_data_buffer_memory_);
 	}
 
@@ -178,6 +156,62 @@ WorldProcessor::~WorldProcessor()
 {
 	// Sync before destruction.
 	vk_device_.waitIdle();
+}
+
+void WorldProcessor::PrepareFrame(const vk::CommandBuffer command_buffer)
+{
+	if(world_generated_)
+		return;
+	world_generated_= true;
+
+	// Run world generation.
+
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *vk_world_gen_pipeline_);
+
+	command_buffer.bindDescriptorSets(
+		vk::PipelineBindPoint::eCompute,
+		*vk_world_gen_pipeline_layout_,
+		0u,
+		1u, &*vk_world_gen_descriptor_set_,
+		0u, nullptr);
+
+
+	for(uint32_t x= 0; x < c_chunk_matrix_size[0]; ++x)
+	for(uint32_t y= 0; y < c_chunk_matrix_size[1]; ++y)
+	{
+		ChunkPositionUniforms chunk_position_uniforms;
+		chunk_position_uniforms.chunk_position[0]= int32_t(x);
+		chunk_position_uniforms.chunk_position[1]= int32_t(y);
+
+		command_buffer.pushConstants(
+			*vk_world_gen_pipeline_layout_,
+			vk::ShaderStageFlagBits::eCompute,
+			0,
+			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
+
+		// Dispatch only 2D group - perform generation for columns.
+		command_buffer.dispatch(c_chunk_width, c_chunk_width , 1);
+	}
+
+	// Create barrier between world generation and its later usage.
+	// TODO - check this is correct.
+	{
+		vk::BufferMemoryBarrier barrier;
+		barrier.srcAccessMask= vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite;
+		barrier.dstAccessMask= vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite;
+		barrier.size= VK_WHOLE_SIZE;
+		barrier.buffer= *vk_chunk_data_buffer_;
+		barrier.srcQueueFamilyIndex= vk_queue_family_index_;
+		barrier.dstQueueFamilyIndex= vk_queue_family_index_;
+
+		command_buffer.pipelineBarrier(
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::DependencyFlags(),
+			0, nullptr,
+			1, &barrier,
+			0, nullptr);
+	}
 }
 
 vk::Buffer WorldProcessor::GetChunkDataBuffer() const

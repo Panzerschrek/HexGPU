@@ -10,6 +10,8 @@ public:
 	WorldProcessor(WindowVulkan& window_vulkan);
 	~WorldProcessor();
 
+	void PrepareFrame(vk::CommandBuffer command_buffer);
+
 	vk::Buffer GetChunkDataBuffer() const;
 	uint32_t GetChunkDataBufferSize() const;
 
@@ -29,6 +31,7 @@ private:
 	vk::UniqueDescriptorPool vk_world_gen_descriptor_pool_;
 	vk::UniqueDescriptorSet vk_world_gen_descriptor_set_;
 
+	bool world_generated_= false;
 };
 
 } // namespace HexGPU

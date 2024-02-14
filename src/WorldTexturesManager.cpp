@@ -8,9 +8,10 @@ namespace
 
 void FillTestImage(uint32_t width, uint32_t height, uint32_t* const data)
 {
-	for(uint32_t i= 0; i < width * height; ++i)
+	for(uint32_t y= 0; y < height; ++y)
+	for(uint32_t x= 0; x < width; ++x)
 	{
-		data[i]= i * 8;
+		data[x + y * width]= (x * 255 / width) | ((y * 255 / height) << 8);
 	}
 }
 

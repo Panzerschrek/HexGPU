@@ -46,13 +46,10 @@ void main()
 
 	int local_x= int(gl_GlobalInvocationID.x);
 	int local_y= int(gl_GlobalInvocationID.y);
-	int block_global_x= (chunk_position[0] << c_chunk_width_log2) + local_x;
-	int block_global_y= (chunk_position[1] << c_chunk_width_log2) + local_y;
+	int global_x= (chunk_position[0] << c_chunk_width_log2) + local_x;
+	int global_y= (chunk_position[1] << c_chunk_width_log2) + local_y;
 
-	// HACK. If not do this, borders, parallel to world X axi is to sharply.
-	int block_global_y_corrected= block_global_y - (block_global_x & 1);
-
-	int ground_z= GetGroundLevel(block_global_x, block_global_y);
+	int ground_z= GetGroundLevel(global_x, global_y);
 
 	int column_offset= chunk_data_offset + ChunkBlockAddress(local_x, local_y, 0);
 	for( int z= 0; z < c_chunk_height; ++z )
@@ -60,4 +57,8 @@ void main()
 		uint8_t block_value= z > ground_z ? uint8_t(0) : uint8_t(1);
 		chunks_data[column_offset + z]= block_value;
 	}
+	// TODO - make different layers of ground - bedrock, regular rock, soil.
+	// TODO - make water.
+	// TODO - plant trees.
+	// TODO - make caves.
 }

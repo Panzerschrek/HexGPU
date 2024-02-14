@@ -17,6 +17,7 @@ vk::PhysicalDeviceFeatures GetRequiredDeviceFeatures()
 	// http://vulkan.gpuinfo.org/listfeatures.php
 
 	vk::PhysicalDeviceFeatures features;
+	features.multiDrawIndirect= true;
 	return features;
 }
 

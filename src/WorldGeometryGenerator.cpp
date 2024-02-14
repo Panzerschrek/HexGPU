@@ -49,6 +49,7 @@ const uint32_t c_max_quads_per_chunk= 65536 / 4;
 
 WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan)
 	: vk_device_(window_vulkan.GetVulkanDevice())
+	, vk_queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 {
 	// Create shaders.
 	geometry_gen_shader_= CreateShader(vk_device_, ShaderNames::geometry_gen_comp);
@@ -335,7 +336,8 @@ void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer
 		barrier.dstAccessMask= vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite;
 		barrier.size= VK_WHOLE_SIZE;
 		barrier.buffer= *vk_draw_indirect_buffer_;
-		// TODO - set queue family index?
+		barrier.srcQueueFamilyIndex= vk_queue_family_index_;
+		barrier.dstQueueFamilyIndex= vk_queue_family_index_;
 
 		command_buffer.pipelineBarrier(
 			vk::PipelineStageFlagBits::eTransfer,

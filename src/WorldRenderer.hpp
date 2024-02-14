@@ -17,6 +17,7 @@ public:
 
 private:
 	const vk::Device vk_device_;
+	const uint32_t vk_queue_family_index_;
 
 	WorldGeometryGenerator geometry_generator_;
 

@@ -40,6 +40,7 @@ using QuadVertices= std::array<WorldVertex, 4>;
 
 WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan)
 	: vk_device_(window_vulkan.GetVulkanDevice())
+	, vk_queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, geometry_generator_(window_vulkan)
 {
 	// Create shaders
@@ -255,7 +256,8 @@ void WorldRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
 		barrier.dstAccessMask= vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite;
 		barrier.size= VK_WHOLE_SIZE;
 		barrier.buffer= vertex_buffer;
-		// TODO - set queue family index?
+		barrier.srcQueueFamilyIndex= vk_queue_family_index_;
+		barrier.dstQueueFamilyIndex= vk_queue_family_index_;
 
 		command_buffer.pipelineBarrier(
 			vk::PipelineStageFlagBits::eComputeShader,
@@ -276,7 +278,8 @@ void WorldRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
 		barrier.dstAccessMask= vk::AccessFlagBits::eIndirectCommandRead;
 		barrier.size= VK_WHOLE_SIZE;
 		barrier.buffer= draw_indirect_buffer;
-		// TODO - set queue family index?
+		barrier.srcQueueFamilyIndex= vk_queue_family_index_;
+		barrier.dstQueueFamilyIndex= vk_queue_family_index_;
 
 		command_buffer.pipelineBarrier(
 			vk::PipelineStageFlagBits::eComputeShader,

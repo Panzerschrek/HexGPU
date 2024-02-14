@@ -42,6 +42,7 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan, WorldProcessor& world_
 	: vk_device_(window_vulkan.GetVulkanDevice())
 	, vk_queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, geometry_generator_(window_vulkan, world_processor)
+	, world_textures_manager_(window_vulkan)
 {
 	// Create shaders
 	shader_vert_= CreateShader(vk_device_, ShaderNames::triangle_vert);

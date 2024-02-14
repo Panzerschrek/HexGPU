@@ -1,6 +1,7 @@
 #pragma once
 #include "Mat.hpp"
 #include "WorldGeometryGenerator.hpp"
+#include "WorldTexturesManager.hpp"
 
 namespace HexGPU
 {
@@ -20,6 +21,7 @@ private:
 	const uint32_t vk_queue_family_index_;
 
 	WorldGeometryGenerator geometry_generator_;
+	WorldTexturesManager world_textures_manager_;
 
 	vk::UniqueShaderModule shader_vert_;
 	vk::UniqueShaderModule shader_frag_;

@@ -22,6 +22,7 @@ private:
 
 	SystemWindow system_window_;
 	WindowVulkan window_vulkan_;
+	WorldProcessor world_processor_;
 	WorldRenderer world_renderer_;
 	CameraController camera_controller_;
 

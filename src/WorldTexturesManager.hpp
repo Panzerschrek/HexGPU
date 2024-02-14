@@ -12,6 +12,10 @@ public:
 
 private:
 	const vk::Device vk_device_;
+
+	vk::UniqueImage image_;
+	vk::UniqueImageView image_view_;
+	vk::UniqueDeviceMemory image_memory_;
 };
 
 } // namespace HexGPU

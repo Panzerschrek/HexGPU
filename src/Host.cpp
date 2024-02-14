@@ -19,7 +19,8 @@ float CalculateAspect(const vk::Extent2D& viewport_size)
 Host::Host()
 	: system_window_()
 	, window_vulkan_(system_window_)
-	, world_renderer_(window_vulkan_)
+	, world_processor_(window_vulkan_)
+	, world_renderer_(window_vulkan_, world_processor_)
 	, camera_controller_(CalculateAspect(window_vulkan_.GetViewportSize()))
 	, init_time_(Clock::now())
 	, prev_tick_time_(init_time_)
@@ -46,6 +47,7 @@ bool Host::Loop()
 
 	const vk::CommandBuffer command_buffer= window_vulkan_.BeginFrame();
 
+	world_processor_.PrepareFrame(command_buffer);
 	world_renderer_.PrepareFrame(command_buffer);
 
 	window_vulkan_.EndFrame(

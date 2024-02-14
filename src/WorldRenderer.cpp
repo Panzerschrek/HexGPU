@@ -38,10 +38,10 @@ using QuadVertices= std::array<WorldVertex, 4>;
 
 } // namespace
 
-WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan)
+WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan, WorldProcessor& world_processor)
 	: vk_device_(window_vulkan.GetVulkanDevice())
 	, vk_queue_family_index_(window_vulkan.GetQueueFamilyIndex())
-	, geometry_generator_(window_vulkan)
+	, geometry_generator_(window_vulkan, world_processor)
 {
 	// Create shaders
 	shader_vert_= CreateShader(vk_device_, ShaderNames::triangle_vert);

@@ -23,7 +23,7 @@ public:
 private:
 	float aspect_;
 
-	m_Vec3 pos_= m_Vec3(0.0f, 0.0f, 0.0f);
+	m_Vec3 pos_= m_Vec3(0.0f, 0.0f, 32.0f);
 	float azimuth_= 0.0f;
 	float elevation_= 0.0f;
 };

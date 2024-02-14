@@ -8,7 +8,7 @@ namespace HexGPU
 class WorldRenderer
 {
 public:
-	WorldRenderer(WindowVulkan& window_vulkan);
+	WorldRenderer(WindowVulkan& window_vulkan, WorldProcessor& world_processor);
 
 	~WorldRenderer();
 

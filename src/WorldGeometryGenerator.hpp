@@ -1,5 +1,5 @@
 #pragma once
-#include "WindowVulkan.hpp"
+#include "WorldProcessor.hpp"
 
 namespace HexGPU
 {
@@ -17,7 +17,7 @@ using QuadVertices= std::array<WorldVertex, 4>;
 class WorldGeometryGenerator
 {
 public:
-	WorldGeometryGenerator(WindowVulkan& window_vulkan);
+	WorldGeometryGenerator(WindowVulkan& window_vulkan, WorldProcessor& world_processor);
 	~WorldGeometryGenerator();
 
 	void PrepareFrame(vk::CommandBuffer command_buffer);
@@ -28,11 +28,9 @@ public:
 private:
 	const vk::Device vk_device_;
 	const uint32_t vk_queue_family_index_;
+	WorldProcessor& world_processor_;
 
 	vk::UniqueShaderModule geometry_gen_shader_;
-
-	vk::UniqueBuffer vk_chunk_data_buffer_;
-	vk::UniqueDeviceMemory vk_chunk_data_buffer_memory_;
 
 	size_t vertex_buffer_num_quads_= 0;
 	vk::UniqueBuffer vk_vertex_buffer_;

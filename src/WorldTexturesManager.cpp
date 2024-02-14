@@ -3,6 +3,19 @@
 namespace HexGPU
 {
 
+namespace
+{
+
+void FillTestImage(uint32_t width, uint32_t height, uint32_t* const data)
+{
+	for(uint32_t i= 0; i < width * height; ++i)
+	{
+		data[i]= i * 8;
+	}
+}
+
+} // namespace
+
 WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 	: vk_device_(window_vulkan.GetVulkanDevice())
 {
@@ -19,11 +32,11 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 			c_num_mips,
 			1u,
 			vk::SampleCountFlagBits::e1,
-			vk::ImageTiling::eOptimal,
+			vk::ImageTiling::eLinear, // TODO - use optimal
 			vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
 			vk::SharingMode::eExclusive,
 			0u, nullptr,
-			vk::ImageLayout::eUndefined));
+			vk::ImageLayout::ePreinitialized));
 
 
 	const vk::MemoryRequirements memory_requirements= vk_device_.getImageMemoryRequirements(*image_);
@@ -40,6 +53,11 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 
 	image_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);
 	vk_device_.bindImageMemory(*image_, *image_memory_, 0u);
+
+	void* image_data_gpu_size= nullptr;
+	vk_device_.mapMemory(*image_memory_, 0u, memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &image_data_gpu_size);
+	FillTestImage(c_texture_size, c_texture_size, reinterpret_cast<uint32_t*>(image_data_gpu_size));
+	vk_device_.unmapMemory(*image_memory_);
 }
 
 WorldTexturesManager::~WorldTexturesManager()

@@ -1,11 +1,12 @@
 #version 450
 
 #extension GL_GOOGLE_include_directive : require
-#include "inc/constants.glsl"
-#include "inc/vulkan_structs.glsl"
-
 #extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
+
+#include "inc/constants.glsl"
+#include "inc/block_type.glsl"
+#include "inc/vulkan_structs.glsl"
 
 // If this changed, vertex attributes specification in C++ code must be chaned too!
 struct WorldVertex
@@ -88,13 +89,19 @@ void main()
 	uint8_t block_value_north_east= FetchBlock(east_x_clamped, max(0, min(east_y_base - 0, c_max_global_y)), z);
 	uint8_t block_value_south_east= FetchBlock(east_x_clamped, max(0, min(east_y_base - 1, c_max_global_y)), z);
 
+	uint8_t optical_density= c_block_optical_density_table[int(block_value)];
+	uint8_t optical_density_up= c_block_optical_density_table[int(block_value_up)];
+	uint8_t optical_density_north= c_block_optical_density_table[int(block_value_north)];
+	uint8_t optical_density_north_east= c_block_optical_density_table[int(block_value_north_east)];
+	uint8_t optical_density_south_east= c_block_optical_density_table[int(block_value_south_east)];
+
 	// Perform calculations in integers - for simplicity.
 	// Hexagon grid vertices are nicely aligned to scaled square grid.
 	int base_x= 3 * block_global_x;
 	int base_y= 2 * block_global_y - (block_global_x & 1) + 1;
 	const int tex_scale= 1; // TODO - read block properties to determine texture scale.
 
-	if( block_value != block_value_up )
+	if(optical_density != optical_density_up)
 	{
 		// Add two hexagon quads.
 
@@ -111,7 +118,10 @@ void main()
 		int tc_base_x= base_x * tex_scale;
 		int tc_base_y= base_y * tex_scale;
 
-		int16_t tex_index= int16_t(0);
+		int16_t tex_index=
+			optical_density < optical_density_up
+				? c_block_texture_table[int(block_value)].r
+				: c_block_texture_table[int(block_value_up)].g;
 		int16_t light= int16_t(1);
 
 		v[0].tex_coord= i16vec4(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_y + 0 * tex_scale), tex_index, light);
@@ -127,7 +137,7 @@ void main()
 		quad_south.vertices[3]= v[3];
 		quad_north.vertices[1]= v[2];
 		quad_north.vertices[3]= v[5];
-		if( block_value > block_value_up )
+		if(optical_density < optical_density_up)
 		{
 			quad_south.vertices[0]= v[0];
 			quad_south.vertices[2]= v[2];
@@ -148,7 +158,7 @@ void main()
 		quads[quad_index + 1]= quad_north;
 	}
 
-	if( block_value != block_value_north )
+	if(optical_density != optical_density_north)
 	{
 		// Add north quad.
 		WorldVertex v[4];
@@ -161,7 +171,7 @@ void main()
 		int tc_base_x= base_x * tex_scale;
 		int tc_base_z= z * (2 * tex_scale);
 
-		int16_t tex_index= int16_t(1);
+		int16_t tex_index= c_block_texture_table[optical_density < optical_density_north ? int(block_value) : int(block_value_north)].b;
 		int16_t light= int16_t(1);
 
 		v[0].tex_coord= i16vec4(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 0 * tex_scale), tex_index, light);
@@ -172,7 +182,7 @@ void main()
 		Quad quad;
 		quad.vertices[1]= v[1];
 		quad.vertices[3]= v[3];
-		if( block_value > block_value_north )
+		if(optical_density < optical_density_north)
 		{
 			quad.vertices[0]= v[2];
 			quad.vertices[2]= v[0];
@@ -188,7 +198,7 @@ void main()
 		quads[quad_index]= quad;
 	}
 
-	if( block_value != block_value_north_east )
+	if(optical_density != optical_density_north_east)
 	{
 		// Add north-east quad.
 		WorldVertex v[4];
@@ -201,7 +211,7 @@ void main()
 		int tc_base_x= base_x * tex_scale;
 		int tc_base_z= z * (2 * tex_scale);
 
-		int16_t tex_index= int16_t(2);
+		int16_t tex_index= c_block_texture_table[optical_density < optical_density_north_east ? int(block_value) : int(block_value_north_east)].b;
 		int16_t light= int16_t(1);
 
 		v[0].tex_coord= i16vec4(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 0 * tex_scale), tex_index, light);
@@ -212,7 +222,7 @@ void main()
 		Quad quad;
 		quad.vertices[1]= v[1];
 		quad.vertices[3]= v[3];
-		if( block_value > block_value_north_east )
+		if(optical_density < optical_density_north_east)
 		{
 			quad.vertices[0]= v[2];
 			quad.vertices[2]= v[0];
@@ -228,7 +238,7 @@ void main()
 		quads[quad_index]= quad;
 	}
 
-	if( block_value != block_value_south_east )
+	if(optical_density != optical_density_south_east)
 	{
 		WorldVertex v[4];
 
@@ -240,7 +250,7 @@ void main()
 		int tc_base_x= base_x * tex_scale;
 		int tc_base_z= z * (2 * tex_scale);
 
-		int16_t tex_index= int16_t(3);
+		int16_t tex_index= c_block_texture_table[optical_density < optical_density_south_east ? int(block_value) : int(block_value_south_east)].b;
 		int16_t light= int16_t(1);
 
 		v[0].tex_coord= i16vec4(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 0 * tex_scale), tex_index, light);
@@ -251,7 +261,7 @@ void main()
 		Quad quad;
 		quad.vertices[1]= v[1];
 		quad.vertices[3]= v[3];
-		if( block_value > block_value_south_east )
+		if(optical_density < optical_density_south_east)
 		{
 			quad.vertices[0]= v[2];
 			quad.vertices[2]= v[0];

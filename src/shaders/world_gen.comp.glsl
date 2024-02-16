@@ -1,11 +1,12 @@
 #version 450
 
 #extension GL_GOOGLE_include_directive : require
-#include "inc/constants.glsl"
-#include "inc/noise.glsl"
-
 #extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
+
+#include "inc/constants.glsl"
+#include "inc/block_type.glsl"
+#include "inc/noise.glsl"
 
 layout(binding= 0, std430) buffer chunks_data_buffer
 {
@@ -36,7 +37,7 @@ int GetGroundLevel(int global_x, int global_y)
 
 	int base_ground_value= 2; // TODO - choose base value depending on current biome.
 
-	return max(1, min(base_ground_value + noise_scaled, c_chunk_height - 2));
+	return max(3, min(base_ground_value + noise_scaled, c_chunk_height - 2));
 }
 
 void main()
@@ -52,12 +53,27 @@ void main()
 	int ground_z= GetGroundLevel(global_x, global_y);
 
 	int column_offset= chunk_data_offset + ChunkBlockAddress(local_x, local_y, 0);
-	for( int z= 0; z < c_chunk_height; ++z )
+
+	// Zero level - place single block of special type.
+	chunks_data[column_offset]= c_block_type_spherical_block;
+
+	// Place stone up to the ground layer.
+	for(int z= 1; z < ground_z - 2; ++z)
 	{
-		uint8_t block_value= z > ground_z ? uint8_t(0) : uint8_t(1);
-		chunks_data[column_offset + z]= block_value;
+		chunks_data[column_offset + z]= c_block_type_stone;
 	}
-	// TODO - make different layers of ground - bedrock, regular rock, soil.
+
+	// TODO - make soil layer variable-height.
+	chunks_data[column_offset + ground_z - 2]= c_block_type_soil;
+	chunks_data[column_offset + ground_z - 1]= c_block_type_soil;
+	chunks_data[column_offset + ground_z]= c_block_type_grass;
+
+	// Fill remaining space with air.
+	for(int z= ground_z + 1; z < c_chunk_height; ++z)
+	{
+		chunks_data[column_offset + z]= c_block_type_air;
+	}
+
 	// TODO - make water.
 	// TODO - plant trees.
 	// TODO - make caves.

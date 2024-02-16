@@ -84,25 +84,27 @@ std::optional<Image> LoadImage(const char* const file_path)
 	return std::nullopt;
 }
 
+const uint32_t c_texture_size_log2= 8;
+const uint32_t c_texture_size= 1 << c_texture_size_log2;
+
+const char* const file_names[]=
+{
+	"textures/brick.jpg",
+	"textures/stone.jpg",
+	"textures/wood.jpg",
+	"textures/soil.jpg",
+};
+
+const uint32_t c_num_mips= 1; // TODO - create mips.
+const uint32_t num_layers= std::size(file_names);
+
 } // namespace
 
 WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 	: vk_device_(window_vulkan.GetVulkanDevice())
+	, vk_queue_family_index_(window_vulkan.GetQueueFamilyIndex())
+	, memory_properties_(window_vulkan.GetMemoryProperties())
 {
-	const uint32_t c_texture_size_log2= 8;
-	const uint32_t c_texture_size= 1 << c_texture_size_log2;
-
-	const char* const file_names[]=
-	{
-		"textures/brick.jpg",
-		"textures/stone.jpg",
-		"textures/wood.jpg",
-		"textures/soil.jpg",
-	};
-
-	const uint32_t c_num_mips= 1; // TODO - create mips.
-	const uint32_t num_layers= std::size(file_names);
-
 	image_= vk_device_.createImageUnique(
 		vk::ImageCreateInfo(
 			vk::ImageCreateFlags(),
@@ -112,30 +114,72 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 			c_num_mips,
 			num_layers,
 			vk::SampleCountFlagBits::e1,
-			vk::ImageTiling::eLinear, // TODO - use optimal
+			vk::ImageTiling::eOptimal,
 			vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
 			vk::SharingMode::eExclusive,
 			0u, nullptr,
-			vk::ImageLayout::ePreinitialized));
+			vk::ImageLayout::eGeneral));
 
-	const vk::MemoryRequirements memory_requirements= vk_device_.getImageMemoryRequirements(*image_);
+	// Allocate memory.
 
-	const vk::PhysicalDeviceMemoryProperties memory_properties= window_vulkan.GetMemoryProperties();
-
-	vk::MemoryAllocateInfo memory_allocate_info(memory_requirements.size);
-	for(uint32_t j= 0u; j < memory_properties.memoryTypeCount; ++j)
 	{
-		if((memory_requirements.memoryTypeBits & (1u << j)) != 0 &&
-			(memory_properties.memoryTypes[j].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
-			memory_allocate_info.memoryTypeIndex= j;
+		const vk::MemoryRequirements memory_requirements= vk_device_.getImageMemoryRequirements(*image_);
+
+		vk::MemoryAllocateInfo memory_allocate_info(memory_requirements.size);
+		for(uint32_t j= 0u; j < memory_properties_.memoryTypeCount; ++j)
+		{
+			if((memory_requirements.memoryTypeBits & (1u << j)) != 0 &&
+				(memory_properties_.memoryTypes[j].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
+				memory_allocate_info.memoryTypeIndex= j;
+		}
+
+		image_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);
+		vk_device_.bindImageMemory(*image_, *image_memory_, 0u);
 	}
 
-	image_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);
-	vk_device_.bindImageMemory(*image_, *image_memory_, 0u);
+	// Create image view.
+	image_view_= vk_device_.createImageViewUnique(
+		vk::ImageViewCreateInfo(
+			vk::ImageViewCreateFlags(),
+			*image_,
+			vk::ImageViewType::e2DArray,
+			vk::Format::eR8G8B8A8Unorm,
+			vk::ComponentMapping(),
+			vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, 0u, num_layers)));
 
+	// Create staging buffer.
+	// For now create it with size of whole texture.
+	const uint32_t buffer_data_size= c_texture_size * c_texture_size * num_layers * sizeof(PixelType) * 2;
+	{
 
-	void* image_data_gpu_size= nullptr;
-	vk_device_.mapMemory(*image_memory_, 0u, memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &image_data_gpu_size);
+		staging_buffer_=
+			vk_device_.createBufferUnique(
+				vk::BufferCreateInfo(
+					vk::BufferCreateFlags(),
+					buffer_data_size,
+					vk::BufferUsageFlagBits::eTransferSrc));
+
+		const vk::MemoryRequirements memory_requirements= vk_device_.getBufferMemoryRequirements(*staging_buffer_);
+
+		vk::MemoryAllocateInfo memory_allocate_info(memory_requirements.size);
+		for(uint32_t i= 0u; i < memory_properties_.memoryTypeCount; ++i)
+		{
+			if((memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
+				(memory_properties_.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible ) != vk::MemoryPropertyFlags() &&
+				(memory_properties_.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent) != vk::MemoryPropertyFlags())
+				memory_allocate_info.memoryTypeIndex= i;
+		}
+
+		staging_buffer_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);
+		vk_device_.bindBufferMemory(*staging_buffer_, *staging_buffer_memory_, 0u);
+	}
+
+	void* staging_buffer_mapped= nullptr;
+	vk_device_.mapMemory(*staging_buffer_memory_, 0u, buffer_data_size, vk::MemoryMapFlags(), &staging_buffer_mapped);
+
+	// Load files.
+
+	// For now just fill data into the staging buffer.
 
 	uint32_t dst_image_index= 0;
 	for(const char* const file_name : file_names)
@@ -155,28 +199,65 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 		}
 
 		std::memcpy(
-			static_cast<PixelType*>(image_data_gpu_size) + dst_image_index * c_texture_size * c_texture_size,
+			static_cast<PixelType*>(staging_buffer_mapped) + dst_image_index * c_texture_size * c_texture_size,
 			image->data.data(),
 			c_texture_size * c_texture_size * sizeof(PixelType));
+
 		++dst_image_index;
 	}
 
-	vk_device_.unmapMemory(*image_memory_);
-
-	image_view_= vk_device_.createImageViewUnique(
-		vk::ImageViewCreateInfo(
-			vk::ImageViewCreateFlags(),
-			*image_,
-			vk::ImageViewType::e2DArray,
-			vk::Format::eR8G8B8A8Unorm,
-			vk::ComponentMapping(),
-			vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, 0u, num_layers)));
+	vk_device_.unmapMemory(*staging_buffer_memory_);
 }
 
 WorldTexturesManager::~WorldTexturesManager()
 {
 	// Sync before destruction.
 	vk_device_.waitIdle();
+}
+
+void WorldTexturesManager::PrepareFrame(const vk::CommandBuffer command_buffer)
+{
+	// Copy buffer into the image, because we need a command buffer.
+
+	if(textures_loaded_)
+		return;
+	textures_loaded_= true;
+
+	for(uint32_t dst_image_index= 0; dst_image_index < num_layers; ++dst_image_index)
+	{
+		const vk::BufferImageCopy copy_region(
+			dst_image_index * c_texture_size * c_texture_size * sizeof(PixelType),
+			c_texture_size, c_texture_size,
+			vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0u, dst_image_index, 1u),
+			vk::Offset3D(0, 0, 0),
+			vk::Extent3D(c_texture_size, c_texture_size, 1u));
+
+		command_buffer.copyBufferToImage(
+			*staging_buffer_,
+			*image_,
+			vk::ImageLayout::eGeneral,
+			1u, &copy_region);
+	}
+
+	// Wait for update.
+	// TODO - check if this is correct.
+	vk::BufferMemoryBarrier barrier;
+	barrier.srcAccessMask= vk::AccessFlagBits::eTransferRead;
+	barrier.dstAccessMask= vk::AccessFlagBits::eTransferWrite;
+	barrier.size= VK_WHOLE_SIZE;
+	barrier.buffer= *staging_buffer_;
+	barrier.srcQueueFamilyIndex= vk_queue_family_index_;
+	barrier.dstQueueFamilyIndex= vk_queue_family_index_;
+
+	command_buffer.pipelineBarrier(
+		vk::PipelineStageFlagBits::eTransfer,
+		vk::PipelineStageFlagBits::eTransfer,
+		vk::DependencyFlags(),
+		0, nullptr,
+		1, &barrier,
+		0, nullptr);
+
+	// TODO - switch layout to eShaderReadOnlyOptimal.
 }
 
 vk::ImageView WorldTexturesManager::GetImageView() const

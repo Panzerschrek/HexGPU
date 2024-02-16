@@ -295,6 +295,7 @@ WorldRenderer::~WorldRenderer()
 
 void WorldRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
 {
+	world_textures_manager_.PrepareFrame(command_buffer);
 	geometry_generator_.PrepareFrame(command_buffer);
 
 	const vk::Buffer vertex_buffer= geometry_generator_.GetVertexBuffer();

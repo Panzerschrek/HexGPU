@@ -94,6 +94,7 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 	(void) FillTestImage;
 
 	const uint32_t c_num_mips= 1; // TODO - create mips.
+	const uint32_t num_layers= 1;
 
 	image_= vk_device_.createImageUnique(
 		vk::ImageCreateInfo(
@@ -102,7 +103,7 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 			vk::Format::eR8G8B8A8Unorm,
 			vk::Extent3D(image->size[0], image->size[1], 1u),
 			c_num_mips,
-			1u,
+			num_layers,
 			vk::SampleCountFlagBits::e1,
 			vk::ImageTiling::eLinear, // TODO - use optimal
 			vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
@@ -135,10 +136,10 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 		vk::ImageViewCreateInfo(
 			vk::ImageViewCreateFlags(),
 			*image_,
-			vk::ImageViewType::e2D,
+			vk::ImageViewType::e2DArray,
 			vk::Format::eR8G8B8A8Unorm,
 			vk::ComponentMapping(),
-			vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, 0u, 1u)));
+			vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, 0u, num_layers)));
 }
 
 WorldTexturesManager::~WorldTexturesManager()

@@ -285,7 +285,6 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan, WorldProcessor& world_
 			},
 			{});
 	}
-
 }
 
 WorldRenderer::~WorldRenderer()

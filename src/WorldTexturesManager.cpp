@@ -84,6 +84,23 @@ std::optional<Image> LoadImage(const char* const file_path)
 	return std::nullopt;
 }
 
+void RGBA8_GetMip( const uint8_t* const in, uint8_t* const out, const uint32_t width, const uint32_t height)
+{
+	uint8_t* dst= out;
+	for(uint32_t y= 0; y < height; y+= 2)
+	{
+		const uint8_t* src[2]= { in + y * width * 4, in + (y+1) * width * 4 };
+		for(uint32_t x= 0; x < width; x+= 2, src[0]+= 8, src[1]+= 8, dst+= 4)
+		{
+			dst[0]= uint8_t((src[0][0] + src[0][4]  +  src[1][0] + src[1][4]) >> 2);
+			dst[1]= uint8_t((src[0][1] + src[0][5]  +  src[1][1] + src[1][5]) >> 2);
+			dst[2]= uint8_t((src[0][2] + src[0][6]  +  src[1][2] + src[1][6]) >> 2);
+			dst[3]= uint8_t((src[0][3] + src[0][7]  +  src[1][3] + src[1][7]) >> 2);
+		}
+	}
+}
+
+
 const uint32_t c_texture_size_log2= 8;
 const uint32_t c_texture_size= 1 << c_texture_size_log2;
 
@@ -95,7 +112,7 @@ const char* const file_names[]=
 	"textures/soil.jpg",
 };
 
-const uint32_t c_num_mips= 1; // TODO - create mips.
+const uint32_t c_num_mips= 2; // TODO - create mips.
 const uint32_t num_layers= std::size(file_names);
 
 } // namespace
@@ -149,7 +166,7 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 
 	// Create staging buffer.
 	// For now create it with size of whole texture.
-	const uint32_t buffer_data_size= c_texture_size * c_texture_size * num_layers * sizeof(PixelType) * 2;
+	const uint32_t buffer_data_size= c_texture_size * c_texture_size * num_layers * sizeof(PixelType) * 2; // TODO - pack mips tightly
 	{
 
 		staging_buffer_=
@@ -182,6 +199,8 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 	// For now just fill data into the staging buffer.
 
 	uint32_t dst_image_index= 0;
+	std::vector<PixelType> mip_data(c_texture_size * c_texture_size);
+
 	for(const char* const file_name : file_names)
 	{
 		(void)FillTestImage;
@@ -198,10 +217,18 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 			continue;
 		}
 
+		PixelType* const dst= static_cast<PixelType*>(staging_buffer_mapped) + dst_image_index * c_texture_size * c_texture_size * 2; // TODO - pack mips tightly
 		std::memcpy(
-			static_cast<PixelType*>(staging_buffer_mapped) + dst_image_index * c_texture_size * c_texture_size,
+			dst,
 			image->data.data(),
 			c_texture_size * c_texture_size * sizeof(PixelType));
+
+		RGBA8_GetMip(reinterpret_cast<const uint8_t*>(image->data.data()), reinterpret_cast<uint8_t*>(mip_data.data()), c_texture_size, c_texture_size);
+
+		std::memcpy(
+			dst + c_texture_size * c_texture_size,
+			mip_data.data(),
+			(c_texture_size >> 1) * (c_texture_size >> 1) * sizeof(PixelType));
 
 		++dst_image_index;
 	}
@@ -225,8 +252,9 @@ void WorldTexturesManager::PrepareFrame(const vk::CommandBuffer command_buffer)
 
 	for(uint32_t dst_image_index= 0; dst_image_index < num_layers; ++dst_image_index)
 	{
+		const uint32_t base_offset= dst_image_index * uint32_t(c_texture_size * c_texture_size * sizeof(PixelType) * 2u); // TODO - pack mips tightly
 		const vk::BufferImageCopy copy_region(
-			dst_image_index * c_texture_size * c_texture_size * sizeof(PixelType),
+			base_offset,
 			c_texture_size, c_texture_size,
 			vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0u, dst_image_index, 1u),
 			vk::Offset3D(0, 0, 0),
@@ -237,6 +265,19 @@ void WorldTexturesManager::PrepareFrame(const vk::CommandBuffer command_buffer)
 			*image_,
 			vk::ImageLayout::eGeneral,
 			1u, &copy_region);
+
+		const vk::BufferImageCopy copy_region_mip(
+			base_offset + c_texture_size * c_texture_size * sizeof(PixelType),
+			c_texture_size >> 1, c_texture_size >> 1,
+			vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 1u, dst_image_index, 1u),
+			vk::Offset3D(0, 0, 0),
+			vk::Extent3D(c_texture_size >> 1, c_texture_size >> 1, 1u));
+
+		command_buffer.copyBufferToImage(
+			*staging_buffer_,
+			*image_,
+			vk::ImageLayout::eGeneral,
+			1u, &copy_region_mip);
 	}
 
 	// Wait for update.

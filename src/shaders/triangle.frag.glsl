@@ -9,5 +9,5 @@ layout(location = 0) out vec4 out_color;
 
 void main()
 {
-	out_color= texture(texture_image, vec3(f_tex_coord, 0.0));
+	out_color= texture(texture_image, vec3(f_tex_coord, 2.0));
 }

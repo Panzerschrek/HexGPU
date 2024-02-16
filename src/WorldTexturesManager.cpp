@@ -1,5 +1,6 @@
 #include "WorldTexturesManager.hpp"
 #include "Assert.hpp"
+#include "Log.hpp"
 #include <optional>
 #include <vector>
 
@@ -88,20 +89,26 @@ std::optional<Image> LoadImage(const char* const file_path)
 WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 	: vk_device_(window_vulkan.GetVulkanDevice())
 {
-	const auto image= LoadImage("textures/brick.jpg");
-	HEX_ASSERT(image != std::nullopt);
+	const uint32_t c_texture_size_log2= 8;
+	const uint32_t c_texture_size= 1 << c_texture_size_log2;
 
-	(void) FillTestImage;
+	const char* const file_names[]=
+	{
+		"textures/brick.jpg",
+		"textures/stone.jpg",
+		"textures/wood.jpg",
+		"textures/soil.jpg",
+	};
 
 	const uint32_t c_num_mips= 1; // TODO - create mips.
-	const uint32_t num_layers= 1;
+	const uint32_t num_layers= std::size(file_names);
 
 	image_= vk_device_.createImageUnique(
 		vk::ImageCreateInfo(
 			vk::ImageCreateFlags(),
 			vk::ImageType::e2D,
 			vk::Format::eR8G8B8A8Unorm,
-			vk::Extent3D(image->size[0], image->size[1], 1u),
+			vk::Extent3D(c_texture_size, c_texture_size, 1u),
 			c_num_mips,
 			num_layers,
 			vk::SampleCountFlagBits::e1,
@@ -110,7 +117,6 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 			vk::SharingMode::eExclusive,
 			0u, nullptr,
 			vk::ImageLayout::ePreinitialized));
-
 
 	const vk::MemoryRequirements memory_requirements= vk_device_.getImageMemoryRequirements(*image_);
 
@@ -127,9 +133,34 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 	image_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);
 	vk_device_.bindImageMemory(*image_, *image_memory_, 0u);
 
+
 	void* image_data_gpu_size= nullptr;
 	vk_device_.mapMemory(*image_memory_, 0u, memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &image_data_gpu_size);
-	std::memcpy(image_data_gpu_size, image->data.data(), image->size[0] * image->size[1] * sizeof(PixelType));
+
+	uint32_t dst_image_index= 0;
+	for(const char* const file_name : file_names)
+	{
+		(void)FillTestImage;
+
+		const auto image= LoadImage(file_name);
+		if(image == std::nullopt)
+		{
+			Log::Warning("Can't load image ", file_name);
+			continue;
+		}
+		if(image->size[0] != c_texture_size || image->size[1] != c_texture_size)
+		{
+			Log::Warning("Invalid size of image ", file_name);
+			continue;
+		}
+
+		std::memcpy(
+			static_cast<PixelType*>(image_data_gpu_size) + dst_image_index * c_texture_size * c_texture_size,
+			image->data.data(),
+			c_texture_size * c_texture_size * sizeof(PixelType));
+		++dst_image_index;
+	}
+
 	vk_device_.unmapMemory(*image_memory_);
 
 	image_view_= vk_device_.createImageViewUnique(

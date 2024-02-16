@@ -104,8 +104,9 @@ void RGBA8_GetMip( const uint8_t* const in, uint8_t* const out, const uint32_t w
 const uint32_t c_texture_size_log2= 8;
 const uint32_t c_texture_size= 1 << c_texture_size_log2;
 
-const uint32_t c_num_mips= c_texture_size_log2 - 2;
+const uint32_t c_num_mips= c_texture_size_log2 - 2; // Ignore last two mips for simplicity.
 
+// TODO - load texture names from config.
 const char* const file_names[]=
 {
 	"textures/brick.jpg",
@@ -114,7 +115,7 @@ const char* const file_names[]=
 	"textures/soil.jpg",
 };
 
-constexpr uint32_t num_layers= std::size(file_names);
+constexpr uint32_t c_num_layers= std::size(file_names);
 
 // Add extra padding.
 const uint32_t c_texture_num_texels_with_mips= c_texture_size * c_texture_size * 3 / 2;
@@ -133,13 +134,13 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 			vk::Format::eR8G8B8A8Unorm,
 			vk::Extent3D(c_texture_size, c_texture_size, 1u),
 			c_num_mips,
-			num_layers,
+			c_num_layers,
 			vk::SampleCountFlagBits::e1,
 			vk::ImageTiling::eOptimal,
 			vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
 			vk::SharingMode::eExclusive,
 			0u, nullptr,
-			vk::ImageLayout::eGeneral));
+			vk::ImageLayout::eTransferDstOptimal));
 
 	// Allocate memory.
 
@@ -166,11 +167,11 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 			vk::ImageViewType::e2DArray,
 			vk::Format::eR8G8B8A8Unorm,
 			vk::ComponentMapping(),
-			vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, 0u, num_layers)));
+			vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, 0u, c_num_layers)));
 
 	// Create staging buffer.
 	// For now create it with size of whole texture (with mips and extra padding).
-	const uint32_t buffer_data_size= num_layers * c_texture_num_texels_with_mips * sizeof(PixelType) * 2;
+	const uint32_t buffer_data_size= c_num_layers * c_texture_num_texels_with_mips * sizeof(PixelType) * 2;
 	{
 
 		staging_buffer_=
@@ -250,13 +251,13 @@ WorldTexturesManager::~WorldTexturesManager()
 
 void WorldTexturesManager::PrepareFrame(const vk::CommandBuffer command_buffer)
 {
-	// Copy buffer into the image, because we need a command buffer.
+	// Copy buffer into the image after ininitialization, because we need a command buffer.
 
 	if(textures_loaded_)
 		return;
 	textures_loaded_= true;
 
-	for(uint32_t dst_image_index= 0; dst_image_index < num_layers; ++dst_image_index)
+	for(uint32_t dst_image_index= 0; dst_image_index < c_num_layers; ++dst_image_index)
 	{
 		uint32_t offset= dst_image_index * c_texture_num_texels_with_mips * uint32_t(sizeof(PixelType));
 
@@ -274,32 +275,32 @@ void WorldTexturesManager::PrepareFrame(const vk::CommandBuffer command_buffer)
 			command_buffer.copyBufferToImage(
 				*staging_buffer_,
 				*image_,
-				vk::ImageLayout::eGeneral,
+				vk::ImageLayout::eTransferDstOptimal,
 				1u, &copy_region);
 
 			offset+= current_size * current_size * uint32_t(sizeof(PixelType));
 		}
 	}
 
-	// Wait for update.
+	// Wait for update and transfer layout.
 	// TODO - check if this is correct.
-	vk::BufferMemoryBarrier barrier;
-	barrier.srcAccessMask= vk::AccessFlagBits::eTransferRead;
-	barrier.dstAccessMask= vk::AccessFlagBits::eTransferWrite;
-	barrier.size= VK_WHOLE_SIZE;
-	barrier.buffer= *staging_buffer_;
-	barrier.srcQueueFamilyIndex= vk_queue_family_index_;
-	barrier.dstQueueFamilyIndex= vk_queue_family_index_;
+
+	const vk::ImageMemoryBarrier image_memory_transfer(
+		vk::AccessFlagBits::eTransferWrite,
+		vk::AccessFlagBits::eMemoryRead,
+		vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
+		vk_queue_family_index_,
+		vk_queue_family_index_,
+		*image_,
+		vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, 0u, c_num_layers));
 
 	command_buffer.pipelineBarrier(
 		vk::PipelineStageFlagBits::eTransfer,
-		vk::PipelineStageFlagBits::eTransfer,
+		vk::PipelineStageFlagBits::eBottomOfPipe,
 		vk::DependencyFlags(),
-		0, nullptr,
-		1, &barrier,
-		0, nullptr);
-
-	// TODO - switch layout to eShaderReadOnlyOptimal.
+		0u, nullptr,
+		0u, nullptr,
+		1u, &image_memory_transfer);
 }
 
 vk::ImageView WorldTexturesManager::GetImageView() const

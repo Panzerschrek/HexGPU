@@ -268,7 +268,7 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan, WorldProcessor& world_
 		const vk::DescriptorImageInfo descriptor_tex_info(
 			vk::Sampler(),
 			world_textures_manager_.GetImageView(),
-			vk::ImageLayout::eGeneral);
+			vk::ImageLayout::eShaderReadOnlyOptimal);
 
 		vk_device_.updateDescriptorSets(
 			{

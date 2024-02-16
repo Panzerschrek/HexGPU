@@ -1,4 +1,5 @@
 #include "WorldTexturesManager.hpp"
+#include "BlockType.hpp"
 #include "Log.hpp"
 
 #ifdef __GNUC__

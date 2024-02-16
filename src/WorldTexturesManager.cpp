@@ -50,7 +50,7 @@ bool LoadImageWithExpectedSize(
 
 	if(channels == 4)
 		std::memcpy(dst_pixels, stbi_img_data, expected_width * expected_height);
-	if( channels == 3)
+	else if( channels == 3)
 	{
 		for(uint32_t i= 0; i < expected_width * expected_height; ++i)
 			dst_pixels[i]=

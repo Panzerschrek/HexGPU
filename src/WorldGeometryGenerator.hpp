@@ -8,8 +8,7 @@ struct WorldVertex
 {
 	// Use 16 bit for position in order to make this struct more compact (relative to floats).
 	int16_t pos[4];
-	int16_t tex_coord[2];
-	int16_t reserved[2];
+	int16_t tex_coord[4];
 };
 
 using QuadVertices= std::array<WorldVertex, 4>;

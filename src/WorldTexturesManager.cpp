@@ -1,5 +1,6 @@
 #include "WorldTexturesManager.hpp"
 #include "BlockType.hpp"
+#include "TexturesTable.hpp"
 #include "Log.hpp"
 
 #ifdef __GNUC__
@@ -86,16 +87,7 @@ const uint32_t c_texture_size= 1 << c_texture_size_log2;
 
 const uint32_t c_num_mips= c_texture_size_log2 - 2; // Ignore last two mips for simplicity.
 
-// TODO - load texture names from config.
-const char* const c_file_paths[]=
-{
-	"textures/brick.jpg",
-	"textures/stone.jpg",
-	"textures/wood.jpg",
-	"textures/soil.jpg",
-};
-
-constexpr uint32_t c_num_layers= std::size(c_file_paths);
+constexpr uint32_t c_num_layers= std::size(c_block_textures_table);
 
 // Add extra padding (use 3/2 instead of 4/3).
 const uint32_t c_texture_num_texels_with_mips= c_texture_size * c_texture_size * 3 / 2;
@@ -181,10 +173,10 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 	vk_device_.mapMemory(*staging_buffer_memory_, 0u, buffer_data_size, vk::MemoryMapFlags(), &staging_buffer_mapped);
 
 	uint32_t dst_image_index= 0;
-	for(const char* const file_path : c_file_paths)
+	for(const char* const texture_file : c_block_textures_table)
 	{
 		PixelType* dst= static_cast<PixelType*>(staging_buffer_mapped) + dst_image_index * c_texture_num_texels_with_mips;
-		LoadImageWithExpectedSize(file_path, c_texture_size, c_texture_size, dst);
+		LoadImageWithExpectedSize((std::string("textures/") + texture_file).c_str(), c_texture_size, c_texture_size, dst);
 
 		for(uint32_t mip= 1; mip < c_num_mips; ++mip)
 		{

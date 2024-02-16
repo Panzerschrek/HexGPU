@@ -1,8 +1,5 @@
 #include "WorldTexturesManager.hpp"
-#include "Assert.hpp"
 #include "Log.hpp"
-#include <optional>
-#include <vector>
 
 #ifdef __GNUC__
 #pragma GCC diagnostic push
@@ -27,61 +24,44 @@ namespace
 
 using PixelType= uint32_t;
 
-void FillTestImage(uint32_t width, uint32_t height, PixelType* const data)
-{
-	for(uint32_t y= 0; y < height; ++y)
-	for(uint32_t x= 0; x < width; ++x)
-	{
-		data[x + y * width]= (x * 255 / width) | ((y * 255 / height) << 8);
-	}
-}
-
-struct Image
-{
-	uint32_t size[2];
-	std::vector<PixelType> data;
-};
-
-std::optional<Image> LoadImage(const char* const file_path)
+bool LoadImageWithExpectedSize(
+	const char* const file_path,
+	const uint32_t expected_width,
+	const uint32_t expected_height,
+	PixelType* const dst_pixels)
 {
 	const std::string file_path_str(file_path);
 
-	int width, height, channels;
-	unsigned char* stbi_img_data= stbi_load(file_path_str.c_str(), &width, &height, &channels, 0);
+	int width= 0, height= 0, channels= 0;
+	uint8_t* const stbi_img_data= stbi_load(file_path_str.c_str(), &width, &height, &channels, 0);
 	if(stbi_img_data == nullptr)
-		return std::nullopt;
+	{
+		Log::Warning("Can't load image ", file_path);
+		return false;
+	}
+
+	if(width != int(expected_width) || height != int(expected_height))
+	{
+		Log::Warning("Wrong image ", file_path, " size");
+		return false;
+	}
 
 	if(channels == 4)
-	{
-		const auto data_ptr= reinterpret_cast<const PixelType*>(stbi_img_data);
-
-		Image result;
-		result.size[0]= uint32_t(width);
-		result.size[1]= uint32_t(height);
-		result.data= std::vector<PixelType>(data_ptr, data_ptr + width * height);
-		stbi_image_free(stbi_img_data);
-		return result;
-	}
+		std::memcpy(dst_pixels, stbi_img_data, expected_width * expected_height);
 	if( channels == 3)
 	{
-
-		Image result;
-		result.size[0]= uint32_t(width);
-		result.size[1]= uint32_t(height);
-		result.data.resize(width * height);
-
-		for(int i= 0; i < width * height; ++i)
-			result.data[i]=
-				(stbi_img_data[i*3  ]<< 0) |
-				(stbi_img_data[i*3+1]<< 8) |
-				(stbi_img_data[i*3+2]<<16) |
-				(255                << 24);
-
-		return result;
+		for(uint32_t i= 0; i < expected_width * expected_height; ++i)
+			dst_pixels[i]=
+				(stbi_img_data[i*3  ] <<  0) |
+				(stbi_img_data[i*3+1] <<  8) |
+				(stbi_img_data[i*3+2] << 16) |
+				(255                  << 24);
 	}
+	else
+		Log::Warning("Wrong number of image ", file_path, " channels: ", channels);
 
 	stbi_image_free(stbi_img_data);
-	return std::nullopt;
+	return true;
 }
 
 void RGBA8_GetMip( const uint8_t* const in, uint8_t* const out, const uint32_t width, const uint32_t height)
@@ -100,14 +80,13 @@ void RGBA8_GetMip( const uint8_t* const in, uint8_t* const out, const uint32_t w
 	}
 }
 
-
 const uint32_t c_texture_size_log2= 8;
 const uint32_t c_texture_size= 1 << c_texture_size_log2;
 
 const uint32_t c_num_mips= c_texture_size_log2 - 2; // Ignore last two mips for simplicity.
 
 // TODO - load texture names from config.
-const char* const file_names[]=
+const char* const c_file_paths[]=
 {
 	"textures/brick.jpg",
 	"textures/stone.jpg",
@@ -115,9 +94,9 @@ const char* const file_names[]=
 	"textures/soil.jpg",
 };
 
-constexpr uint32_t c_num_layers= std::size(file_names);
+constexpr uint32_t c_num_layers= std::size(c_file_paths);
 
-// Add extra padding.
+// Add extra padding (use 3/2 instead of 4/3).
 const uint32_t c_texture_num_texels_with_mips= c_texture_size * c_texture_size * 3 / 2;
 
 } // namespace
@@ -143,7 +122,6 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 			vk::ImageLayout::eTransferDstOptimal));
 
 	// Allocate memory.
-
 	{
 		const vk::MemoryRequirements memory_requirements= vk_device_.getImageMemoryRequirements(*image_);
 
@@ -173,7 +151,6 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 	// For now create it with size of whole texture (with mips and extra padding).
 	const uint32_t buffer_data_size= c_num_layers * c_texture_num_texels_with_mips * sizeof(PixelType) * 2;
 	{
-
 		staging_buffer_=
 			vk_device_.createBufferUnique(
 				vk::BufferCreateInfo(
@@ -196,35 +173,17 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 		vk_device_.bindBufferMemory(*staging_buffer_, *staging_buffer_memory_, 0u);
 	}
 
+	// Load files.
+	// For now just fill data into the mapped staging buffer.
+
 	void* staging_buffer_mapped= nullptr;
 	vk_device_.mapMemory(*staging_buffer_memory_, 0u, buffer_data_size, vk::MemoryMapFlags(), &staging_buffer_mapped);
 
-	// Load files.
-
-	// For now just fill data into the staging buffer.
-
 	uint32_t dst_image_index= 0;
-	for(const char* const file_name : file_names)
+	for(const char* const file_path : c_file_paths)
 	{
-		(void)FillTestImage;
-
-		const auto image= LoadImage(file_name);
-		if(image == std::nullopt)
-		{
-			Log::Warning("Can't load image ", file_name);
-			continue;
-		}
-		if(image->size[0] != c_texture_size || image->size[1] != c_texture_size)
-		{
-			Log::Warning("Invalid size of image ", file_name);
-			continue;
-		}
-
 		PixelType* dst= static_cast<PixelType*>(staging_buffer_mapped) + dst_image_index * c_texture_num_texels_with_mips;
-		std::memcpy(
-			dst,
-			image->data.data(),
-			c_texture_size * c_texture_size * sizeof(PixelType));
+		LoadImageWithExpectedSize(file_path, c_texture_size, c_texture_size, dst);
 
 		for(uint32_t mip= 1; mip < c_num_mips; ++mip)
 		{
@@ -286,11 +245,9 @@ void WorldTexturesManager::PrepareFrame(const vk::CommandBuffer command_buffer)
 	// TODO - check if this is correct.
 
 	const vk::ImageMemoryBarrier image_memory_transfer(
-		vk::AccessFlagBits::eTransferWrite,
-		vk::AccessFlagBits::eMemoryRead,
+		vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eMemoryRead,
 		vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
-		vk_queue_family_index_,
-		vk_queue_family_index_,
+		vk_queue_family_index_, vk_queue_family_index_,
 		*image_,
 		vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, 0u, c_num_layers));
 

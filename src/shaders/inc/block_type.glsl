@@ -30,25 +30,24 @@ const uint8_t c_block_optical_density_table[c_num_block_types]=
 	c_optical_density_semisolid, // foliage
 	c_optical_density_solid, // fire stone
 	c_optical_density_semisolid, // water
-	c_optical_density_solid // sand
+	c_optical_density_solid  // sand
 );
 
-// If this changed, TexturesTable.hpp"must be changed too!
-// x - top, y - bottom, z - sides.
-// TODO - use uint8_t ?
+// If this changed, TexturesTable.hpp" must be changed too!
+// "r" - top, "g" - bottom, "b" - sides.
 // TODO - support more precise mapping - individually for all 6 sides?
-const ivec3 c_block_texture_table[c_num_block_types]=
-	ivec3[c_num_block_types]
+const i16vec3 c_block_texture_table[c_num_block_types]=
+	i16vec3[c_num_block_types]
 (
-	ivec3( 0,  0,  0), // air
-	ivec3( 6,  6,  6), // spherical block
-	ivec3( 7,  7,  7), // stone
-	ivec3( 5,  5,  5), // soil
-	ivec3( 9,  9,  8), // wood
-	ivec3( 2,  5,  5), // grass
-	ivec3( 0,  0,  0), // brick
-	ivec3( 3,  3,  3), // foliage
-	ivec3( 1,  1,  1), // fire stone
-	ivec3( 0,  0,  0), // water
-	ivec3( 4,  4,  4)// sand
+	i16vec3( 0,  0,  0), // air
+	i16vec3( 6,  6,  6), // spherical block
+	i16vec3( 7,  7,  7), // stone
+	i16vec3( 5,  5,  5), // soil
+	i16vec3( 9,  9,  8), // wood
+	i16vec3( 2,  5,  5), // grass
+	i16vec3( 0,  0,  0), // brick
+	i16vec3( 3,  3,  3), // foliage
+	i16vec3( 1,  1,  1), // fire stone
+	i16vec3( 0,  0,  0), // water
+	i16vec3( 4,  4,  4)  // sand
 );

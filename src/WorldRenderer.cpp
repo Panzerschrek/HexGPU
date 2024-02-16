@@ -42,13 +42,34 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan, WorldProcessor& world_
 	: vk_device_(window_vulkan.GetVulkanDevice())
 	, vk_queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, geometry_generator_(window_vulkan, world_processor)
+	, world_textures_manager_(window_vulkan)
 {
 	// Create shaders
 	shader_vert_= CreateShader(vk_device_, ShaderNames::triangle_vert);
 	shader_frag_= CreateShader(vk_device_, ShaderNames::triangle_frag);
 
-	// Create pipeline layout
+	// Create texture sampler
+	vk_texture_sampler_=
+		vk_device_.createSamplerUnique(
+			vk::SamplerCreateInfo(
+				vk::SamplerCreateFlags(),
+				vk::Filter::eLinear,
+				vk::Filter::eLinear,
+				vk::SamplerMipmapMode::eLinear,
+				vk::SamplerAddressMode::eRepeat,
+				vk::SamplerAddressMode::eRepeat,
+				vk::SamplerAddressMode::eRepeat,
+				0.0f,
+				VK_FALSE, // anisotropy
+				1.0f, // anisotropy level
+				VK_FALSE,
+				vk::CompareOp::eNever,
+				0.0f,
+				100.0f,
+				vk::BorderColor::eFloatTransparentBlack,
+				VK_FALSE));
 
+	// Create descriptor set layout.
 	const vk::DescriptorSetLayoutBinding vk_descriptor_set_layout_bindings[]
 	{
 		{
@@ -57,19 +78,27 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan, WorldProcessor& world_
 			1u,
 			vk::ShaderStageFlagBits::eVertex
 		},
+		{
+			1u,
+			vk::DescriptorType::eCombinedImageSampler,
+			1u,
+			vk::ShaderStageFlagBits::eFragment,
+			&*vk_texture_sampler_,
+		},
 	};
 
 	vk_decriptor_set_layout_=
 		vk_device_.createDescriptorSetLayoutUnique(
 			vk::DescriptorSetLayoutCreateInfo(
 				vk::DescriptorSetLayoutCreateFlags(),
-				uint32_t(0), vk_descriptor_set_layout_bindings));
+				uint32_t(std::size(vk_descriptor_set_layout_bindings)), vk_descriptor_set_layout_bindings));
 
 	const vk::PushConstantRange vk_push_constant_range(
 		vk::ShaderStageFlagBits::eVertex,
 		0u,
 		sizeof(m_Mat4));
 
+	// Create pipeline layout
 	vk_pipeline_layout_=
 		vk_device_.createPipelineLayoutUnique(
 			vk::PipelineLayoutCreateInfo(
@@ -234,6 +263,28 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan, WorldProcessor& world_
 				*vk_descriptor_pool_,
 				1u, &*vk_decriptor_set_layout_)).front());
 
+	// Update descriptor set.
+	{
+		const vk::DescriptorImageInfo descriptor_tex_info(
+			vk::Sampler(),
+			world_textures_manager_.GetImageView(),
+			vk::ImageLayout::eShaderReadOnlyOptimal);
+
+		vk_device_.updateDescriptorSets(
+			{
+				{
+					*vk_descriptor_set_,
+					1u,
+					0u,
+					1u,
+					vk::DescriptorType::eCombinedImageSampler,
+					&descriptor_tex_info,
+					nullptr,
+					nullptr
+				},
+			},
+			{});
+	}
 }
 
 WorldRenderer::~WorldRenderer()
@@ -244,6 +295,7 @@ WorldRenderer::~WorldRenderer()
 
 void WorldRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
 {
+	world_textures_manager_.PrepareFrame(command_buffer);
 	geometry_generator_.PrepareFrame(command_buffer);
 
 	const vk::Buffer vertex_buffer= geometry_generator_.GetVertexBuffer();

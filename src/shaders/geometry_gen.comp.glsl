@@ -11,8 +11,7 @@
 struct WorldVertex
 {
 	i16vec4 pos;
-	i16vec2 tex_coord;
-	i16vec2 reserved;
+	i16vec4 tex_coord; // Also stores texture index and light
 };
 
 struct Quad
@@ -112,12 +111,15 @@ void main()
 		int tc_base_x= base_x * tex_scale;
 		int tc_base_y= base_y * tex_scale;
 
-		v[0].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_y + 0 * tex_scale));
-		v[1].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_y + 0 * tex_scale));
-		v[2].tex_coord= i16vec2(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_y + 1 * tex_scale));
-		v[3].tex_coord= i16vec2(int16_t(tc_base_x - 1 * tex_scale), int16_t(tc_base_y + 1 * tex_scale));
-		v[4].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_y + 2 * tex_scale));
-		v[5].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_y + 2 * tex_scale));
+		int16_t tex_index= int16_t(0);
+		int16_t light= int16_t(1);
+
+		v[0].tex_coord= i16vec4(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_y + 0 * tex_scale), tex_index, light);
+		v[1].tex_coord= i16vec4(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_y + 0 * tex_scale), tex_index, light);
+		v[2].tex_coord= i16vec4(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_y + 1 * tex_scale), tex_index, light);
+		v[3].tex_coord= i16vec4(int16_t(tc_base_x - 1 * tex_scale), int16_t(tc_base_y + 1 * tex_scale), tex_index, light);
+		v[4].tex_coord= i16vec4(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_y + 2 * tex_scale), tex_index, light);
+		v[5].tex_coord= i16vec4(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_y + 2 * tex_scale), tex_index, light);
 
 		// Create quads from hexagon vertices. Two vertices are shared.
 		Quad quad_south, quad_north;
@@ -159,10 +161,13 @@ void main()
 		int tc_base_x= base_x * tex_scale;
 		int tc_base_z= z * (2 * tex_scale);
 
-		v[0].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 0 * tex_scale));
-		v[1].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 2 * tex_scale));
-		v[2].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 2 * tex_scale));
-		v[3].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 0 * tex_scale));
+		int16_t tex_index= int16_t(1);
+		int16_t light= int16_t(1);
+
+		v[0].tex_coord= i16vec4(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 0 * tex_scale), tex_index, light);
+		v[1].tex_coord= i16vec4(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 2 * tex_scale), tex_index, light);
+		v[2].tex_coord= i16vec4(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 2 * tex_scale), tex_index, light);
+		v[3].tex_coord= i16vec4(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 0 * tex_scale), tex_index, light);
 
 		Quad quad;
 		quad.vertices[1]= v[1];
@@ -196,10 +201,13 @@ void main()
 		int tc_base_x= base_x * tex_scale;
 		int tc_base_z= z * (2 * tex_scale);
 
-		v[0].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 0 * tex_scale));
-		v[1].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 2 * tex_scale));
-		v[2].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 2 * tex_scale));
-		v[3].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 0 * tex_scale));
+		int16_t tex_index= int16_t(2);
+		int16_t light= int16_t(1);
+
+		v[0].tex_coord= i16vec4(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 0 * tex_scale), tex_index, light);
+		v[1].tex_coord= i16vec4(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 2 * tex_scale), tex_index, light);
+		v[2].tex_coord= i16vec4(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 2 * tex_scale), tex_index, light);
+		v[3].tex_coord= i16vec4(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 0 * tex_scale), tex_index, light);
 
 		Quad quad;
 		quad.vertices[1]= v[1];
@@ -232,10 +240,13 @@ void main()
 		int tc_base_x= base_x * tex_scale;
 		int tc_base_z= z * (2 * tex_scale);
 
-		v[0].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 0 * tex_scale));
-		v[1].tex_coord= i16vec2(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 2 * tex_scale));
-		v[2].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 2 * tex_scale));
-		v[3].tex_coord= i16vec2(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 0 * tex_scale));
+		int16_t tex_index= int16_t(3);
+		int16_t light= int16_t(1);
+
+		v[0].tex_coord= i16vec4(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 0 * tex_scale), tex_index, light);
+		v[1].tex_coord= i16vec4(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 2 * tex_scale), tex_index, light);
+		v[2].tex_coord= i16vec4(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 2 * tex_scale), tex_index, light);
+		v[3].tex_coord= i16vec4(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 0 * tex_scale), tex_index, light);
 
 		Quad quad;
 		quad.vertices[1]= v[1];

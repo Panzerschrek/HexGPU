@@ -32,3 +32,22 @@ const uint8_t c_block_optical_density_table[c_num_block_types]=
 	c_optical_density_semisolid, // water
 	c_optical_density_solid // sand
 );
+
+// If this changed, TexturesTable.hpp"must be changed too!
+// x - top, y - bottom, z - sides.
+// TODO - use uint8_t ?
+const ivec3 c_block_texture_table[c_num_block_types]=
+	ivec3[c_num_block_types]
+(
+	ivec3( 0,  0,  0), // air
+	ivec3( 6,  6,  6), // spherical block
+	ivec3( 7,  7,  7), // stone
+	ivec3( 5,  5,  5), // soil
+	ivec3( 9,  9,  8), // wood
+	ivec3( 2,  5,  5), // grass
+	ivec3( 0,  0,  0), // brick
+	ivec3( 3,  3,  3), // foliage
+	ivec3( 1,  1,  1), // fire stone
+	ivec3( 0,  0,  0), // water
+	ivec3( 4,  4,  4)// sand
+);

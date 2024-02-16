@@ -1,6 +1,5 @@
 // Blocks types list.
 // Usage - define BLOCK_PROCESS_FUNC, include this file.
-// Add new blocks at the end of this list.
 
 #ifndef BLOCK_PROCESS_FUNC
 #error "Expected BLOCK_PROCESS_FUNC macro"
@@ -19,5 +18,5 @@ BLOCK_PROCESS_FUNC(FireStone)
 BLOCK_PROCESS_FUNC(Water)
 BLOCK_PROCESS_FUNC(Sand)
 
-// Put new blocks here
+// Put new block types at the end
 

@@ -63,7 +63,7 @@ void main()
 		chunks_data[column_offset + z]= c_block_type_stone;
 	}
 
-	// TODO - make soild layer variable-width.
+	// TODO - make soil layer variable-height.
 	chunks_data[column_offset + ground_z - 2]= c_block_type_soil;
 	chunks_data[column_offset + ground_z - 1]= c_block_type_soil;
 	chunks_data[column_offset + ground_z]= c_block_type_grass;

@@ -13,7 +13,7 @@ enum class BlockType : uint8_t
 	Unknown,
 };
 
-static_assert(uint8_t(BlockType::Air) == 0, "Air must be zero");
+static_assert(uint8_t(BlockType::Air) == 0, "Air must be zero!");
 
 inline BlockType StringToBlockType(const std::string_view s)
 {

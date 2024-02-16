@@ -11,6 +11,7 @@ const uint8_t c_block_type_foliage=						uint8_t(  7);
 const uint8_t c_block_type_fire_stone=					uint8_t(  8);
 const uint8_t c_block_type_water=						uint8_t(  9);
 const uint8_t c_block_type_sand=						uint8_t( 10);
+
 const int c_num_block_types=									 11;
 
 const uint8_t c_optical_density_solid= uint8_t(0);

@@ -89,13 +89,19 @@ void main()
 	uint8_t block_value_north_east= FetchBlock(east_x_clamped, max(0, min(east_y_base - 0, c_max_global_y)), z);
 	uint8_t block_value_south_east= FetchBlock(east_x_clamped, max(0, min(east_y_base - 1, c_max_global_y)), z);
 
+	uint8_t optical_density= c_block_optical_density_table[int(block_value)];
+	uint8_t optical_density_up= c_block_optical_density_table[int(block_value_up)];
+	uint8_t optical_density_north= c_block_optical_density_table[int(block_value_north)];
+	uint8_t optical_density_north_east= c_block_optical_density_table[int(block_value_north_east)];
+	uint8_t optical_density_south_east= c_block_optical_density_table[int(block_value_south_east)];
+
 	// Perform calculations in integers - for simplicity.
 	// Hexagon grid vertices are nicely aligned to scaled square grid.
 	int base_x= 3 * block_global_x;
 	int base_y= 2 * block_global_y - (block_global_x & 1) + 1;
 	const int tex_scale= 1; // TODO - read block properties to determine texture scale.
 
-	if( block_value != block_value_up )
+	if( optical_density != optical_density_up )
 	{
 		// Add two hexagon quads.
 
@@ -128,7 +134,7 @@ void main()
 		quad_south.vertices[3]= v[3];
 		quad_north.vertices[1]= v[2];
 		quad_north.vertices[3]= v[5];
-		if( block_value > block_value_up )
+		if(optical_density < optical_density_up)
 		{
 			quad_south.vertices[0]= v[0];
 			quad_south.vertices[2]= v[2];
@@ -149,7 +155,7 @@ void main()
 		quads[quad_index + 1]= quad_north;
 	}
 
-	if( block_value != block_value_north )
+	if( optical_density != optical_density_north )
 	{
 		// Add north quad.
 		WorldVertex v[4];
@@ -173,7 +179,7 @@ void main()
 		Quad quad;
 		quad.vertices[1]= v[1];
 		quad.vertices[3]= v[3];
-		if( block_value > block_value_north )
+		if(optical_density < optical_density_north)
 		{
 			quad.vertices[0]= v[2];
 			quad.vertices[2]= v[0];
@@ -189,7 +195,7 @@ void main()
 		quads[quad_index]= quad;
 	}
 
-	if( block_value != block_value_north_east )
+	if( optical_density != optical_density_north_east )
 	{
 		// Add north-east quad.
 		WorldVertex v[4];
@@ -213,7 +219,7 @@ void main()
 		Quad quad;
 		quad.vertices[1]= v[1];
 		quad.vertices[3]= v[3];
-		if( block_value > block_value_north_east )
+		if(optical_density < optical_density_north_east)
 		{
 			quad.vertices[0]= v[2];
 			quad.vertices[2]= v[0];
@@ -229,7 +235,7 @@ void main()
 		quads[quad_index]= quad;
 	}
 
-	if( block_value != block_value_south_east )
+	if( optical_density != optical_density_south_east )
 	{
 		WorldVertex v[4];
 
@@ -252,7 +258,7 @@ void main()
 		Quad quad;
 		quad.vertices[1]= v[1];
 		quad.vertices[3]= v[3];
-		if( block_value > block_value_south_east )
+		if(optical_density < optical_density_south_east)
 		{
 			quad.vertices[0]= v[2];
 			quad.vertices[2]= v[0];

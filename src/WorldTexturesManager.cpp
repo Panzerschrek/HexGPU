@@ -104,6 +104,8 @@ void RGBA8_GetMip( const uint8_t* const in, uint8_t* const out, const uint32_t w
 const uint32_t c_texture_size_log2= 8;
 const uint32_t c_texture_size= 1 << c_texture_size_log2;
 
+const uint32_t c_num_mips= c_texture_size_log2 - 2;
+
 const char* const file_names[]=
 {
 	"textures/brick.jpg",
@@ -112,8 +114,10 @@ const char* const file_names[]=
 	"textures/soil.jpg",
 };
 
-const uint32_t c_num_mips= 2; // TODO - create mips.
-const uint32_t num_layers= std::size(file_names);
+constexpr uint32_t num_layers= std::size(file_names);
+
+// Add extra padding.
+const uint32_t c_texture_num_texels_with_mips= c_texture_size * c_texture_size * 3 / 2;
 
 } // namespace
 
@@ -165,8 +169,8 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 			vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, 0u, num_layers)));
 
 	// Create staging buffer.
-	// For now create it with size of whole texture.
-	const uint32_t buffer_data_size= c_texture_size * c_texture_size * num_layers * sizeof(PixelType) * 2; // TODO - pack mips tightly
+	// For now create it with size of whole texture (with mips and extra padding).
+	const uint32_t buffer_data_size= num_layers * c_texture_num_texels_with_mips * sizeof(PixelType) * 2;
 	{
 
 		staging_buffer_=
@@ -199,8 +203,6 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 	// For now just fill data into the staging buffer.
 
 	uint32_t dst_image_index= 0;
-	std::vector<PixelType> mip_data(c_texture_size * c_texture_size);
-
 	for(const char* const file_name : file_names)
 	{
 		(void)FillTestImage;
@@ -217,18 +219,22 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 			continue;
 		}
 
-		PixelType* const dst= static_cast<PixelType*>(staging_buffer_mapped) + dst_image_index * c_texture_size * c_texture_size * 2; // TODO - pack mips tightly
+		PixelType* dst= static_cast<PixelType*>(staging_buffer_mapped) + dst_image_index * c_texture_num_texels_with_mips;
 		std::memcpy(
 			dst,
 			image->data.data(),
 			c_texture_size * c_texture_size * sizeof(PixelType));
 
-		RGBA8_GetMip(reinterpret_cast<const uint8_t*>(image->data.data()), reinterpret_cast<uint8_t*>(mip_data.data()), c_texture_size, c_texture_size);
+		for(uint32_t mip= 1; mip < c_num_mips; ++mip)
+		{
+			const uint32_t current_size= c_texture_size >> mip;
+			const uint32_t prev_size= current_size << 1;
 
-		std::memcpy(
-			dst + c_texture_size * c_texture_size,
-			mip_data.data(),
-			(c_texture_size >> 1) * (c_texture_size >> 1) * sizeof(PixelType));
+			PixelType* const mip_dst= dst + prev_size * prev_size;
+			RGBA8_GetMip(reinterpret_cast<const uint8_t*>(dst), reinterpret_cast<uint8_t*>(mip_dst), prev_size, prev_size);
+
+			dst= mip_dst;
+		}
 
 		++dst_image_index;
 	}
@@ -252,32 +258,27 @@ void WorldTexturesManager::PrepareFrame(const vk::CommandBuffer command_buffer)
 
 	for(uint32_t dst_image_index= 0; dst_image_index < num_layers; ++dst_image_index)
 	{
-		const uint32_t base_offset= dst_image_index * uint32_t(c_texture_size * c_texture_size * sizeof(PixelType) * 2u); // TODO - pack mips tightly
-		const vk::BufferImageCopy copy_region(
-			base_offset,
-			c_texture_size, c_texture_size,
-			vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0u, dst_image_index, 1u),
-			vk::Offset3D(0, 0, 0),
-			vk::Extent3D(c_texture_size, c_texture_size, 1u));
+		uint32_t offset= dst_image_index * c_texture_num_texels_with_mips * uint32_t(sizeof(PixelType));
 
-		command_buffer.copyBufferToImage(
-			*staging_buffer_,
-			*image_,
-			vk::ImageLayout::eGeneral,
-			1u, &copy_region);
+		for(uint32_t mip= 0; mip < c_num_mips; ++mip)
+		{
+			const uint32_t current_size= c_texture_size >> mip;
 
-		const vk::BufferImageCopy copy_region_mip(
-			base_offset + c_texture_size * c_texture_size * sizeof(PixelType),
-			c_texture_size >> 1, c_texture_size >> 1,
-			vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 1u, dst_image_index, 1u),
-			vk::Offset3D(0, 0, 0),
-			vk::Extent3D(c_texture_size >> 1, c_texture_size >> 1, 1u));
+			const vk::BufferImageCopy copy_region(
+				offset,
+				current_size, current_size,
+				vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, mip, dst_image_index, 1u),
+				vk::Offset3D(0, 0, 0),
+				vk::Extent3D(current_size, current_size, 1u));
 
-		command_buffer.copyBufferToImage(
-			*staging_buffer_,
-			*image_,
-			vk::ImageLayout::eGeneral,
-			1u, &copy_region_mip);
+			command_buffer.copyBufferToImage(
+				*staging_buffer_,
+				*image_,
+				vk::ImageLayout::eGeneral,
+				1u, &copy_region);
+
+			offset+= current_size * current_size * uint32_t(sizeof(PixelType));
+		}
 	}
 
 	// Wait for update.

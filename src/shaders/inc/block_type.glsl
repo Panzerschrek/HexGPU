@@ -36,6 +36,7 @@ const uint8_t c_block_optical_density_table[c_num_block_types]=
 // If this changed, TexturesTable.hpp"must be changed too!
 // x - top, y - bottom, z - sides.
 // TODO - use uint8_t ?
+// TODO - support more precise mapping - individually for all 6 sides?
 const ivec3 c_block_texture_table[c_num_block_types]=
 	ivec3[c_num_block_types]
 (

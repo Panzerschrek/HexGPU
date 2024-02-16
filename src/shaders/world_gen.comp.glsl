@@ -64,6 +64,7 @@ void main()
 	}
 
 	// TODO - make soild layer variable-width.
+	chunks_data[column_offset + ground_z - 2]= c_block_type_soil;
 	chunks_data[column_offset + ground_z - 1]= c_block_type_soil;
 	chunks_data[column_offset + ground_z]= c_block_type_grass;
 

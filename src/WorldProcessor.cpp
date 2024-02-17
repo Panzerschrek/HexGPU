@@ -78,7 +78,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 				vk::BufferCreateInfo(
 					vk::BufferCreateFlags(),
 					sizeof(PlayerState),
-					vk::BufferUsageFlagBits::eStorageBuffer));
+					vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferSrc));
 
 		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*vk_player_state_buffer_);
 

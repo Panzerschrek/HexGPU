@@ -83,7 +83,7 @@ BuildPrismRenderer::BuildPrismRenderer(WindowVulkan& window_vulkan, WorldProcess
 				vk::BufferCreateInfo(
 					vk::BufferCreateFlags(),
 					sizeof(Uniforms),
-					vk::BufferUsageFlagBits::eUniformBuffer));
+					vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst));
 
 		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*vk_uniform_buffer_);
 
@@ -342,12 +342,6 @@ BuildPrismRenderer::~BuildPrismRenderer()
 
 void BuildPrismRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
 {
-	// TODO
-	(void)command_buffer;
-}
-
-void BuildPrismRenderer::Draw(const vk::CommandBuffer command_buffer, const m_Mat4& view_matrix)
-{
 	// Get build position from player state.
 	{
 		const vk::BufferCopy copy_region(
@@ -378,7 +372,10 @@ void BuildPrismRenderer::Draw(const vk::CommandBuffer command_buffer, const m_Ma
 			1, &barrier,
 			0, nullptr);
 	}
+}
 
+void BuildPrismRenderer::Draw(const vk::CommandBuffer command_buffer, const m_Mat4& view_matrix)
+{
 	const vk::DeviceSize offsets= 0u;
 	command_buffer.bindVertexBuffers(0u, 1u, &*vk_vertex_buffer_, &offsets);
 	command_buffer.bindDescriptorSets(

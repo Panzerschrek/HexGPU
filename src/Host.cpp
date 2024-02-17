@@ -56,7 +56,7 @@ bool Host::Loop()
 	const vk::CommandBuffer command_buffer= window_vulkan_.BeginFrame();
 
 	// TODO - pass directly events and keyboard state.
-	world_processor_.Update(command_buffer, build_triggered, destroy_triggered);
+	world_processor_.Update(command_buffer, camera_controller_.GetCameraPosition(), build_triggered, destroy_triggered);
 
 	world_renderer_.PrepareFrame(command_buffer);
 

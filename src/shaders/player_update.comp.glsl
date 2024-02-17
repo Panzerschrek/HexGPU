@@ -4,9 +4,8 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 
-#include "inc/constants.glsl"
 #include "inc/block_type.glsl"
-#include "inc/noise.glsl"
+#include "inc/hex_funcs.glsl"
 
 layout(binding= 0, std430) buffer chunks_data_buffer
 {
@@ -15,6 +14,7 @@ layout(binding= 0, std430) buffer chunks_data_buffer
 
 layout(push_constant) uniform uniforms_block
 {
+	vec4 player_pos;
 	// Use "uint8_t", because "bool" in GLSL has size different from C++.
 	uint8_t build_triggered;
 	uint8_t destroy_triggered;
@@ -23,12 +23,30 @@ layout(push_constant) uniform uniforms_block
 
 void main()
 {
-	if(build_triggered != uint8_t(0))
+	// For now build and destroy directly at player position.
+	ivec2 player_hex_grid_pos= GetHexogonCoord(player_pos.xy);
+	int player_z= int(floor(player_pos.z));
+	if( player_hex_grid_pos.x >= 0 && player_hex_grid_pos.x < c_chunk_width * c_chunk_matrix_size[0] &&
+		player_hex_grid_pos.y >= 0 && player_hex_grid_pos.y < c_chunk_width * c_chunk_matrix_size[1] &&
+		player_z >= 0 && player_z < c_chunk_height)
 	{
-		chunks_data[ChunkBlockAddress(1, 3, 34)]= c_block_type_brick;
-	}
-	if(destroy_triggered != uint8_t(0))
-	{
-		chunks_data[ChunkBlockAddress(1, 3, 34)]= c_block_type_air;
+		int chunk_x= player_hex_grid_pos.x >> c_chunk_width_log2;
+		int chunk_y= player_hex_grid_pos.y >> c_chunk_width_log2;
+		int local_x= player_hex_grid_pos.x & (c_chunk_width - 1);
+		int local_y= player_hex_grid_pos.y & (c_chunk_width - 1);
+
+		int chunk_index= chunk_x + chunk_y * c_chunk_matrix_size[0];
+		int chunk_data_offset= chunk_index * c_chunk_volume;
+
+		int block_full_address= chunk_data_offset + ChunkBlockAddress(local_x, local_y, player_z);
+
+		if(build_triggered != uint8_t(0))
+		{
+			chunks_data[block_full_address]= c_block_type_brick;
+		}
+		if(destroy_triggered != uint8_t(0))
+		{
+			chunks_data[block_full_address]= c_block_type_air;
+		}
 	}
 }

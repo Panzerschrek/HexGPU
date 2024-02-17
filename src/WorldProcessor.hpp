@@ -1,4 +1,5 @@
 #pragma once
+#include "Vec.hpp"
 #include "WindowVulkan.hpp"
 
 namespace HexGPU
@@ -10,7 +11,11 @@ public:
 	WorldProcessor(WindowVulkan& window_vulkan);
 	~WorldProcessor();
 
-	void Update(vk::CommandBuffer command_buffer, bool build_triggered, bool destroy_triggered);
+	void Update(
+		vk::CommandBuffer command_buffer,
+		const m_Vec3& player_pos,
+		bool build_triggered,
+		bool destroy_triggered);
 
 	vk::Buffer GetChunkDataBuffer() const;
 	uint32_t GetChunkDataBufferSize() const;

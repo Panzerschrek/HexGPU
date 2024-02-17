@@ -24,9 +24,11 @@ struct ChunkPositionUniforms
 
 struct PlayerUpdateUniforms
 {
+	m_Vec3 player_pos;
+	float reserved0= 0.0f;
 	bool build_triggered= false;
 	bool destroy_triggered= false;
-	uint8_t reserved[2];
+	uint8_t reserved1[2];
 };
 
 } // namespace
@@ -256,6 +258,7 @@ WorldProcessor::~WorldProcessor()
 
 void WorldProcessor::Update(
 	const vk::CommandBuffer command_buffer,
+	const m_Vec3& player_pos,
 	const bool build_triggered,
 	const bool destroy_triggered)
 {
@@ -323,10 +326,9 @@ void WorldProcessor::Update(
 		0u, nullptr);
 
 	PlayerUpdateUniforms player_update_uniforms;
+	player_update_uniforms.player_pos= player_pos;
 	player_update_uniforms.build_triggered= build_triggered;
 	player_update_uniforms.destroy_triggered= destroy_triggered;
-	player_update_uniforms.reserved[0]= 0;
-	player_update_uniforms.reserved[1]= 0;
 
 	command_buffer.pushConstants(
 		*vk_player_update_pipeline_layout_,

@@ -73,12 +73,6 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan, WorldProcessor& world_
 	const vk::DescriptorSetLayoutBinding vk_descriptor_set_layout_bindings[]
 	{
 		{
-			0u,
-			vk::DescriptorType::eUniformBuffer,
-			1u,
-			vk::ShaderStageFlagBits::eVertex
-		},
-		{
 			1u,
 			vk::DescriptorType::eCombinedImageSampler,
 			1u,

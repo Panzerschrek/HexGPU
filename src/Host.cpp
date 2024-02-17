@@ -21,6 +21,7 @@ Host::Host()
 	, window_vulkan_(system_window_)
 	, world_processor_(window_vulkan_)
 	, world_renderer_(window_vulkan_, world_processor_)
+	, build_prism_renderer_(window_vulkan_, world_processor_)
 	, camera_controller_(CalculateAspect(window_vulkan_.GetViewportSize()))
 	, init_time_(Clock::now())
 	, prev_tick_time_(init_time_)
@@ -63,7 +64,9 @@ bool Host::Loop()
 	window_vulkan_.EndFrame(
 		[&](const vk::CommandBuffer command_buffer)
 		{
-			world_renderer_.Draw(command_buffer, camera_controller_.CalculateFullViewMatrix());
+			const m_Mat4 view_matrix= camera_controller_.CalculateFullViewMatrix();
+			world_renderer_.Draw(command_buffer, view_matrix);
+			build_prism_renderer_.Draw(command_buffer, view_matrix);
 		});
 
 	const Clock::time_point tick_end_time= Clock::now();

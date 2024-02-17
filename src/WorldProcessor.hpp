@@ -10,7 +10,7 @@ public:
 	WorldProcessor(WindowVulkan& window_vulkan);
 	~WorldProcessor();
 
-	void PrepareFrame(vk::CommandBuffer command_buffer);
+	void Update(vk::CommandBuffer command_buffer);
 
 	vk::Buffer GetChunkDataBuffer() const;
 	uint32_t GetChunkDataBufferSize() const;
@@ -30,6 +30,14 @@ private:
 	vk::UniquePipeline vk_world_gen_pipeline_;
 	vk::UniqueDescriptorPool vk_world_gen_descriptor_pool_;
 	vk::UniqueDescriptorSet vk_world_gen_descriptor_set_;
+
+	vk::UniqueShaderModule player_update_shader_;
+
+	vk::UniqueDescriptorSetLayout vk_player_update_decriptor_set_layout_;
+	vk::UniquePipelineLayout vk_player_update_pipeline_layout_;
+	vk::UniquePipeline vk_player_update_pipeline_;
+	vk::UniqueDescriptorPool vk_player_update_descriptor_pool_;
+	vk::UniqueDescriptorSet vk_player_update_descriptor_set_;
 
 	bool world_generated_= false;
 };

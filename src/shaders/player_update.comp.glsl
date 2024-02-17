@@ -15,11 +15,20 @@ layout(binding= 0, std430) buffer chunks_data_buffer
 
 layout(push_constant) uniform uniforms_block
 {
-	bool build_triggered;
-	bool destroy_triggered;
+	// Use "uint8_t", because "bool" in GLSL has size different from C++.
+	uint8_t build_triggered;
+	uint8_t destroy_triggered;
+	uint8_t reserved[2];
 };
 
 void main()
 {
-	chunks_data[ChunkBlockAddress(1, 3, 34)]= c_block_type_brick;
+	if(build_triggered != uint8_t(0))
+	{
+		chunks_data[ChunkBlockAddress(1, 3, 34)]= c_block_type_brick;
+	}
+	if(destroy_triggered != uint8_t(0))
+	{
+		chunks_data[ChunkBlockAddress(1, 3, 34)]= c_block_type_air;
+	}
 }

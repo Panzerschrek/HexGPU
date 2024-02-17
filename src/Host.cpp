@@ -35,19 +35,29 @@ bool Host::Loop()
 
 	const float dt_s= float(dt.count()) * float(Clock::duration::period::num) / float(Clock::duration::period::den);
 
+	bool build_triggered= false, destroy_triggered= false;
 	for( const SDL_Event& event : system_window_.ProcessEvents() )
 	{
-		if( event.type == SDL_QUIT )
+		if(event.type == SDL_QUIT)
 			quit_requested_= true;
-		if( event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE )
+		if(event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)
 			quit_requested_= true;
+		if(event.type == SDL_MOUSEBUTTONDOWN)
+		{
+			if(event.button.button == SDL_BUTTON_LEFT)
+				destroy_triggered= true;
+			if(event.button.button == SDL_BUTTON_RIGHT)
+				build_triggered= true;
+		}
 	}
 
 	camera_controller_.Update(dt_s, system_window_.GetKeyboardState());
 
 	const vk::CommandBuffer command_buffer= window_vulkan_.BeginFrame();
 
-	world_processor_.Update(command_buffer);
+	// TODO - pass directly events and keyboard state.
+	world_processor_.Update(command_buffer, build_triggered, destroy_triggered);
+
 	world_renderer_.PrepareFrame(command_buffer);
 
 	window_vulkan_.EndFrame(

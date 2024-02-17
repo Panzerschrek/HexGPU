@@ -10,7 +10,7 @@ public:
 	WorldProcessor(WindowVulkan& window_vulkan);
 	~WorldProcessor();
 
-	void Update(vk::CommandBuffer command_buffer);
+	void Update(vk::CommandBuffer command_buffer, bool build_triggered, bool destroy_triggered);
 
 	vk::Buffer GetChunkDataBuffer() const;
 	uint32_t GetChunkDataBufferSize() const;

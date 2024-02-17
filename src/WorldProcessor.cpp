@@ -254,7 +254,10 @@ WorldProcessor::~WorldProcessor()
 	vk_device_.waitIdle();
 }
 
-void WorldProcessor::Update(const vk::CommandBuffer command_buffer)
+void WorldProcessor::Update(
+	const vk::CommandBuffer command_buffer,
+	const bool build_triggered,
+	const bool destroy_triggered)
 {
 	if(!world_generated_)
 	{
@@ -320,6 +323,10 @@ void WorldProcessor::Update(const vk::CommandBuffer command_buffer)
 		0u, nullptr);
 
 	PlayerUpdateUniforms player_update_uniforms;
+	player_update_uniforms.build_triggered= build_triggered;
+	player_update_uniforms.destroy_triggered= destroy_triggered;
+	player_update_uniforms.reserved[0]= 0;
+	player_update_uniforms.reserved[1]= 0;
 
 	command_buffer.pushConstants(
 		*vk_player_update_pipeline_layout_,

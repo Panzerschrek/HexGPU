@@ -108,12 +108,12 @@ void main()
 		// Calculate hexagon vertices.
 		WorldVertex v[6];
 
-		v[0].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 0), int16_t(z + 1), 0.0);
-		v[1].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 0), int16_t(z + 1), 0.0);
-		v[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 1), 0.0);
-		v[3].pos= i16vec4(int16_t(base_x - 1), int16_t(base_y + 1), int16_t(z + 1), 0.0);
-		v[4].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z + 1), 0.0);
-		v[5].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 2), int16_t(z + 1), 0.0);
+		v[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(z + 1), 0.0);
+		v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z + 1), 0.0);
+		v[2].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(z + 1), 0.0);
+		v[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(z + 1), 0.0);
+		v[4].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 1), 0.0);
+		v[5].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(z + 1), 0.0);
 
 		int tc_base_x= base_x * tex_scale;
 		int tc_base_y= base_y * tex_scale;
@@ -124,12 +124,12 @@ void main()
 				: c_block_texture_table[int(block_value_up)].g;
 		int16_t light= int16_t(1);
 
-		v[0].tex_coord= i16vec4(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_y + 0 * tex_scale), tex_index, light);
-		v[1].tex_coord= i16vec4(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_y + 0 * tex_scale), tex_index, light);
-		v[2].tex_coord= i16vec4(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_y + 1 * tex_scale), tex_index, light);
-		v[3].tex_coord= i16vec4(int16_t(tc_base_x - 1 * tex_scale), int16_t(tc_base_y + 1 * tex_scale), tex_index, light);
-		v[4].tex_coord= i16vec4(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_y + 2 * tex_scale), tex_index, light);
-		v[5].tex_coord= i16vec4(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_y + 2 * tex_scale), tex_index, light);
+		v[0].tex_coord= i16vec4(int16_t(tc_base_x + 1 * tex_scale), int16_t(tc_base_y + 0 * tex_scale), tex_index, light);
+		v[1].tex_coord= i16vec4(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_y + 0 * tex_scale), tex_index, light);
+		v[2].tex_coord= i16vec4(int16_t(tc_base_x + 4 * tex_scale), int16_t(tc_base_y + 1 * tex_scale), tex_index, light);
+		v[3].tex_coord= i16vec4(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_y + 1 * tex_scale), tex_index, light);
+		v[4].tex_coord= i16vec4(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_y + 2 * tex_scale), tex_index, light);
+		v[5].tex_coord= i16vec4(int16_t(tc_base_x + 1 * tex_scale), int16_t(tc_base_y + 2 * tex_scale), tex_index, light);
 
 		// Create quads from hexagon vertices. Two vertices are shared.
 		Quad quad_south, quad_north;
@@ -163,10 +163,10 @@ void main()
 		// Add north quad.
 		WorldVertex v[4];
 
-		v[0].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z + 0), 0.0);
-		v[1].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z + 1), 0.0);
-		v[2].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 2), int16_t(z + 1), 0.0);
-		v[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 2), int16_t(z + 0), 0.0);
+		v[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 0), 0.0);
+		v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 1), 0.0);
+		v[2].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(z + 1), 0.0);
+		v[3].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(z + 0), 0.0);
 
 		int tc_base_x= base_x * tex_scale;
 		int tc_base_z= z * (2 * tex_scale);
@@ -174,10 +174,10 @@ void main()
 		int16_t tex_index= c_block_texture_table[optical_density < optical_density_north ? int(block_value) : int(block_value_north)].b;
 		int16_t light= int16_t(1);
 
-		v[0].tex_coord= i16vec4(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 0 * tex_scale), tex_index, light);
-		v[1].tex_coord= i16vec4(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 2 * tex_scale), tex_index, light);
-		v[2].tex_coord= i16vec4(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 2 * tex_scale), tex_index, light);
-		v[3].tex_coord= i16vec4(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 0 * tex_scale), tex_index, light);
+		v[0].tex_coord= i16vec4(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_z + 0 * tex_scale), tex_index, light);
+		v[1].tex_coord= i16vec4(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_z + 2 * tex_scale), tex_index, light);
+		v[2].tex_coord= i16vec4(int16_t(tc_base_x + 1 * tex_scale), int16_t(tc_base_z + 2 * tex_scale), tex_index, light);
+		v[3].tex_coord= i16vec4(int16_t(tc_base_x + 1 * tex_scale), int16_t(tc_base_z + 0 * tex_scale), tex_index, light);
 
 		Quad quad;
 		quad.vertices[1]= v[1];
@@ -203,10 +203,10 @@ void main()
 		// Add north-east quad.
 		WorldVertex v[4];
 
-		v[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 0), 0.0);
-		v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 1), 0.0);
-		v[2].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z + 1), 0.0);
-		v[3].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 2), int16_t(z + 0), 0.0);
+		v[0].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(z + 0), 0.0);
+		v[1].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(z + 1), 0.0);
+		v[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 1), 0.0);
+		v[3].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 0), 0.0);
 
 		int tc_base_x= base_x * tex_scale;
 		int tc_base_z= z * (2 * tex_scale);
@@ -214,10 +214,10 @@ void main()
 		int16_t tex_index= c_block_texture_table[optical_density < optical_density_north_east ? int(block_value) : int(block_value_north_east)].b;
 		int16_t light= int16_t(1);
 
-		v[0].tex_coord= i16vec4(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 0 * tex_scale), tex_index, light);
-		v[1].tex_coord= i16vec4(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 2 * tex_scale), tex_index, light);
-		v[2].tex_coord= i16vec4(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 2 * tex_scale), tex_index, light);
-		v[3].tex_coord= i16vec4(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 0 * tex_scale), tex_index, light);
+		v[0].tex_coord= i16vec4(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_z + 0 * tex_scale), tex_index, light);
+		v[1].tex_coord= i16vec4(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_z + 2 * tex_scale), tex_index, light);
+		v[2].tex_coord= i16vec4(int16_t(tc_base_x + 1 * tex_scale), int16_t(tc_base_z + 2 * tex_scale), tex_index, light);
+		v[3].tex_coord= i16vec4(int16_t(tc_base_x + 1 * tex_scale), int16_t(tc_base_z + 0 * tex_scale), tex_index, light);
 
 		Quad quad;
 		quad.vertices[1]= v[1];
@@ -242,10 +242,10 @@ void main()
 	{
 		WorldVertex v[4];
 
-		v[0].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 0), int16_t(z + 0), 0.0);
-		v[1].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 0), int16_t(z + 1), 0.0);
-		v[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 1), 0.0);
-		v[3].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 0), 0.0);
+		v[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z + 0), 0.0);
+		v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z + 1), 0.0);
+		v[2].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(z + 1), 0.0);
+		v[3].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(z + 0), 0.0);
 
 		int tc_base_x= base_x * tex_scale;
 		int tc_base_z= z * (2 * tex_scale);
@@ -253,10 +253,10 @@ void main()
 		int16_t tex_index= c_block_texture_table[optical_density < optical_density_south_east ? int(block_value) : int(block_value_south_east)].b;
 		int16_t light= int16_t(1);
 
-		v[0].tex_coord= i16vec4(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 0 * tex_scale), tex_index, light);
-		v[1].tex_coord= i16vec4(int16_t(tc_base_x + 2 * tex_scale), int16_t(tc_base_z + 2 * tex_scale), tex_index, light);
-		v[2].tex_coord= i16vec4(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 2 * tex_scale), tex_index, light);
-		v[3].tex_coord= i16vec4(int16_t(tc_base_x + 0 * tex_scale), int16_t(tc_base_z + 0 * tex_scale), tex_index, light);
+		v[0].tex_coord= i16vec4(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_z + 0 * tex_scale), tex_index, light);
+		v[1].tex_coord= i16vec4(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_z + 2 * tex_scale), tex_index, light);
+		v[2].tex_coord= i16vec4(int16_t(tc_base_x + 1 * tex_scale), int16_t(tc_base_z + 2 * tex_scale), tex_index, light);
+		v[3].tex_coord= i16vec4(int16_t(tc_base_x + 1 * tex_scale), int16_t(tc_base_z + 0 * tex_scale), tex_index, light);
 
 		Quad quad;
 		quad.vertices[1]= v[1];

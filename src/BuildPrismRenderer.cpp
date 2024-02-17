@@ -8,6 +8,11 @@ namespace HexGPU
 namespace
 {
 
+struct Uniforms
+{
+	int build_pos[4];
+};
+
 struct BuildPrismVertex
 {
 	float position[4];
@@ -17,19 +22,19 @@ std::vector<BuildPrismVertex> GenBuildPrismMesh()
 {
 	const BuildPrismVertex hex_vertices[12]
 	{
-		{ { 0.0f, 0.0f, 30.0f, 0.0f } },
-		{ { 2.0f, 0.0f, 30.0f, 0.0f } },
-		{ { 3.0f, 1.0f, 30.0f, 0.0f } },
-		{ {-1.0f, 1.0f, 30.0f, 0.0f } },
-		{ { 2.0f, 2.0f, 30.0f, 0.0f } },
-		{ { 0.0f, 2.0f, 30.0f, 0.0f } },
+		{ { 0.0f, 0.0f, 0.0f, 0.0f } },
+		{ { 2.0f, 0.0f, 0.0f, 0.0f } },
+		{ { 3.0f, 1.0f, 0.0f, 0.0f } },
+		{ {-1.0f, 1.0f, 0.0f, 0.0f } },
+		{ { 2.0f, 2.0f, 0.0f, 0.0f } },
+		{ { 0.0f, 2.0f, 0.0f, 0.0f } },
 
-		{ { 0.0f, 0.0f, 31.0f, 0.0f } },
-		{ { 2.0f, 0.0f, 31.0f, 0.0f } },
-		{ { 3.0f, 1.0f, 31.0f, 0.0f } },
-		{ {-1.0f, 1.0f, 31.0f, 0.0f } },
-		{ { 2.0f, 2.0f, 31.0f, 0.0f } },
-		{ { 0.0f, 2.0f, 31.0f, 0.0f } },
+		{ { 0.0f, 0.0f, 1.0f, 0.0f } },
+		{ { 2.0f, 0.0f, 1.0f, 0.0f } },
+		{ { 3.0f, 1.0f, 1.0f, 0.0f } },
+		{ {-1.0f, 1.0f, 1.0f, 0.0f } },
+		{ { 2.0f, 2.0f, 1.0f, 0.0f } },
+		{ { 0.0f, 2.0f, 1.0f, 0.0f } },
 	};
 	return
 	{
@@ -71,11 +76,50 @@ BuildPrismRenderer::BuildPrismRenderer(WindowVulkan& window_vulkan, WorldProcess
 	, vk_queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, world_processor_(world_processor)
 {
-	const auto build_prism_mesh= GenBuildPrismMesh();
+	// Create uniform buffer.
+	{
+		vk_uniform_buffer_=
+			vk_device_.createBufferUnique(
+				vk::BufferCreateInfo(
+					vk::BufferCreateFlags(),
+					sizeof(Uniforms),
+					vk::BufferUsageFlagBits::eUniformBuffer));
+
+		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*vk_uniform_buffer_);
+
+		const auto memory_properties= window_vulkan.GetMemoryProperties();
+
+		vk::MemoryAllocateInfo vk_memory_allocate_info(buffer_memory_requirements.size);
+		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
+		{
+			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
+				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags() &&
+				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible) != vk::MemoryPropertyFlags() &&
+				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent) != vk::MemoryPropertyFlags())
+				vk_memory_allocate_info.memoryTypeIndex= i;
+		}
+
+		vk_uniform_buffer_memory_= vk_device_.allocateMemoryUnique(vk_memory_allocate_info);
+		vk_device_.bindBufferMemory(*vk_uniform_buffer_, *vk_uniform_buffer_memory_, 0u);
+
+		void* data_gpu_size= nullptr;
+		vk_device_.mapMemory(*vk_uniform_buffer_memory_, 0u, vk_memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_size);
+
+		Uniforms uniforms;
+		uniforms.build_pos[0]= 1;
+		uniforms.build_pos[1]= 2;
+		uniforms.build_pos[2]= 32;
+
+		std::memcpy(data_gpu_size, &uniforms, sizeof(Uniforms));
+
+		vk_device_.unmapMemory(*vk_uniform_buffer_memory_);
+	}
 
 	// Create vertex buffer.
-	vertex_buffer_num_vertices_= uint32_t(build_prism_mesh.size());
 	{
+		const auto build_prism_mesh= GenBuildPrismMesh();
+		vertex_buffer_num_vertices_= uint32_t(build_prism_mesh.size());
+
 		const size_t vertex_data_size= vertex_buffer_num_vertices_ * sizeof(BuildPrismVertex);
 
 		vk_vertex_buffer_=
@@ -113,11 +157,22 @@ BuildPrismRenderer::BuildPrismRenderer(WindowVulkan& window_vulkan, WorldProcess
 	shader_frag_= CreateShader(vk_device_, ShaderNames::build_prism_frag);
 
 	// Create descriptor set layout.
-	vk_decriptor_set_layout_=
-		vk_device_.createDescriptorSetLayoutUnique(
-			vk::DescriptorSetLayoutCreateInfo(
-				vk::DescriptorSetLayoutCreateFlags(),
-				0u, nullptr));
+	{
+		const vk::DescriptorSetLayoutBinding vk_descriptor_set_layout_bindings[]
+		{
+			{
+				0u,
+				vk::DescriptorType::eUniformBuffer,
+				1u,
+				vk::ShaderStageFlagBits::eVertex,
+			},
+		};
+		vk_decriptor_set_layout_=
+			vk_device_.createDescriptorSetLayoutUnique(
+				vk::DescriptorSetLayoutCreateInfo(
+					vk::DescriptorSetLayoutCreateFlags(),
+					uint32_t(std::size(vk_descriptor_set_layout_bindings)), vk_descriptor_set_layout_bindings));
+	}
 
 	const vk::PushConstantRange vk_push_constant_range(
 		vk::ShaderStageFlagBits::eVertex,
@@ -239,7 +294,7 @@ BuildPrismRenderer::BuildPrismRenderer(WindowVulkan& window_vulkan, WorldProcess
 	}
 
 	// Create descriptor set pool.
-	const vk::DescriptorPoolSize vk_descriptor_pool_size(vk::DescriptorType::eCombinedImageSampler, 1u);
+	const vk::DescriptorPoolSize vk_descriptor_pool_size(vk::DescriptorType::eUniformBuffer, 1u);
 	vk_descriptor_pool_=
 		vk_device_.createDescriptorPoolUnique(
 			vk::DescriptorPoolCreateInfo(
@@ -254,6 +309,29 @@ BuildPrismRenderer::BuildPrismRenderer(WindowVulkan& window_vulkan, WorldProcess
 			vk::DescriptorSetAllocateInfo(
 				*vk_descriptor_pool_,
 				1u, &*vk_decriptor_set_layout_)).front());
+
+	// Update descriptor set.
+	{
+		const vk::DescriptorBufferInfo descriptor_uniform_buffer_info(
+			*vk_uniform_buffer_,
+			0u,
+			sizeof(Uniforms));
+
+		vk_device_.updateDescriptorSets(
+			{
+				{
+					*vk_descriptor_set_,
+					0u,
+					0u,
+					1u,
+					vk::DescriptorType::eUniformBuffer,
+					nullptr,
+					&descriptor_uniform_buffer_info,
+					nullptr
+				},
+			},
+			{});
+	}
 }
 
 BuildPrismRenderer::~BuildPrismRenderer()

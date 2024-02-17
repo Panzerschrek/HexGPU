@@ -20,6 +20,9 @@ private:
 	const uint32_t vk_queue_family_index_;
 	WorldProcessor& world_processor_;
 
+	vk::UniqueBuffer vk_uniform_buffer_;
+	vk::UniqueDeviceMemory vk_uniform_buffer_memory_;
+
 	uint32_t vertex_buffer_num_vertices_= 0;
 	vk::UniqueBuffer vk_vertex_buffer_;
 	vk::UniqueDeviceMemory vk_vertex_buffer_memory_;

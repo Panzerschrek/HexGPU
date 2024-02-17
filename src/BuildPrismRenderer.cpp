@@ -15,11 +15,52 @@ struct BuildPrismVertex
 
 std::vector<BuildPrismVertex> GenBuildPrismMesh()
 {
+	const BuildPrismVertex hex_vertices[12]
+	{
+		{ { 0.0f, 0.0f, 30.0f, 0.0f } },
+		{ { 2.0f, 0.0f, 30.0f, 0.0f } },
+		{ { 3.0f, 1.0f, 30.0f, 0.0f } },
+		{ {-1.0f, 1.0f, 30.0f, 0.0f } },
+		{ { 2.0f, 2.0f, 30.0f, 0.0f } },
+		{ { 0.0f, 2.0f, 30.0f, 0.0f } },
+
+		{ { 0.0f, 0.0f, 31.0f, 0.0f } },
+		{ { 2.0f, 0.0f, 31.0f, 0.0f } },
+		{ { 3.0f, 1.0f, 31.0f, 0.0f } },
+		{ {-1.0f, 1.0f, 31.0f, 0.0f } },
+		{ { 2.0f, 2.0f, 31.0f, 0.0f } },
+		{ { 0.0f, 2.0f, 31.0f, 0.0f } },
+	};
 	return
 	{
-		{ { 0.0f, 0.0f, 32.0f, 0.0f } },
-		{ { 5.0f, 0.0f, 32.0f, 0.0f } },
-		{ { 5.0f, 7.0f, 32.0f, 0.0f } },
+		// bottom
+		hex_vertices[ 0], hex_vertices[ 1], hex_vertices[ 2],
+		hex_vertices[ 0], hex_vertices[ 2], hex_vertices[ 3],
+		hex_vertices[ 3], hex_vertices[ 4], hex_vertices[ 5],
+		hex_vertices[ 3], hex_vertices[ 2], hex_vertices[ 4],
+		// top
+		hex_vertices[ 8], hex_vertices[ 7], hex_vertices[ 6],
+		hex_vertices[ 9], hex_vertices[ 8], hex_vertices[ 6],
+		hex_vertices[11], hex_vertices[10], hex_vertices[ 9],
+		hex_vertices[10], hex_vertices[ 8], hex_vertices[ 9],
+		// north
+		hex_vertices[ 5], hex_vertices[ 4], hex_vertices[10],
+		hex_vertices[ 5], hex_vertices[10], hex_vertices[11],
+		// south
+		hex_vertices[ 1], hex_vertices[ 0], hex_vertices[ 6],
+		hex_vertices[ 1], hex_vertices[ 6], hex_vertices[ 7],
+		// north-east
+		hex_vertices[ 4], hex_vertices[ 2], hex_vertices[ 8],
+		hex_vertices[ 4], hex_vertices[ 8], hex_vertices[10],
+		// south-east
+		hex_vertices[ 2], hex_vertices[ 1], hex_vertices[ 7],
+		hex_vertices[ 2], hex_vertices[ 7], hex_vertices[ 8],
+		// north-west
+		hex_vertices[ 3], hex_vertices[ 5], hex_vertices[ 9],
+		hex_vertices[ 5], hex_vertices[11], hex_vertices[ 9],
+		// south-west
+		hex_vertices[ 0], hex_vertices[ 3], hex_vertices[ 9],
+		hex_vertices[ 0], hex_vertices[ 9], hex_vertices[ 6],
 	};
 }
 

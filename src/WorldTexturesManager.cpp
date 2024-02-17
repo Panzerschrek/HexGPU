@@ -87,7 +87,7 @@ const uint32_t c_texture_size= 1 << c_texture_size_log2;
 
 const uint32_t c_num_mips= c_texture_size_log2 - 2; // Ignore last two mips for simplicity.
 
-constexpr uint32_t c_num_layers= std::size(c_block_textures_table);
+constexpr uint32_t c_num_layers= uint32_t(std::size(c_block_textures_table));
 
 // Add extra padding (use 3/2 instead of 4/3).
 const uint32_t c_texture_num_texels_with_mips= c_texture_size * c_texture_size * 3 / 2;

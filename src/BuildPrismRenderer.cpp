@@ -204,10 +204,11 @@ BuildPrismRenderer::BuildPrismRenderer(WindowVulkan& window_vulkan, WorldProcess
 			0.0f,
 			1.0f);
 
+		// Use simple alpha-blending.
 		const vk::PipelineColorBlendAttachmentState vk_pipeline_color_blend_attachment_state(
-			VK_FALSE,
-			vk::BlendFactor::eOne, vk::BlendFactor::eZero, vk::BlendOp::eAdd,
-			vk::BlendFactor::eOne, vk::BlendFactor::eZero, vk::BlendOp::eAdd,
+			VK_TRUE,
+			vk::BlendFactor::eSrcAlpha, vk::BlendFactor::eOneMinusSrcAlpha, vk::BlendOp::eAdd,
+			vk::BlendFactor::eSrcAlpha, vk::BlendFactor::eOneMinusSrcAlpha, vk::BlendOp::eAdd,
 			vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
 
 		const vk::PipelineColorBlendStateCreateInfo vk_pipeline_color_blend_state_create_info(

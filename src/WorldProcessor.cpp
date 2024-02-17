@@ -71,6 +71,39 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 		vk_device_.unmapMemory(*vk_chunk_data_buffer_memory_);
 	}
 
+	// Create player state buffer.
+	{
+		vk_player_state_buffer_=
+			vk_device_.createBufferUnique(
+				vk::BufferCreateInfo(
+					vk::BufferCreateFlags(),
+					sizeof(PlayerState),
+					vk::BufferUsageFlagBits::eStorageBuffer));
+
+		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*vk_player_state_buffer_);
+
+		const auto memory_properties= window_vulkan.GetMemoryProperties();
+
+		vk::MemoryAllocateInfo vk_memory_allocate_info(buffer_memory_requirements.size);
+		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
+		{
+			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
+				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags() &&
+				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible) != vk::MemoryPropertyFlags() &&
+				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent) != vk::MemoryPropertyFlags())
+				vk_memory_allocate_info.memoryTypeIndex= i;
+		}
+
+		vk_player_state_buffer_memory_= vk_device_.allocateMemoryUnique(vk_memory_allocate_info);
+		vk_device_.bindBufferMemory(*vk_player_state_buffer_, *vk_player_state_buffer_memory_, 0u);
+
+		// Fill the buffer with zeros to prevent later warnings.
+		void* data_gpu_side= nullptr;
+		vk_device_.mapMemory(*vk_player_state_buffer_memory_, 0u, vk_memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_side);
+		std::memset(data_gpu_side, 0, sizeof(PlayerState));
+		vk_device_.unmapMemory(*vk_player_state_buffer_memory_);
+	}
+
 	// Create world generation shader.
 	world_gen_shader_= CreateShader(vk_device_, ShaderNames::world_gen_comp);
 
@@ -174,6 +207,13 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 				vk::ShaderStageFlagBits::eCompute,
 				nullptr,
 			},
+			{
+				1u,
+				vk::DescriptorType::eStorageBuffer,
+				1u,
+				vk::ShaderStageFlagBits::eCompute,
+				nullptr,
+			},
 		};
 		vk_player_update_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
 			vk::DescriptorSetLayoutCreateInfo(
@@ -209,7 +249,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 
 	// Create player update descriptor set pool.
 	{
-		const vk::DescriptorPoolSize vk_descriptor_pool_size(vk::DescriptorType::eStorageBuffer, 1u /*num descriptors*/);
+		const vk::DescriptorPoolSize vk_descriptor_pool_size(vk::DescriptorType::eStorageBuffer, 2u /*num descriptors*/);
 		vk_player_update_descriptor_pool_=
 			vk_device_.createDescriptorPoolUnique(
 				vk::DescriptorPoolCreateInfo(
@@ -233,6 +273,11 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 			0u,
 			chunk_data_buffer_size_);
 
+		const vk::DescriptorBufferInfo descriptor_player_state_buffer_info(
+			vk_player_state_buffer_.get(),
+			0u,
+			sizeof(PlayerState));
+
 		vk_device_.updateDescriptorSets(
 			{
 				{
@@ -243,6 +288,16 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 					vk::DescriptorType::eStorageBuffer,
 					nullptr,
 					&descriptor_chunk_data_buffer_info,
+					nullptr
+				},
+				{
+					*vk_player_update_descriptor_set_,
+					0u,
+					1u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_player_state_buffer_info,
 					nullptr
 				},
 			},
@@ -347,6 +402,25 @@ void WorldProcessor::Update(
 		barrier.dstAccessMask= vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite;
 		barrier.size= VK_WHOLE_SIZE;
 		barrier.buffer= *vk_chunk_data_buffer_;
+		barrier.srcQueueFamilyIndex= vk_queue_family_index_;
+		barrier.dstQueueFamilyIndex= vk_queue_family_index_;
+
+		command_buffer.pipelineBarrier(
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::DependencyFlags(),
+			0, nullptr,
+			1, &barrier,
+			0, nullptr);
+	}
+	// Create barrier between player update and later player state usage.
+	// TODO - check this is correct.
+	{
+		vk::BufferMemoryBarrier barrier;
+		barrier.srcAccessMask= vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite;
+		barrier.dstAccessMask= vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite;
+		barrier.size= VK_WHOLE_SIZE;
+		barrier.buffer= *vk_player_state_buffer_;
 		barrier.srcQueueFamilyIndex= vk_queue_family_index_;
 		barrier.dstQueueFamilyIndex= vk_queue_family_index_;
 

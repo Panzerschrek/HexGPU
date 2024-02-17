@@ -20,6 +20,12 @@ public:
 	vk::Buffer GetChunkDataBuffer() const;
 	uint32_t GetChunkDataBufferSize() const;
 
+public:
+	struct PlayerState
+	{
+		int build_pos[4];
+	};
+
 private:
 	const vk::Device vk_device_;
 	const uint32_t vk_queue_family_index_;
@@ -27,6 +33,9 @@ private:
 	vk::UniqueBuffer vk_chunk_data_buffer_;
 	vk::UniqueDeviceMemory vk_chunk_data_buffer_memory_;
 	uint32_t chunk_data_buffer_size_= 0;
+
+	vk::UniqueBuffer vk_player_state_buffer_;
+	vk::UniqueDeviceMemory vk_player_state_buffer_memory_;
 
 	vk::UniqueShaderModule world_gen_shader_;
 

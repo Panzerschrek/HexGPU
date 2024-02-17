@@ -242,7 +242,7 @@ BuildPrismRenderer::BuildPrismRenderer(WindowVulkan& window_vulkan, WorldProcess
 			vk::PolygonMode::eFill,
 			vk::CullModeFlagBits::eBack, // Use back-face culling.
 			vk::FrontFace::eCounterClockwise,
-			VK_FALSE, 0.0f, 0.0f, 0.0f,
+			VK_TRUE, -1.0f, 0.0f, -1.0f, // Depth bias
 			1.0f);
 
 		const vk::PipelineMultisampleStateCreateInfo vk_pipeline_multisample_state_create_info;

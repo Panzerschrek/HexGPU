@@ -20,10 +20,13 @@ public:
 	vk::Buffer GetChunkDataBuffer() const;
 	uint32_t GetChunkDataBufferSize() const;
 
+	vk::Buffer GetPlayerStateBuffer() const;
+
 public:
+	// This struct must be identical to the same struct in GLSL code!
 	struct PlayerState
 	{
-		int build_pos[4];
+		int32_t build_pos[4];
 	};
 
 private:

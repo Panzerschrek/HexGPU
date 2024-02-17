@@ -10,7 +10,7 @@ namespace
 
 struct Uniforms
 {
-	int build_pos[4];
+	int32_t build_pos[4];
 };
 
 struct BuildPrismVertex
@@ -348,6 +348,37 @@ void BuildPrismRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
 
 void BuildPrismRenderer::Draw(const vk::CommandBuffer command_buffer, const m_Mat4& view_matrix)
 {
+	// Get build position from player state.
+	{
+		const vk::BufferCopy copy_region(
+			offsetof(WorldProcessor::PlayerState, build_pos),
+			offsetof(Uniforms, build_pos),
+			sizeof(int32_t) * 4);
+
+		command_buffer.copyBuffer(
+			world_processor_.GetPlayerStateBuffer(),
+			*vk_uniform_buffer_,
+			1u, &copy_region);
+	}
+	// Add barrier between uniform buffer memory copy and result usage in shader.
+	{
+		vk::BufferMemoryBarrier barrier;
+		barrier.srcAccessMask= vk::AccessFlagBits::eTransferWrite;
+		barrier.dstAccessMask= vk::AccessFlagBits::eShaderRead;
+		barrier.size= VK_WHOLE_SIZE;
+		barrier.buffer= *vk_uniform_buffer_;
+		barrier.srcQueueFamilyIndex= vk_queue_family_index_;
+		barrier.dstQueueFamilyIndex= vk_queue_family_index_;
+
+		command_buffer.pipelineBarrier(
+			vk::PipelineStageFlagBits::eTransfer,
+			vk::PipelineStageFlagBits::eVertexShader,
+			vk::DependencyFlags(),
+			0, nullptr,
+			1, &barrier,
+			0, nullptr);
+	}
+
 	const vk::DeviceSize offsets= 0u;
 	command_buffer.bindVertexBuffers(0u, 1u, &*vk_vertex_buffer_, &offsets);
 	command_buffer.bindDescriptorSets(

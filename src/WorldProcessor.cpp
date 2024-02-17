@@ -444,4 +444,9 @@ uint32_t WorldProcessor::GetChunkDataBufferSize() const
 	return chunk_data_buffer_size_;
 }
 
+vk::Buffer WorldProcessor::GetPlayerStateBuffer() const
+{
+	return vk_player_state_buffer_.get();
+}
+
 } // namespace HexGPU

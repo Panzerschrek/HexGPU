@@ -12,6 +12,7 @@ layout(binding= 0, std430) buffer chunks_data_buffer
 	uint8_t chunks_data[c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
 };
 
+// This struct must be identical to the same struct in C++ code!
 layout(binding= 1, std430) buffer player_state_buffer
 {
 	ivec4 build_pos;
@@ -29,10 +30,7 @@ layout(push_constant) uniform uniforms_block
 void main()
 {
 	// For now build and destroy directly at player position.
-	ivec2 player_hex_grid_pos= GetHexogonCoord(player_pos.xy);
-	int player_z= int(floor(player_pos.z));
-
-	build_pos= ivec4(GetHexogonCoord(player_pos.xy), player_z, 0);
+	build_pos= ivec4(GetHexogonCoord(player_pos.xy), int(floor(player_pos.z)) - 2, 0);
 
 	if( build_pos.x >= 0 && build_pos.x < c_chunk_width * c_chunk_matrix_size[0] &&
 		build_pos.y >= 0 && build_pos.y < c_chunk_width * c_chunk_matrix_size[1] &&

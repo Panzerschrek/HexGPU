@@ -37,6 +37,11 @@ layout(binding= 2, std430) buffer chunks_data_buffer
 	uint8_t chunks_data[c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
 };
 
+layout(binding= 3, std430) buffer chunk_light_buffer
+{
+	uint8_t light_buffer[c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
+};
+
 layout(push_constant) uniform uniforms_block
 {
 	int chunk_position[2];

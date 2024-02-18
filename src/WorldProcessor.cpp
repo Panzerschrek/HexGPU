@@ -489,4 +489,15 @@ vk::Buffer WorldProcessor::GetPlayerStateBuffer() const
 	return player_state_buffer_.get();
 }
 
+vk::Buffer WorldProcessor::GetLightDataBuffer() const
+{
+	// 0 - actual
+	return light_buffers_[0].buffer.get();
+}
+
+uint32_t WorldProcessor::GetLightDataBufferSize() const
+{
+	return light_buffer_size_;
+}
+
 } // namespace HexGPU

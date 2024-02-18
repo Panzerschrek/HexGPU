@@ -20,6 +20,8 @@ public:
 
 	vk::Buffer GetChunkDataBuffer() const;
 	uint32_t GetChunkDataBufferSize() const;
+	vk::Buffer GetLightDataBuffer() const;
+	uint32_t GetLightDataBufferSize() const;
 
 	vk::Buffer GetPlayerStateBuffer() const;
 

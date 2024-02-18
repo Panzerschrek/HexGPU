@@ -13,7 +13,7 @@ layout(location= 1) out vec2 f_tex_coord;
 layout(location= 2) out flat float f_tex_index;
 
 // Texture coordnates are initialiiy somewhat scaled. Rescale them back.
-const vec2 c_tex_coord_scale= vec2(1.0 / 4.0, 1.0 / 4.0);
+const vec2 c_tex_coord_scale= vec2(1.0 / 8.0, 1.0 / 4.0);
 
 void main()
 {

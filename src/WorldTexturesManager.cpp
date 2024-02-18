@@ -112,7 +112,7 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 			vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
 			vk::SharingMode::eExclusive,
 			0u, nullptr,
-			vk::ImageLayout::eTransferDstOptimal));
+			vk::ImageLayout::eUndefined));
 
 	// Allocate memory.
 	{
@@ -209,6 +209,24 @@ void WorldTexturesManager::PrepareFrame(const vk::CommandBuffer command_buffer)
 		return;
 	textures_loaded_= true;
 
+	// Transfer to dst optimal
+	{
+		const vk::ImageMemoryBarrier image_memory_transfer(
+			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eMemoryRead,
+			vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal,
+			vk_queue_family_index_, vk_queue_family_index_,
+			*image_,
+			vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, 0u, c_num_layers));
+
+		command_buffer.pipelineBarrier(
+			vk::PipelineStageFlagBits::eTransfer,
+			vk::PipelineStageFlagBits::eBottomOfPipe,
+			vk::DependencyFlags(),
+			0u, nullptr,
+			0u, nullptr,
+			1u, &image_memory_transfer);
+	}
+
 	for(uint32_t dst_image_index= 0; dst_image_index < c_num_layers; ++dst_image_index)
 	{
 		uint32_t offset= dst_image_index * c_texture_num_texels_with_mips * uint32_t(sizeof(PixelType));
@@ -236,21 +254,22 @@ void WorldTexturesManager::PrepareFrame(const vk::CommandBuffer command_buffer)
 
 	// Wait for update and transfer layout.
 	// TODO - check if this is correct.
+	{
+		const vk::ImageMemoryBarrier image_memory_transfer(
+			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eMemoryRead,
+			vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
+			vk_queue_family_index_, vk_queue_family_index_,
+			*image_,
+			vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, 0u, c_num_layers));
 
-	const vk::ImageMemoryBarrier image_memory_transfer(
-		vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eMemoryRead,
-		vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
-		vk_queue_family_index_, vk_queue_family_index_,
-		*image_,
-		vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, 0u, c_num_layers));
-
-	command_buffer.pipelineBarrier(
-		vk::PipelineStageFlagBits::eTransfer,
-		vk::PipelineStageFlagBits::eBottomOfPipe,
-		vk::DependencyFlags(),
-		0u, nullptr,
-		0u, nullptr,
-		1u, &image_memory_transfer);
+		command_buffer.pipelineBarrier(
+			vk::PipelineStageFlagBits::eTransfer,
+			vk::PipelineStageFlagBits::eBottomOfPipe,
+			vk::DependencyFlags(),
+			0u, nullptr,
+			0u, nullptr,
+			1u, &image_memory_transfer);
+	}
 }
 
 vk::ImageView WorldTexturesManager::GetImageView() const

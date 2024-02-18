@@ -19,6 +19,7 @@ public:
 	m_Mat4 CalculateViewMatrix() const;
 	m_Mat4 CalculateFullViewMatrix() const;
 	m_Vec3 GetCameraPosition() const;
+	m_Vec3 GetCameraDirection() const;
 
 private:
 	float aspect_;

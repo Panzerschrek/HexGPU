@@ -14,6 +14,7 @@ public:
 	void Update(
 		vk::CommandBuffer command_buffer,
 		const m_Vec3& player_pos,
+		const m_Vec3& player_dir,
 		bool build_triggered,
 		bool destroy_triggered);
 
@@ -27,6 +28,7 @@ public:
 	struct PlayerState
 	{
 		int32_t build_pos[4];
+		int32_t destroy_pos[4];
 	};
 
 private:

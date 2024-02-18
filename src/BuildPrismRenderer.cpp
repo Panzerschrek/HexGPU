@@ -1,4 +1,6 @@
 #include "BuildPrismRenderer.hpp"
+#include "Assert.hpp"
+#include "BlockType.hpp"
 #include "ShaderList.hpp"
 
 
@@ -15,7 +17,7 @@ struct Uniforms
 
 struct BuildPrismVertex
 {
-	float position[4];
+	float position[4]; // 4-0th component - side index.
 };
 
 std::vector<BuildPrismVertex> GenBuildPrismMesh()
@@ -36,18 +38,20 @@ std::vector<BuildPrismVertex> GenBuildPrismMesh()
 		{ { 3.0f, 2.0f, 1.0f, 0.0f } },
 		{ { 1.0f, 2.0f, 1.0f, 0.0f } },
 	};
-	return
+
+	// Keep same order as in Direction enum!
+	std::vector<BuildPrismVertex> res
 	{
-		// bottom
-		hex_vertices[ 0], hex_vertices[ 1], hex_vertices[ 2],
-		hex_vertices[ 0], hex_vertices[ 2], hex_vertices[ 3],
-		hex_vertices[ 3], hex_vertices[ 4], hex_vertices[ 5],
-		hex_vertices[ 3], hex_vertices[ 2], hex_vertices[ 4],
 		// top
 		hex_vertices[ 8], hex_vertices[ 7], hex_vertices[ 6],
 		hex_vertices[ 9], hex_vertices[ 8], hex_vertices[ 6],
 		hex_vertices[11], hex_vertices[10], hex_vertices[ 9],
 		hex_vertices[10], hex_vertices[ 8], hex_vertices[ 9],
+		// bottom
+		hex_vertices[ 0], hex_vertices[ 1], hex_vertices[ 2],
+		hex_vertices[ 0], hex_vertices[ 2], hex_vertices[ 3],
+		hex_vertices[ 3], hex_vertices[ 4], hex_vertices[ 5],
+		hex_vertices[ 3], hex_vertices[ 2], hex_vertices[ 4],
 		// north
 		hex_vertices[ 5], hex_vertices[ 4], hex_vertices[10],
 		hex_vertices[ 5], hex_vertices[10], hex_vertices[11],
@@ -67,6 +71,43 @@ std::vector<BuildPrismVertex> GenBuildPrismMesh()
 		hex_vertices[ 0], hex_vertices[ 3], hex_vertices[ 9],
 		hex_vertices[ 0], hex_vertices[ 9], hex_vertices[ 6],
 	};
+
+	size_t offset= 0;
+	for(size_t i= 0; i < 12; ++i)
+		res[i].position[3]= float(Direction::Up);
+	offset+= 12;
+
+	for(size_t i= 0; i < 12; ++i)
+		res[offset + i].position[3]= float(Direction::Down);
+	offset+= 12;
+
+	for(size_t i= 0; i < 6; ++i)
+		res[offset + i].position[3]= float(Direction::North);
+	offset+= 6;
+
+	for(size_t i= 0; i < 6; ++i)
+		res[offset + i].position[3]= float(Direction::South);
+	offset+= 6;
+
+	for(size_t i= 0; i < 6; ++i)
+		res[offset + i].position[3]= float(Direction::NorthEast);
+	offset+= 6;
+
+	for(size_t i= 0; i < 6; ++i)
+		res[offset + i].position[3]= float(Direction::SouthEast);
+	offset+= 6;
+
+	for(size_t i= 0; i < 6; ++i)
+		res[offset + i].position[3]= float(Direction::NorthWest);
+	offset+= 6;
+
+	for(size_t i= 0; i < 6; ++i)
+		res[offset + i].position[3]= float(Direction::SouthWest);
+	offset+= 6;
+
+	HEX_ASSERT(offset == res.size());
+
+	return res;
 }
 
 } // namespace
@@ -214,7 +255,7 @@ BuildPrismRenderer::BuildPrismRenderer(WindowVulkan& window_vulkan, WorldProcess
 
 		const vk::VertexInputAttributeDescription vk_vertex_input_attribute_description[]
 		{
-			{0u, 0u, vk::Format::eR32G32B32Sfloat, 0u},
+			{0u, 0u, vk::Format::eR32G32B32A32Sfloat, 0u},
 		};
 
 		const vk::PipelineVertexInputStateCreateInfo vk_pipiline_vertex_input_state_create_info(

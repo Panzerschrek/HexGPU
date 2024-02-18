@@ -27,7 +27,7 @@ public:
 	// This struct must be identical to the same struct in GLSL code!
 	struct PlayerState
 	{
-		int32_t build_pos[4];
+		int32_t build_pos[4]; // component 3 - direction
 		int32_t destroy_pos[4];
 	};
 

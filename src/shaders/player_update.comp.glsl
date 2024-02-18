@@ -16,7 +16,7 @@ layout(binding= 0, std430) buffer chunks_data_buffer
 layout(binding= 1, std430) buffer player_state_buffer
 {
 	// Use vec4 for proper padding
-	ivec4 build_pos;
+	ivec4 build_pos; // .w - direction
 	ivec4 destroy_pos;
 };
 
@@ -53,6 +53,79 @@ int GetBlockFullAddress(ivec3 pos)
 	return chunk_data_offset + ChunkBlockAddress(local_x, local_y, pos.z);
 }
 
+uint8_t GetBuildDirection(ivec3 last_grid_pos, ivec3 grid_pos)
+{
+	if(last_grid_pos.z < grid_pos.z)
+	{
+		return c_direction_up;
+	}
+	else if(last_grid_pos.z > grid_pos.z)
+	{
+		return c_direction_down;
+	}
+	else if(last_grid_pos.x < grid_pos.x)
+	{
+		if((grid_pos.x & 1) == 0)
+		{
+			if(last_grid_pos.y == grid_pos.y)
+			{
+				return c_direction_north_east;
+			}
+			else
+			{
+				return c_direction_south_east;
+			}
+		}
+		else
+		{
+			if(last_grid_pos.y == grid_pos.y)
+			{
+				return c_direction_south_east;
+			}
+			else
+			{
+				return c_direction_north_east;
+			}
+		}
+	}
+	else if(last_grid_pos.x > grid_pos.x)
+	{
+		if((grid_pos.x & 1) == 0)
+		{
+			if(last_grid_pos.y == grid_pos.y)
+			{
+				return c_direction_north_west;
+			}
+			else
+			{
+				return c_direction_south_west;
+			}
+		}
+		else
+		{
+			if(last_grid_pos.y == grid_pos.y)
+			{
+				return c_direction_south_west;
+			}
+			else
+			{
+				return c_direction_north_west;
+			}
+		}
+	}
+	else
+	{
+		if(last_grid_pos.y < grid_pos.y)
+		{
+			return c_direction_north;
+		}
+		else
+		{
+			return c_direction_south;
+		}
+	}
+}
+
 void UpdateBuildPos()
 {
 	// For now just trace hex grid with fixed step to find nearest intersection.
@@ -87,6 +160,7 @@ void UpdateBuildPos()
 			// Destroy position is in this block, build position is in previous block.
 			destroy_pos.xyz= grid_pos;
 			build_pos.xyz= last_grid_pos;
+			build_pos.w= int(GetBuildDirection(last_grid_pos, grid_pos));
 			return;
 		}
 

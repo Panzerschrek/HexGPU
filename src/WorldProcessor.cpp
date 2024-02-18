@@ -358,13 +358,12 @@ void WorldProcessor::Update(
 		// Create barrier between world generation and its later usage.
 		// TODO - check this is correct.
 		{
-			vk::BufferMemoryBarrier barrier;
-			barrier.srcAccessMask= vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite;
-			barrier.dstAccessMask= vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite;
-			barrier.size= VK_WHOLE_SIZE;
-			barrier.buffer= *chunk_data_buffer_;
-			barrier.srcQueueFamilyIndex= queue_family_index_;
-			barrier.dstQueueFamilyIndex= queue_family_index_;
+			const vk::BufferMemoryBarrier barrier(
+				vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+				queue_family_index_, queue_family_index_,
+				*chunk_data_buffer_,
+				0,
+				VK_WHOLE_SIZE);
 
 			command_buffer.pipelineBarrier(
 				vk::PipelineStageFlagBits::eComputeShader,
@@ -422,17 +421,16 @@ void WorldProcessor::Update(
 	// Create barrier between player update and later player state usage.
 	// TODO - check this is correct.
 	{
-		vk::BufferMemoryBarrier barrier;
-		barrier.srcAccessMask= vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite;
-		barrier.dstAccessMask= vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite;
-		barrier.size= VK_WHOLE_SIZE;
-		barrier.buffer= *player_state_buffer_;
-		barrier.srcQueueFamilyIndex= queue_family_index_;
-		barrier.dstQueueFamilyIndex= queue_family_index_;
+		const vk::BufferMemoryBarrier barrier(
+			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eTransferRead,
+			queue_family_index_, queue_family_index_,
+			*player_state_buffer_,
+			0,
+			VK_WHOLE_SIZE);
 
 		command_buffer.pipelineBarrier(
 			vk::PipelineStageFlagBits::eComputeShader,
-			vk::PipelineStageFlagBits::eComputeShader,
+			vk::PipelineStageFlagBits::eComputeShader | vk::PipelineStageFlagBits::eTransfer,
 			vk::DependencyFlags(),
 			0, nullptr,
 			1, &barrier,

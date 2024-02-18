@@ -274,16 +274,15 @@ void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer
 			static_cast<const void*>(commands));
 	}
 
-	// Create barrier between update buffer and its usage in shader.
+	// Create barrier between draw indirect buffer update and its usage in shader.
 	// TODO - check this is correct.
 	{
-		vk::BufferMemoryBarrier barrier;
-		barrier.srcAccessMask= vk::AccessFlagBits::eTransferWrite;
-		barrier.dstAccessMask= vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite;
-		barrier.size= VK_WHOLE_SIZE;
-		barrier.buffer= *draw_indirect_buffer_;
-		barrier.srcQueueFamilyIndex= queue_family_index_;
-		barrier.dstQueueFamilyIndex= queue_family_index_;
+		const vk::BufferMemoryBarrier barrier(
+			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			*draw_indirect_buffer_,
+			0,
+			VK_WHOLE_SIZE);
 
 		command_buffer.pipelineBarrier(
 			vk::PipelineStageFlagBits::eTransfer,

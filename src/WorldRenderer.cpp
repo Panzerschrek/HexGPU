@@ -298,13 +298,12 @@ void WorldRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
 	// Create barrier between update vertex buffer and its usage for rendering.
 	// TODO - check this is correct.
 	{
-		vk::BufferMemoryBarrier barrier;
-		barrier.srcAccessMask= vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite;
-		barrier.dstAccessMask= vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite;
-		barrier.size= VK_WHOLE_SIZE;
-		barrier.buffer= vertex_buffer;
-		barrier.srcQueueFamilyIndex= queue_family_index_;
-		barrier.dstQueueFamilyIndex= queue_family_index_;
+		const vk::BufferMemoryBarrier barrier(
+			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			vertex_buffer,
+			0,
+			VK_WHOLE_SIZE);
 
 		command_buffer.pipelineBarrier(
 			vk::PipelineStageFlagBits::eComputeShader,
@@ -320,13 +319,12 @@ void WorldRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
 	// Create barrier between update indirect draw buffer and its usage for rendering.
 	// TODO - check this is correct.
 	{
-		vk::BufferMemoryBarrier barrier;
-		barrier.srcAccessMask= vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite;
-		barrier.dstAccessMask= vk::AccessFlagBits::eIndirectCommandRead;
-		barrier.size= VK_WHOLE_SIZE;
-		barrier.buffer= draw_indirect_buffer;
-		barrier.srcQueueFamilyIndex= queue_family_index_;
-		barrier.dstQueueFamilyIndex= queue_family_index_;
+		const vk::BufferMemoryBarrier barrier(
+			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eIndirectCommandRead,
+			queue_family_index_, queue_family_index_,
+			draw_indirect_buffer,
+			0,
+			VK_WHOLE_SIZE);
 
 		command_buffer.pipelineBarrier(
 			vk::PipelineStageFlagBits::eComputeShader,

@@ -96,7 +96,7 @@ const uint32_t c_texture_num_texels_with_mips= c_texture_size * c_texture_size *
 
 WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 	: vk_device_(window_vulkan.GetVulkanDevice())
-	, vk_queue_family_index_(window_vulkan.GetQueueFamilyIndex())
+	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, memory_properties_(window_vulkan.GetMemoryProperties())
 {
 	image_= vk_device_.createImageUnique(
@@ -214,7 +214,7 @@ void WorldTexturesManager::PrepareFrame(const vk::CommandBuffer command_buffer)
 		const vk::ImageMemoryBarrier image_memory_transfer(
 			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eMemoryRead,
 			vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal,
-			vk_queue_family_index_, vk_queue_family_index_,
+			queue_family_index_, queue_family_index_,
 			*image_,
 			vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, 0u, c_num_layers));
 
@@ -258,7 +258,7 @@ void WorldTexturesManager::PrepareFrame(const vk::CommandBuffer command_buffer)
 		const vk::ImageMemoryBarrier image_memory_transfer(
 			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eMemoryRead,
 			vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
-			vk_queue_family_index_, vk_queue_family_index_,
+			queue_family_index_, queue_family_index_,
 			*image_,
 			vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, 0u, c_num_layers));
 

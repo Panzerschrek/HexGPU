@@ -47,21 +47,21 @@ private:
 
 private:
 	// Keep here order of construction.
-	vk::UniqueInstance vk_instance_;
-	VkDebugReportCallbackEXT vk_debug_report_callback_= VK_NULL_HANDLE;
-	vk::UniqueSurfaceKHR vk_surface_;
+	vk::UniqueInstance instance_;
+	VkDebugReportCallbackEXT debug_report_callback_= VK_NULL_HANDLE;
+	vk::UniqueSurfaceKHR surface_;
 	vk::UniqueDevice vk_device_;
-	vk::Queue vk_queue_= nullptr;
-	uint32_t vk_queue_family_index_= ~0u;
+	vk::Queue queue_= nullptr;
+	uint32_t queue_family_index_= ~0u;
 	vk::Extent2D viewport_size_;
 	vk::PhysicalDeviceMemoryProperties memory_properties_;
 	vk::PhysicalDevice physical_device_;
-	vk::UniqueSwapchainKHR vk_swapchain_;
+	vk::UniqueSwapchainKHR swapchain_;
 
-	vk::UniqueRenderPass vk_render_pass_;
+	vk::UniqueRenderPass render_pass_;
 	std::vector<SwapchainFramebufferData> framebuffers_; // one framebuffer for each swapchain image.
 
-	vk::UniqueCommandPool vk_command_pool_;
+	vk::UniqueCommandPool command_pool_;
 
 	std::vector<CommandBufferData> command_buffers_;
 	const CommandBufferData* current_frame_command_buffer_= nullptr;

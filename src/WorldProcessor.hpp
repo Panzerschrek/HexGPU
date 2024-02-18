@@ -33,30 +33,30 @@ public:
 
 private:
 	const vk::Device vk_device_;
-	const uint32_t vk_queue_family_index_;
+	const uint32_t queue_family_index_;
 
-	vk::UniqueBuffer vk_chunk_data_buffer_;
-	vk::UniqueDeviceMemory vk_chunk_data_buffer_memory_;
+	vk::UniqueBuffer chunk_data_buffer_;
+	vk::UniqueDeviceMemory chunk_data_buffer_memory_;
 	uint32_t chunk_data_buffer_size_= 0;
 
-	vk::UniqueBuffer vk_player_state_buffer_;
-	vk::UniqueDeviceMemory vk_player_state_buffer_memory_;
+	vk::UniqueBuffer player_state_buffer_;
+	vk::UniqueDeviceMemory player_state_buffer_memory_;
 
 	vk::UniqueShaderModule world_gen_shader_;
 
-	vk::UniqueDescriptorSetLayout vk_world_gen_decriptor_set_layout_;
-	vk::UniquePipelineLayout vk_world_gen_pipeline_layout_;
-	vk::UniquePipeline vk_world_gen_pipeline_;
-	vk::UniqueDescriptorPool vk_world_gen_descriptor_pool_;
-	vk::UniqueDescriptorSet vk_world_gen_descriptor_set_;
+	vk::UniqueDescriptorSetLayout world_gen_decriptor_set_layout_;
+	vk::UniquePipelineLayout world_gen_pipeline_layout_;
+	vk::UniquePipeline world_gen_pipeline_;
+	vk::UniqueDescriptorPool world_gen_descriptor_pool_;
+	vk::UniqueDescriptorSet world_gen_descriptor_set_;
 
 	vk::UniqueShaderModule player_update_shader_;
 
-	vk::UniqueDescriptorSetLayout vk_player_update_decriptor_set_layout_;
-	vk::UniquePipelineLayout vk_player_update_pipeline_layout_;
-	vk::UniquePipeline vk_player_update_pipeline_;
-	vk::UniqueDescriptorPool vk_player_update_descriptor_pool_;
-	vk::UniqueDescriptorSet vk_player_update_descriptor_set_;
+	vk::UniqueDescriptorSetLayout player_update_decriptor_set_layout_;
+	vk::UniquePipelineLayout player_update_pipeline_layout_;
+	vk::UniquePipeline player_update_pipeline_;
+	vk::UniqueDescriptorPool player_update_descriptor_pool_;
+	vk::UniqueDescriptorSet player_update_descriptor_set_;
 
 	bool world_generated_= false;
 };

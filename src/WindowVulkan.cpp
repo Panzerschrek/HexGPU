@@ -83,22 +83,22 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 	}
 
 	// Create Vulkan instance.
-	const vk::ApplicationInfo vk_app_info(
+	const vk::ApplicationInfo app_info(
 		"HexGPU",
 		VK_MAKE_VERSION(0, 0, 1),
 		"HexGPU",
 		VK_MAKE_VERSION(0, 0, 1),
 		VK_MAKE_VERSION(1, 0, 0));
 
-	vk::InstanceCreateInfo vk_instance_create_info(
+	vk::InstanceCreateInfo instance_create_info(
 		vk::InstanceCreateFlags(),
-		&vk_app_info,
+		&app_info,
 		0u, nullptr,
 		extension_names_count, extensions_list.data());
 
 	if(use_debug_extensions_and_layers)
 	{
-		const std::vector<vk::LayerProperties> vk_layer_properties= vk::enumerateInstanceLayerProperties();
+		const std::vector<vk::LayerProperties> layer_properties= vk::enumerateInstanceLayerProperties();
 		static const char* const possible_validation_layers[]
 		{
 			"VK_LAYER_LUNARG_core_validation",
@@ -106,47 +106,47 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 		};
 
 		for(const char* const& layer_name : possible_validation_layers)
-			for(const vk::LayerProperties& property : vk_layer_properties)
+			for(const vk::LayerProperties& property : layer_properties)
 				if(std::strcmp(property.layerName, layer_name) == 0)
 				{
-					vk_instance_create_info.enabledLayerCount= 1u;
-					vk_instance_create_info.ppEnabledLayerNames= &layer_name;
+					instance_create_info.enabledLayerCount= 1u;
+					instance_create_info.ppEnabledLayerNames= &layer_name;
 					break;
 				}
 	}
 
-	vk_instance_= vk::createInstanceUnique(vk_instance_create_info);
+	instance_= vk::createInstanceUnique(instance_create_info);
 	Log::Info("Vulkan instance created");
 
 	if(use_debug_extensions_and_layers)
 	{
 		if(const auto vkCreateDebugReportCallbackEXT=
-			PFN_vkCreateDebugReportCallbackEXT(vk_instance_->getProcAddr("vkCreateDebugReportCallbackEXT")))
+			PFN_vkCreateDebugReportCallbackEXT(instance_->getProcAddr("vkCreateDebugReportCallbackEXT")))
 		{
 			const vk::DebugReportCallbackCreateInfoEXT debug_report_callback_create_info(
 				vk::DebugReportFlagBitsEXT::eWarning | vk::DebugReportFlagBitsEXT::eError,
 				VulkanDebugReportCallback);
 
 			vkCreateDebugReportCallbackEXT(
-				*vk_instance_,
+				*instance_,
 				&static_cast<const VkDebugReportCallbackCreateInfoEXT&>(debug_report_callback_create_info),
 				nullptr,
-				&vk_debug_report_callback_);
-			if(vk_debug_report_callback_ != VK_NULL_HANDLE)
+				&debug_report_callback_);
+			if(debug_report_callback_ != VK_NULL_HANDLE)
 				Log::Info("Vulkan debug callback installed");
 		}
 	}
 
 	// Create surface.
-	VkSurfaceKHR vk_tmp_surface;
-	if(!SDL_Vulkan_CreateSurface(system_window.GetSDLWindow(), *vk_instance_, &vk_tmp_surface))
+	VkSurfaceKHR tmp_surface;
+	if(!SDL_Vulkan_CreateSurface(system_window.GetSDLWindow(), *instance_, &tmp_surface))
 		Log::FatalError("Could not create Vulkan surface");
-	vk_surface_= vk::UniqueSurfaceKHR(vk_tmp_surface, vk::ObjectDestroy<vk::Instance>(*vk_instance_));
+	surface_= vk::UniqueSurfaceKHR(tmp_surface, vk::ObjectDestroy<vk::Instance>(*instance_));
 
 	SDL_Vulkan_GetDrawableSize(system_window.GetSDLWindow(), reinterpret_cast<int*>(&viewport_size_.width), reinterpret_cast<int*>(&viewport_size_.height));
 
 	// Create physical device. Prefer usage of discrete GPU. TODO - allow user to select device.
-	const std::vector<vk::PhysicalDevice> physical_devices= vk_instance_->enumeratePhysicalDevices();
+	const std::vector<vk::PhysicalDevice> physical_devices= instance_->enumeratePhysicalDevices();
 	vk::PhysicalDevice physical_device= physical_devices.front();
 	if(physical_devices.size() > 1u)
 	{
@@ -184,7 +184,7 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 	const vk::Flags<vk::QueueFlagBits> required_queue_family_flags= vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eCompute;
 	for(uint32_t i= 0u; i < queue_family_properties.size(); ++i)
 	{
-		const VkBool32 supported= physical_device.getSurfaceSupportKHR(i, *vk_surface_);
+		const VkBool32 supported= physical_device.getSurfaceSupportKHR(i, *surface_);
 		if(supported != 0 &&
 			queue_family_properties[i].queueCount > 0 &&
 			(queue_family_properties[i].queueFlags & required_queue_family_flags) == required_queue_family_flags)
@@ -199,10 +199,10 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 	else
 		Log::Info("Queue familiy index: ", queue_family_index);
 
-	vk_queue_family_index_= queue_family_index;
+	queue_family_index_= queue_family_index;
 
 	const float queue_priority= 1.0f;
-	const vk::DeviceQueueCreateInfo vk_device_queue_create_info(
+	const vk::DeviceQueueCreateInfo device_queue_create_info(
 		vk::DeviceQueueCreateFlags(),
 		queue_family_index,
 		1u, &queue_priority);
@@ -211,9 +211,9 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 
 	const vk::PhysicalDeviceFeatures physical_device_features= GetRequiredDeviceFeatures();
 
-	const vk::DeviceCreateInfo vk_device_create_info(
+	const vk::DeviceCreateInfo device_create_info(
 		vk::DeviceCreateFlags(),
-		1u, &vk_device_queue_create_info,
+		1u, &device_queue_create_info,
 		0u, nullptr,
 		uint32_t(std::size(device_extension_names)), device_extension_names,
 		&physical_device_features);
@@ -221,16 +221,16 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 	// Create physical device.
 	// HACK! createDeviceUnique works wrong! Use other method instead.
 	//vk_device_= physical_device.createDeviceUnique(vk_device_create_info);
-	vk::Device vk_device_tmp;
-	if((physical_device.createDevice(&vk_device_create_info, nullptr, &vk_device_tmp)) != vk::Result::eSuccess)
+	vk::Device device_tmp;
+	if((physical_device.createDevice(&device_create_info, nullptr, &device_tmp)) != vk::Result::eSuccess)
 		Log::FatalError("Could not create Vulkan device");
-	vk_device_.reset(vk_device_tmp);
+	vk_device_.reset(device_tmp);
 	Log::Info("Vulkan logical device created");
 
-	vk_queue_= vk_device_->getQueue(queue_family_index, 0u);
+	queue_= vk_device_->getQueue(queue_family_index, 0u);
 
 	// Select surface format. Prefer usage of normalized rbga32.
-	const std::vector<vk::SurfaceFormatKHR> surface_formats= physical_device.getSurfaceFormatsKHR(*vk_surface_);
+	const std::vector<vk::SurfaceFormatKHR> surface_formats= physical_device.getSurfaceFormatsKHR(*surface_);
 	vk::SurfaceFormatKHR surface_format= surface_formats.back();
 	for(const vk::SurfaceFormatKHR& surface_format_variant : surface_formats)
 	{
@@ -272,7 +272,7 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 	Log::Info("Framebuffer depth format: ", vk::to_string(framebuffer_depth_format));
 
 	// Select present mode. Prefer usage of tripple buffering, than double buffering.
-	const std::vector<vk::PresentModeKHR> present_modes= physical_device.getSurfacePresentModesKHR(*vk_surface_);
+	const std::vector<vk::PresentModeKHR> present_modes= physical_device.getSurfacePresentModesKHR(*surface_);
 	vk::PresentModeKHR present_mode= present_modes.front();
 	if(vsync)
 	{
@@ -286,12 +286,12 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 	}
 	Log::Info("Present mode: ", vk::to_string(present_mode));
 
-	const vk::SurfaceCapabilitiesKHR surface_capabilities= physical_device.getSurfaceCapabilitiesKHR(*vk_surface_);
+	const vk::SurfaceCapabilitiesKHR surface_capabilities= physical_device.getSurfaceCapabilitiesKHR(*surface_);
 
-	vk_swapchain_= vk_device_->createSwapchainKHRUnique(
+	swapchain_= vk_device_->createSwapchainKHRUnique(
 		vk::SwapchainCreateInfoKHR(
 			vk::SwapchainCreateFlagsKHR(),
-			*vk_surface_,
+			*surface_,
 			surface_capabilities.minImageCount,
 			surface_format.format,
 			surface_format.colorSpace,
@@ -306,7 +306,7 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 
 	// Create render pass and framebuffers for drawing into screen.
 
-	const vk::AttachmentDescription vk_attachment_descriptions[]
+	const vk::AttachmentDescription attachment_descriptions[]
 	{
 		{
 			vk::AttachmentDescriptionFlags(),
@@ -332,25 +332,25 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 		},
 	};
 
-	const vk::AttachmentReference vk_attachment_reference_color(0u, vk::ImageLayout::eColorAttachmentOptimal);
-	const vk::AttachmentReference vk_attachment_reference_depth(1u, vk::ImageLayout::eGeneral);
+	const vk::AttachmentReference attachment_reference_color(0u, vk::ImageLayout::eColorAttachmentOptimal);
+	const vk::AttachmentReference attachment_reference_depth(1u, vk::ImageLayout::eGeneral);
 
-	const vk::SubpassDescription vk_subpass_description(
+	const vk::SubpassDescription subpass_description(
 		vk::SubpassDescriptionFlags(),
 		vk::PipelineBindPoint::eGraphics,
 		0u, nullptr,
-		1u, &vk_attachment_reference_color,
+		1u, &attachment_reference_color,
 		nullptr,
-		&vk_attachment_reference_depth);
+		&attachment_reference_depth);
 
-	vk_render_pass_=
+	render_pass_=
 		vk_device_->createRenderPassUnique(
 			vk::RenderPassCreateInfo(
 				vk::RenderPassCreateFlags(),
-				uint32_t(std::size(vk_attachment_descriptions)), vk_attachment_descriptions,
-				1u, &vk_subpass_description));
+				uint32_t(std::size(attachment_descriptions)), attachment_descriptions,
+				1u, &subpass_description));
 
-	const std::vector<vk::Image> swapchain_images= vk_device_->getSwapchainImagesKHR(*vk_swapchain_);
+	const std::vector<vk::Image> swapchain_images= vk_device_->getSwapchainImagesKHR(*swapchain_);
 	framebuffers_.resize(swapchain_images.size());
 	for(size_t i= 0u; i < framebuffers_.size(); ++i)
 	{
@@ -373,15 +373,15 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 
 			const vk::MemoryRequirements image_memory_requirements= vk_device_->getImageMemoryRequirements(*framebuffers_[i].depth_image);
 
-			vk::MemoryAllocateInfo vk_memory_allocate_info(image_memory_requirements.size);
+			vk::MemoryAllocateInfo memory_allocate_info(image_memory_requirements.size);
 			for(uint32_t i= 0u; i < memory_properties_.memoryTypeCount; ++i)
 			{
 				if((image_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
 					(memory_properties_.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
-					vk_memory_allocate_info.memoryTypeIndex= i;
+					memory_allocate_info.memoryTypeIndex= i;
 			}
 
-			framebuffers_[i].depth_image_memory= vk_device_->allocateMemoryUnique(vk_memory_allocate_info);
+			framebuffers_[i].depth_image_memory= vk_device_->allocateMemoryUnique(memory_allocate_info);
 			vk_device_->bindImageMemory(*framebuffers_[i].depth_image, *framebuffers_[i].depth_image_memory, 0u);
 
 			framebuffers_[i].depth_image_view=
@@ -412,14 +412,14 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 			vk_device_->createFramebufferUnique(
 				vk::FramebufferCreateInfo(
 					vk::FramebufferCreateFlags(),
-					*vk_render_pass_,
+					*render_pass_,
 					uint32_t(std::size(attachments)), attachments,
 					viewport_size_.width, viewport_size_.height, 1u));
 
 	}
 
 	// Create command pull.
-	vk_command_pool_= vk_device_->createCommandPoolUnique(
+	command_pool_= vk_device_->createCommandPoolUnique(
 		vk::CommandPoolCreateInfo(
 			vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
 			queue_family_index));
@@ -432,7 +432,7 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 			std::move(
 			vk_device_->allocateCommandBuffersUnique(
 				vk::CommandBufferAllocateInfo(
-					*vk_command_pool_,
+					*command_pool_,
 					vk::CommandBufferLevel::ePrimary,
 					1u)).front());
 
@@ -449,11 +449,11 @@ WindowVulkan::~WindowVulkan()
 	// Sync before destruction.
 	vk_device_->waitIdle();
 
-	if(vk_debug_report_callback_ != VK_NULL_HANDLE)
+	if(debug_report_callback_ != VK_NULL_HANDLE)
 	{
 		if(const auto vkDestroyDebugReportCallbackEXT=
-			PFN_vkDestroyDebugReportCallbackEXT(vk_instance_->getProcAddr("vkDestroyDebugReportCallbackEXT")))
-			vkDestroyDebugReportCallbackEXT(*vk_instance_, vk_debug_report_callback_, nullptr);
+			PFN_vkDestroyDebugReportCallbackEXT(instance_->getProcAddr("vkDestroyDebugReportCallbackEXT")))
+			vkDestroyDebugReportCallbackEXT(*instance_, debug_report_callback_, nullptr);
 	}
 }
 
@@ -481,7 +481,7 @@ void WindowVulkan::EndFrame(const DrawFunction& draw_function)
 	// Get next swapchain image.
 	const uint32_t swapchain_image_index=
 		vk_device_->acquireNextImageKHR(
-			*vk_swapchain_,
+			*swapchain_,
 			std::numeric_limits<uint64_t>::max(),
 			*current_frame_command_buffer_->image_available_semaphore,
 			vk::Fence()).value;
@@ -497,7 +497,7 @@ void WindowVulkan::EndFrame(const DrawFunction& draw_function)
 
 	command_buffer.beginRenderPass(
 		vk::RenderPassBeginInfo(
-			*vk_render_pass_,
+			*render_pass_,
 			*framebuffers_[swapchain_image_index].framebuffer,
 			vk::Rect2D(vk::Offset2D(0, 0), viewport_size_),
 			uint32_t(std::size(clear_values)), clear_values),
@@ -514,18 +514,18 @@ void WindowVulkan::EndFrame(const DrawFunction& draw_function)
 
 	// Submit command buffer.
 	const vk::PipelineStageFlags wait_dst_stage_mask= vk::PipelineStageFlagBits::eColorAttachmentOutput;
-	const vk::SubmitInfo vk_submit_info(
+	const vk::SubmitInfo submit_info(
 		1u, &*current_frame_command_buffer_->image_available_semaphore,
 		&wait_dst_stage_mask,
 		1u, &command_buffer,
 		1u, &*current_frame_command_buffer_->rendering_finished_semaphore);
-	vk_queue_.submit(vk_submit_info, *current_frame_command_buffer_->submit_fence);
+	queue_.submit(submit_info, *current_frame_command_buffer_->submit_fence);
 
 	// Present queue.
-	vk_queue_.presentKHR(
+	queue_.presentKHR(
 		vk::PresentInfoKHR(
 			1u, &*current_frame_command_buffer_->rendering_finished_semaphore,
-			1u, &*vk_swapchain_,
+			1u, &*swapchain_,
 			&swapchain_image_index,
 			nullptr));
 }
@@ -542,12 +542,12 @@ vk::Extent2D WindowVulkan::GetViewportSize() const
 
 uint32_t WindowVulkan::GetQueueFamilyIndex() const
 {
-	return vk_queue_family_index_;
+	return queue_family_index_;
 }
 
 vk::RenderPass WindowVulkan::GetRenderPass() const
 {
-	return *vk_render_pass_;
+	return *render_pass_;
 }
 
 vk::PhysicalDeviceMemoryProperties WindowVulkan::GetMemoryProperties() const

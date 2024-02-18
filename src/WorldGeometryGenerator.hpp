@@ -26,23 +26,23 @@ public:
 
 private:
 	const vk::Device vk_device_;
-	const uint32_t vk_queue_family_index_;
+	const uint32_t queue_family_index_;
 	WorldProcessor& world_processor_;
 
 	vk::UniqueShaderModule geometry_gen_shader_;
 
 	size_t vertex_buffer_num_quads_= 0;
-	vk::UniqueBuffer vk_vertex_buffer_;
-	vk::UniqueDeviceMemory vk_vertex_buffer_memory_;
+	vk::UniqueBuffer vertex_buffer_;
+	vk::UniqueDeviceMemory vertex_buffer_memory_;
 
-	vk::UniqueBuffer vk_draw_indirect_buffer_;
-	vk::UniqueDeviceMemory vk_draw_indirect_buffer_memory_;
+	vk::UniqueBuffer draw_indirect_buffer_;
+	vk::UniqueDeviceMemory draw_indirect_buffer_memory_;
 
-	vk::UniqueDescriptorSetLayout vk_geometry_gen_decriptor_set_layout_;
-	vk::UniquePipelineLayout vk_geometry_gen_pipeline_layout_;
-	vk::UniquePipeline vk_geometry_gen_pipeline_;
-	vk::UniqueDescriptorPool vk_geometry_gen_descriptor_pool_;
-	vk::UniqueDescriptorSet vk_geometry_gen_descriptor_set_;
+	vk::UniqueDescriptorSetLayout geometry_gen_decriptor_set_layout_;
+	vk::UniquePipelineLayout geometry_gen_pipeline_layout_;
+	vk::UniquePipeline geometry_gen_pipeline_;
+	vk::UniqueDescriptorPool geometry_gen_descriptor_pool_;
+	vk::UniqueDescriptorSet geometry_gen_descriptor_set_;
 };
 
 } // namespace HexGPU

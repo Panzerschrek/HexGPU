@@ -18,7 +18,7 @@ public:
 
 private:
 	const vk::Device vk_device_;
-	const uint32_t vk_queue_family_index_;
+	const uint32_t queue_family_index_;
 
 	WorldGeometryGenerator geometry_generator_;
 	WorldTexturesManager world_textures_manager_;
@@ -26,17 +26,17 @@ private:
 	vk::UniqueShaderModule shader_vert_;
 	vk::UniqueShaderModule shader_frag_;
 
-	vk::UniqueSampler vk_texture_sampler_;
+	vk::UniqueSampler texture_sampler_;
 
-	vk::UniqueDescriptorSetLayout vk_decriptor_set_layout_;
-	vk::UniquePipelineLayout vk_pipeline_layout_;
-	vk::UniquePipeline vk_pipeline_;
+	vk::UniqueDescriptorSetLayout decriptor_set_layout_;
+	vk::UniquePipelineLayout pipeline_layout_;
+	vk::UniquePipeline pipeline_;
 
-	vk::UniqueDescriptorPool vk_descriptor_pool_;
-	vk::UniqueDescriptorSet vk_descriptor_set_;
+	vk::UniqueDescriptorPool descriptor_pool_;
+	vk::UniqueDescriptorSet descriptor_set_;
 
-	vk::UniqueBuffer vk_index_buffer_;
-	vk::UniqueDeviceMemory vk_index_buffer_memory_;
+	vk::UniqueBuffer index_buffer_;
+	vk::UniqueDeviceMemory index_buffer_memory_;
 };
 
 } // namespace HexGPU

@@ -37,24 +37,24 @@ struct PlayerUpdateUniforms
 
 WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 	: vk_device_(window_vulkan.GetVulkanDevice())
-	, vk_queue_family_index_(window_vulkan.GetQueueFamilyIndex())
+	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 {
 	// Create chunk data buffer.
 	{
 		chunk_data_buffer_size_= c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1];
 
-		vk_chunk_data_buffer_=
+		chunk_data_buffer_=
 			vk_device_.createBufferUnique(
 				vk::BufferCreateInfo(
 					vk::BufferCreateFlags(),
 					chunk_data_buffer_size_,
 					vk::BufferUsageFlagBits::eStorageBuffer));
 
-		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*vk_chunk_data_buffer_);
+		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*chunk_data_buffer_);
 
 		const auto memory_properties= window_vulkan.GetMemoryProperties();
 
-		vk::MemoryAllocateInfo vk_memory_allocate_info(buffer_memory_requirements.size);
+		vk::MemoryAllocateInfo memory_allocate_info(buffer_memory_requirements.size);
 		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
 		{
 			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
@@ -62,33 +62,33 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 				// TODO - avoid making host visible.
 				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible) != vk::MemoryPropertyFlags() &&
 				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent) != vk::MemoryPropertyFlags())
-				vk_memory_allocate_info.memoryTypeIndex= i;
+				memory_allocate_info.memoryTypeIndex= i;
 		}
 
-		vk_chunk_data_buffer_memory_= vk_device_.allocateMemoryUnique(vk_memory_allocate_info);
-		vk_device_.bindBufferMemory(*vk_chunk_data_buffer_, *vk_chunk_data_buffer_memory_, 0u);
+		chunk_data_buffer_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);
+		vk_device_.bindBufferMemory(*chunk_data_buffer_, *chunk_data_buffer_memory_, 0u);
 
 		// Fill the buffer with zeros to prevent later warnings.
 		void* data_gpu_side= nullptr;
-		vk_device_.mapMemory(*vk_chunk_data_buffer_memory_, 0u, vk_memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_side);
+		vk_device_.mapMemory(*chunk_data_buffer_memory_, 0u, memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_side);
 		std::memset(data_gpu_side, 0, chunk_data_buffer_size_);
-		vk_device_.unmapMemory(*vk_chunk_data_buffer_memory_);
+		vk_device_.unmapMemory(*chunk_data_buffer_memory_);
 	}
 
 	// Create player state buffer.
 	{
-		vk_player_state_buffer_=
+		player_state_buffer_=
 			vk_device_.createBufferUnique(
 				vk::BufferCreateInfo(
 					vk::BufferCreateFlags(),
 					sizeof(PlayerState),
 					vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferSrc));
 
-		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*vk_player_state_buffer_);
+		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*player_state_buffer_);
 
 		const auto memory_properties= window_vulkan.GetMemoryProperties();
 
-		vk::MemoryAllocateInfo vk_memory_allocate_info(buffer_memory_requirements.size);
+		vk::MemoryAllocateInfo memory_allocate_info(buffer_memory_requirements.size);
 		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
 		{
 			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
@@ -96,17 +96,17 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 				// TODO - avoid making host visible.
 				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible) != vk::MemoryPropertyFlags() &&
 				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent) != vk::MemoryPropertyFlags())
-				vk_memory_allocate_info.memoryTypeIndex= i;
+				memory_allocate_info.memoryTypeIndex= i;
 		}
 
-		vk_player_state_buffer_memory_= vk_device_.allocateMemoryUnique(vk_memory_allocate_info);
-		vk_device_.bindBufferMemory(*vk_player_state_buffer_, *vk_player_state_buffer_memory_, 0u);
+		player_state_buffer_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);
+		vk_device_.bindBufferMemory(*player_state_buffer_, *player_state_buffer_memory_, 0u);
 
 		// Fill the buffer with zeros to prevent later warnings.
 		void* data_gpu_side= nullptr;
-		vk_device_.mapMemory(*vk_player_state_buffer_memory_, 0u, vk_memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_side);
+		vk_device_.mapMemory(*player_state_buffer_memory_, 0u, memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_side);
 		std::memset(data_gpu_side, 0, sizeof(PlayerState));
-		vk_device_.unmapMemory(*vk_player_state_buffer_memory_);
+		vk_device_.unmapMemory(*player_state_buffer_memory_);
 	}
 
 	// Create world generation shader.
@@ -124,7 +124,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 				nullptr,
 			},
 		};
-		vk_world_gen_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
+		world_gen_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
 			vk::DescriptorSetLayoutCreateInfo(
 				vk::DescriptorSetLayoutCreateFlags(),
 				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
@@ -132,20 +132,20 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 
 	// Create world generation pipeline layout.
 	{
-		const vk::PushConstantRange vk_push_constant_range(
+		const vk::PushConstantRange push_constant_range(
 			vk::ShaderStageFlagBits::eCompute,
 			0u,
 			sizeof(ChunkPositionUniforms));
 
-		vk_world_gen_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
+		world_gen_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
 			vk::PipelineLayoutCreateInfo(
 				vk::PipelineLayoutCreateFlags(),
-				1u, &*vk_world_gen_decriptor_set_layout_,
-				1u, &vk_push_constant_range));
+				1u, &*world_gen_decriptor_set_layout_,
+				1u, &push_constant_range));
 	}
 
 	// Create world generation pipeline.
-	vk_world_gen_pipeline_= vk_device_.createComputePipelineUnique(
+	world_gen_pipeline_= vk_device_.createComputePipelineUnique(
 		nullptr,
 		vk::ComputePipelineCreateInfo(
 			vk::PipelineCreateFlags(),
@@ -154,38 +154,38 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 				vk::ShaderStageFlagBits::eCompute,
 				*world_gen_shader_,
 				"main"),
-			*vk_world_gen_pipeline_layout_));
+			*world_gen_pipeline_layout_));
 
 	// Create world generation descriptor set pool.
 	{
-		const vk::DescriptorPoolSize vk_descriptor_pool_size(vk::DescriptorType::eStorageBuffer, 1u /*num descriptors*/);
-		vk_world_gen_descriptor_pool_=
+		const vk::DescriptorPoolSize descriptor_pool_size(vk::DescriptorType::eStorageBuffer, 1u /*num descriptors*/);
+		world_gen_descriptor_pool_=
 			vk_device_.createDescriptorPoolUnique(
 				vk::DescriptorPoolCreateInfo(
 					vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
 					4u, // max sets.
-					1u, &vk_descriptor_pool_size));
+					1u, &descriptor_pool_size));
 	}
 
 	// Create world generation descriptor set.
-	vk_world_gen_descriptor_set_=
+	world_gen_descriptor_set_=
 		std::move(
 			vk_device_.allocateDescriptorSetsUnique(
 				vk::DescriptorSetAllocateInfo(
-					*vk_world_gen_descriptor_pool_,
-					1u, &*vk_world_gen_decriptor_set_layout_)).front());
+					*world_gen_descriptor_pool_,
+					1u, &*world_gen_decriptor_set_layout_)).front());
 
 	// Update world generator descriptor set.
 	{
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
-			vk_chunk_data_buffer_.get(),
+			chunk_data_buffer_.get(),
 			0u,
 			chunk_data_buffer_size_);
 
 		vk_device_.updateDescriptorSets(
 			{
 				{
-					*vk_world_gen_descriptor_set_,
+					*world_gen_descriptor_set_,
 					WorldGenShaderBindings::chunk_data_buffer,
 					0u,
 					1u,
@@ -220,7 +220,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 				nullptr,
 			},
 		};
-		vk_player_update_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
+		player_update_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
 			vk::DescriptorSetLayoutCreateInfo(
 				vk::DescriptorSetLayoutCreateFlags(),
 				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
@@ -228,20 +228,20 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 
 	// Create player update pipeline layout.
 	{
-		const vk::PushConstantRange vk_push_constant_range(
+		const vk::PushConstantRange push_constant_range(
 			vk::ShaderStageFlagBits::eCompute,
 			0u,
 			sizeof(PlayerUpdateUniforms));
 
-		vk_player_update_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
+		player_update_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
 			vk::PipelineLayoutCreateInfo(
 				vk::PipelineLayoutCreateFlags(),
-				1u, &*vk_player_update_decriptor_set_layout_,
-				1u, &vk_push_constant_range));
+				1u, &*player_update_decriptor_set_layout_,
+				1u, &push_constant_range));
 	}
 
 	// Create player update pipeline.
-	vk_player_update_pipeline_= vk_device_.createComputePipelineUnique(
+	player_update_pipeline_= vk_device_.createComputePipelineUnique(
 		nullptr,
 		vk::ComputePipelineCreateInfo(
 			vk::PipelineCreateFlags(),
@@ -250,43 +250,43 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 				vk::ShaderStageFlagBits::eCompute,
 				*player_update_shader_,
 				"main"),
-			*vk_player_update_pipeline_layout_));
+			*player_update_pipeline_layout_));
 
 	// Create player update descriptor set pool.
 	{
-		const vk::DescriptorPoolSize vk_descriptor_pool_size(vk::DescriptorType::eStorageBuffer, 2u /*num descriptors*/);
-		vk_player_update_descriptor_pool_=
+		const vk::DescriptorPoolSize descriptor_pool_size(vk::DescriptorType::eStorageBuffer, 2u /*num descriptors*/);
+		player_update_descriptor_pool_=
 			vk_device_.createDescriptorPoolUnique(
 				vk::DescriptorPoolCreateInfo(
 					vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
 					1u, // max sets.
-					1u, &vk_descriptor_pool_size));
+					1u, &descriptor_pool_size));
 	}
 
 	// Create player update descriptor set.
-	vk_player_update_descriptor_set_=
+	player_update_descriptor_set_=
 		std::move(
 			vk_device_.allocateDescriptorSetsUnique(
 				vk::DescriptorSetAllocateInfo(
-					*vk_player_update_descriptor_pool_,
-					1u, &*vk_player_update_decriptor_set_layout_)).front());
+					*player_update_descriptor_pool_,
+					1u, &*player_update_decriptor_set_layout_)).front());
 
 	// Update player update descriptor set.
 	{
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
-			vk_chunk_data_buffer_.get(),
+			chunk_data_buffer_.get(),
 			0u,
 			chunk_data_buffer_size_);
 
 		const vk::DescriptorBufferInfo descriptor_player_state_buffer_info(
-			vk_player_state_buffer_.get(),
+			player_state_buffer_.get(),
 			0u,
 			sizeof(PlayerState));
 
 		vk_device_.updateDescriptorSets(
 			{
 				{
-					*vk_player_update_descriptor_set_,
+					*player_update_descriptor_set_,
 					0u,
 					0u,
 					1u,
@@ -296,7 +296,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 					nullptr
 				},
 				{
-					*vk_player_update_descriptor_set_,
+					*player_update_descriptor_set_,
 					0u,
 					1u,
 					1u,
@@ -329,13 +329,13 @@ void WorldProcessor::Update(
 
 		// Run world generation.
 
-		command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *vk_world_gen_pipeline_);
+		command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_gen_pipeline_);
 
 		command_buffer.bindDescriptorSets(
 			vk::PipelineBindPoint::eCompute,
-			*vk_world_gen_pipeline_layout_,
+			*world_gen_pipeline_layout_,
 			0u,
-			1u, &*vk_world_gen_descriptor_set_,
+			1u, &*world_gen_descriptor_set_,
 			0u, nullptr);
 
 		for(uint32_t x= 0; x < c_chunk_matrix_size[0]; ++x)
@@ -346,7 +346,7 @@ void WorldProcessor::Update(
 			chunk_position_uniforms.chunk_position[1]= int32_t(y);
 
 			command_buffer.pushConstants(
-				*vk_world_gen_pipeline_layout_,
+				*world_gen_pipeline_layout_,
 				vk::ShaderStageFlagBits::eCompute,
 				0,
 				sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
@@ -362,9 +362,9 @@ void WorldProcessor::Update(
 			barrier.srcAccessMask= vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite;
 			barrier.dstAccessMask= vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite;
 			barrier.size= VK_WHOLE_SIZE;
-			barrier.buffer= *vk_chunk_data_buffer_;
-			barrier.srcQueueFamilyIndex= vk_queue_family_index_;
-			barrier.dstQueueFamilyIndex= vk_queue_family_index_;
+			barrier.buffer= *chunk_data_buffer_;
+			barrier.srcQueueFamilyIndex= queue_family_index_;
+			barrier.dstQueueFamilyIndex= queue_family_index_;
 
 			command_buffer.pipelineBarrier(
 				vk::PipelineStageFlagBits::eComputeShader,
@@ -377,13 +377,13 @@ void WorldProcessor::Update(
 	}
 
 	// Update player.
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *vk_player_update_pipeline_);
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *player_update_pipeline_);
 
 	command_buffer.bindDescriptorSets(
 		vk::PipelineBindPoint::eCompute,
-		*vk_player_update_pipeline_layout_,
+		*player_update_pipeline_layout_,
 		0u,
-		1u, &*vk_player_update_descriptor_set_,
+		1u, &*player_update_descriptor_set_,
 		0u, nullptr);
 
 	PlayerUpdateUniforms player_update_uniforms;
@@ -393,7 +393,7 @@ void WorldProcessor::Update(
 	player_update_uniforms.destroy_triggered= destroy_triggered;
 
 	command_buffer.pushConstants(
-		*vk_player_update_pipeline_layout_,
+		*player_update_pipeline_layout_,
 		vk::ShaderStageFlagBits::eCompute,
 		0,
 		sizeof(PlayerUpdateUniforms), static_cast<const void*>(&player_update_uniforms));
@@ -406,8 +406,8 @@ void WorldProcessor::Update(
 	{
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
-			vk_queue_family_index_, vk_queue_family_index_,
-			*vk_chunk_data_buffer_,
+			queue_family_index_, queue_family_index_,
+			*chunk_data_buffer_,
 			0,
 			VK_WHOLE_SIZE);
 
@@ -426,9 +426,9 @@ void WorldProcessor::Update(
 		barrier.srcAccessMask= vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite;
 		barrier.dstAccessMask= vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite;
 		barrier.size= VK_WHOLE_SIZE;
-		barrier.buffer= *vk_player_state_buffer_;
-		barrier.srcQueueFamilyIndex= vk_queue_family_index_;
-		barrier.dstQueueFamilyIndex= vk_queue_family_index_;
+		barrier.buffer= *player_state_buffer_;
+		barrier.srcQueueFamilyIndex= queue_family_index_;
+		barrier.dstQueueFamilyIndex= queue_family_index_;
 
 		command_buffer.pipelineBarrier(
 			vk::PipelineStageFlagBits::eComputeShader,
@@ -442,7 +442,7 @@ void WorldProcessor::Update(
 
 vk::Buffer WorldProcessor::GetChunkDataBuffer() const
 {
-	return vk_chunk_data_buffer_.get();
+	return chunk_data_buffer_.get();
 }
 
 uint32_t WorldProcessor::GetChunkDataBufferSize() const
@@ -452,7 +452,7 @@ uint32_t WorldProcessor::GetChunkDataBufferSize() const
 
 vk::Buffer WorldProcessor::GetPlayerStateBuffer() const
 {
-	return vk_player_state_buffer_.get();
+	return player_state_buffer_.get();
 }
 
 } // namespace HexGPU

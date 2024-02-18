@@ -122,7 +122,7 @@ void main()
 			optical_density < optical_density_up
 				? c_block_texture_table[int(block_value)].r
 				: c_block_texture_table[int(block_value_up)].g;
-		int16_t light= int16_t(1);
+		int16_t light= block_value == c_block_type_fire_stone ? int16_t(15) : int16_t(0);
 
 		v[0].tex_coord= i16vec4(int16_t(tc_base_x + 1 * tex_scale), int16_t(tc_base_y + 0 * tex_scale), tex_index, light);
 		v[1].tex_coord= i16vec4(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_y + 0 * tex_scale), tex_index, light);
@@ -172,7 +172,7 @@ void main()
 		int tc_base_z= z * (2 * tex_scale);
 
 		int16_t tex_index= c_block_texture_table[optical_density < optical_density_north ? int(block_value) : int(block_value_north)].b;
-		int16_t light= int16_t(1);
+		int16_t light= int16_t(0);
 
 		v[0].tex_coord= i16vec4(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_z + 0 * tex_scale), tex_index, light);
 		v[1].tex_coord= i16vec4(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_z + 2 * tex_scale), tex_index, light);
@@ -212,7 +212,7 @@ void main()
 		int tc_base_z= z * (2 * tex_scale);
 
 		int16_t tex_index= c_block_texture_table[optical_density < optical_density_north_east ? int(block_value) : int(block_value_north_east)].b;
-		int16_t light= int16_t(1);
+		int16_t light= int16_t(0);
 
 		v[0].tex_coord= i16vec4(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_z + 0 * tex_scale), tex_index, light);
 		v[1].tex_coord= i16vec4(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_z + 2 * tex_scale), tex_index, light);
@@ -251,7 +251,7 @@ void main()
 		int tc_base_z= z * (2 * tex_scale);
 
 		int16_t tex_index= c_block_texture_table[optical_density < optical_density_south_east ? int(block_value) : int(block_value_south_east)].b;
-		int16_t light= int16_t(1);
+		int16_t light= int16_t(0);
 
 		v[0].tex_coord= i16vec4(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_z + 0 * tex_scale), tex_index, light);
 		v[1].tex_coord= i16vec4(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_z + 2 * tex_scale), tex_index, light);

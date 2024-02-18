@@ -256,7 +256,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 			vk_device_.createDescriptorPoolUnique(
 				vk::DescriptorPoolCreateInfo(
 					vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-					4u, // max sets.
+					1u, // max sets.
 					1u, &vk_descriptor_pool_size));
 	}
 
@@ -401,13 +401,12 @@ void WorldProcessor::Update(
 	// Create barrier between player update and world later usage.
 	// TODO - check this is correct.
 	{
-		vk::BufferMemoryBarrier barrier;
-		barrier.srcAccessMask= vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite;
-		barrier.dstAccessMask= vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite;
-		barrier.size= VK_WHOLE_SIZE;
-		barrier.buffer= *vk_chunk_data_buffer_;
-		barrier.srcQueueFamilyIndex= vk_queue_family_index_;
-		barrier.dstQueueFamilyIndex= vk_queue_family_index_;
+		const vk::BufferMemoryBarrier barrier(
+			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			vk_queue_family_index_, vk_queue_family_index_,
+			*vk_chunk_data_buffer_,
+			0,
+			VK_WHOLE_SIZE);
 
 		command_buffer.pipelineBarrier(
 			vk::PipelineStageFlagBits::eComputeShader,

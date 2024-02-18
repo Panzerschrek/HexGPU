@@ -12,12 +12,12 @@ namespace
 
 struct Uniforms
 {
-	int32_t build_pos[4];
+	int32_t build_pos[4]; // component 3 - direction.
 };
 
 struct BuildPrismVertex
 {
-	float position[4]; // 4-0th component - side index.
+	float position[4]; // component 3 - side index.
 };
 
 std::vector<BuildPrismVertex> GenBuildPrismMesh()
@@ -40,14 +40,15 @@ std::vector<BuildPrismVertex> GenBuildPrismMesh()
 	};
 
 	// Keep same order as in Direction enum!
+	// Sides are facing inside.
 	std::vector<BuildPrismVertex> res
 	{
-		// top
+		// up
 		hex_vertices[ 8], hex_vertices[ 7], hex_vertices[ 6],
 		hex_vertices[ 9], hex_vertices[ 8], hex_vertices[ 6],
 		hex_vertices[11], hex_vertices[10], hex_vertices[ 9],
 		hex_vertices[10], hex_vertices[ 8], hex_vertices[ 9],
-		// bottom
+		// down
 		hex_vertices[ 0], hex_vertices[ 1], hex_vertices[ 2],
 		hex_vertices[ 0], hex_vertices[ 2], hex_vertices[ 3],
 		hex_vertices[ 3], hex_vertices[ 4], hex_vertices[ 5],
@@ -145,14 +146,7 @@ BuildPrismRenderer::BuildPrismRenderer(WindowVulkan& window_vulkan, WorldProcess
 
 		void* data_gpu_size= nullptr;
 		vk_device_.mapMemory(*vk_uniform_buffer_memory_, 0u, vk_memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_size);
-
-		Uniforms uniforms;
-		uniforms.build_pos[0]= 1;
-		uniforms.build_pos[1]= 2;
-		uniforms.build_pos[2]= 32;
-
-		std::memcpy(data_gpu_size, &uniforms, sizeof(Uniforms));
-
+		std::memset(data_gpu_size, 0, sizeof(Uniforms));
 		vk_device_.unmapMemory(*vk_uniform_buffer_memory_);
 	}
 
@@ -189,7 +183,7 @@ BuildPrismRenderer::BuildPrismRenderer(WindowVulkan& window_vulkan, WorldProcess
 
 		void* vertex_data_gpu_size= nullptr;
 		vk_device_.mapMemory(*vk_vertex_buffer_memory_, 0u, vk_memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &vertex_data_gpu_size);
-		std::memcpy(vertex_data_gpu_size, build_prism_mesh.data(), build_prism_mesh.size() * sizeof(BuildPrismVertex));
+		std::memcpy(vertex_data_gpu_size, build_prism_mesh.data(), vertex_data_size);
 		vk_device_.unmapMemory(*vk_vertex_buffer_memory_);
 	}
 
@@ -340,7 +334,7 @@ BuildPrismRenderer::BuildPrismRenderer(WindowVulkan& window_vulkan, WorldProcess
 		vk_device_.createDescriptorPoolUnique(
 			vk::DescriptorPoolCreateInfo(
 				vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-				4u, // max sets.
+				1u, // max sets.
 				1u, &vk_descriptor_pool_size));
 
 	// Create descriptor set.
@@ -397,13 +391,12 @@ void BuildPrismRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
 	}
 	// Add barrier between uniform buffer memory copy and result usage in shader.
 	{
-		vk::BufferMemoryBarrier barrier;
-		barrier.srcAccessMask= vk::AccessFlagBits::eTransferWrite;
-		barrier.dstAccessMask= vk::AccessFlagBits::eShaderRead;
-		barrier.size= VK_WHOLE_SIZE;
-		barrier.buffer= *vk_uniform_buffer_;
-		barrier.srcQueueFamilyIndex= vk_queue_family_index_;
-		barrier.dstQueueFamilyIndex= vk_queue_family_index_;
+		const vk::BufferMemoryBarrier barrier(
+			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead,
+			vk_queue_family_index_, vk_queue_family_index_,
+			*vk_uniform_buffer_,
+			0,
+			VK_WHOLE_SIZE);
 
 		command_buffer.pipelineBarrier(
 			vk::PipelineStageFlagBits::eTransfer,

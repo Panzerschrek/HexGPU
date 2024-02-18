@@ -163,7 +163,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 			vk_device_.createDescriptorPoolUnique(
 				vk::DescriptorPoolCreateInfo(
 					vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-					4u, // max sets.
+					1u, // max sets.
 					1u, &descriptor_pool_size));
 	}
 

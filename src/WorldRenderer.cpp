@@ -247,7 +247,7 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan, WorldProcessor& world_
 		vk_device_.createDescriptorPoolUnique(
 			vk::DescriptorPoolCreateInfo(
 				vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-				4u, // max sets.
+				1u, // max sets.
 				1u, &descriptor_pool_size));
 
 	// Create descriptor set.

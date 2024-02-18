@@ -1,7 +1,7 @@
 #pragma once
+#include "BuildPrismRenderer.hpp"
 #include "CameraController.hpp"
 #include "SystemWindow.hpp"
-#include "WindowVulkan.hpp"
 #include "WorldRenderer.hpp"
 #include <chrono>
 
@@ -16,7 +16,6 @@ public:
 	// Returns false on quit
 	bool Loop();
 
-
 private:
 	using Clock= std::chrono::steady_clock;
 
@@ -24,6 +23,8 @@ private:
 	WindowVulkan window_vulkan_;
 	WorldProcessor world_processor_;
 	WorldRenderer world_renderer_;
+	BuildPrismRenderer build_prism_renderer_;
+
 	CameraController camera_controller_;
 
 	const Clock::time_point init_time_;

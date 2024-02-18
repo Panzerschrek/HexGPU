@@ -23,4 +23,17 @@ inline BlockType StringToBlockType(const std::string_view s)
 	return BlockType::Unknown;
 }
 
+// If this changed, GLSL code must be changed too!
+enum class Direction : uint8_t
+{
+	Up,
+	Down,
+	North,
+	South,
+	NorthEast,
+	SouthEast,
+	NorthWest,
+	SouthWest,
+};
+
 } // namespace HexGPU

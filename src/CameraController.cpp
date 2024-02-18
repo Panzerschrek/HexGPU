@@ -105,4 +105,12 @@ m_Vec3 CameraController::GetCameraPosition() const
 	return pos_;
 }
 
+m_Vec3 CameraController::GetCameraDirection() const
+{
+	const float elevation_sin= std::sin(elevation_);
+	const float elevation_cos= std::cos(elevation_);
+
+	return m_Vec3(-std::sin(azimuth_) * elevation_cos, +std::cos(azimuth_) * elevation_cos, elevation_sin);
+}
+
 } // namespace HexGPU

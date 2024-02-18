@@ -32,12 +32,23 @@ public:
 	};
 
 private:
+	struct LightBuffer
+	{
+		vk::UniqueBuffer buffer;
+		vk::UniqueDeviceMemory memory;
+	};
+
+private:
 	const vk::Device vk_device_;
 	const uint32_t queue_family_index_;
 
 	vk::UniqueBuffer chunk_data_buffer_;
 	vk::UniqueDeviceMemory chunk_data_buffer_memory_;
 	uint32_t chunk_data_buffer_size_= 0;
+
+	// 2 buffers for updates.
+	LightBuffer light_buffers_[2];
+	uint32_t light_buffer_size_= 0;
 
 	vk::UniqueBuffer player_state_buffer_;
 	vk::UniqueDeviceMemory player_state_buffer_memory_;

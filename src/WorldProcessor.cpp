@@ -75,6 +75,42 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 		vk_device_.unmapMemory(*chunk_data_buffer_memory_);
 	}
 
+	// Create light buffers.
+	light_buffer_size_= c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1];
+	for(uint32_t i= 0; i < 2; ++i)
+	{
+		light_buffers_[i].buffer=
+			vk_device_.createBufferUnique(
+				vk::BufferCreateInfo(
+					vk::BufferCreateFlags(),
+					light_buffer_size_,
+					vk::BufferUsageFlagBits::eStorageBuffer));
+
+		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*light_buffers_[i].buffer);
+
+		const auto memory_properties= window_vulkan.GetMemoryProperties();
+
+		vk::MemoryAllocateInfo memory_allocate_info(buffer_memory_requirements.size);
+		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
+		{
+			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
+				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags() &&
+				// TODO - avoid making host visible.
+				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible) != vk::MemoryPropertyFlags() &&
+				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent) != vk::MemoryPropertyFlags())
+				memory_allocate_info.memoryTypeIndex= i;
+		}
+
+		light_buffers_[i].memory= vk_device_.allocateMemoryUnique(memory_allocate_info);
+		vk_device_.bindBufferMemory(*light_buffers_[i].buffer, *light_buffers_[i].memory, 0u);
+
+		// Fill the buffer with zeros to prevent later warnings.
+		void* data_gpu_side= nullptr;
+		vk_device_.mapMemory(*light_buffers_[i].memory, 0u, memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_side);
+		std::memset(data_gpu_side, 0, light_buffer_size_);
+		vk_device_.unmapMemory(*light_buffers_[i].memory);
+	}
+
 	// Create player state buffer.
 	{
 		player_state_buffer_=

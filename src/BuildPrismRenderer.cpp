@@ -136,6 +136,7 @@ BuildPrismRenderer::BuildPrismRenderer(WindowVulkan& window_vulkan, WorldProcess
 		{
 			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
 				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags() &&
+				// TODO - avoid making host visible.
 				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible) != vk::MemoryPropertyFlags() &&
 				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent) != vk::MemoryPropertyFlags())
 				vk_memory_allocate_info.memoryTypeIndex= i;

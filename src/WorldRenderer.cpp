@@ -45,8 +45,8 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan, WorldProcessor& world_
 	, world_textures_manager_(window_vulkan)
 {
 	// Create shaders
-	shader_vert_= CreateShader(vk_device_, ShaderNames::triangle_vert);
-	shader_frag_= CreateShader(vk_device_, ShaderNames::triangle_frag);
+	shader_vert_= CreateShader(vk_device_, ShaderNames::world_vert);
+	shader_frag_= CreateShader(vk_device_, ShaderNames::world_frag);
 
 	// Create texture sampler
 	vk_texture_sampler_=

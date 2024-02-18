@@ -176,12 +176,16 @@ void main()
 {
 	UpdateBuildPos();
 
+	// Perform building/destroying.
+	// Update build pos if building/destroying was triggered.
 	if(build_triggered != uint8_t(0) && IsInWorldBorders(build_pos.xyz))
 	{
 		chunks_data[GetBlockFullAddress(build_pos.xyz)]= c_block_type_brick;
+		UpdateBuildPos();
 	}
 	if(destroy_triggered != uint8_t(0) && IsInWorldBorders(destroy_pos.xyz))
 	{
 		chunks_data[GetBlockFullAddress(destroy_pos.xyz)]= c_block_type_air;
+		UpdateBuildPos();
 	}
 }

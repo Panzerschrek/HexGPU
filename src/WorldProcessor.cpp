@@ -588,7 +588,7 @@ void WorldProcessor::Update(
 	// Player update is single-threaded.
 	command_buffer.dispatch(1, 1, 1);
 
-	// Create barrier between player update and world later usage.
+	// Create barrier between world changes in player update and world later usage.
 	// TODO - check this is correct.
 	{
 		const vk::BufferMemoryBarrier barrier(
@@ -684,13 +684,13 @@ void WorldProcessor::UpdateLight(const vk::CommandBuffer command_buffer) const
 			command_buffer.dispatch(c_chunk_width, c_chunk_width , c_chunk_height);
 		}
 
-		// Create barrier between light buffer update and its later usage.
+		// Create barrier between destination light buffer update and its later usage.
 		// TODO - check this is correct.
 		{
 			const vk::BufferMemoryBarrier barrier(
 				vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 				queue_family_index_, queue_family_index_,
-				*chunk_data_buffer_,
+				*light_buffers_[i ^ 1].buffer,
 				0,
 				VK_WHOLE_SIZE);
 

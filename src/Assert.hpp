@@ -7,7 +7,7 @@
 #define HEX_ASSERT(x) \
 	{ assert(x); }
 #else
-#define HEX_ASSERT(x) { (void)x; }
+#define HEX_ASSERT(x) { (void)(x); }
 #endif
 
-#define HEX_UNUSED(x) { (void)x; }
+#define HEX_UNUSED(x) { (void)(x); }

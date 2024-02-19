@@ -57,14 +57,14 @@ void main()
 	uint8_t block_value= chunks_data[block_address];
 	uint8_t optical_density= c_block_optical_density_table[int(block_value)];
 
-	uint8_t own_light= c_block_own_light_table[int(block_value)];
+	uint8_t own_fire_light= c_block_own_light_table[int(block_value)];
 
 	uint8_t result_light= uint8_t(0);
 	if(optical_density == c_optical_density_solid)
 	{
 		// For solid blocks just set its light to own light (determined by block type).
 		// This allows to avoid reading adjusted light values and stops light propagation through walls.
-		result_light= own_light;
+		result_light= own_fire_light;
 	}
 	else
 	{
@@ -91,9 +91,33 @@ void main()
 
 		// Result light for non-solid block is maximum adjusted block light minus one.
 		// But it can't be less than block own light.
-		int result_fire_light= max(int(own_light), max(max_adjusted_fire_light - 1, 0));
+		int result_fire_light= max(int(own_fire_light), max(max_adjusted_fire_light - 1, 0));
 
-		int result_sky_light= 10 << c_sky_light_shift;
+		int result_sky_light= 0;
+		if(z == c_chunk_height - 1)
+		{
+			// Highest blocks recieve maximum sky light.
+			result_sky_light= c_max_sky_light << c_sky_light_shift;
+		}
+		else if((light_value_up >> c_sky_light_shift) == c_max_sky_light)
+		{
+			// Sky light with highest value propagates down without losses.
+			result_sky_light= c_max_sky_light << c_sky_light_shift;
+		}
+		else
+		{
+			// Propagate sky light with less than maximum intensity like fire light.
+			int max_adjusted_sky_light=
+				max(
+					max(
+						max(light_value_up    >> c_sky_light_shift, light_value_down  >> c_sky_light_shift),
+						max(light_value_north >> c_sky_light_shift, light_value_south >> c_sky_light_shift)),
+					max(
+						max(light_value_north_east >> c_sky_light_shift, light_value_south_east >> c_sky_light_shift),
+						max(light_value_north_west >> c_sky_light_shift, light_value_south_west >> c_sky_light_shift)));
+
+			result_sky_light= max(max_adjusted_sky_light - 1, 0) << c_sky_light_shift;
+		}
 
 		result_light= uint8_t(result_fire_light | result_sky_light);
 	}

@@ -28,7 +28,7 @@ void main()
 
 	// Use linear light function - using such function allows to lit more area.
 	f_light.x= float(int(tex_coord.w) & c_fire_light_mask) / 9.0 + 0.05;
-	f_light.y= float(int(tex_coord.w) >> c_sky_light_shift) / 9.0 + 0.05;
+	f_light.y= float(int(tex_coord.w) >> c_sky_light_shift) / 16.0 + 0.05;
 
 	gl_Position= view_matrix * vec4(pos, 1.0);
 }

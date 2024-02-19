@@ -29,8 +29,9 @@ layout(binding= 2, std430) buffer chunk_output_light_buffer
 
 void main()
 {
-	int chunk_index= chunk_position[0] + chunk_position[1] * c_chunk_matrix_size[0];
-	int chunk_data_offset= chunk_index * c_chunk_volume;
+	// Each thread of this shader calculates light for one block.
+	// Input light buffer is used - for light fetches of adjusted blocks.
+	// Output light buffer is written only for this block.
 
 	ivec3 invocation= ivec3(gl_GlobalInvocationID);
 
@@ -61,7 +62,7 @@ void main()
 	uint8_t result_light= uint8_t(0);
 	if(optical_density == c_optical_density_solid)
 	{
-		// For solid blocks just set light to on light.
+		// For solid blocks just set its light to own light (determined by block type).
 		// This allows to avoid reading adjusted light values and stops light propagation through walls.
 		result_light= own_light;
 	}
@@ -93,5 +94,7 @@ void main()
 		result_light= uint8_t(max(int(own_light), max(max_adjusted_light - 1, 0)));
 	}
 
+	int chunk_index= chunk_position[0] + chunk_position[1] * c_chunk_matrix_size[0];
+	int chunk_data_offset= chunk_index * c_chunk_volume;
 	output_light[chunk_data_offset + ChunkBlockAddress(invocation.x, invocation.y, invocation.z)]= result_light;
 }

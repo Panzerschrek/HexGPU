@@ -378,7 +378,10 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 			{
 				if((image_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
 					(memory_properties_.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
+				{
 					memory_allocate_info.memoryTypeIndex= i;
+					break;
+				}
 			}
 
 			framebuffers_[i].depth_image_memory= vk_device_->allocateMemoryUnique(memory_allocate_info);

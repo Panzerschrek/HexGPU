@@ -70,21 +70,15 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
 		{
 			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags() &&
-				// TODO - avoid making host visible.
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible) != vk::MemoryPropertyFlags() &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent) != vk::MemoryPropertyFlags())
+				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
+			{
 				memory_allocate_info.memoryTypeIndex= i;
+				break;
+			}
 		}
 
 		chunk_data_buffer_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);
 		vk_device_.bindBufferMemory(*chunk_data_buffer_, *chunk_data_buffer_memory_, 0u);
-
-		// Fill the buffer with zeros to prevent later warnings.
-		void* data_gpu_side= nullptr;
-		vk_device_.mapMemory(*chunk_data_buffer_memory_, 0u, memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_side);
-		std::memset(data_gpu_side, 0, chunk_data_buffer_size_);
-		vk_device_.unmapMemory(*chunk_data_buffer_memory_);
 	}
 
 	// Create light buffers.
@@ -110,13 +104,16 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 				// TODO - avoid making host visible.
 				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible) != vk::MemoryPropertyFlags() &&
 				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent) != vk::MemoryPropertyFlags())
+			{
 				memory_allocate_info.memoryTypeIndex= i;
+				break;
+			}
 		}
 
 		light_buffers_[i].memory= vk_device_.allocateMemoryUnique(memory_allocate_info);
 		vk_device_.bindBufferMemory(*light_buffers_[i].buffer, *light_buffers_[i].memory, 0u);
 
-		// Fill the buffer with zeros to prevent later warnings.
+		// Fill the buffer with initial zeros.
 		void* data_gpu_side= nullptr;
 		vk_device_.mapMemory(*light_buffers_[i].memory, 0u, memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_side);
 		std::memset(data_gpu_side, 0, light_buffer_size_);
@@ -144,7 +141,10 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 				// TODO - avoid making host visible.
 				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible) != vk::MemoryPropertyFlags() &&
 				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent) != vk::MemoryPropertyFlags())
+			{
 				memory_allocate_info.memoryTypeIndex= i;
+				break;
+			}
 		}
 
 		player_state_buffer_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);

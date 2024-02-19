@@ -34,6 +34,22 @@ const uint8_t c_block_optical_density_table[c_num_block_types]=
 	c_optical_density_solid  // sand
 );
 
+const uint8_t c_block_own_light_table[c_num_block_types]=
+	uint8_t[c_num_block_types]
+(
+	uint8_t(0), // air
+	uint8_t(0), // spherical block
+	uint8_t(0), // stone
+	uint8_t(0), // soil
+	uint8_t(0), // wood
+	uint8_t(0), // grass
+	uint8_t(0), // brick
+	uint8_t(0), // foliage
+	uint8_t(15), // fire stone
+	uint8_t(0), // water
+	uint8_t(0)  // sand
+);
+
 // If this changed, TexturesTable.hpp" must be changed too!
 // "r" - top, "g" - bottom, "b" - sides.
 // TODO - support more precise mapping - individually for all 6 sides?

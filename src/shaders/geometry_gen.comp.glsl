@@ -51,9 +51,6 @@ const int c_indices_per_quad= 6;
 
 const int c_max_quads_per_chunk= 65536 / 4;
 
-const int c_max_global_x= (c_chunk_matrix_size[0] << c_chunk_width_log2) - 1;
-const int c_max_global_y= (c_chunk_matrix_size[1] << c_chunk_width_log2) - 1;
-
 void main()
 {
 	int chunk_index= chunk_position[0] + chunk_position[1] * c_chunk_matrix_size[0];

@@ -19,6 +19,9 @@ void main()
 {
 	f_tex_coord= tex_coord.xy * c_tex_coord_scale;
 	f_tex_index= tex_coord.z;
-	f_light= 0.2 + float(tex_coord.w) / 15.0;
+
+	// Use linear light function - using such function allows to lit more area.
+	f_light= float(tex_coord.w) / 9.0 + 0.05;
+
 	gl_Position= view_matrix * vec4(pos, 1.0);
 }

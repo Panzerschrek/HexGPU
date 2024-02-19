@@ -50,6 +50,19 @@ bool Host::Loop()
 			if(event.button.button == SDL_BUTTON_RIGHT)
 				build_triggered= true;
 		}
+		if(event.type == SDL_MOUSEWHEEL)
+		{
+			if(event.wheel.y > 0)
+			{
+				build_block_type_= BlockType((int32_t(build_block_type_) + 1) % int32_t(BlockType::NumBlockTypes));
+				if(build_block_type_ == BlockType::Air)
+					build_block_type_= BlockType(int32_t(BlockType::Air) + 1);
+			}
+			if(event.wheel.y < 0)
+			{
+				build_block_type_= BlockType((int32_t(build_block_type_) + int32_t(BlockType::NumBlockTypes) - 1) % int32_t(BlockType::NumBlockTypes));
+			}
+		}
 	}
 
 	camera_controller_.Update(dt_s, system_window_.GetKeyboardState());
@@ -61,6 +74,7 @@ bool Host::Loop()
 		command_buffer,
 		camera_controller_.GetCameraPosition(),
 		camera_controller_.GetCameraDirection(),
+		build_block_type_,
 		build_triggered,
 		destroy_triggered);
 

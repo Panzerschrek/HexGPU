@@ -1,4 +1,5 @@
 #pragma once
+#include "BlockType.hpp"
 #include "Vec.hpp"
 #include "WindowVulkan.hpp"
 
@@ -15,6 +16,7 @@ public:
 		vk::CommandBuffer command_buffer,
 		const m_Vec3& player_pos,
 		const m_Vec3& player_dir,
+		BlockType build_block_type,
 		bool build_triggered,
 		bool destroy_triggered);
 

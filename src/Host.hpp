@@ -27,6 +27,8 @@ private:
 
 	CameraController camera_controller_;
 
+	BlockType build_block_type_= BlockType::Stone;
+
 	const Clock::time_point init_time_;
 	Clock::time_point prev_tick_time_;
 

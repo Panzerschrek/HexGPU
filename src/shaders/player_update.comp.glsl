@@ -26,9 +26,10 @@ layout(push_constant) uniform uniforms_block
 	vec4 player_pos;
 	vec4 player_dir;
 	// Use "uint8_t", because "bool" in GLSL has size different from C++.
+	uint8_t build_block_type;
 	uint8_t build_triggered;
 	uint8_t destroy_triggered;
-	uint8_t reserved[2];
+	uint8_t reserved[1];
 };
 
 uint8_t GetBuildDirection(ivec3 last_grid_pos, ivec3 grid_pos)
@@ -158,7 +159,7 @@ void main()
 	// Update build pos if building/destroying was triggered.
 	if(build_triggered != uint8_t(0) && IsInWorldBorders(build_pos.xyz))
 	{
-		chunks_data[GetBlockFullAddress(build_pos.xyz)]= c_block_type_fire_stone;
+		chunks_data[GetBlockFullAddress(build_pos.xyz)]= build_block_type;
 		UpdateBuildPos();
 	}
 	if(destroy_triggered != uint8_t(0) && IsInWorldBorders(destroy_pos.xyz))

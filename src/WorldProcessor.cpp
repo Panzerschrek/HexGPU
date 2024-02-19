@@ -39,9 +39,10 @@ struct PlayerUpdateUniforms
 	float reserved0= 0.0f;
 	m_Vec3 player_dir;
 	float reserved1= 0.0f;
+	BlockType build_block_type= BlockType::Stone;
 	bool build_triggered= false;
 	bool destroy_triggered= false;
-	uint8_t reserved2[2];
+	uint8_t reserved2[1];
 };
 
 } // namespace
@@ -501,6 +502,7 @@ void WorldProcessor::Update(
 	const vk::CommandBuffer command_buffer,
 	const m_Vec3& player_pos,
 	const m_Vec3& player_dir,
+	const BlockType build_block_type,
 	const bool build_triggered,
 	const bool destroy_triggered)
 {
@@ -573,6 +575,7 @@ void WorldProcessor::Update(
 	PlayerUpdateUniforms player_update_uniforms;
 	player_update_uniforms.player_pos= player_pos;
 	player_update_uniforms.player_dir= player_dir;
+	player_update_uniforms.build_block_type= build_block_type;
 	player_update_uniforms.build_triggered= build_triggered;
 	player_update_uniforms.destroy_triggered= destroy_triggered;
 

@@ -298,8 +298,8 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 				},
 				{
 					*player_update_descriptor_set_,
-					0u,
 					1u,
+					0u,
 					1u,
 					vk::DescriptorType::eStorageBuffer,
 					nullptr,

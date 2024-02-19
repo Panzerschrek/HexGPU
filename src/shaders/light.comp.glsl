@@ -80,18 +80,22 @@ void main()
 		int light_value_north_west= int(input_light[block_address_north_west]);
 		int light_value_south_west= int(input_light[block_address_south_west]);
 
-		int max_adjusted_light=
+		int max_adjusted_fire_light=
 			max(
 				max(
-					max(light_value_up, light_value_down),
-					max(light_value_north, light_value_south)),
+					max(light_value_up    & c_fire_light_mask, light_value_down  & c_fire_light_mask),
+					max(light_value_north & c_fire_light_mask, light_value_south & c_fire_light_mask)),
 				max(
-					max(light_value_north_east, light_value_south_east),
-					max(light_value_north_west, light_value_south_west)));
+					max(light_value_north_east & c_fire_light_mask, light_value_south_east & c_fire_light_mask),
+					max(light_value_north_west & c_fire_light_mask, light_value_south_west & c_fire_light_mask)));
 
 		// Result light for non-solid block is maximum adjusted block light minus one.
 		// But it can't be less than block own light.
-		result_light= uint8_t(max(int(own_light), max(max_adjusted_light - 1, 0)));
+		int result_fire_light= max(int(own_light), max(max_adjusted_fire_light - 1, 0));
+
+		int result_sky_light= 10 << c_sky_light_shift;
+
+		result_light= uint8_t(result_fire_light | result_sky_light);
 	}
 
 	int chunk_index= chunk_position[0] + chunk_position[1] * c_chunk_matrix_size[0];

@@ -1,5 +1,11 @@
 #version 450
 
+#extension GL_GOOGLE_include_directive : require
+#extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
+#extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
+
+#include "inc/constants.glsl"
+
 layout(push_constant) uniform uniforms_block
 {
 	mat4 view_matrix;
@@ -8,7 +14,7 @@ layout(push_constant) uniform uniforms_block
 layout(location=0) in vec3 pos;
 layout(location=1) in vec4 tex_coord;
 
-layout(location= 0) out float f_light;
+layout(location= 0) out vec2 f_light;
 layout(location= 1) out vec2 f_tex_coord;
 layout(location= 2) out flat float f_tex_index;
 
@@ -21,7 +27,8 @@ void main()
 	f_tex_index= tex_coord.z;
 
 	// Use linear light function - using such function allows to lit more area.
-	f_light= float(tex_coord.w) / 9.0 + 0.05;
+	f_light.x= float(int(tex_coord.w) & c_fire_light_mask) / 9.0 + 0.05;
+	f_light.y= float(int(tex_coord.w) >> c_sky_light_shift) / 9.0 + 0.05;
 
 	gl_Position= view_matrix * vec4(pos, 1.0);
 }

@@ -19,4 +19,8 @@ const int c_chunk_matrix_size[2]= int[2](4, 4);
 const int c_max_global_x= (c_chunk_matrix_size[0] << c_chunk_width_log2) - 1;
 const int c_max_global_y= (c_chunk_matrix_size[1] << c_chunk_width_log2) - 1;
 
+const int c_fire_light_mask= 0x0F;
+const int c_sky_light_max= 0xF0;
+const int c_sky_light_shift= 4;
+
 #endif // CONSTANTS_GLSL_HEADER

@@ -51,7 +51,8 @@ private:
 	vk::UniqueDeviceMemory chunk_data_buffer_memory_;
 	uint32_t chunk_data_buffer_size_= 0;
 
-	// 2 buffers for updates.
+	// Use buffering for light update.
+	// On each step data is read from one of them and written into another.
 	LightBuffer light_buffers_[2];
 	uint32_t light_buffer_size_= 0;
 

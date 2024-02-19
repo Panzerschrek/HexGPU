@@ -648,7 +648,8 @@ uint32_t WorldProcessor::GetLightDataBufferSize() const
 
 void WorldProcessor::UpdateLight(const vk::CommandBuffer command_buffer) const
 {
-	// Run always light update steps in pairs.
+	// Always run light update steps in pairs.
+	// Doing so we ensure that both buffers are updated each world update step.
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *light_update_pipeline_);
 	for(uint32_t i= 0; i < 2; ++i)
 	{

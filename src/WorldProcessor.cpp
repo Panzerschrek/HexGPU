@@ -295,7 +295,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 	}
 
 	// Create light update pipeline.
-	light_update_pipeline_= vk_device_.createComputePipelineUnique(
+	light_update_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
 		nullptr,
 		vk::ComputePipelineCreateInfo(
 			vk::PipelineCreateFlags(),
@@ -304,7 +304,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 				vk::ShaderStageFlagBits::eCompute,
 				*light_update_shader_,
 				"main"),
-			*light_update_pipeline_layout_));
+			*light_update_pipeline_layout_)));
 
 	// Create light update descriptor set pool.
 	{

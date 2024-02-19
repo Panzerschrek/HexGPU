@@ -99,9 +99,9 @@ void main()
 			// Highest blocks recieve maximum sky light.
 			result_sky_light= c_max_sky_light << c_sky_light_shift;
 		}
-		else if((light_value_up >> c_sky_light_shift) == c_max_sky_light)
+		else if((light_value_up >> c_sky_light_shift) == c_max_sky_light && block_value == c_block_type_air)
 		{
-			// Sky light with highest value propagates down without losses.
+			// Sky light with highest value propagates down without losses, but only for air.
 			result_sky_light= c_max_sky_light << c_sky_light_shift;
 		}
 		else

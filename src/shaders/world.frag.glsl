@@ -10,5 +10,7 @@ layout(location = 0) out vec4 out_color;
 
 void main()
 {
-	out_color= f_light * texture(texture_image, vec3(f_tex_coord, f_tex_index));
+	vec4 tex_value= texture(texture_image, vec3(f_tex_coord, f_tex_index));
+	// tex_value.rgb= vec3(0.5, 0.5, 0.5);
+	out_color= vec4(f_light * tex_value.rgb, 1.0);
 }

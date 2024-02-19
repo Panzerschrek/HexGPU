@@ -246,7 +246,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 	}
 
 	// Create light update shader.
-	light_update_shader_= CreateShader(vk_device_, ShaderNames::light_comp);
+	light_update_shader_= CreateShader(vk_device_, ShaderNames::light_update_comp);
 
 	// Create light update descriptor set layout.
 	{

@@ -92,7 +92,7 @@ bool Host::Loop()
 	const Clock::time_point tick_end_time= Clock::now();
 	const auto frame_dt= tick_end_time - tick_start_time;
 
-	const float max_fps= 20.0f;
+	const float max_fps= 120.0f;
 
 	const std::chrono::milliseconds min_frame_duration(uint32_t(1000.0f / max_fps));
 	if(frame_dt <= min_frame_duration)

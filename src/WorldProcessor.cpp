@@ -1,6 +1,7 @@
 #include "WorldProcessor.hpp"
 #include "Constants.hpp"
 #include "ShaderList.hpp"
+#include "VulkanUtils.hpp"
 
 namespace HexGPU
 {
@@ -145,7 +146,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 	}
 
 	// Create world generation pipeline.
-	world_gen_pipeline_= vk_device_.createComputePipelineUnique(
+	world_gen_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
 		nullptr,
 		vk::ComputePipelineCreateInfo(
 			vk::PipelineCreateFlags(),
@@ -154,7 +155,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 				vk::ShaderStageFlagBits::eCompute,
 				*world_gen_shader_,
 				"main"),
-			*world_gen_pipeline_layout_));
+			*world_gen_pipeline_layout_)));
 
 	// Create world generation descriptor set pool.
 	{
@@ -241,7 +242,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 	}
 
 	// Create player update pipeline.
-	player_update_pipeline_= vk_device_.createComputePipelineUnique(
+	player_update_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
 		nullptr,
 		vk::ComputePipelineCreateInfo(
 			vk::PipelineCreateFlags(),
@@ -250,7 +251,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 				vk::ShaderStageFlagBits::eCompute,
 				*player_update_shader_,
 				"main"),
-			*player_update_pipeline_layout_));
+			*player_update_pipeline_layout_)));
 
 	// Create player update descriptor set pool.
 	{

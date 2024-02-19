@@ -2,6 +2,7 @@
 #include "Assert.hpp"
 #include "Constants.hpp"
 #include "ShaderList.hpp"
+#include "VulkanUtils.hpp"
 #include <cmath>
 #include <cstring>
 
@@ -186,7 +187,7 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan, WorldProcessor& world_
 		1u, &pipeline_color_blend_attachment_state);
 
 	pipeline_=
-		vk_device_.createGraphicsPipelineUnique(
+		UnwrapPipeline(vk_device_.createGraphicsPipelineUnique(
 			nullptr,
 			vk::GraphicsPipelineCreateInfo(
 				vk::PipelineCreateFlags(),
@@ -203,7 +204,7 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan, WorldProcessor& world_
 				nullptr,
 				*pipeline_layout_,
 				window_vulkan.GetRenderPass(),
-				0u));
+				0u)));
 
 	const auto memory_properties= window_vulkan.GetMemoryProperties();
 

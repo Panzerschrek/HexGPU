@@ -2,6 +2,7 @@
 #include "Assert.hpp"
 #include "BlockType.hpp"
 #include "ShaderList.hpp"
+#include "VulkanUtils.hpp"
 
 
 namespace HexGPU
@@ -309,7 +310,7 @@ BuildPrismRenderer::BuildPrismRenderer(WindowVulkan& window_vulkan, WorldProcess
 			1u, &pipeline_color_blend_attachment_state);
 
 		pipeline_=
-			vk_device_.createGraphicsPipelineUnique(
+			UnwrapPipeline(vk_device_.createGraphicsPipelineUnique(
 				nullptr,
 				vk::GraphicsPipelineCreateInfo(
 					vk::PipelineCreateFlags(),
@@ -326,7 +327,7 @@ BuildPrismRenderer::BuildPrismRenderer(WindowVulkan& window_vulkan, WorldProcess
 					nullptr,
 					*pipeline_layout_,
 					window_vulkan.GetRenderPass(),
-					0u));
+					0u)));
 	}
 
 	// Create descriptor set pool.

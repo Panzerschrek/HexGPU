@@ -2,6 +2,7 @@
 #include "Constants.hpp"
 #include "Assert.hpp"
 #include "ShaderList.hpp"
+#include "VulkanUtils.hpp"
 
 namespace HexGPU
 {
@@ -160,7 +161,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 	}
 
 	// Create pipeline.
-	geometry_gen_pipeline_= vk_device_.createComputePipelineUnique(
+	geometry_gen_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
 		nullptr,
 		vk::ComputePipelineCreateInfo(
 			vk::PipelineCreateFlags(),
@@ -169,7 +170,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 				vk::ShaderStageFlagBits::eCompute,
 				*geometry_gen_shader_,
 				"main"),
-			*geometry_gen_pipeline_layout_));
+			*geometry_gen_pipeline_layout_)));
 
 	// Create descriptor set pool.
 	{

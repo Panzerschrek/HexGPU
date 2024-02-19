@@ -23,7 +23,6 @@ public:
 	uint32_t GetQueueFamilyIndex() const;
 	vk::RenderPass GetRenderPass() const; // Render pass for rendering directly into screen.
 	vk::PhysicalDeviceMemoryProperties GetMemoryProperties() const;
-	vk::PhysicalDevice GetPhysicalDevice() const;
 
 private:
 	struct CommandBufferData

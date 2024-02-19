@@ -558,9 +558,4 @@ vk::PhysicalDeviceMemoryProperties WindowVulkan::GetMemoryProperties() const
 	return memory_properties_;
 }
 
-vk::PhysicalDevice WindowVulkan::GetPhysicalDevice() const
-{
-	return physical_device_;
-}
-
 } // namespace HexGPU

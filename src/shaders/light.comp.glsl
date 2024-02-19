@@ -30,7 +30,7 @@ layout(binding= 2, std430) buffer chunk_output_light_buffer
 void main()
 {
 	// Each thread of this shader calculates light for one block.
-	// Input light buffer is used - for light fetches of adjusted blocks.
+	// Input light buffer is used - for light fetches of adjacent blocks.
 	// Output light buffer is written only for this block.
 
 	ivec3 invocation= ivec3(gl_GlobalInvocationID);
@@ -57,20 +57,20 @@ void main()
 	uint8_t block_value= chunks_data[block_address];
 	uint8_t optical_density= c_block_optical_density_table[int(block_value)];
 
-	uint8_t own_light= c_block_own_light_table[int(block_value)];
+	uint8_t own_fire_light= c_block_own_light_table[int(block_value)];
 
 	uint8_t result_light= uint8_t(0);
 	if(optical_density == c_optical_density_solid)
 	{
 		// For solid blocks just set its light to own light (determined by block type).
-		// This allows to avoid reading adjusted light values and stops light propagation through walls.
-		result_light= own_light;
+		// This allows to avoid reading adjacent light values and stops light propagation through walls.
+		result_light= own_fire_light;
 	}
 	else
 	{
 		// Non-solid block.
 
-		// Read adjusted light and find maximum.
+		// Read adjacent light and find maximum.
 		int light_value_up= int(input_light[block_address_up]);
 		int light_value_down= int(input_light[block_address_down]);
 		int light_value_north= int(input_light[block_address_north]);
@@ -80,18 +80,46 @@ void main()
 		int light_value_north_west= int(input_light[block_address_north_west]);
 		int light_value_south_west= int(input_light[block_address_south_west]);
 
-		int max_adjusted_light=
+		int max_adjacent_fire_light=
 			max(
 				max(
-					max(light_value_up, light_value_down),
-					max(light_value_north, light_value_south)),
+					max(light_value_up    & c_fire_light_mask, light_value_down  & c_fire_light_mask),
+					max(light_value_north & c_fire_light_mask, light_value_south & c_fire_light_mask)),
 				max(
-					max(light_value_north_east, light_value_south_east),
-					max(light_value_north_west, light_value_south_west)));
+					max(light_value_north_east & c_fire_light_mask, light_value_south_east & c_fire_light_mask),
+					max(light_value_north_west & c_fire_light_mask, light_value_south_west & c_fire_light_mask)));
 
-		// Result light for non-solid block is maximum adjusted block light minus one.
+		// Result light for non-solid block is maximum adjacent block light minus one.
 		// But it can't be less than block own light.
-		result_light= uint8_t(max(int(own_light), max(max_adjusted_light - 1, 0)));
+		int result_fire_light= max(int(own_fire_light), max(max_adjacent_fire_light - 1, 0));
+
+		int result_sky_light= 0;
+		if(z == c_chunk_height - 1)
+		{
+			// Highest blocks recieve maximum sky light.
+			result_sky_light= c_max_sky_light << c_sky_light_shift;
+		}
+		else if((light_value_up >> c_sky_light_shift) == c_max_sky_light)
+		{
+			// Sky light with highest value propagates down without losses.
+			result_sky_light= c_max_sky_light << c_sky_light_shift;
+		}
+		else
+		{
+			// Propagate sky light with less than maximum intensity like fire light.
+			int max_adjacent_sky_light=
+				max(
+					max(
+						max(light_value_up    >> c_sky_light_shift, light_value_down  >> c_sky_light_shift),
+						max(light_value_north >> c_sky_light_shift, light_value_south >> c_sky_light_shift)),
+					max(
+						max(light_value_north_east >> c_sky_light_shift, light_value_south_east >> c_sky_light_shift),
+						max(light_value_north_west >> c_sky_light_shift, light_value_south_west >> c_sky_light_shift)));
+
+			result_sky_light= max(max_adjacent_sky_light - 1, 0) << c_sky_light_shift;
+		}
+
+		result_light= uint8_t(result_fire_light | result_sky_light);
 	}
 
 	int chunk_index= chunk_position[0] + chunk_position[1] * c_chunk_matrix_size[0];

@@ -52,7 +52,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 				vk::BufferCreateInfo(
 					vk::BufferCreateFlags(),
 					quads_data_size,
-					vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eStorageBuffer));
+					vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst));
 
 		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*vertex_buffer_);
 
@@ -62,9 +62,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
 		{
 			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags() &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible) != vk::MemoryPropertyFlags() &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent) != vk::MemoryPropertyFlags())
+				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
 			{
 				memory_allocate_info.memoryTypeIndex= i;
 				break;
@@ -73,13 +71,6 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 
 		vertex_buffer_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);
 		vk_device_.bindBufferMemory(*vertex_buffer_, *vertex_buffer_memory_, 0u);
-
-		// Fill the buffer with zeros (to prevent warnings).
-		// Anyway this buffer will be filled by the shader later.
-		void* vertex_data_gpu_size= nullptr;
-		vk_device_.mapMemory(*vertex_buffer_memory_, 0u, memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &vertex_data_gpu_size);
-		std::memset(vertex_data_gpu_size, 0, quads_data_size);
-		vk_device_.unmapMemory(*vertex_buffer_memory_);
 	}
 
 	// Create draw indirect buffer.
@@ -274,6 +265,30 @@ WorldGeometryGenerator::~WorldGeometryGenerator()
 
 void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer)
 {
+	if(!vertex_buffer_initially_filled_)
+	{
+		// Fill initially vertex buffer with zeros.
+		// Do this only to supress warnings.
+
+		vertex_buffer_initially_filled_= true;
+		command_buffer.fillBuffer(*vertex_buffer_, 0, vertex_buffer_num_quads_ * sizeof(QuadVertices), 0);
+
+		const vk::BufferMemoryBarrier barrier(
+			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			*vertex_buffer_,
+			0,
+			VK_WHOLE_SIZE);
+
+		command_buffer.pipelineBarrier(
+			vk::PipelineStageFlagBits::eTransfer,
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::DependencyFlags(),
+			0, nullptr,
+			1, &barrier,
+			0, nullptr);
+	}
+
 	// Reset draw commands.
 	{
 		vk::DrawIndexedIndirectCommand commands[ c_chunk_matrix_size[0] * c_chunk_matrix_size[1] ];

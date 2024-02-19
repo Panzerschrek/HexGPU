@@ -1,6 +1,5 @@
 Here is the list of futures that needs to be implemented.
 The order represents importance and/or dependency.
-* Fire lighting
 * Sun lighting
 * GPU-side allocator for chunk vertices - in order to allow to some chunks have huge meshes but use not so huge overall vertex buffer
 * Variable number of chunks in the world
@@ -16,6 +15,7 @@ The order represents importance and/or dependency.
 * Fire (that burns some blocks)
 * Player collision against the world
 * More block types
+* More light source blocks
 * Settings
 * Anisotropy textures filtering
 * Run SPIR-V optimizer for compiled shaders

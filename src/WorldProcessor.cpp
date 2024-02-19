@@ -114,6 +114,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 		vk_device_.bindBufferMemory(*light_buffers_[i].buffer, *light_buffers_[i].memory, 0u);
 
 		// Fill the buffer with initial zeros.
+		// TODO - use "command_buffer.fillBuffer"
 		void* data_gpu_side= nullptr;
 		vk_device_.mapMemory(*light_buffers_[i].memory, 0u, memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_side);
 		std::memset(data_gpu_side, 0, light_buffer_size_);
@@ -151,6 +152,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 		vk_device_.bindBufferMemory(*player_state_buffer_, *player_state_buffer_memory_, 0u);
 
 		// Fill the buffer with zeros to prevent later warnings.
+		// TODO - use "command_buffer.fillBuffer"
 		void* data_gpu_side= nullptr;
 		vk_device_.mapMemory(*player_state_buffer_memory_, 0u, memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_side);
 		std::memset(data_gpu_side, 0, sizeof(PlayerState));

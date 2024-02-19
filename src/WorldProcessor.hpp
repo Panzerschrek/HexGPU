@@ -20,6 +20,8 @@ public:
 
 	vk::Buffer GetChunkDataBuffer() const;
 	uint32_t GetChunkDataBufferSize() const;
+	vk::Buffer GetLightDataBuffer() const;
+	uint32_t GetLightDataBufferSize() const;
 
 	vk::Buffer GetPlayerStateBuffer() const;
 
@@ -32,6 +34,16 @@ public:
 	};
 
 private:
+	struct LightBuffer
+	{
+		vk::UniqueBuffer buffer;
+		vk::UniqueDeviceMemory memory;
+	};
+
+private:
+	void UpdateLight(vk::CommandBuffer command_buffer) const;
+
+private:
 	const vk::Device vk_device_;
 	const uint32_t queue_family_index_;
 
@@ -39,19 +51,29 @@ private:
 	vk::UniqueDeviceMemory chunk_data_buffer_memory_;
 	uint32_t chunk_data_buffer_size_= 0;
 
+	// Use buffering for light update.
+	// On each step data is read from one of them and written into another.
+	LightBuffer light_buffers_[2];
+	uint32_t light_buffer_size_= 0;
+
 	vk::UniqueBuffer player_state_buffer_;
 	vk::UniqueDeviceMemory player_state_buffer_memory_;
 
 	vk::UniqueShaderModule world_gen_shader_;
-
 	vk::UniqueDescriptorSetLayout world_gen_decriptor_set_layout_;
 	vk::UniquePipelineLayout world_gen_pipeline_layout_;
 	vk::UniquePipeline world_gen_pipeline_;
 	vk::UniqueDescriptorPool world_gen_descriptor_pool_;
 	vk::UniqueDescriptorSet world_gen_descriptor_set_;
 
-	vk::UniqueShaderModule player_update_shader_;
+	vk::UniqueShaderModule light_update_shader_;
+	vk::UniqueDescriptorSetLayout light_update_decriptor_set_layout_;
+	vk::UniquePipelineLayout light_update_pipeline_layout_;
+	vk::UniquePipeline light_update_pipeline_;
+	vk::UniqueDescriptorPool light_update_descriptor_pool_;
+	vk::UniqueDescriptorSet light_update_descriptor_sets_[2];
 
+	vk::UniqueShaderModule player_update_shader_;
 	vk::UniqueDescriptorSetLayout player_update_decriptor_set_layout_;
 	vk::UniquePipelineLayout player_update_pipeline_layout_;
 	vk::UniquePipeline player_update_pipeline_;

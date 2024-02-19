@@ -8,7 +8,7 @@ layout(push_constant) uniform uniforms_block
 layout(location=0) in vec3 pos;
 layout(location=1) in vec4 tex_coord;
 
-layout(location= 0) out vec4 f_color;
+layout(location= 0) out float f_light;
 layout(location= 1) out vec2 f_tex_coord;
 layout(location= 2) out flat float f_tex_index;
 
@@ -19,5 +19,9 @@ void main()
 {
 	f_tex_coord= tex_coord.xy * c_tex_coord_scale;
 	f_tex_index= tex_coord.z;
+
+	// Use linear light function - using such function allows to lit more area.
+	f_light= float(tex_coord.w) / 9.0 + 0.05;
+
 	gl_Position= view_matrix * vec4(pos, 1.0);
 }

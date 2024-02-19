@@ -5,6 +5,28 @@ int ChunkBlockAddress(int x, int y, int z)
 	return z + (y << c_chunk_height_log2) + (x << (c_chunk_width_log2 + c_chunk_height_log2));
 }
 
+bool IsInWorldBorders(ivec3 pos)
+{
+	return
+		pos.x >= 0 && pos.x < c_chunk_width * c_chunk_matrix_size[0] &&
+		pos.y >= 0 && pos.y < c_chunk_width * c_chunk_matrix_size[1] &&
+		pos.z >= 0 && pos.z < c_chunk_height;
+}
+
+// Block must be in world borders!
+int GetBlockFullAddress(ivec3 pos)
+{
+	int chunk_x= pos.x >> c_chunk_width_log2;
+	int chunk_y= pos.y >> c_chunk_width_log2;
+	int local_x= pos.x & (c_chunk_width - 1);
+	int local_y= pos.y & (c_chunk_width - 1);
+
+	int chunk_index= chunk_x + chunk_y * c_chunk_matrix_size[0];
+	int chunk_data_offset= chunk_index * c_chunk_volume;
+
+	return chunk_data_offset + ChunkBlockAddress(local_x, local_y, pos.z);
+}
+
 // Returns coordinates of a hexagon in given point.
 ivec2 GetHexogonCoord(vec2 pos)
 {

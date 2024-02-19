@@ -17,6 +17,7 @@ namespace GeometryGenShaderBindings
 const uint32_t vertices_buffer= 0;
 const uint32_t draw_indirect_buffer= 1;
 const uint32_t chunk_data_buffer= 2;
+const uint32_t chunk_light_buffer= 3;
 
 }
 
@@ -139,6 +140,13 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 				vk::ShaderStageFlagBits::eCompute,
 				nullptr,
 			},
+			{
+				GeometryGenShaderBindings::chunk_light_buffer,
+				vk::DescriptorType::eStorageBuffer,
+				1u,
+				vk::ShaderStageFlagBits::eCompute,
+				nullptr,
+			},
 		};
 		geometry_gen_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
 			vk::DescriptorSetLayoutCreateInfo(
@@ -174,7 +182,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 
 	// Create descriptor set pool.
 	{
-		const vk::DescriptorPoolSize descriptor_pool_size(vk::DescriptorType::eStorageBuffer, 3u /*num descriptors*/);
+		const vk::DescriptorPoolSize descriptor_pool_size(vk::DescriptorType::eStorageBuffer, 4u /*num descriptors*/);
 		geometry_gen_descriptor_pool_=
 			vk_device_.createDescriptorPoolUnique(
 				vk::DescriptorPoolCreateInfo(
@@ -208,6 +216,11 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 			0u,
 			world_processor_.GetChunkDataBufferSize());
 
+		const vk::DescriptorBufferInfo descriptor_light_buffer_info(
+			world_processor_.GetLightDataBuffer(),
+			0u,
+			world_processor_.GetLightDataBufferSize());
+
 		vk_device_.updateDescriptorSets(
 			{
 				{
@@ -238,6 +251,16 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 					vk::DescriptorType::eStorageBuffer,
 					nullptr,
 					&descriptor_chunk_data_buffer_info,
+					nullptr
+				},
+				{
+					*geometry_gen_descriptor_set_,
+					GeometryGenShaderBindings::chunk_light_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_light_buffer_info,
 					nullptr
 				},
 			},

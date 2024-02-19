@@ -1,4 +1,5 @@
 #include "WorldProcessor.hpp"
+#include "Assert.hpp"
 #include "Constants.hpp"
 #include "ShaderList.hpp"
 #include "VulkanUtils.hpp"
@@ -13,6 +14,15 @@ namespace WorldGenShaderBindings
 {
 
 uint32_t chunk_data_buffer= 0;
+
+}
+
+namespace LightUpdateShaderBindings
+{
+
+uint32_t chunk_data_buffer= 0;
+uint32_t chunk_input_light_buffer= 1;
+uint32_t chunk_output_light_buffer= 2;
 
 }
 
@@ -74,6 +84,42 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 		vk_device_.mapMemory(*chunk_data_buffer_memory_, 0u, memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_side);
 		std::memset(data_gpu_side, 0, chunk_data_buffer_size_);
 		vk_device_.unmapMemory(*chunk_data_buffer_memory_);
+	}
+
+	// Create light buffers.
+	light_buffer_size_= c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1];
+	for(uint32_t i= 0; i < 2; ++i)
+	{
+		light_buffers_[i].buffer=
+			vk_device_.createBufferUnique(
+				vk::BufferCreateInfo(
+					vk::BufferCreateFlags(),
+					light_buffer_size_,
+					vk::BufferUsageFlagBits::eStorageBuffer));
+
+		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*light_buffers_[i].buffer);
+
+		const auto memory_properties= window_vulkan.GetMemoryProperties();
+
+		vk::MemoryAllocateInfo memory_allocate_info(buffer_memory_requirements.size);
+		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
+		{
+			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
+				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags() &&
+				// TODO - avoid making host visible.
+				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible) != vk::MemoryPropertyFlags() &&
+				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent) != vk::MemoryPropertyFlags())
+				memory_allocate_info.memoryTypeIndex= i;
+		}
+
+		light_buffers_[i].memory= vk_device_.allocateMemoryUnique(memory_allocate_info);
+		vk_device_.bindBufferMemory(*light_buffers_[i].buffer, *light_buffers_[i].memory, 0u);
+
+		// Fill the buffer with zeros to prevent later warnings.
+		void* data_gpu_side= nullptr;
+		vk_device_.mapMemory(*light_buffers_[i].memory, 0u, memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_side);
+		std::memset(data_gpu_side, 0, light_buffer_size_);
+		vk_device_.unmapMemory(*light_buffers_[i].memory);
 	}
 
 	// Create player state buffer.
@@ -193,6 +239,140 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 					vk::DescriptorType::eStorageBuffer,
 					nullptr,
 					&descriptor_chunk_data_buffer_info,
+					nullptr
+				},
+			},
+			{});
+	}
+
+	// Create light update shader.
+	light_update_shader_= CreateShader(vk_device_, ShaderNames::light_comp);
+
+	// Create light update descriptor set layout.
+	{
+		const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
+		{
+			{
+				LightUpdateShaderBindings::chunk_data_buffer,
+				vk::DescriptorType::eStorageBuffer,
+				1u,
+				vk::ShaderStageFlagBits::eCompute,
+				nullptr,
+			},
+			{
+				LightUpdateShaderBindings::chunk_input_light_buffer,
+				vk::DescriptorType::eStorageBuffer,
+				1u,
+				vk::ShaderStageFlagBits::eCompute,
+				nullptr,
+			},
+			{
+				LightUpdateShaderBindings::chunk_output_light_buffer,
+				vk::DescriptorType::eStorageBuffer,
+				1u,
+				vk::ShaderStageFlagBits::eCompute,
+				nullptr,
+			},
+		};
+		light_update_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
+			vk::DescriptorSetLayoutCreateInfo(
+				vk::DescriptorSetLayoutCreateFlags(),
+				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
+	}
+
+	// Create light update pipeline layout.
+	{
+		const vk::PushConstantRange push_constant_range(
+			vk::ShaderStageFlagBits::eCompute,
+			0u,
+			sizeof(ChunkPositionUniforms));
+
+		light_update_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
+			vk::PipelineLayoutCreateInfo(
+				vk::PipelineLayoutCreateFlags(),
+				1u, &*light_update_decriptor_set_layout_,
+				1u, &push_constant_range));
+	}
+
+	// Create light update pipeline.
+	light_update_pipeline_= vk_device_.createComputePipelineUnique(
+		nullptr,
+		vk::ComputePipelineCreateInfo(
+			vk::PipelineCreateFlags(),
+			vk::PipelineShaderStageCreateInfo(
+				vk::PipelineShaderStageCreateFlags(),
+				vk::ShaderStageFlagBits::eCompute,
+				*light_update_shader_,
+				"main"),
+			*light_update_pipeline_layout_));
+
+	// Create light update descriptor set pool.
+	{
+		const uint32_t num_sets= 2;
+		const vk::DescriptorPoolSize descriptor_pool_size(vk::DescriptorType::eStorageBuffer, num_sets * 3u /*num descriptors*/);
+		light_update_descriptor_pool_=
+			vk_device_.createDescriptorPoolUnique(
+				vk::DescriptorPoolCreateInfo(
+					vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
+					num_sets, // max sets.
+					1u, &descriptor_pool_size));
+	}
+
+	// Create and update light update descriptor sets.
+	for(uint32_t i= 0; i < 2; ++i)
+	{
+		light_update_descriptor_sets_[i]=
+			std::move(
+				vk_device_.allocateDescriptorSetsUnique(
+					vk::DescriptorSetAllocateInfo(
+						*light_update_descriptor_pool_,
+						1u, &*light_update_decriptor_set_layout_)).front());
+
+		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
+			chunk_data_buffer_.get(),
+			0u,
+			chunk_data_buffer_size_);
+
+		const vk::DescriptorBufferInfo descriptor_input_light_data_buffer_info(
+			light_buffers_[i].buffer.get(),
+			0u,
+			light_buffer_size_);
+
+		const vk::DescriptorBufferInfo descriptor_output_light_data_buffer_info(
+			light_buffers_[i ^ 1].buffer.get(),
+			0u,
+			light_buffer_size_);
+
+		vk_device_.updateDescriptorSets(
+			{
+				{
+					*light_update_descriptor_sets_[i],
+					LightUpdateShaderBindings::chunk_data_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_chunk_data_buffer_info,
+					nullptr
+				},
+				{
+					*light_update_descriptor_sets_[i],
+					LightUpdateShaderBindings::chunk_input_light_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_input_light_data_buffer_info,
+					nullptr
+				},
+				{
+					*light_update_descriptor_sets_[i],
+					LightUpdateShaderBindings::chunk_output_light_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_output_light_data_buffer_info,
 					nullptr
 				},
 			},
@@ -437,6 +617,8 @@ void WorldProcessor::Update(
 			1, &barrier,
 			0, nullptr);
 	}
+
+	UpdateLight(command_buffer);
 }
 
 vk::Buffer WorldProcessor::GetChunkDataBuffer() const
@@ -452,6 +634,68 @@ uint32_t WorldProcessor::GetChunkDataBufferSize() const
 vk::Buffer WorldProcessor::GetPlayerStateBuffer() const
 {
 	return player_state_buffer_.get();
+}
+
+vk::Buffer WorldProcessor::GetLightDataBuffer() const
+{
+	// 0 - actual
+	return light_buffers_[0].buffer.get();
+}
+
+uint32_t WorldProcessor::GetLightDataBufferSize() const
+{
+	return light_buffer_size_;
+}
+
+void WorldProcessor::UpdateLight(const vk::CommandBuffer command_buffer) const
+{
+	// Always run light update steps in pairs.
+	// Doing so we ensure that both buffers are updated each world update step.
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *light_update_pipeline_);
+	for(uint32_t i= 0; i < 2; ++i)
+	{
+		command_buffer.bindDescriptorSets(
+			vk::PipelineBindPoint::eCompute,
+			*light_update_pipeline_layout_,
+			0u,
+			1u, &*light_update_descriptor_sets_[i],
+			0u, nullptr);
+
+		for(uint32_t x= 0; x < c_chunk_matrix_size[0]; ++x)
+		for(uint32_t y= 0; y < c_chunk_matrix_size[1]; ++y)
+		{
+			ChunkPositionUniforms chunk_position_uniforms;
+			chunk_position_uniforms.chunk_position[0]= int32_t(x);
+			chunk_position_uniforms.chunk_position[1]= int32_t(y);
+
+			command_buffer.pushConstants(
+				*world_gen_pipeline_layout_,
+				vk::ShaderStageFlagBits::eCompute,
+				0,
+				sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
+
+			command_buffer.dispatch(c_chunk_width, c_chunk_width , c_chunk_height);
+		}
+
+		// Create barrier between light buffer update and its later usage.
+		// TODO - check this is correct.
+		{
+			const vk::BufferMemoryBarrier barrier(
+				vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+				queue_family_index_, queue_family_index_,
+				*chunk_data_buffer_,
+				0,
+				VK_WHOLE_SIZE);
+
+			command_buffer.pipelineBarrier(
+				vk::PipelineStageFlagBits::eComputeShader,
+				vk::PipelineStageFlagBits::eComputeShader,
+				vk::DependencyFlags(),
+				0, nullptr,
+				1, &barrier,
+				0, nullptr);
+		}
+	}
 }
 
 } // namespace HexGPU

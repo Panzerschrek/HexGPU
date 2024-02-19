@@ -31,28 +31,6 @@ layout(push_constant) uniform uniforms_block
 	uint8_t reserved[2];
 };
 
-bool IsInWorldBorders(ivec3 pos)
-{
-	return
-		pos.x >= 0 && pos.x < c_chunk_width * c_chunk_matrix_size[0] &&
-		pos.y >= 0 && pos.y < c_chunk_width * c_chunk_matrix_size[1] &&
-		pos.z >= 0 && pos.z < c_chunk_height;
-}
-
-// Block must be in world borders!
-int GetBlockFullAddress(ivec3 pos)
-{
-	int chunk_x= pos.x >> c_chunk_width_log2;
-	int chunk_y= pos.y >> c_chunk_width_log2;
-	int local_x= pos.x & (c_chunk_width - 1);
-	int local_y= pos.y & (c_chunk_width - 1);
-
-	int chunk_index= chunk_x + chunk_y * c_chunk_matrix_size[0];
-	int chunk_data_offset= chunk_index * c_chunk_volume;
-
-	return chunk_data_offset + ChunkBlockAddress(local_x, local_y, pos.z);
-}
-
 uint8_t GetBuildDirection(ivec3 last_grid_pos, ivec3 grid_pos)
 {
 	if(last_grid_pos.z < grid_pos.z)
@@ -180,7 +158,7 @@ void main()
 	// Update build pos if building/destroying was triggered.
 	if(build_triggered != uint8_t(0) && IsInWorldBorders(build_pos.xyz))
 	{
-		chunks_data[GetBlockFullAddress(build_pos.xyz)]= c_block_type_brick;
+		chunks_data[GetBlockFullAddress(build_pos.xyz)]= c_block_type_fire_stone;
 		UpdateBuildPos();
 	}
 	if(destroy_triggered != uint8_t(0) && IsInWorldBorders(destroy_pos.xyz))

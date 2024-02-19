@@ -37,6 +37,11 @@ layout(binding= 2, std430) buffer chunks_data_buffer
 	uint8_t chunks_data[c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
 };
 
+layout(binding= 3, std430) buffer chunk_light_buffer
+{
+	uint8_t light_buffer[c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
+};
+
 layout(push_constant) uniform uniforms_block
 {
 	int chunk_position[2];
@@ -45,25 +50,6 @@ layout(push_constant) uniform uniforms_block
 const int c_indices_per_quad= 6;
 
 const int c_max_quads_per_chunk= 65536 / 4;
-
-const int c_max_global_x= (c_chunk_matrix_size[0] << c_chunk_width_log2) - 1;
-const int c_max_global_y= (c_chunk_matrix_size[1] << c_chunk_width_log2) - 1;
-
-// Input coordinates must be properly clamped.
-uint8_t FetchBlock(int global_x, int global_y, int z)
-{
-	int chunk_x= global_x >> c_chunk_width_log2;
-	int chunk_y= global_y >> c_chunk_width_log2;
-	int local_x= global_x & (c_chunk_width - 1);
-	int local_y= global_y & (c_chunk_width - 1);
-
-	int chunk_index= chunk_x + chunk_y * c_chunk_matrix_size[0];
-	int chunk_data_offset= chunk_index * c_chunk_volume;
-
-	int block_address= ChunkBlockAddress(local_x, local_y, z);
-
-	return chunks_data[chunk_data_offset + block_address];
-}
 
 void main()
 {
@@ -79,15 +65,21 @@ void main()
 	int block_global_y= (chunk_position[1] << c_chunk_width_log2) + int(invocation.y);
 	int z= int(invocation.z);
 
-	// TODO - optimize this. Reuse calculations in the same chunk.
-	uint8_t block_value= FetchBlock(block_global_x, block_global_y, z);
-	uint8_t block_value_up= FetchBlock(block_global_x, block_global_y, z + 1); // Assume Z is never for the last layer of blocks.
-	uint8_t block_value_north= FetchBlock(block_global_x, min(block_global_y + 1, c_max_global_y), z);
-
 	int east_x_clamped= min(block_global_x + 1, c_max_global_x);
 	int east_y_base= block_global_y + ((block_global_x + 1) & 1);
-	uint8_t block_value_north_east= FetchBlock(east_x_clamped, max(0, min(east_y_base - 0, c_max_global_y)), z);
-	uint8_t block_value_south_east= FetchBlock(east_x_clamped, max(0, min(east_y_base - 1, c_max_global_y)), z);
+
+	// TODO - optimize this. Reuse calculations in the same chunk.
+	int block_address= GetBlockFullAddress(ivec3(block_global_x, block_global_y, z));
+	int block_address_up= GetBlockFullAddress(ivec3(block_global_x, block_global_y, z + 1)); // Assume Z is never for the last layer of blocks.
+	int block_address_north= GetBlockFullAddress(ivec3(block_global_x, min(block_global_y + 1, c_max_global_y), z));
+	int block_address_north_east= GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(east_y_base - 0, c_max_global_y)), z));
+	int block_address_south_east= GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(east_y_base - 1, c_max_global_y)), z));
+
+	uint8_t block_value= chunks_data[block_address];
+	uint8_t block_value_up= chunks_data[block_address_up];
+	uint8_t block_value_north= chunks_data[block_address_north];
+	uint8_t block_value_north_east= chunks_data[block_address_north_east];
+	uint8_t block_value_south_east= chunks_data[block_address_south_east];
 
 	uint8_t optical_density= c_block_optical_density_table[int(block_value)];
 	uint8_t optical_density_up= c_block_optical_density_table[int(block_value_up)];
@@ -122,7 +114,7 @@ void main()
 			optical_density < optical_density_up
 				? c_block_texture_table[int(block_value)].r
 				: c_block_texture_table[int(block_value_up)].g;
-		int16_t light= int16_t(1);
+		int16_t light= int16_t(light_buffer[optical_density > optical_density_up ? block_address : block_address_up]);
 
 		v[0].tex_coord= i16vec4(int16_t(tc_base_x + 1 * tex_scale), int16_t(tc_base_y + 0 * tex_scale), tex_index, light);
 		v[1].tex_coord= i16vec4(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_y + 0 * tex_scale), tex_index, light);
@@ -172,7 +164,7 @@ void main()
 		int tc_base_z= z * (2 * tex_scale);
 
 		int16_t tex_index= c_block_texture_table[optical_density < optical_density_north ? int(block_value) : int(block_value_north)].b;
-		int16_t light= int16_t(1);
+		int16_t light= int16_t(light_buffer[optical_density > optical_density_north ? block_address : block_address_north]);
 
 		v[0].tex_coord= i16vec4(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_z + 0 * tex_scale), tex_index, light);
 		v[1].tex_coord= i16vec4(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_z + 2 * tex_scale), tex_index, light);
@@ -212,7 +204,7 @@ void main()
 		int tc_base_z= z * (2 * tex_scale);
 
 		int16_t tex_index= c_block_texture_table[optical_density < optical_density_north_east ? int(block_value) : int(block_value_north_east)].b;
-		int16_t light= int16_t(1);
+		int16_t light= int16_t(light_buffer[optical_density > optical_density_north_east ? block_address : block_address_north_east]);
 
 		v[0].tex_coord= i16vec4(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_z + 0 * tex_scale), tex_index, light);
 		v[1].tex_coord= i16vec4(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_z + 2 * tex_scale), tex_index, light);
@@ -251,7 +243,7 @@ void main()
 		int tc_base_z= z * (2 * tex_scale);
 
 		int16_t tex_index= c_block_texture_table[optical_density < optical_density_south_east ? int(block_value) : int(block_value_south_east)].b;
-		int16_t light= int16_t(1);
+		int16_t light= int16_t(light_buffer[optical_density > optical_density_south_east ? block_address : block_address_south_east]);
 
 		v[0].tex_coord= i16vec4(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_z + 0 * tex_scale), tex_index, light);
 		v[1].tex_coord= i16vec4(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_z + 2 * tex_scale), tex_index, light);

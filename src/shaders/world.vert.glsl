@@ -26,9 +26,10 @@ void main()
 	f_tex_coord= vec2(tex_coord.xy) * c_tex_coord_scale;
 	f_tex_index= int(tex_coord.z);
 
-	// Use linear light function - using such function allows to lit more area.
-	f_light.x= float(tex_coord.w & c_fire_light_mask) / 9.0 + 0.05;
-	f_light.y= float(tex_coord.w >> c_sky_light_shift) / 16.0 + 0.05;
+	// Normalize light [0; 15] -> [0; 1]
+	const float c_light_scale= 1.0 / 15.0;
+	f_light.x= float(tex_coord.w & c_fire_light_mask) * c_light_scale;
+	f_light.y= float(tex_coord.w >> c_sky_light_shift) * c_light_scale;
 
 	gl_Position= view_matrix * vec4(pos, 1.0);
 }

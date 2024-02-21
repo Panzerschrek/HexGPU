@@ -10,13 +10,11 @@
 
 layout(binding= 0, std430) buffer chunk_draw_info_buffer
 {
-
 	ChunkDrawInfo chunk_draw_info[c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
 };
 
 layout(binding= 1, std430) buffer draw_indirect_buffer
 {
-
 	VkDrawIndexedIndirectCommand draw_commands[c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
 };
 
@@ -33,14 +31,12 @@ void main()
 
 	uint num_quads= chunk_draw_info[chunk_index].num_quads;
 
-	// For now use same capacity for quads of all chunks.
-	// TODO - allocate memory for chunk quads on per-chunk basis, read here offset to allocated memory.
-	uint quads_offset= c_max_quads_per_chunk * chunk_index;
-
 	VkDrawIndexedIndirectCommand draw_command;
 	draw_command.indexCount= num_quads * c_indices_per_quad;
 	draw_command.instanceCount= 1;
 	draw_command.firstIndex= 0;
+	// For now use same capacity for quads of all chunks.
+	// TODO - allocate memory for chunk quads on per-chunk basis, read here offset to allocated memory.
 	draw_command.vertexOffset= int(chunk_index * c_max_quads_per_chunk) * 4;
 	draw_command.firstInstance= 0;
 

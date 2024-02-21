@@ -125,7 +125,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 				vk::BufferCreateInfo(
 					vk::BufferCreateFlags(),
 					buffer_size,
-					vk::BufferUsageFlagBits::eIndirectBuffer | vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst));
+					vk::BufferUsageFlagBits::eIndirectBuffer | vk::BufferUsageFlagBits::eStorageBuffer));
 
 		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*draw_indirect_buffer_);
 
@@ -462,46 +462,7 @@ void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer
 			0, nullptr);
 	}
 
-	// Reset draw commands.
-	{
-		vk::DrawIndexedIndirectCommand commands[ c_chunk_matrix_size[0] * c_chunk_matrix_size[1] ];
-		for(uint32_t x= 0; x < c_chunk_matrix_size[0]; ++x)
-		for(uint32_t y= 0; y < c_chunk_matrix_size[1]; ++y)
-		{
-			const uint32_t chunk_index= x + y * c_chunk_matrix_size[0];
-			vk::DrawIndexedIndirectCommand& command= commands[ chunk_index ];
-			command.indexCount= 0;
-			command.instanceCount= 1;
-			command.firstIndex= 0;
-			command.vertexOffset= chunk_index * c_max_quads_per_chunk * 4;
-			command.firstInstance= 0;
-		}
-
-		command_buffer.updateBuffer(
-			*draw_indirect_buffer_,
-			0,
-			sizeof(vk::DrawIndexedIndirectCommand) * c_chunk_matrix_size[0] * c_chunk_matrix_size[1],
-			static_cast<const void*>(commands));
-	}
-
-	// Create barrier between draw indirect buffer update and its usage in shader.
-	// TODO - check this is correct.
-	{
-		const vk::BufferMemoryBarrier barrier(
-			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
-			queue_family_index_, queue_family_index_,
-			*draw_indirect_buffer_,
-			0,
-			VK_WHOLE_SIZE);
-
-		command_buffer.pipelineBarrier(
-			vk::PipelineStageFlagBits::eTransfer,
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::DependencyFlags(),
-			0, nullptr,
-			1, &barrier,
-			0, nullptr);
-	}
+	// Update geometry, count number of quads.
 
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *geometry_gen_pipeline_);
 

@@ -34,7 +34,6 @@ private:
 	vk::UniqueDeviceMemory chunk_draw_info_buffer_memory_;
 	bool chunk_draw_info_buffer_initially_filled_= false;
 
-	vk::UniqueShaderModule geometry_gen_shader_;
 
 	size_t vertex_buffer_num_quads_= 0;
 	vk::UniqueBuffer vertex_buffer_;
@@ -44,11 +43,19 @@ private:
 	vk::UniqueBuffer draw_indirect_buffer_;
 	vk::UniqueDeviceMemory draw_indirect_buffer_memory_;
 
+	vk::UniqueShaderModule geometry_gen_shader_;
 	vk::UniqueDescriptorSetLayout geometry_gen_decriptor_set_layout_;
 	vk::UniquePipelineLayout geometry_gen_pipeline_layout_;
 	vk::UniquePipeline geometry_gen_pipeline_;
 	vk::UniqueDescriptorPool geometry_gen_descriptor_pool_;
 	vk::UniqueDescriptorSet geometry_gen_descriptor_set_;
+
+	vk::UniqueShaderModule draw_indirect_buffer_build_shader_;
+	vk::UniqueDescriptorSetLayout draw_indirect_buffer_build_decriptor_set_layout_;
+	vk::UniquePipelineLayout draw_indirect_buffer_build_pipeline_layout_;
+	vk::UniquePipeline draw_indirect_buffer_build_pipeline_;
+	vk::UniqueDescriptorPool draw_indirect_buffer_build_descriptor_pool_;
+	vk::UniqueDescriptorSet draw_indirect_buffer_build_descriptor_set_;
 };
 
 } // namespace HexGPU

@@ -28,6 +28,15 @@ const uint32_t chunk_draw_info_buffer= 4;
 
 }
 
+namespace DrawIndirectBufferBuildShaderBindings
+{
+
+// This should match bindings in the shader itself!
+const uint32_t chunk_draw_info_buffer= 0;
+const uint32_t draw_indirect_buffer= 1;
+
+}
+
 // Size limit of this struct is 128 bytes.
 // 128 bytes is guaranted maximum size of push constants uniform block.
 struct ChunkPositionUniforms
@@ -75,9 +84,6 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 		chunk_draw_info_buffer_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);
 		vk_device_.bindBufferMemory(*chunk_draw_info_buffer_, *chunk_draw_info_buffer_memory_, 0u);
 	}
-
-	// Create shaders.
-	geometry_gen_shader_= CreateShader(vk_device_, ShaderNames::geometry_gen_comp);
 
 	// Create vertex buffer.
 	vertex_buffer_num_quads_= c_max_quads_per_chunk * c_chunk_matrix_size[0] * c_chunk_matrix_size[1];
@@ -140,6 +146,9 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 		draw_indirect_buffer_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);
 		vk_device_.bindBufferMemory(*draw_indirect_buffer_, *draw_indirect_buffer_memory_, 0u);
 	}
+
+	// Create shaders.
+	geometry_gen_shader_= CreateShader(vk_device_, ShaderNames::geometry_gen_comp);
 
 	// Create descriptor set layout.
 	{
@@ -314,6 +323,111 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 			},
 			{});
 	}
+
+	// Create shaders.
+	draw_indirect_buffer_build_shader_= CreateShader(vk_device_, ShaderNames::world_draw_indirect_buffer_build_comp);
+
+	// Create descriptor set layout.
+	{
+		const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
+		{
+			{
+				DrawIndirectBufferBuildShaderBindings::chunk_draw_info_buffer,
+				vk::DescriptorType::eStorageBuffer,
+				1u,
+				vk::ShaderStageFlagBits::eCompute,
+				nullptr,
+			},
+			{
+				DrawIndirectBufferBuildShaderBindings::draw_indirect_buffer,
+				vk::DescriptorType::eStorageBuffer,
+				1u,
+				vk::ShaderStageFlagBits::eCompute,
+				nullptr,
+			},
+		};
+		draw_indirect_buffer_build_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
+			vk::DescriptorSetLayoutCreateInfo(
+				vk::DescriptorSetLayoutCreateFlags(),
+				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
+	}
+
+	// Create pipeline layout.
+	draw_indirect_buffer_build_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
+		vk::PipelineLayoutCreateInfo(
+			vk::PipelineLayoutCreateFlags(),
+			1u, &*draw_indirect_buffer_build_decriptor_set_layout_,
+			0u, nullptr));
+
+	// Create pipeline.
+	draw_indirect_buffer_build_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
+		nullptr,
+		vk::ComputePipelineCreateInfo(
+			vk::PipelineCreateFlags(),
+			vk::PipelineShaderStageCreateInfo(
+				vk::PipelineShaderStageCreateFlags(),
+				vk::ShaderStageFlagBits::eCompute,
+				*draw_indirect_buffer_build_shader_,
+				"main"),
+			*draw_indirect_buffer_build_pipeline_layout_)));
+
+	// Create descriptor set pool.
+	{
+		const vk::DescriptorPoolSize descriptor_pool_size(vk::DescriptorType::eStorageBuffer, 2u /*num descriptors*/);
+		draw_indirect_buffer_build_descriptor_pool_=
+			vk_device_.createDescriptorPoolUnique(
+				vk::DescriptorPoolCreateInfo(
+					vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
+					1u, // max sets.
+					1u, &descriptor_pool_size));
+	}
+
+	// Create descriptor set.
+	draw_indirect_buffer_build_descriptor_set_=
+		std::move(
+			vk_device_.allocateDescriptorSetsUnique(
+				vk::DescriptorSetAllocateInfo(
+					*draw_indirect_buffer_build_descriptor_pool_,
+					1u, &*draw_indirect_buffer_build_decriptor_set_layout_)).front());
+
+
+	// Update descriptor set.
+	{
+		const vk::DescriptorBufferInfo descriptor_chunk_draw_info_buffer_info(
+			*chunk_draw_info_buffer_,
+			0u,
+			chunk_draw_info_buffer_size_);
+
+		const vk::DescriptorBufferInfo descriptor_draw_indirect_buffer_info(
+			*draw_indirect_buffer_,
+			0u,
+			sizeof(vk::DrawIndexedIndirectCommand) * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]);
+
+		vk_device_.updateDescriptorSets(
+			{
+				{
+					*draw_indirect_buffer_build_descriptor_set_,
+					DrawIndirectBufferBuildShaderBindings::chunk_draw_info_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_chunk_draw_info_buffer_info,
+					nullptr
+				},
+				{
+					*draw_indirect_buffer_build_descriptor_set_,
+					DrawIndirectBufferBuildShaderBindings::draw_indirect_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_draw_indirect_buffer_info,
+					nullptr
+				},
+			},
+			{});
+	}
 }
 
 WorldGeometryGenerator::~WorldGeometryGenerator()
@@ -437,6 +551,76 @@ void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer
 			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
 
 		command_buffer.dispatch(c_chunk_width, c_chunk_width , c_chunk_height - 1 /*skip last blocks layer*/);
+	}
+
+	// Create barrier between update vertex buffer and its usage for rendering.
+	// TODO - check this is correct.
+	{
+		const vk::BufferMemoryBarrier barrier(
+			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			*vertex_buffer_,
+			0,
+			VK_WHOLE_SIZE);
+
+		command_buffer.pipelineBarrier(
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::PipelineStageFlagBits::eVertexShader,
+			vk::DependencyFlags(),
+			0, nullptr,
+			1, &barrier,
+			0, nullptr);
+	}
+
+	// Create barrier between update chunk draw info buffer and its usage for rendering.
+	// TODO - check this is correct.
+	{
+		const vk::BufferMemoryBarrier barrier(
+			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			*chunk_draw_info_buffer_,
+			0,
+			VK_WHOLE_SIZE);
+
+		command_buffer.pipelineBarrier(
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::DependencyFlags(),
+			0, nullptr,
+			1, &barrier,
+			0, nullptr);
+	}
+
+	// Execute draw indirect buffer generation.
+
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *draw_indirect_buffer_build_pipeline_);
+
+	command_buffer.bindDescriptorSets(
+		vk::PipelineBindPoint::eCompute,
+		*draw_indirect_buffer_build_pipeline_layout_,
+		0u,
+		1u, &*draw_indirect_buffer_build_descriptor_set_,
+		0u, nullptr);
+
+	command_buffer.dispatch(c_chunk_matrix_size[0], c_chunk_matrix_size[1] , 1);
+
+	// Create barrier between update indirect draw buffer and its usage for rendering.
+	// TODO - check this is correct.
+	{
+		const vk::BufferMemoryBarrier barrier(
+			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eIndirectCommandRead,
+			queue_family_index_, queue_family_index_,
+			*draw_indirect_buffer_,
+			0,
+			VK_WHOLE_SIZE);
+
+		command_buffer.pipelineBarrier(
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::PipelineStageFlagBits::eDrawIndirect,
+			vk::DependencyFlags(),
+			0, nullptr,
+			1, &barrier,
+			0, nullptr);
 	}
 }
 

@@ -296,48 +296,6 @@ void WorldRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
 {
 	world_textures_manager_.PrepareFrame(command_buffer);
 	geometry_generator_.PrepareFrame(command_buffer);
-
-	const vk::Buffer vertex_buffer= geometry_generator_.GetVertexBuffer();
-
-	// Create barrier between update vertex buffer and its usage for rendering.
-	// TODO - check this is correct.
-	{
-		const vk::BufferMemoryBarrier barrier(
-			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
-			queue_family_index_, queue_family_index_,
-			vertex_buffer,
-			0,
-			VK_WHOLE_SIZE);
-
-		command_buffer.pipelineBarrier(
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::PipelineStageFlagBits::eVertexShader,
-			vk::DependencyFlags(),
-			0, nullptr,
-			1, &barrier,
-			0, nullptr);
-	}
-
-	const vk::Buffer draw_indirect_buffer= geometry_generator_.GetDrawIndirectBuffer();
-
-	// Create barrier between update indirect draw buffer and its usage for rendering.
-	// TODO - check this is correct.
-	{
-		const vk::BufferMemoryBarrier barrier(
-			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eIndirectCommandRead,
-			queue_family_index_, queue_family_index_,
-			draw_indirect_buffer,
-			0,
-			VK_WHOLE_SIZE);
-
-		command_buffer.pipelineBarrier(
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::PipelineStageFlagBits::eDrawIndirect,
-			vk::DependencyFlags(),
-			0, nullptr,
-			1, &barrier,
-			0, nullptr);
-	}
 }
 
 void WorldRenderer::Draw(const vk::CommandBuffer command_buffer, const m_Mat4& view_matrix)

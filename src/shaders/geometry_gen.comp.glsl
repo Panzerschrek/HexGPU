@@ -5,6 +5,7 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 
 #include "inc/block_type.glsl"
+#include "inc/chunk_draw_info.glsl"
 #include "inc/hex_funcs.glsl"
 #include "inc/vulkan_structs.glsl"
 
@@ -18,11 +19,6 @@ struct WorldVertex
 struct Quad
 {
 	WorldVertex vertices[4];
-};
-
-struct ChunkInfo
-{
-	uint num_quads;
 };
 
 layout(binding= 0, std430) buffer vertices_buffer
@@ -49,7 +45,7 @@ layout(binding= 3, std430) buffer chunk_light_buffer
 
 layout(binding= 4, std430) buffer chunk_draw_info_buffer
 {
-	ChunkInfo chunk_draw_info[c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
+	ChunkDrawInfo chunk_draw_info[c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
 };
 
 layout(push_constant) uniform uniforms_block

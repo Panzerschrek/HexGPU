@@ -16,13 +16,23 @@ using QuadVertices= std::array<WorldVertex, 4>;
 class WorldGeometryGenerator
 {
 public:
+	// If this changed, the same struct in GLSL code must be changed too!
+	struct ChunkDrawInfo
+	{
+		uint32_t num_quads= 0;
+		uint32_t first_quad= 0;
+	};
+
+public:
 	WorldGeometryGenerator(WindowVulkan& window_vulkan, WorldProcessor& world_processor);
 	~WorldGeometryGenerator();
 
 	void PrepareFrame(vk::CommandBuffer command_buffer);
 
 	vk::Buffer GetVertexBuffer() const;
-	vk::Buffer GetDrawIndirectBuffer() const;
+
+	vk::Buffer GetChunkDrawInfoBuffer() const;
+	uint32_t GetChunkDrawInfoBufferSize() const;
 
 private:
 	const vk::Device vk_device_;
@@ -34,14 +44,10 @@ private:
 	vk::UniqueDeviceMemory chunk_draw_info_buffer_memory_;
 	bool chunk_draw_info_buffer_initially_filled_= false;
 
-
 	size_t vertex_buffer_num_quads_= 0;
 	vk::UniqueBuffer vertex_buffer_;
 	vk::UniqueDeviceMemory vertex_buffer_memory_;
 	bool vertex_buffer_initially_filled_= false;
-
-	vk::UniqueBuffer draw_indirect_buffer_;
-	vk::UniqueDeviceMemory draw_indirect_buffer_memory_;
 
 	vk::UniqueShaderModule geometry_allocate_shader_;
 	vk::UniqueDescriptorSetLayout geometry_allocate_decriptor_set_layout_;
@@ -56,13 +62,6 @@ private:
 	vk::UniquePipeline geometry_gen_pipeline_;
 	vk::UniqueDescriptorPool geometry_gen_descriptor_pool_;
 	vk::UniqueDescriptorSet geometry_gen_descriptor_set_;
-
-	vk::UniqueShaderModule draw_indirect_buffer_build_shader_;
-	vk::UniqueDescriptorSetLayout draw_indirect_buffer_build_decriptor_set_layout_;
-	vk::UniquePipelineLayout draw_indirect_buffer_build_pipeline_layout_;
-	vk::UniquePipeline draw_indirect_buffer_build_pipeline_;
-	vk::UniqueDescriptorPool draw_indirect_buffer_build_descriptor_pool_;
-	vk::UniqueDescriptorSet draw_indirect_buffer_build_descriptor_set_;
 };
 
 } // namespace HexGPU

@@ -14,7 +14,16 @@ namespace
 struct ChunkDrawInfo
 {
 	uint32_t num_quads= 0;
+	uint32_t first_quad= 0;
 };
+
+namespace GeometryAllocateBindings
+{
+
+// This should match bindings in the shader itself!
+const uint32_t chunk_draw_info_buffer= 0;
+
+}
 
 namespace GeometryGenShaderBindings
 {
@@ -144,6 +153,88 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 
 		draw_indirect_buffer_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);
 		vk_device_.bindBufferMemory(*draw_indirect_buffer_, *draw_indirect_buffer_memory_, 0u);
+	}
+
+	// Create shaders.
+	geometry_allocate_shader_= CreateShader(vk_device_, ShaderNames::geometry_allocate_comp);
+
+	// Create descriptor set layout.
+	{
+		const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
+		{
+			{
+				GeometryAllocateBindings::chunk_draw_info_buffer,
+				vk::DescriptorType::eStorageBuffer,
+				1u,
+				vk::ShaderStageFlagBits::eCompute,
+				nullptr,
+			},
+		};
+		geometry_allocate_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
+			vk::DescriptorSetLayoutCreateInfo(
+				vk::DescriptorSetLayoutCreateFlags(),
+				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
+	}
+
+	// Create pipeline layout.
+	geometry_allocate_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
+		vk::PipelineLayoutCreateInfo(
+			vk::PipelineLayoutCreateFlags(),
+			1u, &*geometry_allocate_decriptor_set_layout_,
+			0u, nullptr));
+
+	// Create pipeline.
+	geometry_allocate_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
+		nullptr,
+		vk::ComputePipelineCreateInfo(
+			vk::PipelineCreateFlags(),
+			vk::PipelineShaderStageCreateInfo(
+				vk::PipelineShaderStageCreateFlags(),
+				vk::ShaderStageFlagBits::eCompute,
+				*geometry_allocate_shader_,
+				"main"),
+			*geometry_allocate_pipeline_layout_)));
+
+	// Create descriptor set pool.
+	{
+		const vk::DescriptorPoolSize descriptor_pool_size(vk::DescriptorType::eStorageBuffer, 1u /*num descriptors*/);
+		geometry_allocate_descriptor_pool_=
+			vk_device_.createDescriptorPoolUnique(
+				vk::DescriptorPoolCreateInfo(
+					vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
+					1u, // max sets.
+					1u, &descriptor_pool_size));
+	}
+
+	// Create descriptor set.
+	geometry_allocate_descriptor_set_=
+		std::move(
+			vk_device_.allocateDescriptorSetsUnique(
+				vk::DescriptorSetAllocateInfo(
+					*geometry_allocate_descriptor_pool_,
+					1u, &*geometry_allocate_decriptor_set_layout_)).front());
+
+	// Update descriptor set.
+	{
+		const vk::DescriptorBufferInfo descriptor_chunk_draw_info_buffer_info(
+			*chunk_draw_info_buffer_,
+			0u,
+			chunk_draw_info_buffer_size_);
+
+		vk_device_.updateDescriptorSets(
+			{
+				{
+					*geometry_allocate_descriptor_set_,
+					GeometryAllocateBindings::chunk_draw_info_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_chunk_draw_info_buffer_info,
+					nullptr
+				},
+			},
+			{});
 	}
 
 	// Create shaders.
@@ -462,6 +553,39 @@ void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer
 			0, nullptr);
 	}
 
+	// Allocate memory for geometry.
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *geometry_allocate_pipeline_);
+
+	command_buffer.bindDescriptorSets(
+		vk::PipelineBindPoint::eCompute,
+		*geometry_allocate_pipeline_layout_,
+		0u,
+		1u, &*geometry_allocate_descriptor_set_,
+		0u, nullptr);
+
+
+	// Use single thread for allocation.
+	command_buffer.dispatch(1, 1 , 1);
+
+	// Create barrier between update chunk draw info buffer and its later usage.
+	// TODO - check this is correct.
+	{
+		const vk::BufferMemoryBarrier barrier(
+			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			*chunk_draw_info_buffer_,
+			0,
+			VK_WHOLE_SIZE);
+
+		command_buffer.pipelineBarrier(
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::DependencyFlags(),
+			0, nullptr,
+			1, &barrier,
+			0, nullptr);
+	}
+
 	// Update geometry, count number of quads.
 
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *geometry_gen_pipeline_);
@@ -510,7 +634,7 @@ void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer
 			0, nullptr);
 	}
 
-	// Create barrier between update chunk draw info buffer and its usage for rendering.
+	// Create barrier between update chunk draw info buffer and its later usage.
 	// TODO - check this is correct.
 	{
 		const vk::BufferMemoryBarrier barrier(

@@ -47,15 +47,12 @@ layout(push_constant) uniform uniforms_block
 	int chunk_position[2];
 };
 
-const int c_max_quads_per_chunk= 65536 / 4;
 
 void main()
 {
 	int chunk_index= chunk_position[0] + chunk_position[1] * c_chunk_matrix_size[0];
 
-	// For now use same capacity for quads of all chunks.
-	// TODO - allocate memory for chunk quads on per-chunk basis, read here offset to allocated memory.
-	const uint quads_offset= uint(c_max_quads_per_chunk * chunk_index);
+	const uint quads_offset= chunk_draw_info[chunk_index].first_quad;
 
 	uvec3 invocation= gl_GlobalInvocationID;
 

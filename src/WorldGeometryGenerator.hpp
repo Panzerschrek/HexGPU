@@ -43,6 +43,13 @@ private:
 	vk::UniqueBuffer draw_indirect_buffer_;
 	vk::UniqueDeviceMemory draw_indirect_buffer_memory_;
 
+	vk::UniqueShaderModule geometry_allocate_shader_;
+	vk::UniqueDescriptorSetLayout geometry_allocate_decriptor_set_layout_;
+	vk::UniquePipelineLayout geometry_allocate_pipeline_layout_;
+	vk::UniquePipeline geometry_allocate_pipeline_;
+	vk::UniqueDescriptorPool geometry_allocate_descriptor_pool_;
+	vk::UniqueDescriptorSet geometry_allocate_descriptor_set_;
+
 	vk::UniqueShaderModule geometry_gen_shader_;
 	vk::UniqueDescriptorSetLayout geometry_gen_decriptor_set_layout_;
 	vk::UniquePipelineLayout geometry_gen_pipeline_layout_;

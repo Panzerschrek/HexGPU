@@ -21,7 +21,6 @@ namespace GeometryGenShaderBindings
 
 // This should match bindings in the shader itself!
 const uint32_t vertices_buffer= 0;
-const uint32_t draw_indirect_buffer= 1;
 const uint32_t chunk_data_buffer= 2;
 const uint32_t chunk_light_buffer= 3;
 const uint32_t chunk_draw_info_buffer= 4;
@@ -162,13 +161,6 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 				nullptr,
 			},
 			{
-				GeometryGenShaderBindings::draw_indirect_buffer,
-				vk::DescriptorType::eStorageBuffer,
-				1u,
-				vk::ShaderStageFlagBits::eCompute,
-				nullptr,
-			},
-			{
 				GeometryGenShaderBindings::chunk_data_buffer,
 				vk::DescriptorType::eStorageBuffer,
 				1u,
@@ -248,11 +240,6 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 			0u,
 			vertex_buffer_num_quads_ * sizeof(QuadVertices));
 
-		const vk::DescriptorBufferInfo descriptor_draw_indirect_buffer_info(
-			*draw_indirect_buffer_,
-			0u,
-			sizeof(vk::DrawIndexedIndirectCommand) * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]);
-
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
 			world_processor_.GetChunkDataBuffer(),
 			0u,
@@ -278,16 +265,6 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 					vk::DescriptorType::eStorageBuffer,
 					nullptr,
 					&descriptor_vertex_buffer_info,
-					nullptr
-				},
-				{
-					*geometry_gen_descriptor_set_,
-					GeometryGenShaderBindings::draw_indirect_buffer,
-					0u,
-					1u,
-					vk::DescriptorType::eStorageBuffer,
-					nullptr,
-					&descriptor_draw_indirect_buffer_info,
 					nullptr
 				},
 				{

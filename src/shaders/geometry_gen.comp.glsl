@@ -27,12 +27,6 @@ layout(binding= 0, std430) buffer vertices_buffer
 	Quad quads[];
 };
 
-layout(binding= 1, std430) buffer draw_indirect_buffer
-{
-	// Populate here result number of indices.
-	VkDrawIndexedIndirectCommand draw_commands[c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
-};
-
 layout(binding= 2, std430) buffer chunks_data_buffer
 {
 	uint8_t chunks_data[c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
@@ -52,8 +46,6 @@ layout(push_constant) uniform uniforms_block
 {
 	int chunk_position[2];
 };
-
-const int c_indices_per_quad= 6;
 
 const int c_max_quads_per_chunk= 65536 / 4;
 
@@ -150,8 +142,7 @@ void main()
 			quad_north.vertices[2]= v[3];
 		}
 
-		uint prev_index_count= atomicAdd(draw_commands[chunk_index].indexCount, c_indices_per_quad * 2);
-		uint quad_index= quads_offset + prev_index_count / 6;
+		uint quad_index= quads_offset + atomicAdd(chunk_draw_info[chunk_index].num_quads, 2);
 		quads[quad_index]= quad_south;
 		quads[quad_index + 1]= quad_north;
 	}
@@ -191,8 +182,7 @@ void main()
 			quad.vertices[2]= v[2];
 		}
 
-		uint prev_index_count= atomicAdd(draw_commands[chunk_index].indexCount, c_indices_per_quad);
-		uint quad_index= quads_offset + prev_index_count / 6;
+		uint quad_index= quads_offset + atomicAdd(chunk_draw_info[chunk_index].num_quads, 1);
 		quads[quad_index]= quad;
 	}
 
@@ -231,8 +221,7 @@ void main()
 			quad.vertices[2]= v[2];
 		}
 
-		uint prev_index_count= atomicAdd(draw_commands[chunk_index].indexCount, c_indices_per_quad);
-		uint quad_index= quads_offset + prev_index_count / 6;
+		uint quad_index= quads_offset + atomicAdd(chunk_draw_info[chunk_index].num_quads, 1);
 		quads[quad_index]= quad;
 	}
 
@@ -271,8 +260,7 @@ void main()
 		}
 
 		// Add south-east quad.
-		uint prev_index_count= atomicAdd(draw_commands[chunk_index].indexCount, c_indices_per_quad);
-		uint quad_index= quads_offset + prev_index_count / 6;
+		uint quad_index= quads_offset + atomicAdd(chunk_draw_info[chunk_index].num_quads, 1);
 		quads[quad_index]= quad;
 	}
 }

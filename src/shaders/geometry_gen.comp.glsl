@@ -20,6 +20,11 @@ struct Quad
 	WorldVertex vertices[4];
 };
 
+struct ChunkInfo
+{
+	uint num_quads;
+};
+
 layout(binding= 0, std430) buffer vertices_buffer
 {
 	// Populate here quads list.
@@ -40,6 +45,11 @@ layout(binding= 2, std430) buffer chunks_data_buffer
 layout(binding= 3, std430) buffer chunk_light_buffer
 {
 	uint8_t light_buffer[c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
+};
+
+layout(binding= 4, std430) buffer chunk_draw_info_buffer
+{
+	ChunkInfo chunk_draw_info[c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
 };
 
 layout(push_constant) uniform uniforms_block

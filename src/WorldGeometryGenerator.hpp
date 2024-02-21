@@ -29,6 +29,11 @@ private:
 	const uint32_t queue_family_index_;
 	WorldProcessor& world_processor_;
 
+	uint32_t chunk_draw_info_buffer_size_= 0;
+	vk::UniqueBuffer chunk_draw_info_buffer_;
+	vk::UniqueDeviceMemory chunk_draw_info_buffer_memory_;
+	bool chunk_draw_info_buffer_initially_filled_= false;
+
 	vk::UniqueShaderModule geometry_gen_shader_;
 
 	size_t vertex_buffer_num_quads_= 0;

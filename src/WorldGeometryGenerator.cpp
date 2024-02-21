@@ -10,6 +10,12 @@ namespace HexGPU
 namespace
 {
 
+// If this changed, the same struct in GLSL code must be changed too!
+struct ChunkDrawInfo
+{
+	uint32_t num_quads= 0;
+};
+
 namespace GeometryGenShaderBindings
 {
 
@@ -39,6 +45,36 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, world_processor_(world_processor)
 {
+	// Create chunk draw info buffer.
+	{
+		chunk_draw_info_buffer_size_= c_chunk_matrix_size[0] * c_chunk_matrix_size[1] * sizeof(ChunkDrawInfo);
+
+		chunk_draw_info_buffer_=
+			vk_device_.createBufferUnique(
+				vk::BufferCreateInfo(
+					vk::BufferCreateFlags(),
+					chunk_draw_info_buffer_size_,
+					vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst));
+
+		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*chunk_draw_info_buffer_);
+
+		const auto memory_properties= window_vulkan.GetMemoryProperties();
+
+		vk::MemoryAllocateInfo memory_allocate_info(buffer_memory_requirements.size);
+		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
+		{
+			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
+				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
+			{
+				memory_allocate_info.memoryTypeIndex= i;
+				break;
+			}
+		}
+
+		chunk_draw_info_buffer_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);
+		vk_device_.bindBufferMemory(*chunk_draw_info_buffer_, *chunk_draw_info_buffer_memory_, 0u);
+	}
+
 	// Create shaders.
 	geometry_gen_shader_= CreateShader(vk_device_, ShaderNames::geometry_gen_comp);
 
@@ -277,6 +313,29 @@ void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer
 			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
 			*vertex_buffer_,
+			0,
+			VK_WHOLE_SIZE);
+
+		command_buffer.pipelineBarrier(
+			vk::PipelineStageFlagBits::eTransfer,
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::DependencyFlags(),
+			0, nullptr,
+			1, &barrier,
+			0, nullptr);
+	}
+
+	if(!chunk_draw_info_buffer_initially_filled_)
+	{
+		// Fill initially chunk draw info buffer with zeros.
+		chunk_draw_info_buffer_initially_filled_= true;
+
+		command_buffer.fillBuffer(*chunk_draw_info_buffer_, 0, chunk_draw_info_buffer_size_, 0);
+
+		const vk::BufferMemoryBarrier barrier(
+			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			*chunk_draw_info_buffer_,
 			0,
 			VK_WHOLE_SIZE);
 

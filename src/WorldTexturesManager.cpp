@@ -7,11 +7,17 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
 #pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+#pragma GCC diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
 
 // This is single place, where this library included.
 // So, we can include implementation here.
+// Limit supported image formats (leave only necessary).
 #define STB_IMAGE_IMPLEMENTATION
+#define STBI_ONLY_JPEG
+#define STBI_ONLY_TGA
+#define STBI_ONLY_PNG
 #include "../stb/stb_image.h"
 
 #ifdef __GNUC__

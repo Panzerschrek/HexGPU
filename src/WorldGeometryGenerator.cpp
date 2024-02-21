@@ -354,14 +354,38 @@ WorldGeometryGenerator::~WorldGeometryGenerator()
 
 void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer)
 {
-	if(!vertex_buffer_initially_filled_)
+	InitialFillBuffers(command_buffer);
+	AllocateMemoryForGeometry(command_buffer);
+	GenGeometry(command_buffer);
+}
+
+vk::Buffer WorldGeometryGenerator::GetVertexBuffer() const
+{
+	return vertex_buffer_.get();
+}
+
+vk::Buffer WorldGeometryGenerator::GetChunkDrawInfoBuffer() const
+{
+	return chunk_draw_info_buffer_.get();
+}
+
+uint32_t WorldGeometryGenerator::GetChunkDrawInfoBufferSize() const
+{
+	return chunk_draw_info_buffer_size_;
+}
+
+void WorldGeometryGenerator::InitialFillBuffers(const vk::CommandBuffer command_buffer)
+{
+	if(buffers_initially_filled_)
+		return;
+	buffers_initially_filled_= true;
+
+	// Fill initially vertex buffer with zeros.
+	// Do this only to supress warnings.
+
+	command_buffer.fillBuffer(*vertex_buffer_, 0, vertex_buffer_num_quads_ * sizeof(QuadVertices), 0);
+
 	{
-		// Fill initially vertex buffer with zeros.
-		// Do this only to supress warnings.
-
-		vertex_buffer_initially_filled_= true;
-		command_buffer.fillBuffer(*vertex_buffer_, 0, vertex_buffer_num_quads_ * sizeof(QuadVertices), 0);
-
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
@@ -378,13 +402,10 @@ void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer
 			0, nullptr);
 	}
 
-	if(!chunk_draw_info_buffer_initially_filled_)
+	// Fill initially chunk draw info buffer with zeros.
+	command_buffer.fillBuffer(*chunk_draw_info_buffer_, 0, chunk_draw_info_buffer_size_, 0);
+
 	{
-		// Fill initially chunk draw info buffer with zeros.
-		chunk_draw_info_buffer_initially_filled_= true;
-
-		command_buffer.fillBuffer(*chunk_draw_info_buffer_, 0, chunk_draw_info_buffer_size_, 0);
-
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
@@ -400,8 +421,10 @@ void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer
 			1, &barrier,
 			0, nullptr);
 	}
+}
 
-	// Allocate memory for geometry.
+void WorldGeometryGenerator::AllocateMemoryForGeometry(const vk::CommandBuffer command_buffer)
+{
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *geometry_allocate_pipeline_);
 
 	command_buffer.bindDescriptorSets(
@@ -410,7 +433,6 @@ void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer
 		0u,
 		1u, &*geometry_allocate_descriptor_set_,
 		0u, nullptr);
-
 
 	// Use single thread for allocation.
 	command_buffer.dispatch(1, 1 , 1);
@@ -433,7 +455,10 @@ void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer
 			1, &barrier,
 			0, nullptr);
 	}
+}
 
+void WorldGeometryGenerator::GenGeometry(const vk::CommandBuffer command_buffer)
+{
 	// Update geometry, count number of quads.
 
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *geometry_gen_pipeline_);
@@ -460,7 +485,8 @@ void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer
 			0,
 			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
 
-		command_buffer.dispatch(c_chunk_width, c_chunk_width , c_chunk_height - 1 /*skip last blocks layer*/);
+		// Dispatch a thread for each block in chunk, except highest layer.
+		command_buffer.dispatch(c_chunk_width, c_chunk_width , c_chunk_height - 1);
 	}
 
 	// Create barrier between update vertex buffer and its usage for rendering.
@@ -500,21 +526,6 @@ void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer
 			1, &barrier,
 			0, nullptr);
 	}
-}
-
-vk::Buffer WorldGeometryGenerator::GetVertexBuffer() const
-{
-	return vertex_buffer_.get();
-}
-
-vk::Buffer WorldGeometryGenerator::GetChunkDrawInfoBuffer() const
-{
-	return chunk_draw_info_buffer_.get();
-}
-
-uint32_t WorldGeometryGenerator::GetChunkDrawInfoBufferSize() const
-{
-	return chunk_draw_info_buffer_size_;
 }
 
 } // namespace HexGPU

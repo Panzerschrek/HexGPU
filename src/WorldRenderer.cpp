@@ -440,38 +440,7 @@ void WorldRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
 {
 	world_textures_manager_.PrepareFrame(command_buffer);
 	geometry_generator_.PrepareFrame(command_buffer);
-
-	// Execute draw indirect buffer generation.
-
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *draw_indirect_buffer_build_pipeline_);
-
-	command_buffer.bindDescriptorSets(
-		vk::PipelineBindPoint::eCompute,
-		*draw_indirect_buffer_build_pipeline_layout_,
-		0u,
-		1u, &*draw_indirect_buffer_build_descriptor_set_,
-		0u, nullptr);
-
-	command_buffer.dispatch(c_chunk_matrix_size[0], c_chunk_matrix_size[1] , 1);
-
-	// Create barrier between update indirect draw buffer and its usage for rendering.
-	// TODO - check this is correct.
-	{
-		const vk::BufferMemoryBarrier barrier(
-			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eIndirectCommandRead,
-			queue_family_index_, queue_family_index_,
-			*draw_indirect_buffer_,
-			0,
-			VK_WHOLE_SIZE);
-
-		command_buffer.pipelineBarrier(
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::PipelineStageFlagBits::eDrawIndirect,
-			vk::DependencyFlags(),
-			0, nullptr,
-			1, &barrier,
-			0, nullptr);
-	}
+	BuildDrawIndirectBuffer(command_buffer);
 }
 
 void WorldRenderer::Draw(const vk::CommandBuffer command_buffer, const m_Mat4& view_matrix)
@@ -502,6 +471,40 @@ void WorldRenderer::Draw(const vk::CommandBuffer command_buffer, const m_Mat4& v
 		0,
 		c_chunk_matrix_size[0] * c_chunk_matrix_size[1],
 		sizeof(vk::DrawIndexedIndirectCommand));
+}
+
+void WorldRenderer::BuildDrawIndirectBuffer(const vk::CommandBuffer command_buffer)
+{
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *draw_indirect_buffer_build_pipeline_);
+
+	command_buffer.bindDescriptorSets(
+		vk::PipelineBindPoint::eCompute,
+		*draw_indirect_buffer_build_pipeline_layout_,
+		0u,
+		1u, &*draw_indirect_buffer_build_descriptor_set_,
+		0u, nullptr);
+
+	// Dispatch a thread for each chunk.
+	command_buffer.dispatch(c_chunk_matrix_size[0], c_chunk_matrix_size[1], 1);
+
+	// Create barrier between update indirect draw buffer and its usage for rendering.
+	// TODO - check this is correct.
+	{
+		const vk::BufferMemoryBarrier barrier(
+			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eIndirectCommandRead,
+			queue_family_index_, queue_family_index_,
+			*draw_indirect_buffer_,
+			0,
+			VK_WHOLE_SIZE);
+
+		command_buffer.pipelineBarrier(
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::PipelineStageFlagBits::eDrawIndirect,
+			vk::DependencyFlags(),
+			0, nullptr,
+			1, &barrier,
+			0, nullptr);
+	}
 }
 
 } // namespace HexGPU

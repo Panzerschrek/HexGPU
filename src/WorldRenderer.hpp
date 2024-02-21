@@ -17,6 +17,9 @@ public:
 	void Draw(vk::CommandBuffer command_buffer, const m_Mat4& view_matrix);
 
 private:
+	void BuildDrawIndirectBuffer(vk::CommandBuffer command_buffer);
+
+private:
 	const vk::Device vk_device_;
 	const uint32_t queue_family_index_;
 

@@ -37,6 +37,7 @@ public:
 
 private:
 	void InitialFillBuffers(vk::CommandBuffer command_buffer);
+	void PrepareGeometrySizeCalculation(vk::CommandBuffer command_buffer);
 	void AllocateMemoryForGeometry(vk::CommandBuffer command_buffer);
 	void GenGeometry(vk::CommandBuffer command_buffer);
 
@@ -54,6 +55,13 @@ private:
 	size_t vertex_buffer_num_quads_= 0;
 	vk::UniqueBuffer vertex_buffer_;
 	vk::UniqueDeviceMemory vertex_buffer_memory_;
+
+	vk::UniqueShaderModule geometry_size_calculate_prepare_shader_;
+	vk::UniqueDescriptorSetLayout geometry_size_calculate_prepare_decriptor_set_layout_;
+	vk::UniquePipelineLayout geometry_size_calculate_prepare_pipeline_layout_;
+	vk::UniquePipeline geometry_size_calculate_prepare_pipeline_;
+	vk::UniqueDescriptorPool geometry_size_calculate_prepare_descriptor_pool_;
+	vk::UniqueDescriptorSet geometry_size_calculate_prepare_descriptor_set_;
 
 	vk::UniqueShaderModule geometry_allocate_shader_;
 	vk::UniqueDescriptorSetLayout geometry_allocate_decriptor_set_layout_;

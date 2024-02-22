@@ -4,6 +4,7 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 
+#include "inc/allocator.glsl"
 #include "inc/chunk_draw_info.glsl"
 #include "inc/constants.glsl"
 

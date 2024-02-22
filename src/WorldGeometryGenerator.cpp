@@ -10,11 +10,20 @@ namespace HexGPU
 namespace
 {
 
-namespace GeometrySizeCalculatePrepareBindigs
+namespace GeometrySizeCalculatePrepareBindings
 {
 
 // This should match bindings in the shader itself!
 const uint32_t chunk_draw_info_buffer= 0;
+
+}
+
+namespace GeometrySizeCalculateBindings
+{
+
+// This should match bindings in the shader itself!
+const uint32_t chunk_data_buffer= 0;
+const uint32_t chunk_draw_info_buffer= 1;
 
 }
 
@@ -124,7 +133,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 		const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
 		{
 			{
-				GeometrySizeCalculatePrepareBindigs::chunk_draw_info_buffer,
+				GeometrySizeCalculatePrepareBindings::chunk_draw_info_buffer,
 				vk::DescriptorType::eStorageBuffer,
 				1u,
 				vk::ShaderStageFlagBits::eCompute,
@@ -186,7 +195,118 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 			{
 				{
 					*geometry_size_calculate_prepare_descriptor_set_,
-					GeometrySizeCalculatePrepareBindigs::chunk_draw_info_buffer,
+					GeometrySizeCalculatePrepareBindings::chunk_draw_info_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_chunk_draw_info_buffer_info,
+					nullptr
+				},
+			},
+			{});
+	}
+
+	// Create shaders.
+	geometry_size_calculate_shader_= CreateShader(vk_device_, ShaderNames::geometry_size_calculate_comp);
+
+	// Create descriptor set layout.
+	{
+		const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
+		{
+			{
+				GeometrySizeCalculateBindings::chunk_data_buffer,
+				vk::DescriptorType::eStorageBuffer,
+				1u,
+				vk::ShaderStageFlagBits::eCompute,
+				nullptr,
+			},
+			{
+				GeometrySizeCalculateBindings::chunk_draw_info_buffer,
+				vk::DescriptorType::eStorageBuffer,
+				1u,
+				vk::ShaderStageFlagBits::eCompute,
+				nullptr,
+			},
+		};
+		geometry_size_calculate_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
+			vk::DescriptorSetLayoutCreateInfo(
+				vk::DescriptorSetLayoutCreateFlags(),
+				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
+	}
+
+	// Create pipeline layout.
+	{
+		const vk::PushConstantRange push_constant_range(
+			vk::ShaderStageFlagBits::eCompute,
+			0u,
+			sizeof(ChunkPositionUniforms));
+
+		geometry_size_calculate_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
+			vk::PipelineLayoutCreateInfo(
+				vk::PipelineLayoutCreateFlags(),
+				1u, &*geometry_size_calculate_decriptor_set_layout_,
+				1u, &push_constant_range));
+	}
+
+	// Create pipeline.
+	geometry_size_calculate_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
+		nullptr,
+		vk::ComputePipelineCreateInfo(
+			vk::PipelineCreateFlags(),
+			vk::PipelineShaderStageCreateInfo(
+				vk::PipelineShaderStageCreateFlags(),
+				vk::ShaderStageFlagBits::eCompute,
+				*geometry_size_calculate_shader_,
+				"main"),
+			*geometry_size_calculate_pipeline_layout_)));
+
+	// Create descriptor set pool.
+	{
+		const vk::DescriptorPoolSize descriptor_pool_size(vk::DescriptorType::eStorageBuffer, 1u /*num descriptors*/);
+		geometry_size_calculate_descriptor_pool_=
+			vk_device_.createDescriptorPoolUnique(
+				vk::DescriptorPoolCreateInfo(
+					vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
+					1u, // max sets.
+					1u, &descriptor_pool_size));
+	}
+
+	// Create descriptor set.
+	geometry_size_calculate_descriptor_set_=
+		std::move(
+			vk_device_.allocateDescriptorSetsUnique(
+				vk::DescriptorSetAllocateInfo(
+					*geometry_size_calculate_descriptor_pool_,
+					1u, &*geometry_size_calculate_decriptor_set_layout_)).front());
+
+	// Update descriptor set.
+	{
+		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
+			world_processor_.GetChunkDataBuffer(),
+			0u,
+			world_processor_.GetChunkDataBufferSize());
+
+		const vk::DescriptorBufferInfo descriptor_chunk_draw_info_buffer_info(
+			*chunk_draw_info_buffer_,
+			0u,
+			chunk_draw_info_buffer_size_);
+
+		vk_device_.updateDescriptorSets(
+			{
+				{
+					*geometry_size_calculate_descriptor_set_,
+					GeometrySizeCalculateBindings::chunk_data_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_chunk_data_buffer_info,
+					nullptr
+				},
+				{
+					*geometry_size_calculate_descriptor_set_,
+					GeometrySizeCalculateBindings::chunk_draw_info_buffer,
 					0u,
 					1u,
 					vk::DescriptorType::eStorageBuffer,
@@ -446,6 +566,7 @@ void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer
 {
 	InitialFillBuffers(command_buffer);
 	PrepareGeometrySizeCalculation(command_buffer);
+	CalculateGeometrySize(command_buffer);
 	AllocateMemoryForGeometry(command_buffer);
 	GenGeometry(command_buffer);
 }
@@ -548,6 +669,56 @@ void WorldGeometryGenerator::PrepareGeometrySizeCalculation(const vk::CommandBuf
 	}
 }
 
+void WorldGeometryGenerator::CalculateGeometrySize(const vk::CommandBuffer command_buffer)
+{
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *geometry_size_calculate_pipeline_);
+
+	command_buffer.bindDescriptorSets(
+		vk::PipelineBindPoint::eCompute,
+		*geometry_size_calculate_pipeline_layout_,
+		0u,
+		1u, &*geometry_size_calculate_descriptor_set_,
+		0u, nullptr);
+
+	// Execute geometry size calculation for all chunks.
+	// TODO - do this no each frame and not for each chunk.
+	for(uint32_t x= 0; x < c_chunk_matrix_size[0]; ++x)
+	for(uint32_t y= 0; y < c_chunk_matrix_size[1]; ++y)
+	{
+		ChunkPositionUniforms chunk_position_uniforms;
+		chunk_position_uniforms.chunk_position[0]= int32_t(x);
+		chunk_position_uniforms.chunk_position[1]= int32_t(y);
+
+		command_buffer.pushConstants(
+			*geometry_size_calculate_pipeline_layout_,
+			vk::ShaderStageFlagBits::eCompute,
+			0,
+			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
+
+		// Dispatch a thread for each block in chunk, except highest layer.
+		command_buffer.dispatch(c_chunk_width, c_chunk_width, c_chunk_height - 1);
+	}
+
+	// Create barrier between update chunk draw info buffer and its later usage.
+	// TODO - check this is correct.
+	{
+		const vk::BufferMemoryBarrier barrier(
+			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			*chunk_draw_info_buffer_,
+			0,
+			VK_WHOLE_SIZE);
+
+		command_buffer.pipelineBarrier(
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::DependencyFlags(),
+			0, nullptr,
+			1, &barrier,
+			0, nullptr);
+	}
+}
+
 void WorldGeometryGenerator::AllocateMemoryForGeometry(const vk::CommandBuffer command_buffer)
 {
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *geometry_allocate_pipeline_);
@@ -611,7 +782,7 @@ void WorldGeometryGenerator::GenGeometry(const vk::CommandBuffer command_buffer)
 			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
 
 		// Dispatch a thread for each block in chunk, except highest layer.
-		command_buffer.dispatch(c_chunk_width, c_chunk_width , c_chunk_height - 1);
+		command_buffer.dispatch(c_chunk_width, c_chunk_width, c_chunk_height - 1);
 	}
 
 	// Create barrier between update vertex buffer and its usage for rendering.

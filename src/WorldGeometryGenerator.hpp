@@ -20,6 +20,7 @@ public:
 	struct ChunkDrawInfo
 	{
 		uint32_t num_quads= 0;
+		uint32_t new_num_quads= 0;
 		uint32_t first_quad= 0;
 	};
 

@@ -8,6 +8,8 @@
 // The main allocator structure.
 const uint c_null_memory_region= 0;
 
+// If these structs are changed, C++ structs must be changed too!
+
 struct Allocator
 {
 	uint total_memory_size_units;

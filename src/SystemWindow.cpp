@@ -21,7 +21,7 @@ SystemWindow::SystemWindow()
 
 	window_=
 		SDL_CreateWindow(
-			"HexGPU",
+			"⬡⬢⬡⬢ HexGPU ⬢⬡⬢⬡",
 			SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
 			width, height,
 			window_flags);

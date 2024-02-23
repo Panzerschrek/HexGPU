@@ -67,7 +67,7 @@ void AllocatorFree(uint start_unit, uint size_units)
 		return;
 
 	// Contains number ones equal to size.
-	uint mask= (1 << size_units) - 1;
+	uint mask= (1 << (size_units & 31)) - 1;
 
 	uint block= start_unit >> 5;
 	uint block_bit= start_unit & 31;

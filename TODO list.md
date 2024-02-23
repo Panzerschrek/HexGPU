@@ -14,18 +14,20 @@ The order represents importance and/or dependency.
 * Improved textures loading - use smaller staging buffer and free it at the end of the loading process
 * Biome-based world generation
 * Trees generation
+* Frustum-culling for chunks
 * Fire (that burns some blocks)
 * Player collision against the world
 * More block types
 * Smooth lighting - average block light values at each vertex
 * More light source blocks
+* Use device-local memory almost everywhere
 * Settings
 * Anisotropy textures filtering
 * Run SPIR-V optimizer for compiled shaders
 * Configurable textures config
 * Plates (half-blocks)
 * Vertically-splitted half-blocks
-* Sky drawing (sky, sun, clouds)
+* Sky drawing (sky, sun, moon, clouds)
 * Rain/snow
 * Time of day change
 * GUI

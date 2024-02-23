@@ -86,7 +86,7 @@ AllocationInfo AllocatorAllocate(uint size_units)
 	// Use this region for result.
 	result.region_index= region_index;
 	result.offset_units= allocator_memory_regions[region_index].offset_units;
-	result.size_units= allocator_memory_regions[region_index].size_units;
+	result.size_units= size_units;
 
 	// Mark this region as non-free.
 	allocator_memory_regions[region_index].is_used= true;
@@ -112,7 +112,53 @@ AllocationInfo AllocatorAllocate(uint size_units)
 		allocator_memory_regions[region_index].free_regions_list_node.prev_index= c_null_memory_region;
 	}
 
-	// TODO - cut tail into another region.
+	if(size_units < allocator_memory_regions[region_index].size_units)
+	{
+		// Process remaining tail of current region.
+		uint tail_size_units= allocator_memory_regions[region_index].size_units - size_units;
+
+		uint next_sequence_region_index= allocator_memory_regions[region_index].regions_sequence_list_node.next_index;
+
+		if(next_sequence_region_index != c_null_memory_region &&
+			!allocator_memory_regions[next_sequence_region_index].is_used)
+		{
+			// Just extend next region to include remaining tail of this region.
+			allocator_memory_regions[next_sequence_region_index].offset_units-= tail_size_units;
+			allocator_memory_regions[next_sequence_region_index].size_units+= tail_size_units;
+		}
+		else if(allocator.first_available_region_index != c_null_memory_region)
+		{
+			// Cut tail into another region.
+
+			// Take region from available regions list.
+			uint tail_region_index= allocator.first_available_region_index;
+			allocator.first_available_region_index= allocator_memory_regions[tail_region_index].available_regions_list_node.next_index;
+			if(allocator.first_available_region_index != c_null_memory_region)
+				allocator_memory_regions[allocator.first_available_region_index].available_regions_list_node.prev_index= c_null_memory_region;
+			allocator_memory_regions[tail_region_index].available_regions_list_node.prev_index= c_null_memory_region;
+			allocator_memory_regions[tail_region_index].available_regions_list_node.next_index= c_null_memory_region;
+
+			// Fill offset/size for tail region.
+			allocator_memory_regions[tail_region_index].offset_units= allocator_memory_regions[region_index].offset_units + size_units;
+			allocator_memory_regions[tail_region_index].size_units= tail_size_units;
+
+			// Insert tail region into regions sequence list.
+			allocator_memory_regions[tail_region_index].regions_sequence_list_node.prev_index= region_index;
+			allocator_memory_regions[tail_region_index].regions_sequence_list_node.next_index= next_sequence_region_index;
+			allocator_memory_regions[region_index].regions_sequence_list_node.next_index= tail_region_index;
+			if(next_sequence_region_index != c_null_memory_region)
+				allocator_memory_regions[next_sequence_region_index].regions_sequence_list_node.prev_index= tail_region_index;
+
+			// Insert tail region into free regions list.
+			uint next_free_region_index= allocator.first_free_region_index;
+			allocator.first_free_region_index= tail_region_index;
+			if(next_free_region_index != c_null_memory_region)
+				allocator_memory_regions[next_free_region_index].free_regions_list_node.prev_index= tail_region_index;
+			allocator_memory_regions[tail_region_index].free_regions_list_node.prev_index= c_null_memory_region;
+			allocator_memory_regions[tail_region_index].free_regions_list_node.next_index= next_free_region_index;
+
+		}
+	}
 
 	return result;
 }
@@ -125,12 +171,46 @@ void AllocatorFree(in AllocationInfo allocation_info)
 
 	uint region_index= allocation_info.region_index;
 
-	// Mark this region as free.
-	allocator_memory_regions[region_index].is_used= false;
+	// TODO - try also to append to prev free region.
 
-	// Add this region to the linked list of free regions.
-	allocator_memory_regions[region_index].regions_sequence_list_node.next_index= allocator.first_free_region_index;
-	allocator.first_free_region_index= region_index;
+	uint next_sequence_region_index= allocator_memory_regions[region_index].regions_sequence_list_node.next_index;
+	if(next_sequence_region_index != c_null_memory_region &&
+		!allocator_memory_regions[next_sequence_region_index].is_used)
+	{
+		// Append this region to next free region.
 
-	// TODO - combine this region with adjacent free regions to reduce fragmentation.
+		// Increase size of next region.
+		allocator_memory_regions[next_sequence_region_index].offset_units-= allocator_memory_regions[region_index].size_units;
+		allocator_memory_regions[next_sequence_region_index].size_units+= allocator_memory_regions[region_index].size_units;
+
+		// Remove this region from the linked list of sequence regions.
+		uint prev_sequence_region_index= allocator_memory_regions[region_index].regions_sequence_list_node.prev_index;
+		allocator_memory_regions[next_sequence_region_index].regions_sequence_list_node.prev_index= prev_sequence_region_index;
+		if(prev_sequence_region_index != c_null_memory_region)
+			allocator_memory_regions[prev_sequence_region_index].regions_sequence_list_node.next_index= next_sequence_region_index;
+		allocator_memory_regions[region_index].regions_sequence_list_node.prev_index= c_null_memory_region;
+		allocator_memory_regions[region_index].regions_sequence_list_node.next_index= c_null_memory_region;
+		// TODO - check list head.
+
+		// Add this region to the linked list of available regions.
+		uint next_available_region_index= allocator.first_available_region_index;
+		allocator.first_available_region_index= region_index;
+		if(next_available_region_index != c_null_memory_region)
+			allocator_memory_regions[next_available_region_index].available_regions_list_node.prev_index= region_index;
+		allocator_memory_regions[region_index].available_regions_list_node.prev_index= c_null_memory_region;
+		allocator_memory_regions[region_index].available_regions_list_node.next_index= next_available_region_index;
+	}
+	else
+	{
+		// Mark this region as free.
+		allocator_memory_regions[region_index].is_used= false;
+
+		// Add this region to the linked list of free regions.
+		uint next_free_region_index= allocator.first_free_region_index;
+		allocator.first_free_region_index= region_index;
+		if(next_free_region_index != c_null_memory_region)
+			allocator_memory_regions[next_free_region_index].free_regions_list_node.prev_index= region_index;
+		allocator_memory_regions[region_index].free_regions_list_node.prev_index= c_null_memory_region;
+		allocator_memory_regions[region_index].free_regions_list_node.next_index= next_free_region_index;
+	}
 }

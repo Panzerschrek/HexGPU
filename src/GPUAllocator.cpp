@@ -69,7 +69,7 @@ void GPUAllocator::EnsureInitialized(const vk::CommandBuffer command_buffer)
 	initialized_= true;
 
 	std::vector<uint32_t> data;
-	data.resize(allocator_data_buffer_size_, uint32_t(0)); // Fill with zeros - indicating free memory.
+	data.resize(allocator_data_buffer_size_ / sizeof(uint32_t), uint32_t(0)); // Fill with zeros - indicating free memory.
 	data[0]= total_memory_units_; // Set size.
 
 	command_buffer.updateBuffer(*allocator_data_buffer_, 0u, allocator_data_buffer_size_, data.data());

@@ -22,12 +22,14 @@ uint AllocatorAllocate(uint size_units)
 {
 	if(size_units == 0)
 		return 0;
+	if(size_units > 32)
+		return c_allocator_fail_result;
 
 	// Each allocation happens in one of 32-bit blocks.
 	// If allocation is less than 32 units, free units withing a block may be used for another allocation.
 
 	// Contains number ones equal to size.
-	uint mask= (1 << size_units) - 1;
+	uint mask= (1 << (size_units & 31)) - 1;
 
 	uint num_blocks= allocator_total_number_of_units >> 5;
 	for(uint i= 0; i < num_blocks; ++i)
@@ -41,7 +43,7 @@ uint AllocatorAllocate(uint size_units)
 
 		// Perform search of passing range in the block.
 		// We require continuous span of "size_units" size.
-		uint num_shifts= 32 - size_units;
+		uint num_shifts= 33 - size_units;
 		for(uint shift= 0; shift < num_shifts; ++shift)
 		{
 			uint mask_shifted= mask << shift;

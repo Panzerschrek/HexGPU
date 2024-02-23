@@ -54,15 +54,18 @@ struct ChunkPositionUniforms
 	int32_t chunk_position[2];
 };
 
-// For now allocate for each chunk maximum possible vertex count.
-// TODO - improve this, use some kind of allocator for vertices.
-const uint32_t c_max_quads_per_chunk= 65536 / 4;
-
 // This should match the same constant in GLSL code!
 const uint32_t c_allocation_unut_size_quads= 512;
 
-const uint32_t c_total_vertex_buffer_quads= c_max_quads_per_chunk * c_chunk_matrix_size[0] * c_chunk_matrix_size[1];
+// Assuming that amount of total required vertex memory is proportional to total number of chunks,
+// multiplied by some factor.
+// Assuming that in worst cases (complex geometry) and taking allocator fragmentation into account
+// we need to have enough space for so much vertices.
+const uint32_t c_max_average_quads_per_chunk= 6144;
 
+const uint32_t c_total_vertex_buffer_quads= c_chunk_matrix_size[0] * c_chunk_matrix_size[1] * c_max_average_quads_per_chunk;
+
+// Number of allocation units is based on number of quads with rounding upwards.
 const uint32_t c_total_vertex_buffer_units=
 	(c_total_vertex_buffer_quads + (c_allocation_unut_size_quads - 1)) / c_allocation_unut_size_quads;
 } // namespace

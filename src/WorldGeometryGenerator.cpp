@@ -32,6 +32,7 @@ namespace GeometryAllocateBindings
 
 // This should match bindings in the shader itself!
 const uint32_t chunk_draw_info_buffer= 0;
+const uint32_t allocator_data_buffer= GPUAllocator::c_allocator_buffer_binding;
 
 }
 
@@ -57,12 +58,20 @@ struct ChunkPositionUniforms
 // TODO - improve this, use some kind of allocator for vertices.
 const uint32_t c_max_quads_per_chunk= 65536 / 4;
 
+// This should match the same constant in GLSL code!
+const uint32_t c_allocation_unut_size_quads= 512;
+
+const uint32_t c_total_vertex_buffer_quads= c_max_quads_per_chunk * c_chunk_matrix_size[0] * c_chunk_matrix_size[1];
+
+const uint32_t c_total_vertex_buffer_units=
+	(c_total_vertex_buffer_quads + (c_allocation_unut_size_quads - 1)) / c_allocation_unut_size_quads;
 } // namespace
 
 WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, WorldProcessor& world_processor)
 	: vk_device_(window_vulkan.GetVulkanDevice())
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, world_processor_(world_processor)
+	, vertex_memory_allocator_(window_vulkan, c_total_vertex_buffer_units)
 {
 	// Create chunk draw info buffer.
 	{
@@ -95,7 +104,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 	}
 
 	// Create vertex buffer.
-	vertex_buffer_num_quads_= c_max_quads_per_chunk * c_chunk_matrix_size[0] * c_chunk_matrix_size[1];
+	vertex_buffer_num_quads_= c_total_vertex_buffer_quads;
 	{
 		const size_t quads_data_size= vertex_buffer_num_quads_ * sizeof(QuadVertices);
 
@@ -332,6 +341,13 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 				vk::ShaderStageFlagBits::eCompute,
 				nullptr,
 			},
+			{
+				GeometryAllocateBindings::allocator_data_buffer,
+				vk::DescriptorType::eStorageBuffer,
+				1u,
+				vk::ShaderStageFlagBits::eCompute,
+				nullptr,
+			},
 		};
 		geometry_allocate_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
 			vk::DescriptorSetLayoutCreateInfo(
@@ -384,6 +400,11 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 			0u,
 			chunk_draw_info_buffer_size_);
 
+		const vk::DescriptorBufferInfo descriptor_allocator_data_buffer_info(
+			vertex_memory_allocator_.GetAllocatorDataBuffer(),
+			0u,
+			vertex_memory_allocator_.GetAllocatorDataBufferSize());
+
 		vk_device_.updateDescriptorSets(
 			{
 				{
@@ -394,6 +415,16 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 					vk::DescriptorType::eStorageBuffer,
 					nullptr,
 					&descriptor_chunk_draw_info_buffer_info,
+					nullptr
+				},
+				{
+					*geometry_allocate_descriptor_set_,
+					GeometryAllocateBindings::allocator_data_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_allocator_data_buffer_info,
 					nullptr
 				},
 			},
@@ -564,6 +595,7 @@ WorldGeometryGenerator::~WorldGeometryGenerator()
 
 void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer)
 {
+	vertex_memory_allocator_.EnsureInitialized(command_buffer);
 	InitialFillBuffers(command_buffer);
 	PrepareGeometrySizeCalculation(command_buffer);
 	CalculateGeometrySize(command_buffer);

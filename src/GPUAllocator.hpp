@@ -15,6 +15,7 @@ public:
 	~GPUAllocator();
 
 	vk::Buffer GetAllocatorDataBuffer() const;
+	uint32_t GetAllocatorDataBufferSize() const;
 
 	void EnsureInitialized(vk::CommandBuffer command_buffer);
 

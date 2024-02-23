@@ -1,4 +1,5 @@
 #pragma once
+#include "GPUAllocator.hpp"
 #include "WorldProcessor.hpp"
 
 namespace HexGPU
@@ -22,6 +23,8 @@ public:
 		uint32_t num_quads= 0;
 		uint32_t new_num_quads= 0;
 		uint32_t first_quad= 0;
+		uint first_memory_unit= 0;
+		uint num_memory_units= 0;
 	};
 
 public:
@@ -56,6 +59,8 @@ private:
 	size_t vertex_buffer_num_quads_= 0;
 	vk::UniqueBuffer vertex_buffer_;
 	vk::UniqueDeviceMemory vertex_buffer_memory_;
+
+	GPUAllocator vertex_memory_allocator_;
 
 	vk::UniqueShaderModule geometry_size_calculate_prepare_shader_;
 	vk::UniqueDescriptorSetLayout geometry_size_calculate_prepare_decriptor_set_layout_;

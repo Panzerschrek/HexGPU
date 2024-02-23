@@ -57,6 +57,11 @@ vk::Buffer GPUAllocator::GetAllocatorDataBuffer() const
 	return allocator_data_buffer_.get();
 }
 
+uint32_t GPUAllocator::GetAllocatorDataBufferSize() const
+{
+	return allocator_data_buffer_size_;
+}
+
 void GPUAllocator::EnsureInitialized(const vk::CommandBuffer command_buffer)
 {
 	if(initialized_)

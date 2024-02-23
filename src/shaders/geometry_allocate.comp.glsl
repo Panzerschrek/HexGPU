@@ -13,7 +13,9 @@ layout(binding= 0, std430) buffer chunk_draw_info_buffer
 	ChunkDrawInfo chunk_draw_info[c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
 };
 
-const int c_max_quads_per_chunk= 65536 / 4;
+// Max number of quads is 65536 / 4 (uint16_t index limit).
+// Min number should be 32 times less because of allocator limitations.
+const uint c_allocation_unut_size_quads= 512;
 
 void main()
 {
@@ -24,8 +26,32 @@ void main()
 		int chunk_index= chunk_x + chunk_y * c_chunk_matrix_size[0];
 		chunk_draw_info[chunk_index].num_quads= 0;
 
-		// For now use same capacity for quads of all chunks.
-		// TODO - allocate memory for chunk quads on per-chunk basis, read here offset to allocated memory.
-		chunk_draw_info[chunk_index].first_quad= uint(c_max_quads_per_chunk * chunk_index);
+		// Calculate rounded up number of memory units.
+		uint num_memory_units_required=
+			(chunk_draw_info[chunk_index].new_num_quads + (c_allocation_unut_size_quads - 1)) / c_allocation_unut_size_quads;
+
+		if(num_memory_units_required != chunk_draw_info[chunk_index].num_memory_units)
+		{
+			// Perform allocation in both cases if have not enough memory and if have too much memory.
+			// Doing so allows us to free excessive memory if it is no longer needed.
+			uint new_unit= AllocatorAllocate(num_memory_units_required);
+			if(new_unit != c_allocator_fail_result)
+			{
+				// Free previous buffer.
+				AllocatorFree(chunk_draw_info[chunk_index].first_memory_unit, chunk_draw_info[chunk_index].num_memory_units);
+
+				// Save allocated memory.
+				chunk_draw_info[chunk_index].first_memory_unit= new_unit;
+				chunk_draw_info[chunk_index].num_memory_units= num_memory_units_required;
+			}
+			else
+			{
+				// Do nothing here.
+				// TODO - avoid rebuilding chunk geometry if allocation fails.
+			}
+		}
+
+		chunk_draw_info[chunk_index].first_quad=
+			chunk_draw_info[chunk_index].first_memory_unit * c_allocation_unut_size_quads;
 	}
 }

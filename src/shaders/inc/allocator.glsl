@@ -29,7 +29,7 @@ uint AllocatorAllocate(uint size_units)
 	uint mask= (1 << size_units) - 1;
 
 	uint num_blocks= allocator_total_number_of_units >> 5;
-	for(uint i= 0; i < allocator_total_number_of_units; ++i)
+	for(uint i= 0; i < num_blocks; ++i)
 	{
 		uint block_bits= allocator_used_units_bits[i];
 		if(bitCount(block_bits) < size_units)
@@ -57,6 +57,9 @@ uint AllocatorAllocate(uint size_units)
 // Free specified number of units from given start.
 void AllocatorFree(uint start_unit, uint size_units)
 {
+	if(size_units == 0)
+		return;
+
 	// Contains number ones equal to size.
 	uint mask= (1 << size_units) - 1;
 

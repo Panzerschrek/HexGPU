@@ -44,6 +44,7 @@ private:
 
 private:
 	void GenerateWorld(vk::CommandBuffer command_buffer);
+	void UpdateWorldBlocks(vk::CommandBuffer command_buffer);
 	void UpdateLight(vk::CommandBuffer command_buffer);
 	void UpdatePlayer(
 		vk::CommandBuffer command_buffer,
@@ -76,6 +77,13 @@ private:
 	vk::UniquePipeline world_gen_pipeline_;
 	vk::UniqueDescriptorPool world_gen_descriptor_pool_;
 	vk::UniqueDescriptorSet world_gen_descriptor_set_;
+
+	vk::UniqueShaderModule world_blocks_update_shader_;
+	vk::UniqueDescriptorSetLayout world_blocks_update_decriptor_set_layout_;
+	vk::UniquePipelineLayout world_blocks_update_pipeline_layout_;
+	vk::UniquePipeline world_blocks_update_pipeline_;
+	vk::UniqueDescriptorPool world_blocks_update_descriptor_pool_;
+	vk::UniqueDescriptorSet world_blocks_update_descriptor_sets_[2];
 
 	vk::UniqueShaderModule light_update_shader_;
 	vk::UniqueDescriptorSetLayout light_update_decriptor_set_layout_;

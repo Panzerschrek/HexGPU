@@ -51,18 +51,18 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 	: vk_device_(window_vulkan.GetVulkanDevice())
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 {
-	// Create chunk data buffer.
+	// Create chunk data buffers.
+	chunk_data_buffer_size_= c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1];
+	for(uint32_t i= 0; i < 2; ++i)
 	{
-		chunk_data_buffer_size_= c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1];
-
-		chunk_data_buffer_=
+		chunk_data_buffers_[i].buffer=
 			vk_device_.createBufferUnique(
 				vk::BufferCreateInfo(
 					vk::BufferCreateFlags(),
 					chunk_data_buffer_size_,
 					vk::BufferUsageFlagBits::eStorageBuffer));
 
-		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*chunk_data_buffer_);
+		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*chunk_data_buffers_[i].buffer);
 
 		const auto memory_properties= window_vulkan.GetMemoryProperties();
 
@@ -77,8 +77,8 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 			}
 		}
 
-		chunk_data_buffer_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);
-		vk_device_.bindBufferMemory(*chunk_data_buffer_, *chunk_data_buffer_memory_, 0u);
+		chunk_data_buffers_[i].memory= vk_device_.allocateMemoryUnique(memory_allocate_info);
+		vk_device_.bindBufferMemory(*chunk_data_buffers_[i].buffer, *chunk_data_buffers_[i].memory, 0u);
 	}
 
 	// Create light buffers.
@@ -218,7 +218,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 	// Update world generator descriptor set.
 	{
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
-			chunk_data_buffer_.get(),
+			chunk_data_buffers_[0].buffer.get(),
 			0u,
 			chunk_data_buffer_size_);
 
@@ -322,7 +322,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 						1u, &*light_update_decriptor_set_layout_)).front());
 
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
-			chunk_data_buffer_.get(),
+			chunk_data_buffers_[0].buffer.get(),
 			0u,
 			chunk_data_buffer_size_);
 
@@ -448,7 +448,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 	// Update player update descriptor set.
 	{
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
-			chunk_data_buffer_.get(),
+			chunk_data_buffers_[0].buffer.get(),
 			0u,
 			chunk_data_buffer_size_);
 
@@ -505,7 +505,7 @@ void WorldProcessor::Update(
 
 vk::Buffer WorldProcessor::GetChunkDataBuffer() const
 {
-	return chunk_data_buffer_.get();
+	return chunk_data_buffers_[0].buffer.get();
 }
 
 uint32_t WorldProcessor::GetChunkDataBufferSize() const
@@ -567,7 +567,7 @@ void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*chunk_data_buffer_,
+			*chunk_data_buffers_[0].buffer,
 			0,
 			VK_WHOLE_SIZE);
 
@@ -698,7 +698,7 @@ void WorldProcessor::UpdatePlayer(
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*chunk_data_buffer_,
+			*chunk_data_buffers_[0].buffer,
 			0,
 			VK_WHOLE_SIZE);
 

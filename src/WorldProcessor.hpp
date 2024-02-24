@@ -36,7 +36,7 @@ public:
 	};
 
 private:
-	struct LightBuffer
+	struct BufferWithMemory
 	{
 		vk::UniqueBuffer buffer;
 		vk::UniqueDeviceMemory memory;
@@ -57,13 +57,14 @@ private:
 	const vk::Device vk_device_;
 	const uint32_t queue_family_index_;
 
-	vk::UniqueBuffer chunk_data_buffer_;
-	vk::UniqueDeviceMemory chunk_data_buffer_memory_;
+	// Use double buffering for world update.
+	// On each step data is read from one of them and written into another.
+	BufferWithMemory chunk_data_buffers_[2];
 	uint32_t chunk_data_buffer_size_= 0;
 
-	// Use buffering for light update.
+	// Use double buffering for light update.
 	// On each step data is read from one of them and written into another.
-	LightBuffer light_buffers_[2];
+	BufferWithMemory light_buffers_[2];
 	uint32_t light_buffer_size_= 0;
 
 	vk::UniqueBuffer player_state_buffer_;

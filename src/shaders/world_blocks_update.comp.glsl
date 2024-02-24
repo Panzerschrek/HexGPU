@@ -57,9 +57,9 @@ void main()
 		// south-west
 		GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 1, c_max_global_y)), 0)) );
 
-	uint8_t block_value= chunks_input_data[column_address + z];
+	uint8_t block_type= chunks_input_data[column_address + z];
 
-	if(block_value == c_block_type_soil)
+	if(block_type == c_block_type_soil)
 	{
 		// Soil may be converted into grass, if there is a grass block nearby.
 
@@ -75,7 +75,7 @@ void main()
 			// Plant only if has air abowe.
 			chunks_input_data[column_address + z_up_clamped] == c_block_type_air)
 		{
-			// Check adjustend blocks. If has grass - convert into grass.
+			// Check adjacent blocks. If has grass - convert into grass.
 			for(int i= 0; i < 6; ++i)
 			{
 				uint8_t z_minus_one_block_type= chunks_input_data[adjacent_columns[i] + z - 1];
@@ -107,11 +107,20 @@ void main()
 
 			// TODO - perform convertion into grass randomly with chance proportional to number of grass blocks nearby.
 			if(num_adjacent_grass_blocks > 0)
-				block_value= c_block_type_grass;
+				block_type= c_block_type_grass;
 		}
 	}
+	else if(block_type == c_block_type_grass)
+	{
+		// Grass disappears if is blocked from above.
+		// TODO - take also light level into account.
+		uint8_t block_above_type= chunks_input_data[column_address + z_up_clamped];
+		if(!(block_above_type == c_block_type_air || block_above_type == c_block_type_foliage))
+			block_type= c_block_type_soil;
+	}
 
+	// Write updated block.
 	int chunk_index= chunk_position[0] + chunk_position[1] * c_chunk_matrix_size[0];
 	int chunk_data_offset= chunk_index * c_chunk_volume;
-	chunks_output_data[chunk_data_offset + ChunkBlockAddress(invocation.x, invocation.y, invocation.z)]= block_value;
+	chunks_output_data[chunk_data_offset + ChunkBlockAddress(invocation.x, invocation.y, invocation.z)]= block_type;
 }

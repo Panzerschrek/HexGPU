@@ -65,7 +65,9 @@ void main()
 
 		// TODO - check if has enough light.
 
-		bool can_convert_into_grass= false;
+		// TODO - perform grass propagation checks not each tick, but only sometimes randomly.
+
+		int num_adjacent_grass_blocks= 0;
 
 		// Do not plant grass at top of the world and at very bottom.
 		if( z >= 1 &&
@@ -86,24 +88,25 @@ void main()
 					z_plus_one_block_type  == c_block_type_air)
 				{
 					// Block below is grass and has enough air.
-					can_convert_into_grass= true;
+					++num_adjacent_grass_blocks;
 				}
 				if( z_plus_zero_block_type == c_block_type_grass &&
 					z_plus_one_block_type  == c_block_type_air)
 				{
 					// Block nearby is grass and has enough air.
-					can_convert_into_grass= true;
+					++num_adjacent_grass_blocks;
 				}
 				if( z_plus_one_block_type == c_block_type_grass &&
 					z_plus_two_block_type == c_block_type_air &&
 					chunks_input_data[column_address + z + 2] == c_block_type_air)
 				{
 					// Block above is grass and has enough air.
-					can_convert_into_grass= true;
+					++num_adjacent_grass_blocks;
 				}
 			}
 
-			if(can_convert_into_grass)
+			// TODO - perform convertion into grass randomly with chance proportional to number of grass blocks nearby.
+			if(num_adjacent_grass_blocks > 0)
 				block_value= c_block_type_grass;
 		}
 	}

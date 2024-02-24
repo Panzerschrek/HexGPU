@@ -66,7 +66,7 @@ void main()
 	// TODO - make soil layer variable-height.
 	chunks_data[column_offset + ground_z - 2]= c_block_type_soil;
 	chunks_data[column_offset + ground_z - 1]= c_block_type_soil;
-	chunks_data[column_offset + ground_z]= c_block_type_soil;
+	chunks_data[column_offset + ground_z]= c_block_type_grass;
 
 	// Fill remaining space with air.
 	for(int z= ground_z + 1; z < c_chunk_height; ++z)

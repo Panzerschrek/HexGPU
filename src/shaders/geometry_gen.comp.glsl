@@ -5,8 +5,8 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 
 #include "inc/block_type.glsl"
+#include "inc/chunk_draw_info.glsl"
 #include "inc/hex_funcs.glsl"
-#include "inc/vulkan_structs.glsl"
 
 // If this changed, vertex attributes specification in C++ code must be chaned too!
 struct WorldVertex
@@ -26,12 +26,6 @@ layout(binding= 0, std430) buffer vertices_buffer
 	Quad quads[];
 };
 
-layout(binding= 1, std430) buffer draw_indirect_buffer
-{
-	// Populate here result number of indices.
-	VkDrawIndexedIndirectCommand draw_commands[c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
-};
-
 layout(binding= 2, std430) buffer chunks_data_buffer
 {
 	uint8_t chunks_data[c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
@@ -42,22 +36,24 @@ layout(binding= 3, std430) buffer chunk_light_buffer
 	uint8_t light_buffer[c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
 };
 
+layout(binding= 4, std430) buffer chunk_draw_info_buffer
+{
+	ChunkDrawInfo chunk_draw_info[c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
+};
+
 layout(push_constant) uniform uniforms_block
 {
 	int chunk_position[2];
 };
 
-const int c_indices_per_quad= 6;
-
-const int c_max_quads_per_chunk= 65536 / 4;
-
 void main()
 {
+	// Generate quads geoemtry.
+	// This code must mutch code in geometry size calculation code!
+
 	int chunk_index= chunk_position[0] + chunk_position[1] * c_chunk_matrix_size[0];
 
-	// For now use same capacity for quads of all chunks.
-	// TODO - allocate memory for chunk quads on per-chunk basis, read here offset to allocated memory.
-	const uint quads_offset= uint(c_max_quads_per_chunk * chunk_index);
+	const uint quads_offset= chunk_draw_info[chunk_index].first_quad;
 
 	uvec3 invocation= gl_GlobalInvocationID;
 
@@ -144,8 +140,7 @@ void main()
 			quad_north.vertices[2]= v[3];
 		}
 
-		uint prev_index_count= atomicAdd(draw_commands[chunk_index].indexCount, c_indices_per_quad * 2);
-		uint quad_index= quads_offset + prev_index_count / 6;
+		uint quad_index= quads_offset + atomicAdd(chunk_draw_info[chunk_index].num_quads, 2);
 		quads[quad_index]= quad_south;
 		quads[quad_index + 1]= quad_north;
 	}
@@ -185,8 +180,7 @@ void main()
 			quad.vertices[2]= v[2];
 		}
 
-		uint prev_index_count= atomicAdd(draw_commands[chunk_index].indexCount, c_indices_per_quad);
-		uint quad_index= quads_offset + prev_index_count / 6;
+		uint quad_index= quads_offset + atomicAdd(chunk_draw_info[chunk_index].num_quads, 1);
 		quads[quad_index]= quad;
 	}
 
@@ -225,8 +219,7 @@ void main()
 			quad.vertices[2]= v[2];
 		}
 
-		uint prev_index_count= atomicAdd(draw_commands[chunk_index].indexCount, c_indices_per_quad);
-		uint quad_index= quads_offset + prev_index_count / 6;
+		uint quad_index= quads_offset + atomicAdd(chunk_draw_info[chunk_index].num_quads, 1);
 		quads[quad_index]= quad;
 	}
 
@@ -265,8 +258,7 @@ void main()
 		}
 
 		// Add south-east quad.
-		uint prev_index_count= atomicAdd(draw_commands[chunk_index].indexCount, c_indices_per_quad);
-		uint quad_index= quads_offset + prev_index_count / 6;
+		uint quad_index= quads_offset + atomicAdd(chunk_draw_info[chunk_index].num_quads, 1);
 		quads[quad_index]= quad;
 	}
 }

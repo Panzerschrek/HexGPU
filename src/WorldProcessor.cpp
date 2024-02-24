@@ -498,19 +498,127 @@ void WorldProcessor::Update(
 	const bool build_triggered,
 	const bool destroy_triggered)
 {
-	if(!world_generated_)
+	GenerateWorld(command_buffer);
+	UpdateLight(command_buffer);
+	UpdatePlayer(command_buffer, player_pos, player_dir, build_block_type, build_triggered, destroy_triggered);
+}
+
+vk::Buffer WorldProcessor::GetChunkDataBuffer() const
+{
+	return chunk_data_buffer_.get();
+}
+
+uint32_t WorldProcessor::GetChunkDataBufferSize() const
+{
+	return chunk_data_buffer_size_;
+}
+
+vk::Buffer WorldProcessor::GetPlayerStateBuffer() const
+{
+	return player_state_buffer_.get();
+}
+
+vk::Buffer WorldProcessor::GetLightDataBuffer() const
+{
+	// 0 - actual
+	return light_buffers_[0].buffer.get();
+}
+
+uint32_t WorldProcessor::GetLightDataBufferSize() const
+{
+	return light_buffer_size_;
+}
+
+void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
+{
+	if(world_generated_)
+		return;
+	world_generated_= true;
+
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_gen_pipeline_);
+
+	command_buffer.bindDescriptorSets(
+		vk::PipelineBindPoint::eCompute,
+		*world_gen_pipeline_layout_,
+		0u,
+		1u, &*world_gen_descriptor_set_,
+		0u, nullptr);
+
+	for(uint32_t x= 0; x < c_chunk_matrix_size[0]; ++x)
+	for(uint32_t y= 0; y < c_chunk_matrix_size[1]; ++y)
 	{
-		world_generated_= true;
+		ChunkPositionUniforms chunk_position_uniforms;
+		chunk_position_uniforms.chunk_position[0]= int32_t(x);
+		chunk_position_uniforms.chunk_position[1]= int32_t(y);
 
-		// Run world generation.
+		command_buffer.pushConstants(
+			*world_gen_pipeline_layout_,
+			vk::ShaderStageFlagBits::eCompute,
+			0,
+			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
 
-		command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_gen_pipeline_);
+		// Dispatch only 2D group - perform generation for columns.
+		command_buffer.dispatch(c_chunk_width, c_chunk_width , 1);
+	}
 
+	// Create barrier between world generation and its later usage.
+	// TODO - check this is correct.
+	{
+		const vk::BufferMemoryBarrier barrier(
+			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			*chunk_data_buffer_,
+			0,
+			VK_WHOLE_SIZE);
+
+		command_buffer.pipelineBarrier(
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::DependencyFlags(),
+			0, nullptr,
+			1, &barrier,
+			0, nullptr);
+	}
+
+	// Fill light buffer with zeros.
+	for(uint32_t i= 0; i < 2; ++i)
+	{
+		command_buffer.fillBuffer(*light_buffers_[i].buffer, 0, light_buffer_size_, 0);
+
+		// Add barrier between filling and performing light calculation.
+		const vk::BufferMemoryBarrier barrier(
+			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			*light_buffers_[i].buffer,
+			0,
+			VK_WHOLE_SIZE);
+
+		command_buffer.pipelineBarrier(
+			vk::PipelineStageFlagBits::eTransfer,
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::DependencyFlags(),
+			0, nullptr,
+			1, &barrier,
+			0, nullptr);
+	}
+
+	// Perform light update multiple times in order to propagate sky light to the bottom of the chunks.
+	for(uint32_t i= 0; i < c_chunk_height / 2 + 16 / 2; ++i)
+		UpdateLight(command_buffer);
+}
+
+void WorldProcessor::UpdateLight(const vk::CommandBuffer command_buffer)
+{
+	// Always run light update steps in pairs.
+	// Doing so we ensure that both buffers are updated each world update step.
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *light_update_pipeline_);
+	for(uint32_t i= 0; i < 2; ++i)
+	{
 		command_buffer.bindDescriptorSets(
 			vk::PipelineBindPoint::eCompute,
-			*world_gen_pipeline_layout_,
+			*light_update_pipeline_layout_,
 			0u,
-			1u, &*world_gen_descriptor_set_,
+			1u, &*light_update_descriptor_sets_[i],
 			0u, nullptr);
 
 		for(uint32_t x= 0; x < c_chunk_matrix_size[0]; ++x)
@@ -526,17 +634,16 @@ void WorldProcessor::Update(
 				0,
 				sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
 
-			// Dispatch only 2D group - perform generation for columns.
-			command_buffer.dispatch(c_chunk_width, c_chunk_width , 1);
+			command_buffer.dispatch(c_chunk_width, c_chunk_width , c_chunk_height);
 		}
 
-		// Create barrier between world generation and its later usage.
+		// Create barrier between destination light buffer update and its later usage.
 		// TODO - check this is correct.
 		{
 			const vk::BufferMemoryBarrier barrier(
 				vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 				queue_family_index_, queue_family_index_,
-				*chunk_data_buffer_,
+				*light_buffers_[i ^ 1].buffer,
 				0,
 				VK_WHOLE_SIZE);
 
@@ -548,34 +655,17 @@ void WorldProcessor::Update(
 				1, &barrier,
 				0, nullptr);
 		}
-
-		// Fill light buffer with zeros.
-		for(uint32_t i= 0; i < 2; ++i)
-		{
-			command_buffer.fillBuffer(*light_buffers_[i].buffer, 0, light_buffer_size_, 0);
-
-			// Add barrier between filling and performing light calculation.
-			const vk::BufferMemoryBarrier barrier(
-				vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
-				queue_family_index_, queue_family_index_,
-				*light_buffers_[i].buffer,
-				0,
-				VK_WHOLE_SIZE);
-
-			command_buffer.pipelineBarrier(
-				vk::PipelineStageFlagBits::eTransfer,
-				vk::PipelineStageFlagBits::eComputeShader,
-				vk::DependencyFlags(),
-				0, nullptr,
-				1, &barrier,
-				0, nullptr);
-		}
-
-		// Perform light update multiple times in order to propagate sky light to the bottom of the chunks.
-		for(uint32_t i= 0; i < c_chunk_height / 2 + 16 / 2; ++i)
-			UpdateLight(command_buffer);
 	}
+}
 
+void WorldProcessor::UpdatePlayer(
+	const vk::CommandBuffer command_buffer,
+	const m_Vec3& player_pos,
+	const m_Vec3& player_dir,
+	const BlockType build_block_type,
+	const bool build_triggered,
+	const bool destroy_triggered)
+{
 	// Update player.
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *player_update_pipeline_);
 
@@ -637,85 +727,6 @@ void WorldProcessor::Update(
 			0, nullptr,
 			1, &barrier,
 			0, nullptr);
-	}
-
-	UpdateLight(command_buffer);
-}
-
-vk::Buffer WorldProcessor::GetChunkDataBuffer() const
-{
-	return chunk_data_buffer_.get();
-}
-
-uint32_t WorldProcessor::GetChunkDataBufferSize() const
-{
-	return chunk_data_buffer_size_;
-}
-
-vk::Buffer WorldProcessor::GetPlayerStateBuffer() const
-{
-	return player_state_buffer_.get();
-}
-
-vk::Buffer WorldProcessor::GetLightDataBuffer() const
-{
-	// 0 - actual
-	return light_buffers_[0].buffer.get();
-}
-
-uint32_t WorldProcessor::GetLightDataBufferSize() const
-{
-	return light_buffer_size_;
-}
-
-void WorldProcessor::UpdateLight(const vk::CommandBuffer command_buffer) const
-{
-	// Always run light update steps in pairs.
-	// Doing so we ensure that both buffers are updated each world update step.
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *light_update_pipeline_);
-	for(uint32_t i= 0; i < 2; ++i)
-	{
-		command_buffer.bindDescriptorSets(
-			vk::PipelineBindPoint::eCompute,
-			*light_update_pipeline_layout_,
-			0u,
-			1u, &*light_update_descriptor_sets_[i],
-			0u, nullptr);
-
-		for(uint32_t x= 0; x < c_chunk_matrix_size[0]; ++x)
-		for(uint32_t y= 0; y < c_chunk_matrix_size[1]; ++y)
-		{
-			ChunkPositionUniforms chunk_position_uniforms;
-			chunk_position_uniforms.chunk_position[0]= int32_t(x);
-			chunk_position_uniforms.chunk_position[1]= int32_t(y);
-
-			command_buffer.pushConstants(
-				*world_gen_pipeline_layout_,
-				vk::ShaderStageFlagBits::eCompute,
-				0,
-				sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
-
-			command_buffer.dispatch(c_chunk_width, c_chunk_width , c_chunk_height);
-		}
-
-		// Create barrier between destination light buffer update and its later usage.
-		// TODO - check this is correct.
-		{
-			const vk::BufferMemoryBarrier barrier(
-				vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
-				queue_family_index_, queue_family_index_,
-				*light_buffers_[i ^ 1].buffer,
-				0,
-				VK_WHOLE_SIZE);
-
-			command_buffer.pipelineBarrier(
-				vk::PipelineStageFlagBits::eComputeShader,
-				vk::PipelineStageFlagBits::eComputeShader,
-				vk::DependencyFlags(),
-				0, nullptr,
-				1, &barrier,
-				0, nullptr);
-		}
 	}
 }
 

@@ -43,7 +43,15 @@ private:
 	};
 
 private:
-	void UpdateLight(vk::CommandBuffer command_buffer) const;
+	void GenerateWorld(vk::CommandBuffer command_buffer);
+	void UpdateLight(vk::CommandBuffer command_buffer);
+	void UpdatePlayer(
+		vk::CommandBuffer command_buffer,
+		const m_Vec3& player_pos,
+		const m_Vec3& player_dir,
+		BlockType build_block_type,
+		bool build_triggered,
+		bool destroy_triggered);
 
 private:
 	const vk::Device vk_device_;

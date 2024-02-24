@@ -38,18 +38,75 @@ void main()
 	int east_x_clamped= min(block_global_x + 1, c_max_global_x);
 	int west_x_clamped= max(block_global_x - 1, 0);
 
-	// TODO - optimize this. Reuse calculations in the same chunk.
-	int block_address= GetBlockFullAddress(ivec3(block_global_x, block_global_y, z));
-	int block_address_up= GetBlockFullAddress(ivec3(block_global_x, block_global_y, min(z + 1, c_chunk_height - 1)));
-	int block_address_down= GetBlockFullAddress(ivec3(block_global_x, block_global_y, max(z - 1, 0)));
-	int block_address_north= GetBlockFullAddress(ivec3(block_global_x, min(block_global_y + 1, c_max_global_y), z));
-	int block_address_south= GetBlockFullAddress(ivec3(block_global_x, max(block_global_y - 1, 0), z));
-	int block_address_north_east= GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(side_y_base - 0, c_max_global_y)), z));
-	int block_address_south_east= GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(side_y_base - 1, c_max_global_y)), z));
-	int block_address_north_west= GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 0, c_max_global_y)), z));
-	int block_address_south_west= GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 1, c_max_global_y)), z));
+	int z_up_clamped= min(z + 1, c_chunk_height - 1);
+	int z_down_clamped= max(z - 1, 0);
 
-	uint8_t block_value= chunks_input_data[block_address];
+	int column_address= GetBlockFullAddress(ivec3(block_global_x, block_global_y, 0));
+
+	int adjacent_columns[6]= int[6](
+		// north
+		GetBlockFullAddress(ivec3(block_global_x, min(block_global_y + 1, c_max_global_y), 0)),
+		// south
+		GetBlockFullAddress(ivec3(block_global_x, max(block_global_y - 1, 0), 0)),
+		// north-east
+		GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(side_y_base - 0, c_max_global_y)), 0)),
+		// south-east
+		GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(side_y_base - 1, c_max_global_y)), 0)),
+		// north-west
+		GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 0, c_max_global_y)), 0)),
+		// south-west
+		GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 1, c_max_global_y)), 0)) );
+
+	uint8_t block_value= chunks_input_data[column_address + z];
+
+	if(block_value == c_block_type_soil)
+	{
+		// Soil may be converted into grass, if there is a grass block nearby.
+
+		// TODO - check if has enough light.
+
+		bool can_convert_into_grass= false;
+
+		// Do not plant grass at top of the world and at very bottom.
+		if( z >= 1 &&
+			z < c_chunk_height - 3 &&
+			// Plant only if has air abowe.
+			chunks_input_data[column_address + z_up_clamped] == c_block_type_air)
+		{
+			// Check adjustend blocks. If has grass - convert into grass.
+			for(int i= 0; i < 6; ++i)
+			{
+				uint8_t z_minus_one_block_type= chunks_input_data[adjacent_columns[i] + z - 1];
+				uint8_t z_plus_zero_block_type= chunks_input_data[adjacent_columns[i] + z + 0];
+				uint8_t z_plus_one_block_type = chunks_input_data[adjacent_columns[i] + z + 1];
+				uint8_t z_plus_two_block_type = chunks_input_data[adjacent_columns[i] + z + 2];
+
+				if( z_minus_one_block_type == c_block_type_grass &&
+					z_plus_zero_block_type == c_block_type_air &&
+					z_plus_one_block_type  == c_block_type_air)
+				{
+					// Block below is grass and has enough air.
+					can_convert_into_grass= true;
+				}
+				if( z_plus_zero_block_type == c_block_type_grass &&
+					z_plus_one_block_type  == c_block_type_air)
+				{
+					// Block nearby is grass and has enough air.
+					can_convert_into_grass= true;
+				}
+				if( z_plus_one_block_type == c_block_type_grass &&
+					z_plus_two_block_type == c_block_type_air &&
+					chunks_input_data[column_address + z + 2] == c_block_type_air)
+				{
+					// Block above is grass and has enough air.
+					can_convert_into_grass= true;
+				}
+			}
+
+			if(can_convert_into_grass)
+				block_value= c_block_type_grass;
+		}
+	}
 
 	int chunk_index= chunk_position[0] + chunk_position[1] * c_chunk_matrix_size[0];
 	int chunk_data_offset= chunk_index * c_chunk_volume;

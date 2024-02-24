@@ -41,9 +41,9 @@ namespace GeometryGenShaderBindings
 
 // This should match bindings in the shader itself!
 const uint32_t vertices_buffer= 0;
-const uint32_t chunk_data_buffer= 2;
-const uint32_t chunk_light_buffer= 3;
-const uint32_t chunk_draw_info_buffer= 4;
+const uint32_t chunk_data_buffer= 1;
+const uint32_t chunk_light_buffer= 2;
+const uint32_t chunk_draw_info_buffer= 3;
 
 }
 

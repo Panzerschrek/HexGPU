@@ -88,7 +88,7 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 		VK_MAKE_VERSION(0, 0, 1),
 		"HexGPU",
 		VK_MAKE_VERSION(0, 0, 1),
-		VK_MAKE_VERSION(1, 0, 0));
+		VK_MAKE_VERSION(1, 1, 0));
 
 	vk::InstanceCreateInfo instance_create_info(
 		vk::InstanceCreateFlags(),

@@ -55,8 +55,8 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan, WorldProcessor& world_
 {
 	// Create draw indirect buffer.
 	{
-		const size_t num_commands= c_chunk_matrix_size[0] * c_chunk_matrix_size[1];
-		const size_t buffer_size= sizeof(vk::DrawIndexedIndirectCommand) * num_commands;
+		const uint32_t num_commands= c_chunk_matrix_size[0] * c_chunk_matrix_size[1];
+		const uint32_t buffer_size= uint32_t(sizeof(vk::DrawIndexedIndirectCommand)) * num_commands;
 
 		draw_indirect_buffer_=
 			vk_device_.createBufferUnique(
@@ -161,7 +161,7 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan, WorldProcessor& world_
 		const vk::DescriptorBufferInfo descriptor_draw_indirect_buffer_info(
 			*draw_indirect_buffer_,
 			0u,
-			sizeof(vk::DrawIndexedIndirectCommand) * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]);
+			uint32_t(sizeof(vk::DrawIndexedIndirectCommand)) * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]);
 
 		vk_device_.updateDescriptorSets(
 			{

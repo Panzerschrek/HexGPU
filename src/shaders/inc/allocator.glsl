@@ -1,5 +1,5 @@
 // This allocator manages some memory and allows to allocate ranges from 1 to 32 units in size.
-// It's dumb, has a lot of limitations but relatively simpe, which allows to avoid possible bugs.
+// It's dumb, has a lot of limitations but is relatively simpe, which allows to avoid possible bugs.
 // it's important to keep overall number of units pretty small - a couple of thousands, because allocation complexity is linear.
 // It's also good to avoid unnecessary allocations, but still free unused memory, because fragmentation may be a problem.
 
@@ -28,7 +28,7 @@ uint AllocatorAllocate(uint size_units)
 	// Each allocation happens in one of 32-bit blocks.
 	// If allocation is less than 32 units, free units withing a block may be used for another allocation.
 
-	// Contains number ones equal to size.
+	// Contains number of one bits equal to size.
 	uint mask= size_units == 32 ? 0xFFFFFFFF : ((1 << size_units) - 1);
 
 	uint num_blocks= allocator_total_number_of_units >> 5;
@@ -39,7 +39,7 @@ uint AllocatorAllocate(uint size_units)
 		uint number_of_used_units_in_block= bitCount(block_bits);
 		uint number_of_free_units_in_block= 32 - number_of_used_units_in_block;
 		if(number_of_free_units_in_block < size_units)
-			continue; // Amount of free units in this 32bit block is less than required.
+			continue; // Amount of free units in this 32bit block is less than required, skip this block.
 
 		// Perform search of passing range in the block.
 		// We require continuous span of "size_units" size.
@@ -49,7 +49,7 @@ uint AllocatorAllocate(uint size_units)
 			uint mask_shifted= mask << shift;
 			if((block_bits & mask_shifted) == 0)
 			{
-				// This range of bits is free. Allocate it.
+				// This range of units is free. Allocate it.
 				allocator_used_units_bits[i]= block_bits | mask_shifted;
 				return (i << 5) + shift;
 			}
@@ -70,8 +70,8 @@ void AllocatorFree(uint start_unit, uint size_units)
 	uint mask= size_units == 32 ? 0xFFFFFFFF : ((1 << size_units) - 1);
 
 	uint block= start_unit >> 5;
-	uint block_bit= start_unit & 31;
+	uint offset_within_block= start_unit & 31;
 
 	// Mark given units of this block as free.
-	allocator_used_units_bits[block] &= ~(mask << block_bit);
+	allocator_used_units_bits[block] &= ~(mask << offset_within_block);
 }

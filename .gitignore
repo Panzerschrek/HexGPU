@@ -4,7 +4,7 @@ build*/
 # QtCreator settings
 CMakeLists.txt.user
 
-# Log
+# Log file
 HexGPU.log
 
 # Screenshotsh directory
@@ -12,3 +12,10 @@ screenshots/
 
 # Textures directory
 textures/
+
+# Directory for other stuff
+other/
+
+# Binary files
+*.exe
+*.dll

@@ -1,5 +1,6 @@
 #include "Host.hpp"
 #include "Assert.hpp"
+#include "Log.hpp"
 #include <thread>
 
 
@@ -91,6 +92,8 @@ bool Host::Loop()
 
 	const Clock::time_point tick_end_time= Clock::now();
 	const auto frame_dt= tick_end_time - tick_start_time;
+
+	// std::cout << "\rframe time: " << std::chrono::duration_cast<std::chrono::milliseconds>(frame_dt).count() << "ms" << std::endl;
 
 	const float max_fps= 120.0f;
 

@@ -724,9 +724,7 @@ void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
 			0, nullptr);
 	}
 
-	// Perform light update multiple times in order to propagate sky light to the bottom of the chunks.
-	for(uint32_t i= 0; i < c_chunk_height / 2 + 16 / 2; ++i)
-		UpdateLight(command_buffer);
+	// TODO - perform fast initial sky light propagation.
 }
 
 void WorldProcessor::UpdateWorldBlocks(const vk::CommandBuffer command_buffer)

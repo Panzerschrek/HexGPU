@@ -730,8 +730,11 @@ void WorldGeometryGenerator::CalculateGeometrySize(const vk::CommandBuffer comma
 			0,
 			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
 
-		// Dispatch a thread for each block in chunk, except highest layer.
-		command_buffer.dispatch(c_chunk_width, c_chunk_width, c_chunk_height - 1);
+		// Dispatch a thread for each block in chunk.
+		command_buffer.dispatch(
+			c_chunk_width / 2,
+			c_chunk_width / 2,
+			c_chunk_height / 4);
 	}
 
 	// Create barrier between update chunk draw info buffer and its later usage.
@@ -816,8 +819,11 @@ void WorldGeometryGenerator::GenGeometry(const vk::CommandBuffer command_buffer)
 			0,
 			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
 
-		// Dispatch a thread for each block in chunk, except highest layer.
-		command_buffer.dispatch(c_chunk_width, c_chunk_width, c_chunk_height - 1);
+		// Dispatch a thread for each block in chunk.
+		command_buffer.dispatch(
+			c_chunk_width / 2,
+			c_chunk_width / 2,
+			c_chunk_height / 4);
 	}
 
 	// Create barrier between update vertex buffer and its usage for rendering.

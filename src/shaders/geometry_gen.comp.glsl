@@ -46,6 +46,20 @@ layout(push_constant) uniform uniforms_block
 	int chunk_position[2];
 };
 
+// Use scale slightly less or equal to 272.
+// Use slightly different scale for different block sides in order to make lightling less flat.
+int16_t RepackAndScaleLight(uint8_t light_packed, int scale)
+{
+	int fire_light= int(light_packed) & c_fire_light_mask;
+	int sky_light = int(light_packed) >> c_sky_light_shift;
+
+	// Max possible result value is 255. (15 * 272 >> 4) is equal to maximum byte value 255.
+	int fire_light_scaled= (fire_light * scale) >> 4;
+	int sky_light_scaled = (sky_light  * scale) >> 4;
+
+	return int16_t(fire_light_scaled | (sky_light_scaled << 8));
+}
+
 void main()
 {
 	// Generate quads geoemtry.
@@ -110,7 +124,7 @@ void main()
 			optical_density < optical_density_up
 				? c_block_texture_table[int(block_value)].r
 				: c_block_texture_table[int(block_value_up)].g;
-		int16_t light= int16_t(light_buffer[optical_density > optical_density_up ? block_address : block_address_up]);
+		int16_t light= RepackAndScaleLight(light_buffer[optical_density > optical_density_up ? block_address : block_address_up], 272);
 
 		v[0].tex_coord= i16vec4(int16_t(tc_base_x + 1 * tex_scale), int16_t(tc_base_y + 0 * tex_scale), tex_index, light);
 		v[1].tex_coord= i16vec4(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_y + 0 * tex_scale), tex_index, light);
@@ -159,7 +173,7 @@ void main()
 		int tc_base_z= z * (2 * tex_scale);
 
 		int16_t tex_index= c_block_texture_table[optical_density < optical_density_north ? int(block_value) : int(block_value_north)].b;
-		int16_t light= int16_t(light_buffer[optical_density > optical_density_north ? block_address : block_address_north]);
+		int16_t light= RepackAndScaleLight(light_buffer[optical_density > optical_density_north ? block_address : block_address_north], 267);
 
 		v[0].tex_coord= i16vec4(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_z + 0 * tex_scale), tex_index, light);
 		v[1].tex_coord= i16vec4(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_z + 2 * tex_scale), tex_index, light);
@@ -198,7 +212,7 @@ void main()
 		int tc_base_z= z * (2 * tex_scale);
 
 		int16_t tex_index= c_block_texture_table[optical_density < optical_density_north_east ? int(block_value) : int(block_value_north_east)].b;
-		int16_t light= int16_t(light_buffer[optical_density > optical_density_north_east ? block_address : block_address_north_east]);
+		int16_t light= RepackAndScaleLight(light_buffer[optical_density > optical_density_north_east ? block_address : block_address_north_east], 262);
 
 		v[0].tex_coord= i16vec4(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_z + 0 * tex_scale), tex_index, light);
 		v[1].tex_coord= i16vec4(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_z + 2 * tex_scale), tex_index, light);
@@ -236,7 +250,7 @@ void main()
 		int tc_base_z= z * (2 * tex_scale);
 
 		int16_t tex_index= c_block_texture_table[optical_density < optical_density_south_east ? int(block_value) : int(block_value_south_east)].b;
-		int16_t light= int16_t(light_buffer[optical_density > optical_density_south_east ? block_address : block_address_south_east]);
+		int16_t light= RepackAndScaleLight(light_buffer[optical_density > optical_density_south_east ? block_address : block_address_south_east], 257);
 
 		v[0].tex_coord= i16vec4(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_z + 0 * tex_scale), tex_index, light);
 		v[1].tex_coord= i16vec4(int16_t(tc_base_x + 3 * tex_scale), int16_t(tc_base_z + 2 * tex_scale), tex_index, light);

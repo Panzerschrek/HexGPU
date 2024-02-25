@@ -4,7 +4,6 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 
-#include "inc/constants.glsl"
 
 layout(push_constant) uniform uniforms_block
 {
@@ -26,10 +25,10 @@ void main()
 	f_tex_coord= vec2(tex_coord.xy) * c_tex_coord_scale;
 	f_tex_index= int(tex_coord.z);
 
-	// Normalize light [0; 15] -> [0; 1]
-	const float c_light_scale= 1.0 / 15.0;
-	f_light.x= float(tex_coord.w & c_fire_light_mask) * c_light_scale;
-	f_light.y= float(tex_coord.w >> c_sky_light_shift) * c_light_scale;
+	// Normalize light [0; 255] -> [0; 1]
+	const float c_light_scale= 1.0 / 255.0;
+	f_light.x= float(int(tex_coord.w) & 0xFF) * c_light_scale;
+	f_light.y= float(uint(uint16_t(tex_coord.w)) >> 8) * c_light_scale;
 
 	gl_Position= view_matrix * vec4(pos, 1.0);
 }

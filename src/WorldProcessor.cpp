@@ -681,8 +681,8 @@ void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
 
 		// Dispatch only 2D group - perform generation for columns.
 		command_buffer.dispatch(
-			c_chunk_width / 4,
-			c_chunk_width / 4,
+			c_chunk_width / 8,
+			c_chunk_width / 8,
 			1);
 	}
 
@@ -757,9 +757,9 @@ void WorldProcessor::UpdateWorldBlocks(const vk::CommandBuffer command_buffer)
 				sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
 
 			command_buffer.dispatch(
-				c_chunk_width / 2,
-				c_chunk_width / 2,
-				c_chunk_height / 4);
+				c_chunk_width / 4,
+				c_chunk_width / 4,
+				c_chunk_height / 8);
 		}
 
 		// Create barrier between destination world blocks buffer update and its later usage.
@@ -811,9 +811,9 @@ void WorldProcessor::UpdateLight(const vk::CommandBuffer command_buffer)
 				sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
 
 			command_buffer.dispatch(
-				c_chunk_width / 2,
-				c_chunk_width / 2,
-				c_chunk_height / 4);
+				c_chunk_width / 4,
+				c_chunk_width / 4,
+				c_chunk_height / 8);
 		}
 
 		// Create barrier between destination light buffer update and its later usage.

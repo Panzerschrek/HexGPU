@@ -22,18 +22,8 @@ layout(binding= 1, std430) buffer chunks_data_output_buffer
 	uint8_t chunks_output_data[c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
 };
 
-void main()
+uint8_t TransformBlock(int block_global_x, int block_global_y, int z)
 {
-	// Each thread of this shader transforms one block.
-	// Input data buffer is used - for reading this block kind and its adjacent blocks.
-	// Output databuffer is written only for this block.
-
-	ivec3 invocation= ivec3(gl_GlobalInvocationID);
-
-	int block_global_x= (chunk_position[0] << c_chunk_width_log2) + invocation.x;
-	int block_global_y= (chunk_position[1] << c_chunk_width_log2) + invocation.y;
-	int z= invocation.z;
-
 	int side_y_base= block_global_y + ((block_global_x + 1) & 1);
 	int east_x_clamped= min(block_global_x + 1, c_max_global_x);
 	int west_x_clamped= max(block_global_x - 1, 0);
@@ -59,6 +49,7 @@ void main()
 
 	uint8_t block_type= chunks_input_data[column_address + z];
 
+	// Switch over block type.
 	if(block_type == c_block_type_soil)
 	{
 		// Soil may be converted into grass, if there is a grass block nearby.
@@ -107,7 +98,7 @@ void main()
 
 			// TODO - perform convertion into grass randomly with chance proportional to number of grass blocks nearby.
 			if(num_adjacent_grass_blocks > 0)
-				block_type= c_block_type_grass;
+				return c_block_type_grass;
 		}
 	}
 	else if(block_type == c_block_type_grass)
@@ -116,11 +107,29 @@ void main()
 		// TODO - take also light level into account.
 		uint8_t block_above_type= chunks_input_data[column_address + z_up_clamped];
 		if(!(block_above_type == c_block_type_air || block_above_type == c_block_type_foliage))
-			block_type= c_block_type_soil;
+			return c_block_type_soil;
 	}
+
+	// Common case when block type isn't chanhed.
+	return block_type;
+}
+
+void main()
+{
+	// Each thread of this shader transforms one block.
+	// Input data buffer is used - for reading this block kind and its adjacent blocks.
+	// Output databuffer is written only for this block.
+
+	ivec3 invocation= ivec3(gl_GlobalInvocationID);
+
+	int block_global_x= (chunk_position[0] << c_chunk_width_log2) + invocation.x;
+	int block_global_y= (chunk_position[1] << c_chunk_width_log2) + invocation.y;
+	int z= invocation.z;
+
+	uint8_t new_block_type= TransformBlock(block_global_x, block_global_y, z);
 
 	// Write updated block.
 	int chunk_index= chunk_position[0] + chunk_position[1] * c_chunk_matrix_size[0];
 	int chunk_data_offset= chunk_index * c_chunk_volume;
-	chunks_output_data[chunk_data_offset + ChunkBlockAddress(invocation.x, invocation.y, invocation.z)]= block_type;
+	chunks_output_data[chunk_data_offset + ChunkBlockAddress(invocation.x, invocation.y, invocation.z)]= new_block_type;
 }

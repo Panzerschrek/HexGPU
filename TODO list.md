@@ -6,13 +6,14 @@ The order represents importance and/or dependency.
 * Textures with scale based on block type/side
 * Textures without cross-block repetition (with zeroing at each block)
 * Flowing water
-* Growing grass
 * Fixed world update speed (like 15 ticks/secodns)
 * Sparse light recalculation - not on each world update
 * Sparse chunk mesh recalculation - not on each world update
 * Improved textures loading - use smaller staging buffer and free it at the end of the loading process
 * Biome-based world generation
 * Trees generation
+* Growing grass improvements - grow randomly
+* Grass logic improvements - disappers slower, become yellow, require water or sunlight to grow, etc.
 * Frustum-culling for chunks
 * Fire (that burns some blocks)
 * Player collision against the world

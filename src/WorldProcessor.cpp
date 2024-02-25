@@ -17,7 +17,7 @@ uint32_t chunk_data_buffer= 0;
 
 }
 
-namespace WorldBlockUpdateShaderBindings
+namespace WorldBlocksUpdateShaderBindings
 {
 
 uint32_t chunk_data_input_buffer= 0;
@@ -246,7 +246,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 			{});
 	}
 
-	// Create world blocks update update shader.
+	// Create world blocks update shader.
 	world_blocks_update_shader_= CreateShader(vk_device_, ShaderNames::world_blocks_update_comp);
 
 	// Create world blocks update descriptor set layout.
@@ -254,14 +254,14 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 		const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
 		{
 			{
-				WorldBlockUpdateShaderBindings::chunk_data_input_buffer,
+				WorldBlocksUpdateShaderBindings::chunk_data_input_buffer,
 				vk::DescriptorType::eStorageBuffer,
 				1u,
 				vk::ShaderStageFlagBits::eCompute,
 				nullptr,
 			},
 			{
-				WorldBlockUpdateShaderBindings::chunk_data_output_buffer,
+				WorldBlocksUpdateShaderBindings::chunk_data_output_buffer,
 				vk::DescriptorType::eStorageBuffer,
 				1u,
 				vk::ShaderStageFlagBits::eCompute,
@@ -337,7 +337,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 			{
 				{
 					*world_blocks_update_descriptor_sets_[i],
-					WorldBlockUpdateShaderBindings::chunk_data_input_buffer,
+					WorldBlocksUpdateShaderBindings::chunk_data_input_buffer,
 					0u,
 					1u,
 					vk::DescriptorType::eStorageBuffer,
@@ -347,7 +347,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 				},
 				{
 					*world_blocks_update_descriptor_sets_[i],
-					WorldBlockUpdateShaderBindings::chunk_data_output_buffer,
+					WorldBlocksUpdateShaderBindings::chunk_data_output_buffer,
 					0u,
 					1u,
 					vk::DescriptorType::eStorageBuffer,

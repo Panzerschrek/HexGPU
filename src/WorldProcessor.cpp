@@ -623,6 +623,10 @@ void WorldProcessor::Update(
 	UpdateWorldBlocks(command_buffer);
 	UpdateLight(command_buffer);
 	UpdatePlayer(command_buffer, player_pos, player_dir, build_block_type, build_triggered, destroy_triggered);
+
+	// For now just perform update tick every frame.
+	// TODO - use fixed update frequency.
+	++current_tick_;
 }
 
 vk::Buffer WorldProcessor::GetChunkDataBuffer() const
@@ -729,102 +733,99 @@ void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
 
 void WorldProcessor::UpdateWorldBlocks(const vk::CommandBuffer command_buffer)
 {
-	// For now run two steps.
+	const uint32_t i= current_tick_ & 1;
+
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_blocks_update_pipeline_);
-	for(uint32_t i= 0; i < 2; ++i)
+
+	command_buffer.bindDescriptorSets(
+		vk::PipelineBindPoint::eCompute,
+		*world_blocks_update_pipeline_layout_,
+		0u,
+		1u, &*world_blocks_update_descriptor_sets_[i],
+		0u, nullptr);
+
+	for(uint32_t x= 0; x < c_chunk_matrix_size[0]; ++x)
+	for(uint32_t y= 0; y < c_chunk_matrix_size[1]; ++y)
 	{
-		command_buffer.bindDescriptorSets(
-			vk::PipelineBindPoint::eCompute,
+		ChunkPositionUniforms chunk_position_uniforms;
+		chunk_position_uniforms.chunk_position[0]= int32_t(x);
+		chunk_position_uniforms.chunk_position[1]= int32_t(y);
+
+		command_buffer.pushConstants(
 			*world_blocks_update_pipeline_layout_,
-			0u,
-			1u, &*world_blocks_update_descriptor_sets_[i],
-			0u, nullptr);
+			vk::ShaderStageFlagBits::eCompute,
+			0,
+			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
 
-		for(uint32_t x= 0; x < c_chunk_matrix_size[0]; ++x)
-		for(uint32_t y= 0; y < c_chunk_matrix_size[1]; ++y)
-		{
-			ChunkPositionUniforms chunk_position_uniforms;
-			chunk_position_uniforms.chunk_position[0]= int32_t(x);
-			chunk_position_uniforms.chunk_position[1]= int32_t(y);
+		command_buffer.dispatch(c_chunk_width, c_chunk_width , c_chunk_height);
+	}
 
-			command_buffer.pushConstants(
-				*world_blocks_update_pipeline_layout_,
-				vk::ShaderStageFlagBits::eCompute,
-				0,
-				sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
+	// Create barrier between destination world blocks buffer update and its later usage.
+	// TODO - check this is correct.
+	{
+		const vk::BufferMemoryBarrier barrier(
+			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			*chunk_data_buffers_[i ^ 1].buffer,
+			0,
+			VK_WHOLE_SIZE);
 
-			command_buffer.dispatch(c_chunk_width, c_chunk_width , c_chunk_height);
-		}
-
-		// Create barrier between destination world blocks buffer update and its later usage.
-		// TODO - check this is correct.
-		{
-			const vk::BufferMemoryBarrier barrier(
-				vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
-				queue_family_index_, queue_family_index_,
-				*chunk_data_buffers_[i ^ 1].buffer,
-				0,
-				VK_WHOLE_SIZE);
-
-			command_buffer.pipelineBarrier(
-				vk::PipelineStageFlagBits::eComputeShader,
-				vk::PipelineStageFlagBits::eComputeShader,
-				vk::DependencyFlags(),
-				0, nullptr,
-				1, &barrier,
-				0, nullptr);
-		}
+		command_buffer.pipelineBarrier(
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::DependencyFlags(),
+			0, nullptr,
+			1, &barrier,
+			0, nullptr);
 	}
 }
 
 void WorldProcessor::UpdateLight(const vk::CommandBuffer command_buffer)
 {
-	// Always run light update steps in pairs.
-	// Doing so we ensure that both buffers are updated each world update step.
+	const uint32_t i= current_tick_ & 1;
+
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *light_update_pipeline_);
-	for(uint32_t i= 0; i < 2; ++i)
+
+	command_buffer.bindDescriptorSets(
+		vk::PipelineBindPoint::eCompute,
+		*light_update_pipeline_layout_,
+		0u,
+		1u, &*light_update_descriptor_sets_[i],
+		0u, nullptr);
+
+	for(uint32_t x= 0; x < c_chunk_matrix_size[0]; ++x)
+	for(uint32_t y= 0; y < c_chunk_matrix_size[1]; ++y)
 	{
-		command_buffer.bindDescriptorSets(
-			vk::PipelineBindPoint::eCompute,
+		ChunkPositionUniforms chunk_position_uniforms;
+		chunk_position_uniforms.chunk_position[0]= int32_t(x);
+		chunk_position_uniforms.chunk_position[1]= int32_t(y);
+
+		command_buffer.pushConstants(
 			*light_update_pipeline_layout_,
-			0u,
-			1u, &*light_update_descriptor_sets_[i],
-			0u, nullptr);
+			vk::ShaderStageFlagBits::eCompute,
+			0,
+			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
 
-		for(uint32_t x= 0; x < c_chunk_matrix_size[0]; ++x)
-		for(uint32_t y= 0; y < c_chunk_matrix_size[1]; ++y)
-		{
-			ChunkPositionUniforms chunk_position_uniforms;
-			chunk_position_uniforms.chunk_position[0]= int32_t(x);
-			chunk_position_uniforms.chunk_position[1]= int32_t(y);
+		command_buffer.dispatch(c_chunk_width, c_chunk_width , c_chunk_height);
+	}
 
-			command_buffer.pushConstants(
-				*light_update_pipeline_layout_,
-				vk::ShaderStageFlagBits::eCompute,
-				0,
-				sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
+	// Create barrier between destination light buffer update and its later usage.
+	// TODO - check this is correct.
+	{
+		const vk::BufferMemoryBarrier barrier(
+			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			*light_buffers_[i ^ 1].buffer,
+			0,
+			VK_WHOLE_SIZE);
 
-			command_buffer.dispatch(c_chunk_width, c_chunk_width , c_chunk_height);
-		}
-
-		// Create barrier between destination light buffer update and its later usage.
-		// TODO - check this is correct.
-		{
-			const vk::BufferMemoryBarrier barrier(
-				vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
-				queue_family_index_, queue_family_index_,
-				*light_buffers_[i ^ 1].buffer,
-				0,
-				VK_WHOLE_SIZE);
-
-			command_buffer.pipelineBarrier(
-				vk::PipelineStageFlagBits::eComputeShader,
-				vk::PipelineStageFlagBits::eComputeShader,
-				vk::DependencyFlags(),
-				0, nullptr,
-				1, &barrier,
-				0, nullptr);
-		}
+		command_buffer.pipelineBarrier(
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::DependencyFlags(),
+			0, nullptr,
+			1, &barrier,
+			0, nullptr);
 	}
 }
 

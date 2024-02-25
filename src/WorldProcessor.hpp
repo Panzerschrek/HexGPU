@@ -99,6 +99,8 @@ private:
 	vk::UniqueDescriptorPool player_update_descriptor_pool_;
 	vk::UniqueDescriptorSet player_update_descriptor_set_;
 
+	uint32_t current_tick_= 0;
+
 	bool world_generated_= false;
 };
 

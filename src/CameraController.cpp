@@ -76,7 +76,7 @@ m_Mat4 CameraController::CalculateViewMatrix() const
 	const float fov= fov_deg * (g_pi / 180.0f);
 
 	const float z_near= 0.125f;
-	const float z_far= 128.0f;
+	const float z_far= 1024.0f;
 
 	m_Mat4 rotate_z, rotate_x, perspective, basis_change;
 	rotate_x.RotateX(-elevation_);

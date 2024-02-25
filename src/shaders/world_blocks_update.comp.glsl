@@ -7,6 +7,8 @@
 #include "inc/block_type.glsl"
 #include "inc/hex_funcs.glsl"
 
+layout(local_size_x= 2, local_size_y = 2, local_size_z= 4) in;
+
 layout(push_constant) uniform uniforms_block
 {
 	int chunk_position[2];

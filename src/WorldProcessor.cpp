@@ -753,7 +753,10 @@ void WorldProcessor::UpdateWorldBlocks(const vk::CommandBuffer command_buffer)
 				0,
 				sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
 
-			command_buffer.dispatch(c_chunk_width, c_chunk_width , c_chunk_height);
+			command_buffer.dispatch(
+				c_chunk_width / 2,
+				c_chunk_width / 2,
+				c_chunk_height / 4);
 		}
 
 		// Create barrier between destination world blocks buffer update and its later usage.
@@ -804,7 +807,10 @@ void WorldProcessor::UpdateLight(const vk::CommandBuffer command_buffer)
 				0,
 				sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
 
-			command_buffer.dispatch(c_chunk_width, c_chunk_width , c_chunk_height);
+			command_buffer.dispatch(
+				c_chunk_width / 2,
+				c_chunk_width / 2,
+				c_chunk_height / 4);
 		}
 
 		// Create barrier between destination light buffer update and its later usage.

@@ -680,7 +680,10 @@ void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
 			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
 
 		// Dispatch only 2D group - perform generation for columns.
-		command_buffer.dispatch(c_chunk_width, c_chunk_width , 1);
+		command_buffer.dispatch(
+			c_chunk_width / 4,
+			c_chunk_width / 4,
+			1);
 	}
 
 	// Create barrier between world generation and its later usage.

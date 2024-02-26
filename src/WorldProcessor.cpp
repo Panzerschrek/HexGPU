@@ -679,11 +679,17 @@ void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
 			0,
 			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
 
+		// This constant should match workgroup size in shader!
+		constexpr uint32_t c_workgroup_size[]{8, 8, 1};
+		static_assert(c_chunk_width % c_workgroup_size[0] == 0, "Wrong workgroup size!");
+		static_assert(c_chunk_width % c_workgroup_size[1] == 0, "Wrong workgroup size!");
+		static_assert(c_chunk_height % c_workgroup_size[2] == 0, "Wrong workgroup size!");
+
 		// Dispatch only 2D group - perform generation for columns.
 		command_buffer.dispatch(
-			c_chunk_width / 8,
-			c_chunk_width / 8,
-			1);
+			c_chunk_width / c_workgroup_size[0],
+			c_chunk_width / c_workgroup_size[1],
+			1 / c_workgroup_size[2]);
 	}
 
 	// Create barrier between world generation and its later usage.
@@ -756,10 +762,16 @@ void WorldProcessor::UpdateWorldBlocks(const vk::CommandBuffer command_buffer)
 				0,
 				sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
 
+			// This constant should match workgroup size in shader!
+			constexpr uint32_t c_workgroup_size[]{4, 4, 8};
+			static_assert(c_chunk_width % c_workgroup_size[0] == 0, "Wrong workgroup size!");
+			static_assert(c_chunk_width % c_workgroup_size[1] == 0, "Wrong workgroup size!");
+			static_assert(c_chunk_height % c_workgroup_size[2] == 0, "Wrong workgroup size!");
+
 			command_buffer.dispatch(
-				c_chunk_width / 4,
-				c_chunk_width / 4,
-				c_chunk_height / 8);
+				c_chunk_width / c_workgroup_size[0],
+				c_chunk_width / c_workgroup_size[1],
+				c_chunk_height / c_workgroup_size[2]);
 		}
 
 		// Create barrier between destination world blocks buffer update and its later usage.
@@ -810,10 +822,16 @@ void WorldProcessor::UpdateLight(const vk::CommandBuffer command_buffer)
 				0,
 				sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
 
+			// This constant should match workgroup size in shader!
+			constexpr uint32_t c_workgroup_size[]{4, 4, 8};
+			static_assert(c_chunk_width % c_workgroup_size[0] == 0, "Wrong workgroup size!");
+			static_assert(c_chunk_width % c_workgroup_size[1] == 0, "Wrong workgroup size!");
+			static_assert(c_chunk_height % c_workgroup_size[2] == 0, "Wrong workgroup size!");
+
 			command_buffer.dispatch(
-				c_chunk_width / 4,
-				c_chunk_width / 4,
-				c_chunk_height / 8);
+				c_chunk_width / c_workgroup_size[0],
+				c_chunk_width / c_workgroup_size[1],
+				c_chunk_height / c_workgroup_size[2]);
 		}
 
 		// Create barrier between destination light buffer update and its later usage.

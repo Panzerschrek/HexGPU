@@ -730,11 +730,16 @@ void WorldGeometryGenerator::CalculateGeometrySize(const vk::CommandBuffer comma
 			0,
 			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
 
-		// Dispatch a thread for each block in chunk.
+		// This constant should match workgroup size in shader!
+		constexpr uint32_t c_workgroup_size[]{4, 4, 8};
+		static_assert(c_chunk_width % c_workgroup_size[0] == 0, "Wrong workgroup size!");
+		static_assert(c_chunk_width % c_workgroup_size[1] == 0, "Wrong workgroup size!");
+		static_assert(c_chunk_height % c_workgroup_size[2] == 0, "Wrong workgroup size!");
+
 		command_buffer.dispatch(
-			c_chunk_width / 4,
-			c_chunk_width / 4,
-			c_chunk_height / 8);
+			c_chunk_width / c_workgroup_size[0],
+			c_chunk_width / c_workgroup_size[1],
+			c_chunk_height / c_workgroup_size[2]);
 	}
 
 	// Create barrier between update chunk draw info buffer and its later usage.
@@ -819,11 +824,16 @@ void WorldGeometryGenerator::GenGeometry(const vk::CommandBuffer command_buffer)
 			0,
 			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
 
-		// Dispatch a thread for each block in chunk.
+		// This constant should match workgroup size in shader!
+		constexpr uint32_t c_workgroup_size[]{4, 4, 8};
+		static_assert(c_chunk_width % c_workgroup_size[0] == 0, "Wrong workgroup size!");
+		static_assert(c_chunk_width % c_workgroup_size[1] == 0, "Wrong workgroup size!");
+		static_assert(c_chunk_height % c_workgroup_size[2] == 0, "Wrong workgroup size!");
+
 		command_buffer.dispatch(
-			c_chunk_width / 4,
-			c_chunk_width / 4,
-			c_chunk_height / 8);
+			c_chunk_width / c_workgroup_size[0],
+			c_chunk_width / c_workgroup_size[1],
+			c_chunk_height / c_workgroup_size[2]);
 	}
 
 	// Create barrier between update vertex buffer and its usage for rendering.

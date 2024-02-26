@@ -9,6 +9,7 @@
 #include "inc/hex_funcs.glsl"
 
 // maxComputeWorkGroupInvocations is at least 128.
+// If this is changed, corresponding C++ code must be changed too!
 layout(local_size_x= 4, local_size_y = 4, local_size_z= 8) in;
 
 // If this changed, vertex attributes specification in C++ code must be chaned too!

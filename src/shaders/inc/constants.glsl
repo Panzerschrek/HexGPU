@@ -14,7 +14,7 @@ const int c_chunk_height= 1 << c_chunk_height_log2;
 const int c_chunk_volume= c_chunk_width * c_chunk_width * c_chunk_height;
 
 // TODO - make non-constant.
-const int c_chunk_matrix_size[2]= int[2](4, 4);
+const int c_chunk_matrix_size[2]= int[2](8, 8);
 
 const int c_max_global_x= (c_chunk_matrix_size[0] << c_chunk_width_log2) - 1;
 const int c_max_global_y= (c_chunk_matrix_size[1] << c_chunk_width_log2) - 1;

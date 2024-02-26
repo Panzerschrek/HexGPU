@@ -14,7 +14,7 @@ constexpr uint32_t c_chunk_height= 1 << c_chunk_height_log2;
 constexpr uint32_t c_chunk_volume= c_chunk_width * c_chunk_width * c_chunk_height;
 
 // TODO - make non-constant.
-constexpr const uint32_t c_chunk_matrix_size[2]{4, 4};
+constexpr const uint32_t c_chunk_matrix_size[2]{8, 8};
 
 inline uint32_t ChunkBlockAddress(const uint32_t x, const uint32_t y, const uint32_t z)
 {

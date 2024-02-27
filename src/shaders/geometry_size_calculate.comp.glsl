@@ -14,12 +14,12 @@ layout(local_size_x= 4, local_size_y = 4, local_size_z= 8) in;
 
 layout(binding= 0, std430) buffer chunks_data_buffer
 {
-	uint8_t chunks_data[c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
+	uint8_t chunks_data[];
 };
 
 layout(binding= 1, std430) buffer chunk_draw_info_buffer
 {
-	ChunkDrawInfo chunk_draw_info[c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
+	ChunkDrawInfo chunk_draw_info[];
 };
 
 layout(push_constant) uniform uniforms_block

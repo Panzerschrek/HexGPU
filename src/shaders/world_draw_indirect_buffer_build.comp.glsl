@@ -10,12 +10,12 @@
 
 layout(binding= 0, std430) buffer chunk_draw_info_buffer
 {
-	ChunkDrawInfo chunk_draw_info[c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
+	ChunkDrawInfo chunk_draw_info[];
 };
 
 layout(binding= 1, std430) buffer draw_indirect_buffer
 {
-	VkDrawIndexedIndirectCommand draw_commands[c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
+	VkDrawIndexedIndirectCommand draw_commands[];
 };
 
 const uint c_indices_per_quad= 6;

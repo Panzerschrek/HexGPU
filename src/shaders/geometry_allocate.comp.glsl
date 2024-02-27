@@ -10,7 +10,7 @@
 
 layout(binding= 0, std430) buffer chunk_draw_info_buffer
 {
-	ChunkDrawInfo chunk_draw_info[c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
+	ChunkDrawInfo chunk_draw_info[];
 };
 
 // Max number of quads is 65536 / 4 (uint16_t index limit).

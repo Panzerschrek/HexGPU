@@ -18,17 +18,17 @@ layout(push_constant) uniform uniforms_block
 
 layout(binding= 0, std430) buffer chunks_data_buffer
 {
-	uint8_t chunks_data[c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
+	uint8_t chunks_data[];
 };
 
 layout(binding= 1, std430) buffer chunk_input_light_buffer
 {
-	uint8_t input_light[c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
+	uint8_t input_light[];
 };
 
 layout(binding= 2, std430) buffer chunk_output_light_buffer
 {
-	uint8_t output_light[c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
+	uint8_t output_light[];
 };
 
 void main()

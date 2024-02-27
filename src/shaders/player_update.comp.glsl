@@ -9,7 +9,7 @@
 
 layout(binding= 0, std430) buffer chunks_data_buffer
 {
-	uint8_t chunks_data[c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
+	uint8_t chunks_data[];
 };
 
 // This struct must be identical to the same struct in C++ code!

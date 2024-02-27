@@ -18,12 +18,12 @@ layout(push_constant) uniform uniforms_block
 
 layout(binding= 0, std430) buffer chunks_data_input_buffer
 {
-	uint8_t chunks_input_data[c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
+	uint8_t chunks_input_data[];
 };
 
 layout(binding= 1, std430) buffer chunks_data_output_buffer
 {
-	uint8_t chunks_output_data[c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
+	uint8_t chunks_output_data[];
 };
 
 uint8_t TransformBlock(int block_global_x, int block_global_y, int z)

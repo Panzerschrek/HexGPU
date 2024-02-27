@@ -1,6 +1,5 @@
 Here is the list of futures that needs to be implemented.
 The order represents importance and/or dependency.
-* Variable number of chunks in the world
 * World movement
 * Chunks save/load
 * Textures with scale based on block type/side

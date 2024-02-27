@@ -27,6 +27,11 @@ int GetBlockFullAddress(ivec3 pos, ivec2 world_size_chunks)
 	return chunk_data_offset + ChunkBlockAddress(ivec3(local_x, local_y, pos.z));
 }
 
+ivec2 GetMaxGlobalCoord(ivec2 world_size_chunks)
+{
+	return ivec2(world_size_chunks.x * c_chunk_width - 1, world_size_chunks.y * c_chunk_width - 1);
+}
+
 // Returns coordinates of a hexagon in given point.
 ivec2 GetHexogonCoord(vec2 pos)
 {

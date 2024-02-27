@@ -21,6 +21,11 @@ const uint32_t draw_indirect_buffer= 1;
 
 }
 
+struct DrawIndirectBufferBuildUniforms
+{
+	int32_t world_size_chunks[2];
+};
+
 // Returns indeces for quads with size - maximum uint16_t vertex index.
 std::vector<uint16_t> GetQuadsIndices()
 {
@@ -114,11 +119,18 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan, WorldProcessor& world_
 	}
 
 	// Create pipeline layout.
-	draw_indirect_buffer_build_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
-		vk::PipelineLayoutCreateInfo(
-			vk::PipelineLayoutCreateFlags(),
-			1u, &*draw_indirect_buffer_build_decriptor_set_layout_,
-			0u, nullptr));
+	{
+		const vk::PushConstantRange push_constant_range(
+			vk::ShaderStageFlagBits::eVertex,
+			0u,
+			sizeof(DrawIndirectBufferBuildUniforms));
+
+		draw_indirect_buffer_build_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
+			vk::PipelineLayoutCreateInfo(
+				vk::PipelineLayoutCreateFlags(),
+				1u, &*draw_indirect_buffer_build_decriptor_set_layout_,
+				1u, &push_constant_range));
+	}
 
 	// Create pipeline.
 	draw_indirect_buffer_build_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
@@ -484,6 +496,17 @@ void WorldRenderer::BuildDrawIndirectBuffer(const vk::CommandBuffer command_buff
 		0u,
 		1u, &*draw_indirect_buffer_build_descriptor_set_,
 		0u, nullptr);
+
+	DrawIndirectBufferBuildUniforms uniforms;
+	uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+	uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+
+	command_buffer.pushConstants(
+		*draw_indirect_buffer_build_pipeline_layout_,
+		vk::ShaderStageFlagBits::eCompute,
+		0,
+		sizeof(DrawIndirectBufferBuildUniforms),
+		&uniforms);
 
 	// Dispatch a thread for each chunk.
 	command_buffer.dispatch(world_size_[0], world_size_[1], 1);

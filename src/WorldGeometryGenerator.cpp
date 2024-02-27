@@ -51,6 +51,7 @@ const uint32_t chunk_draw_info_buffer= 3;
 // 128 bytes is guaranted maximum size of push constants uniform block.
 struct ChunkPositionUniforms
 {
+	int32_t world_size_chunks[2];
 	int32_t chunk_position[2];
 };
 
@@ -728,6 +729,8 @@ void WorldGeometryGenerator::CalculateGeometrySize(const vk::CommandBuffer comma
 	for(uint32_t y= 0; y < world_size_[1]; ++y)
 	{
 		ChunkPositionUniforms chunk_position_uniforms;
+		chunk_position_uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+		chunk_position_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
 		chunk_position_uniforms.chunk_position[0]= int32_t(x);
 		chunk_position_uniforms.chunk_position[1]= int32_t(y);
 
@@ -822,6 +825,8 @@ void WorldGeometryGenerator::GenGeometry(const vk::CommandBuffer command_buffer)
 	for(uint32_t y= 0; y < world_size_[1]; ++y)
 	{
 		ChunkPositionUniforms chunk_position_uniforms;
+		chunk_position_uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+		chunk_position_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
 		chunk_position_uniforms.chunk_position[0]= int32_t(x);
 		chunk_position_uniforms.chunk_position[1]= int32_t(y);
 

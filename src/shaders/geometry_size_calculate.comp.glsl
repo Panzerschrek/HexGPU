@@ -24,6 +24,7 @@ layout(binding= 1, std430) buffer chunk_draw_info_buffer
 
 layout(push_constant) uniform uniforms_block
 {
+	int world_size_chunks[2];
 	int chunk_position[2];
 };
 

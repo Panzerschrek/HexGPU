@@ -13,6 +13,7 @@ layout(local_size_x= 4, local_size_y = 4, local_size_z= 8) in;
 
 layout(push_constant) uniform uniforms_block
 {
+	int world_size_chunks[2];
 	int chunk_position[2];
 };
 

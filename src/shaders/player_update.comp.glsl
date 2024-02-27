@@ -25,6 +25,7 @@ layout(push_constant) uniform uniforms_block
 	// Use vec4 for proper padding
 	vec4 player_pos;
 	vec4 player_dir;
+	int world_size_chunks[2];
 	// Use "uint8_t", because "bool" in GLSL has size different from C++.
 	uint8_t build_block_type;
 	uint8_t build_triggered;

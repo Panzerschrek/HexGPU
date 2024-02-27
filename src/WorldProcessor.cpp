@@ -48,6 +48,7 @@ struct PlayerUpdateUniforms
 	float reserved0= 0.0f;
 	m_Vec3 player_dir;
 	float reserved1= 0.0f;
+	int32_t world_size_chunks[2]{0, 0};
 	BlockType build_block_type= BlockType::Stone;
 	bool build_triggered= false;
 	bool destroy_triggered= false;
@@ -889,6 +890,8 @@ void WorldProcessor::UpdatePlayer(
 	PlayerUpdateUniforms player_update_uniforms;
 	player_update_uniforms.player_pos= player_pos;
 	player_update_uniforms.player_dir= player_dir;
+	player_update_uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+	player_update_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
 	player_update_uniforms.build_block_type= build_block_type;
 	player_update_uniforms.build_triggered= build_triggered;
 	player_update_uniforms.destroy_triggered= destroy_triggered;

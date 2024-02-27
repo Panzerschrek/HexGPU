@@ -56,7 +56,7 @@ void main()
 
 	int ground_z= GetGroundLevel(global_x, global_y);
 
-	int column_offset= chunk_data_offset + ChunkBlockAddress(local_x, local_y, 0);
+	int column_offset= chunk_data_offset + ChunkBlockAddress(ivec3(local_x, local_y, 0));
 
 	// Zero level - place single block of special type.
 	chunks_data[column_offset]= c_block_type_spherical_block;

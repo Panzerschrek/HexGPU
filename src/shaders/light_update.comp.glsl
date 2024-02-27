@@ -128,5 +128,5 @@ void main()
 
 	int chunk_index= chunk_position[0] + chunk_position[1] * c_chunk_matrix_size[0];
 	int chunk_data_offset= chunk_index * c_chunk_volume;
-	output_light[chunk_data_offset + ChunkBlockAddress(invocation.x, invocation.y, invocation.z)]= result_light;
+	output_light[chunk_data_offset + ChunkBlockAddress(invocation)]= result_light;
 }

@@ -1,8 +1,8 @@
 #include "constants.glsl"
 
-int ChunkBlockAddress(int x, int y, int z)
+int ChunkBlockAddress(ivec3 coord)
 {
-	return z + (y << c_chunk_height_log2) + (x << (c_chunk_width_log2 + c_chunk_height_log2));
+	return coord.z + (coord.y << c_chunk_height_log2) + (coord.x << (c_chunk_width_log2 + c_chunk_height_log2));
 }
 
 bool IsInWorldBorders(ivec3 pos)
@@ -24,7 +24,7 @@ int GetBlockFullAddress(ivec3 pos)
 	int chunk_index= chunk_x + chunk_y * c_chunk_matrix_size[0];
 	int chunk_data_offset= chunk_index * c_chunk_volume;
 
-	return chunk_data_offset + ChunkBlockAddress(local_x, local_y, pos.z);
+	return chunk_data_offset + ChunkBlockAddress(ivec3(local_x, local_y, pos.z));
 }
 
 // Returns coordinates of a hexagon in given point.

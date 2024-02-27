@@ -135,5 +135,5 @@ void main()
 	// Write updated block.
 	int chunk_index= chunk_position[0] + chunk_position[1] * c_chunk_matrix_size[0];
 	int chunk_data_offset= chunk_index * c_chunk_volume;
-	chunks_output_data[chunk_data_offset + ChunkBlockAddress(invocation.x, invocation.y, invocation.z)]= new_block_type;
+	chunks_output_data[chunk_data_offset + ChunkBlockAddress(invocation)]= new_block_type;
 }

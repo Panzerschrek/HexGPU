@@ -21,7 +21,9 @@ else()
 
 	# Clear garbage.
 	string(APPEND CMAKE_EXE_LINKER_FLAGS_RELEASE " -s -Wl,--gc-sections")
+	string(APPEND CMAKE_EXE_LINKER_FLAGS_MINSIZEREL " -s -Wl,--gc-sections")
 	string(APPEND CMAKE_SHARED_LINKER_FLAGS_RELEASE " -s -Wl,--gc-sections")
+	string(APPEND CMAKE_SHARED_LINKER_FLAGS_MINSIZEREL " -s -Wl,--gc-sections")
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")

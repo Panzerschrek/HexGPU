@@ -121,7 +121,7 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan, WorldProcessor& world_
 	// Create pipeline layout.
 	{
 		const vk::PushConstantRange push_constant_range(
-			vk::ShaderStageFlagBits::eVertex,
+			vk::ShaderStageFlagBits::eCompute,
 			0u,
 			sizeof(DrawIndirectBufferBuildUniforms));
 

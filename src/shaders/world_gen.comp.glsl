@@ -20,7 +20,7 @@ layout(binding= 0, std430) buffer chunks_data_buffer
 layout(push_constant) uniform uniforms_block
 {
 	ivec2 world_size_chunks;
-	int chunk_position[2];
+	ivec2 chunk_position;
 };
 
 int GetGroundLevel(int global_x, int global_y)
@@ -47,13 +47,13 @@ int GetGroundLevel(int global_x, int global_y)
 
 void main()
 {
-	int chunk_index= chunk_position[0] + chunk_position[1] * world_size_chunks.x;
+	int chunk_index= chunk_position.x + chunk_position.y * world_size_chunks.x;
 	int chunk_data_offset= chunk_index * c_chunk_volume;
 
 	int local_x= int(gl_GlobalInvocationID.x);
 	int local_y= int(gl_GlobalInvocationID.y);
-	int global_x= (chunk_position[0] << c_chunk_width_log2) + local_x;
-	int global_y= (chunk_position[1] << c_chunk_width_log2) + local_y;
+	int global_x= (chunk_position.x << c_chunk_width_log2) + local_x;
+	int global_y= (chunk_position.y << c_chunk_width_log2) + local_y;
 
 	int ground_z= GetGroundLevel(global_x, global_y);
 

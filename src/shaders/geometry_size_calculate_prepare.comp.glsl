@@ -7,6 +7,11 @@
 #include "inc/chunk_draw_info.glsl"
 #include "inc/constants.glsl"
 
+layout(push_constant) uniform uniforms_block
+{
+	int world_size_chunks[2];
+};
+
 layout(binding= 0, std430) buffer chunk_draw_info_buffer
 {
 	ChunkDrawInfo chunk_draw_info[];
@@ -19,7 +24,7 @@ void main()
 	uint chunk_x= gl_GlobalInvocationID.x;
 	uint chunk_y= gl_GlobalInvocationID.y;
 
-	uint chunk_index= chunk_x + chunk_y * uint(c_chunk_matrix_size[0]);
+	uint chunk_index= chunk_x + chunk_y * uint(world_size_chunks[0]);
 
 	chunk_draw_info[chunk_index].new_num_quads= 0;
 }

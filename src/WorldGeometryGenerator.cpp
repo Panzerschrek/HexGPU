@@ -55,6 +55,11 @@ struct ChunkPositionUniforms
 	int32_t chunk_position[2];
 };
 
+struct GeometrySizeCalculatePrepareUniforms
+{
+	int32_t world_size_chunks[2];
+};
+
 struct GeometryAllocateUniforms
 {
 	int32_t world_size_chunks[2];
@@ -172,11 +177,18 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 	}
 
 	// Create pipeline layout.
-	geometry_size_calculate_prepare_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
-		vk::PipelineLayoutCreateInfo(
-			vk::PipelineLayoutCreateFlags(),
-			1u, &*geometry_size_calculate_prepare_decriptor_set_layout_,
-			0u, nullptr));
+	{
+		const vk::PushConstantRange push_constant_range(
+			vk::ShaderStageFlagBits::eCompute,
+			0u,
+			sizeof(GeometrySizeCalculatePrepareUniforms));
+
+		geometry_size_calculate_prepare_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
+			vk::PipelineLayoutCreateInfo(
+				vk::PipelineLayoutCreateFlags(),
+				1u, &*geometry_size_calculate_prepare_decriptor_set_layout_,
+				1u, &push_constant_range));
+	}
 
 	// Create pipeline.
 	geometry_size_calculate_prepare_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
@@ -700,6 +712,16 @@ void WorldGeometryGenerator::PrepareGeometrySizeCalculation(const vk::CommandBuf
 		0u,
 		1u, &*geometry_size_calculate_prepare_descriptor_set_,
 		0u, nullptr);
+
+	GeometrySizeCalculatePrepareUniforms uniforms;
+	uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+	uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+
+	command_buffer.pushConstants(
+		*geometry_size_calculate_prepare_pipeline_layout_,
+		vk::ShaderStageFlagBits::eCompute,
+		0,
+		sizeof(GeometrySizeCalculatePrepareUniforms), static_cast<const void*>(&uniforms));
 
 	// Dispatch a thread for each chunk.
 	command_buffer.dispatch(world_size_[0], world_size_[1], 1);

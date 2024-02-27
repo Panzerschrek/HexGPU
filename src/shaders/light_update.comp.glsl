@@ -127,7 +127,7 @@ void main()
 		result_light= uint8_t(result_fire_light | result_sky_light);
 	}
 
-	int chunk_index= chunk_position[0] + chunk_position[1] * c_chunk_matrix_size[0];
+	int chunk_index= chunk_position[0] + chunk_position[1] * world_size_chunks[0];
 	int chunk_data_offset= chunk_index * c_chunk_volume;
 	output_light[chunk_data_offset + ChunkBlockAddress(invocation)]= result_light;
 }

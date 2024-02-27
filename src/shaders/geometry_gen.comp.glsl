@@ -70,7 +70,7 @@ void main()
 	// Generate quads geoemtry.
 	// This code must mutch code in geometry size calculation code!
 
-	int chunk_index= chunk_position[0] + chunk_position[1] * c_chunk_matrix_size[0];
+	int chunk_index= chunk_position[0] + chunk_position[1] * world_size_chunks[0];
 
 	const uint quads_offset= chunk_draw_info[chunk_index].first_quad;
 

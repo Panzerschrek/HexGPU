@@ -47,7 +47,7 @@ int GetGroundLevel(int global_x, int global_y)
 
 void main()
 {
-	int chunk_index= chunk_position[0] + chunk_position[1] * c_chunk_matrix_size[0];
+	int chunk_index= chunk_position[0] + chunk_position[1] * world_size_chunks[0];
 	int chunk_data_offset= chunk_index * c_chunk_volume;
 
 	int local_x= int(gl_GlobalInvocationID.x);

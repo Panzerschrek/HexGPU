@@ -33,7 +33,7 @@ void main()
 	// Calculate only number of result quads.
 	// This code must mutch code in geometry generation code!
 
-	int chunk_index= chunk_position[0] + chunk_position[1] * c_chunk_matrix_size[0];
+	int chunk_index= chunk_position[0] + chunk_position[1] * world_size_chunks[0];
 
 	uvec3 invocation= gl_GlobalInvocationID;
 

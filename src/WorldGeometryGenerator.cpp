@@ -87,7 +87,10 @@ uint32_t GetTotalVertexBufferUnits(const WorldSizeChunks& world_size)
 
 } // namespace
 
-WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, WorldProcessor& world_processor)
+WorldGeometryGenerator::WorldGeometryGenerator(
+	WindowVulkan& window_vulkan,
+	WorldProcessor& world_processor,
+	const vk::DescriptorPool global_descriptor_pool)
 	: vk_device_(window_vulkan.GetVulkanDevice())
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, world_processor_(world_processor)
@@ -202,23 +205,12 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 				"main"),
 			*geometry_size_calculate_prepare_pipeline_layout_)));
 
-	// Create descriptor set pool.
-	{
-		const vk::DescriptorPoolSize descriptor_pool_size(vk::DescriptorType::eStorageBuffer, 1u /*num descriptors*/);
-		geometry_size_calculate_prepare_descriptor_pool_=
-			vk_device_.createDescriptorPoolUnique(
-				vk::DescriptorPoolCreateInfo(
-					vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-					1u, // max sets.
-					1u, &descriptor_pool_size));
-	}
-
 	// Create descriptor set.
 	geometry_size_calculate_prepare_descriptor_set_=
 		std::move(
 			vk_device_.allocateDescriptorSetsUnique(
 				vk::DescriptorSetAllocateInfo(
-					*geometry_size_calculate_prepare_descriptor_pool_,
+					global_descriptor_pool,
 					1u, &*geometry_size_calculate_prepare_decriptor_set_layout_)).front());
 
 	// Update descriptor set.
@@ -298,23 +290,12 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 				"main"),
 			*geometry_size_calculate_pipeline_layout_)));
 
-	// Create descriptor set pool.
-	{
-		const vk::DescriptorPoolSize descriptor_pool_size(vk::DescriptorType::eStorageBuffer, 2u /*num descriptors*/);
-		geometry_size_calculate_descriptor_pool_=
-			vk_device_.createDescriptorPoolUnique(
-				vk::DescriptorPoolCreateInfo(
-					vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-					1u, // max sets.
-					1u, &descriptor_pool_size));
-	}
-
 	// Create descriptor set.
 	geometry_size_calculate_descriptor_set_=
 		std::move(
 			vk_device_.allocateDescriptorSetsUnique(
 				vk::DescriptorSetAllocateInfo(
-					*geometry_size_calculate_descriptor_pool_,
+					global_descriptor_pool,
 					1u, &*geometry_size_calculate_decriptor_set_layout_)).front());
 
 	// Update descriptor set.
@@ -409,23 +390,12 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 				"main"),
 			*geometry_allocate_pipeline_layout_)));
 
-	// Create descriptor set pool.
-	{
-		const vk::DescriptorPoolSize descriptor_pool_size(vk::DescriptorType::eStorageBuffer, 2u /*num descriptors*/);
-		geometry_allocate_descriptor_pool_=
-			vk_device_.createDescriptorPoolUnique(
-				vk::DescriptorPoolCreateInfo(
-					vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-					1u, // max sets.
-					1u, &descriptor_pool_size));
-	}
-
 	// Create descriptor set.
 	geometry_allocate_descriptor_set_=
 		std::move(
 			vk_device_.allocateDescriptorSetsUnique(
 				vk::DescriptorSetAllocateInfo(
-					*geometry_allocate_descriptor_pool_,
+					global_descriptor_pool,
 					1u, &*geometry_allocate_decriptor_set_layout_)).front());
 
 	// Update descriptor set.
@@ -534,23 +504,12 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 				"main"),
 			*geometry_gen_pipeline_layout_)));
 
-	// Create descriptor set pool.
-	{
-		const vk::DescriptorPoolSize descriptor_pool_size(vk::DescriptorType::eStorageBuffer, 4u /*num descriptors*/);
-		geometry_gen_descriptor_pool_=
-			vk_device_.createDescriptorPoolUnique(
-				vk::DescriptorPoolCreateInfo(
-					vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-					1u, // max sets.
-					1u, &descriptor_pool_size));
-	}
-
 	// Create descriptor set.
 	geometry_gen_descriptor_set_=
 		std::move(
 			vk_device_.allocateDescriptorSetsUnique(
 				vk::DescriptorSetAllocateInfo(
-					*geometry_gen_descriptor_pool_,
+					global_descriptor_pool,
 					1u, &*geometry_gen_decriptor_set_layout_)).front());
 
 	// Update descriptor set.

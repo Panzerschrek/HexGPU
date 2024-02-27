@@ -57,7 +57,7 @@ struct PlayerUpdateUniforms
 
 } // namespace
 
-WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
+WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::DescriptorPool global_descriptor_pool)
 	: vk_device_(window_vulkan.GetVulkanDevice())
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, world_size_{8u, 8u}
@@ -207,23 +207,13 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 				"main"),
 			*world_gen_pipeline_layout_)));
 
-	// Create world generation descriptor set pool.
-	{
-		const vk::DescriptorPoolSize descriptor_pool_size(vk::DescriptorType::eStorageBuffer, 1u /*num descriptors*/);
-		world_gen_descriptor_pool_=
-			vk_device_.createDescriptorPoolUnique(
-				vk::DescriptorPoolCreateInfo(
-					vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-					1u, // max sets.
-					1u, &descriptor_pool_size));
-	}
 
 	// Create world generation descriptor set.
 	world_gen_descriptor_set_=
 		std::move(
 			vk_device_.allocateDescriptorSetsUnique(
 				vk::DescriptorSetAllocateInfo(
-					*world_gen_descriptor_pool_,
+					global_descriptor_pool,
 					1u, &*world_gen_decriptor_set_layout_)).front());
 
 	// Update world generator descriptor set.
@@ -303,18 +293,6 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 				"main"),
 			*world_blocks_update_pipeline_layout_)));
 
-	// Create world blocks update descriptor set pool.
-	{
-		const uint32_t num_sets= 2;
-		const vk::DescriptorPoolSize descriptor_pool_size(vk::DescriptorType::eStorageBuffer, num_sets * 2u /*num descriptors*/);
-		world_blocks_update_descriptor_pool_=
-			vk_device_.createDescriptorPoolUnique(
-				vk::DescriptorPoolCreateInfo(
-					vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-					num_sets, // max sets.
-					1u, &descriptor_pool_size));
-	}
-
 	// Create and update world blocks update descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
 	{
@@ -322,7 +300,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 			std::move(
 				vk_device_.allocateDescriptorSetsUnique(
 					vk::DescriptorSetAllocateInfo(
-						*world_blocks_update_descriptor_pool_,
+						global_descriptor_pool,
 						1u, &*world_blocks_update_decriptor_set_layout_)).front());
 
 
@@ -423,18 +401,6 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 				"main"),
 			*light_update_pipeline_layout_)));
 
-	// Create light update descriptor set pool.
-	{
-		const uint32_t num_sets= 2;
-		const vk::DescriptorPoolSize descriptor_pool_size(vk::DescriptorType::eStorageBuffer, num_sets * 3u /*num descriptors*/);
-		light_update_descriptor_pool_=
-			vk_device_.createDescriptorPoolUnique(
-				vk::DescriptorPoolCreateInfo(
-					vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-					num_sets, // max sets.
-					1u, &descriptor_pool_size));
-	}
-
 	// Create and update light update descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
 	{
@@ -442,7 +408,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 			std::move(
 				vk_device_.allocateDescriptorSetsUnique(
 					vk::DescriptorSetAllocateInfo(
-						*light_update_descriptor_pool_,
+						global_descriptor_pool,
 						1u, &*light_update_decriptor_set_layout_)).front());
 
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
@@ -550,23 +516,12 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 				"main"),
 			*player_update_pipeline_layout_)));
 
-	// Create player update descriptor set pool.
-	{
-		const vk::DescriptorPoolSize descriptor_pool_size(vk::DescriptorType::eStorageBuffer, 2u /*num descriptors*/);
-		player_update_descriptor_pool_=
-			vk_device_.createDescriptorPoolUnique(
-				vk::DescriptorPoolCreateInfo(
-					vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-					1u, // max sets.
-					1u, &descriptor_pool_size));
-	}
-
 	// Create player update descriptor set.
 	player_update_descriptor_set_=
 		std::move(
 			vk_device_.allocateDescriptorSetsUnique(
 				vk::DescriptorSetAllocateInfo(
-					*player_update_descriptor_pool_,
+					global_descriptor_pool,
 					1u, &*player_update_decriptor_set_layout_)).front());
 
 	// Update player update descriptor set.

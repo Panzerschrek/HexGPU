@@ -11,7 +11,7 @@ using WorldSizeChunks= std::array<uint32_t, 2>;
 class WorldProcessor
 {
 public:
-	WorldProcessor(WindowVulkan& window_vulkan);
+	WorldProcessor(WindowVulkan& window_vulkan, vk::DescriptorPool global_descriptor_pool);
 	~WorldProcessor();
 
 	void Update(
@@ -81,28 +81,24 @@ private:
 	vk::UniqueDescriptorSetLayout world_gen_decriptor_set_layout_;
 	vk::UniquePipelineLayout world_gen_pipeline_layout_;
 	vk::UniquePipeline world_gen_pipeline_;
-	vk::UniqueDescriptorPool world_gen_descriptor_pool_;
 	vk::UniqueDescriptorSet world_gen_descriptor_set_;
 
 	vk::UniqueShaderModule world_blocks_update_shader_;
 	vk::UniqueDescriptorSetLayout world_blocks_update_decriptor_set_layout_;
 	vk::UniquePipelineLayout world_blocks_update_pipeline_layout_;
 	vk::UniquePipeline world_blocks_update_pipeline_;
-	vk::UniqueDescriptorPool world_blocks_update_descriptor_pool_;
 	vk::UniqueDescriptorSet world_blocks_update_descriptor_sets_[2];
 
 	vk::UniqueShaderModule light_update_shader_;
 	vk::UniqueDescriptorSetLayout light_update_decriptor_set_layout_;
 	vk::UniquePipelineLayout light_update_pipeline_layout_;
 	vk::UniquePipeline light_update_pipeline_;
-	vk::UniqueDescriptorPool light_update_descriptor_pool_;
 	vk::UniqueDescriptorSet light_update_descriptor_sets_[2];
 
 	vk::UniqueShaderModule player_update_shader_;
 	vk::UniqueDescriptorSetLayout player_update_decriptor_set_layout_;
 	vk::UniquePipelineLayout player_update_pipeline_layout_;
 	vk::UniquePipeline player_update_pipeline_;
-	vk::UniqueDescriptorPool player_update_descriptor_pool_;
 	vk::UniqueDescriptorSet player_update_descriptor_set_;
 
 	bool world_generated_= false;

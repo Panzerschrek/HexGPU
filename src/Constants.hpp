@@ -13,13 +13,4 @@ constexpr uint32_t c_chunk_height= 1 << c_chunk_height_log2;
 // In blocks.
 constexpr uint32_t c_chunk_volume= c_chunk_width * c_chunk_width * c_chunk_height;
 
-// TODO - make non-constant.
-constexpr const uint32_t c_chunk_matrix_size[2]{8, 8};
-
-inline uint32_t ChunkBlockAddress(const uint32_t x, const uint32_t y, const uint32_t z)
-{
-	// TODO - add range assert.
-	return z + (y << c_chunk_height_log2) + (x << (c_chunk_width_log2 + c_chunk_height_log2));
-}
-
 } // namespace HexGPU

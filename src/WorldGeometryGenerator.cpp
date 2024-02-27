@@ -51,7 +51,18 @@ const uint32_t chunk_draw_info_buffer= 3;
 // 128 bytes is guaranted maximum size of push constants uniform block.
 struct ChunkPositionUniforms
 {
+	int32_t world_size_chunks[2];
 	int32_t chunk_position[2];
+};
+
+struct GeometrySizeCalculatePrepareUniforms
+{
+	int32_t world_size_chunks[2];
+};
+
+struct GeometryAllocateUniforms
+{
+	int32_t world_size_chunks[2];
 };
 
 // This should match the same constant in GLSL code!
@@ -63,22 +74,29 @@ const uint32_t c_allocation_unut_size_quads= 512;
 // we need to have enough space for so much vertices.
 const uint32_t c_max_average_quads_per_chunk= 6144;
 
-const uint32_t c_total_vertex_buffer_quads= c_chunk_matrix_size[0] * c_chunk_matrix_size[1] * c_max_average_quads_per_chunk;
+uint32_t GetTotalVertexBufferQuads(const WorldSizeChunks& world_size)
+{
+	return c_max_average_quads_per_chunk * world_size[0] * world_size[1];
+}
 
-// Number of allocation units is based on number of quads with rounding upwards.
-const uint32_t c_total_vertex_buffer_units=
-	(c_total_vertex_buffer_quads + (c_allocation_unut_size_quads - 1)) / c_allocation_unut_size_quads;
+uint32_t GetTotalVertexBufferUnits(const WorldSizeChunks& world_size)
+{
+	// Number of allocation units is based on number of quads with rounding upwards.
+	return (GetTotalVertexBufferQuads(world_size) + (c_allocation_unut_size_quads - 1)) / c_allocation_unut_size_quads;
+}
+
 } // namespace
 
 WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, WorldProcessor& world_processor)
 	: vk_device_(window_vulkan.GetVulkanDevice())
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, world_processor_(world_processor)
-	, vertex_memory_allocator_(window_vulkan, c_total_vertex_buffer_units)
+	, world_size_(world_processor.GetWorldSize())
+	, vertex_memory_allocator_(window_vulkan, GetTotalVertexBufferUnits(world_size_))
 {
 	// Create chunk draw info buffer.
 	{
-		chunk_draw_info_buffer_size_= c_chunk_matrix_size[0] * c_chunk_matrix_size[1] * sizeof(ChunkDrawInfo);
+		chunk_draw_info_buffer_size_= world_size_[0] * world_size_[1] * uint32_t(sizeof(ChunkDrawInfo));
 
 		chunk_draw_info_buffer_=
 			vk_device_.createBufferUnique(
@@ -107,7 +125,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 	}
 
 	// Create vertex buffer.
-	vertex_buffer_num_quads_= c_total_vertex_buffer_quads;
+	vertex_buffer_num_quads_= GetTotalVertexBufferQuads(world_size_);
 	{
 		const size_t quads_data_size= vertex_buffer_num_quads_ * sizeof(QuadVertices);
 
@@ -159,11 +177,18 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 	}
 
 	// Create pipeline layout.
-	geometry_size_calculate_prepare_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
-		vk::PipelineLayoutCreateInfo(
-			vk::PipelineLayoutCreateFlags(),
-			1u, &*geometry_size_calculate_prepare_decriptor_set_layout_,
-			0u, nullptr));
+	{
+		const vk::PushConstantRange push_constant_range(
+			vk::ShaderStageFlagBits::eCompute,
+			0u,
+			sizeof(GeometrySizeCalculatePrepareUniforms));
+
+		geometry_size_calculate_prepare_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
+			vk::PipelineLayoutCreateInfo(
+				vk::PipelineLayoutCreateFlags(),
+				1u, &*geometry_size_calculate_prepare_decriptor_set_layout_,
+				1u, &push_constant_range));
+	}
 
 	// Create pipeline.
 	geometry_size_calculate_prepare_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
@@ -359,11 +384,18 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 	}
 
 	// Create pipeline layout.
-	geometry_allocate_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
-		vk::PipelineLayoutCreateInfo(
-			vk::PipelineLayoutCreateFlags(),
-			1u, &*geometry_allocate_decriptor_set_layout_,
-			0u, nullptr));
+	{
+		const vk::PushConstantRange push_constant_range(
+			vk::ShaderStageFlagBits::eCompute,
+			0u,
+			sizeof(GeometryAllocateUniforms));
+
+		geometry_allocate_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
+			vk::PipelineLayoutCreateInfo(
+				vk::PipelineLayoutCreateFlags(),
+				1u, &*geometry_allocate_decriptor_set_layout_,
+				1u, &push_constant_range));
+	}
 
 	// Create pipeline.
 	geometry_allocate_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
@@ -681,8 +713,18 @@ void WorldGeometryGenerator::PrepareGeometrySizeCalculation(const vk::CommandBuf
 		1u, &*geometry_size_calculate_prepare_descriptor_set_,
 		0u, nullptr);
 
+	GeometrySizeCalculatePrepareUniforms uniforms;
+	uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+	uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+
+	command_buffer.pushConstants(
+		*geometry_size_calculate_prepare_pipeline_layout_,
+		vk::ShaderStageFlagBits::eCompute,
+		0,
+		sizeof(GeometrySizeCalculatePrepareUniforms), static_cast<const void*>(&uniforms));
+
 	// Dispatch a thread for each chunk.
-	command_buffer.dispatch(c_chunk_matrix_size[0], c_chunk_matrix_size[1], 1);
+	command_buffer.dispatch(world_size_[0], world_size_[1], 1);
 
 	// Create barrier between update chunk draw info buffer and its later usage.
 	// TODO - check this is correct.
@@ -717,10 +759,12 @@ void WorldGeometryGenerator::CalculateGeometrySize(const vk::CommandBuffer comma
 
 	// Execute geometry size calculation for all chunks.
 	// TODO - do this no each frame and not for each chunk.
-	for(uint32_t x= 0; x < c_chunk_matrix_size[0]; ++x)
-	for(uint32_t y= 0; y < c_chunk_matrix_size[1]; ++y)
+	for(uint32_t x= 0; x < world_size_[0]; ++x)
+	for(uint32_t y= 0; y < world_size_[1]; ++y)
 	{
 		ChunkPositionUniforms chunk_position_uniforms;
+		chunk_position_uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+		chunk_position_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
 		chunk_position_uniforms.chunk_position[0]= int32_t(x);
 		chunk_position_uniforms.chunk_position[1]= int32_t(y);
 
@@ -773,6 +817,16 @@ void WorldGeometryGenerator::AllocateMemoryForGeometry(const vk::CommandBuffer c
 		1u, &*geometry_allocate_descriptor_set_,
 		0u, nullptr);
 
+	GeometryAllocateUniforms uniforms;
+	uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+	uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+
+	command_buffer.pushConstants(
+		*geometry_allocate_pipeline_layout_,
+		vk::ShaderStageFlagBits::eCompute,
+		0,
+		sizeof(GeometryAllocateUniforms), static_cast<const void*>(&uniforms));
+
 	// Use single thread for allocation.
 	command_buffer.dispatch(1, 1 , 1);
 
@@ -811,10 +865,12 @@ void WorldGeometryGenerator::GenGeometry(const vk::CommandBuffer command_buffer)
 
 	// Execute geometry generation for all chunks.
 	// TODO - do this no each frame and not for each chunk.
-	for(uint32_t x= 0; x < c_chunk_matrix_size[0]; ++x)
-	for(uint32_t y= 0; y < c_chunk_matrix_size[1]; ++y)
+	for(uint32_t x= 0; x < world_size_[0]; ++x)
+	for(uint32_t y= 0; y < world_size_[1]; ++y)
 	{
 		ChunkPositionUniforms chunk_position_uniforms;
+		chunk_position_uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+		chunk_position_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
 		chunk_position_uniforms.chunk_position[0]= int32_t(x);
 		chunk_position_uniforms.chunk_position[1]= int32_t(y);
 

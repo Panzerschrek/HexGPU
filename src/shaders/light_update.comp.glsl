@@ -13,22 +13,23 @@ layout(local_size_x= 4, local_size_y = 4, local_size_z= 8) in;
 
 layout(push_constant) uniform uniforms_block
 {
-	int chunk_position[2];
+	ivec2 world_size_chunks;
+	ivec2 chunk_position;
 };
 
 layout(binding= 0, std430) buffer chunks_data_buffer
 {
-	uint8_t chunks_data[c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
+	uint8_t chunks_data[];
 };
 
 layout(binding= 1, std430) buffer chunk_input_light_buffer
 {
-	uint8_t input_light[c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
+	uint8_t input_light[];
 };
 
 layout(binding= 2, std430) buffer chunk_output_light_buffer
 {
-	uint8_t output_light[c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
+	uint8_t output_light[];
 };
 
 void main()
@@ -39,24 +40,26 @@ void main()
 
 	ivec3 invocation= ivec3(gl_GlobalInvocationID);
 
-	int block_global_x= (chunk_position[0] << c_chunk_width_log2) + invocation.x;
-	int block_global_y= (chunk_position[1] << c_chunk_width_log2) + invocation.y;
+	int block_global_x= (chunk_position.x << c_chunk_width_log2) + invocation.x;
+	int block_global_y= (chunk_position.y << c_chunk_width_log2) + invocation.y;
 	int z= invocation.z;
 
+	ivec2 max_global_coord= GetMaxGlobalCoord(world_size_chunks);
+
 	int side_y_base= block_global_y + ((block_global_x + 1) & 1);
-	int east_x_clamped= min(block_global_x + 1, c_max_global_x);
+	int east_x_clamped= min(block_global_x + 1, max_global_coord.x);
 	int west_x_clamped= max(block_global_x - 1, 0);
 
 	// TODO - optimize this. Reuse calculations in the same chunk.
-	int block_address= GetBlockFullAddress(ivec3(block_global_x, block_global_y, z));
-	int block_address_up= GetBlockFullAddress(ivec3(block_global_x, block_global_y, min(z + 1, c_chunk_height - 1)));
-	int block_address_down= GetBlockFullAddress(ivec3(block_global_x, block_global_y, max(z - 1, 0)));
-	int block_address_north= GetBlockFullAddress(ivec3(block_global_x, min(block_global_y + 1, c_max_global_y), z));
-	int block_address_south= GetBlockFullAddress(ivec3(block_global_x, max(block_global_y - 1, 0), z));
-	int block_address_north_east= GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(side_y_base - 0, c_max_global_y)), z));
-	int block_address_south_east= GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(side_y_base - 1, c_max_global_y)), z));
-	int block_address_north_west= GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 0, c_max_global_y)), z));
-	int block_address_south_west= GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 1, c_max_global_y)), z));
+	int block_address= GetBlockFullAddress(ivec3(block_global_x, block_global_y, z), world_size_chunks);
+	int block_address_up= GetBlockFullAddress(ivec3(block_global_x, block_global_y, min(z + 1, c_chunk_height - 1)), world_size_chunks);
+	int block_address_down= GetBlockFullAddress(ivec3(block_global_x, block_global_y, max(z - 1, 0)), world_size_chunks);
+	int block_address_north= GetBlockFullAddress(ivec3(block_global_x, min(block_global_y + 1, max_global_coord.y), z), world_size_chunks);
+	int block_address_south= GetBlockFullAddress(ivec3(block_global_x, max(block_global_y - 1, 0), z), world_size_chunks);
+	int block_address_north_east= GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(side_y_base - 0, max_global_coord.y)), z), world_size_chunks);
+	int block_address_south_east= GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(side_y_base - 1, max_global_coord.y)), z), world_size_chunks);
+	int block_address_north_west= GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 0, max_global_coord.y)), z), world_size_chunks);
+	int block_address_south_west= GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 1, max_global_coord.y)), z), world_size_chunks);
 
 	uint8_t block_value= chunks_data[block_address];
 	uint8_t optical_density= c_block_optical_density_table[int(block_value)];
@@ -126,7 +129,7 @@ void main()
 		result_light= uint8_t(result_fire_light | result_sky_light);
 	}
 
-	int chunk_index= chunk_position[0] + chunk_position[1] * c_chunk_matrix_size[0];
+	int chunk_index= chunk_position.x + chunk_position.y * world_size_chunks.x;
 	int chunk_data_offset= chunk_index * c_chunk_volume;
-	output_light[chunk_data_offset + ChunkBlockAddress(invocation.x, invocation.y, invocation.z)]= result_light;
+	output_light[chunk_data_offset + ChunkBlockAddress(invocation)]= result_light;
 }

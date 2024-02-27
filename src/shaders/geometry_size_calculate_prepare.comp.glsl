@@ -7,9 +7,14 @@
 #include "inc/chunk_draw_info.glsl"
 #include "inc/constants.glsl"
 
+layout(push_constant) uniform uniforms_block
+{
+	ivec2 world_size_chunks;
+};
+
 layout(binding= 0, std430) buffer chunk_draw_info_buffer
 {
-	ChunkDrawInfo chunk_draw_info[c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
+	ChunkDrawInfo chunk_draw_info[];
 };
 
 void main()
@@ -19,7 +24,7 @@ void main()
 	uint chunk_x= gl_GlobalInvocationID.x;
 	uint chunk_y= gl_GlobalInvocationID.y;
 
-	uint chunk_index= chunk_x + chunk_y * uint(c_chunk_matrix_size[0]);
+	uint chunk_index= chunk_x + chunk_y * uint(world_size_chunks.x);
 
 	chunk_draw_info[chunk_index].new_num_quads= 0;
 }

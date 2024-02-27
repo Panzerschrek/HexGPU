@@ -13,43 +13,46 @@ layout(local_size_x= 4, local_size_y = 4, local_size_z= 8) in;
 
 layout(push_constant) uniform uniforms_block
 {
-	int chunk_position[2];
+	ivec2 world_size_chunks;
+	ivec2 chunk_position;
 };
 
 layout(binding= 0, std430) buffer chunks_data_input_buffer
 {
-	uint8_t chunks_input_data[c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
+	uint8_t chunks_input_data[];
 };
 
 layout(binding= 1, std430) buffer chunks_data_output_buffer
 {
-	uint8_t chunks_output_data[c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
+	uint8_t chunks_output_data[];
 };
 
 uint8_t TransformBlock(int block_global_x, int block_global_y, int z)
 {
+	ivec2 max_global_coord= GetMaxGlobalCoord(world_size_chunks);
+
 	int side_y_base= block_global_y + ((block_global_x + 1) & 1);
-	int east_x_clamped= min(block_global_x + 1, c_max_global_x);
+	int east_x_clamped= min(block_global_x + 1, max_global_coord.x);
 	int west_x_clamped= max(block_global_x - 1, 0);
 
 	int z_up_clamped= min(z + 1, c_chunk_height - 1);
 	int z_down_clamped= max(z - 1, 0);
 
-	int column_address= GetBlockFullAddress(ivec3(block_global_x, block_global_y, 0));
+	int column_address= GetBlockFullAddress(ivec3(block_global_x, block_global_y, 0), world_size_chunks);
 
 	int adjacent_columns[6]= int[6](
 		// north
-		GetBlockFullAddress(ivec3(block_global_x, min(block_global_y + 1, c_max_global_y), 0)),
+		GetBlockFullAddress(ivec3(block_global_x, min(block_global_y + 1, max_global_coord.y), 0), world_size_chunks),
 		// south
-		GetBlockFullAddress(ivec3(block_global_x, max(block_global_y - 1, 0), 0)),
+		GetBlockFullAddress(ivec3(block_global_x, max(block_global_y - 1, 0), 0), world_size_chunks),
 		// north-east
-		GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(side_y_base - 0, c_max_global_y)), 0)),
+		GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(side_y_base - 0, max_global_coord.y)), 0), world_size_chunks),
 		// south-east
-		GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(side_y_base - 1, c_max_global_y)), 0)),
+		GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(side_y_base - 1, max_global_coord.y)), 0), world_size_chunks),
 		// north-west
-		GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 0, c_max_global_y)), 0)),
+		GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 0, max_global_coord.y)), 0), world_size_chunks),
 		// south-west
-		GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 1, c_max_global_y)), 0)) );
+		GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 1, max_global_coord.y)), 0), world_size_chunks) );
 
 	uint8_t block_type= chunks_input_data[column_address + z];
 
@@ -126,14 +129,14 @@ void main()
 
 	ivec3 invocation= ivec3(gl_GlobalInvocationID);
 
-	int block_global_x= (chunk_position[0] << c_chunk_width_log2) + invocation.x;
-	int block_global_y= (chunk_position[1] << c_chunk_width_log2) + invocation.y;
+	int block_global_x= (chunk_position.x << c_chunk_width_log2) + invocation.x;
+	int block_global_y= (chunk_position.y << c_chunk_width_log2) + invocation.y;
 	int z= invocation.z;
 
 	uint8_t new_block_type= TransformBlock(block_global_x, block_global_y, z);
 
 	// Write updated block.
-	int chunk_index= chunk_position[0] + chunk_position[1] * c_chunk_matrix_size[0];
+	int chunk_index= chunk_position.x + chunk_position.y * world_size_chunks.x;
 	int chunk_data_offset= chunk_index * c_chunk_volume;
-	chunks_output_data[chunk_data_offset + ChunkBlockAddress(invocation.x, invocation.y, invocation.z)]= new_block_type;
+	chunks_output_data[chunk_data_offset + ChunkBlockAddress(invocation)]= new_block_type;
 }

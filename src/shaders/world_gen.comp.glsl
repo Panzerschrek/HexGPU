@@ -14,12 +14,13 @@ layout(local_size_x= 8, local_size_y = 8, local_size_z= 1) in;
 
 layout(binding= 0, std430) buffer chunks_data_buffer
 {
-	uint8_t chunks_data[c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
+	uint8_t chunks_data[];
 };
 
 layout(push_constant) uniform uniforms_block
 {
-	int chunk_position[2];
+	ivec2 world_size_chunks;
+	ivec2 chunk_position;
 };
 
 int GetGroundLevel(int global_x, int global_y)
@@ -46,17 +47,17 @@ int GetGroundLevel(int global_x, int global_y)
 
 void main()
 {
-	int chunk_index= chunk_position[0] + chunk_position[1] * c_chunk_matrix_size[0];
+	int chunk_index= chunk_position.x + chunk_position.y * world_size_chunks.x;
 	int chunk_data_offset= chunk_index * c_chunk_volume;
 
 	int local_x= int(gl_GlobalInvocationID.x);
 	int local_y= int(gl_GlobalInvocationID.y);
-	int global_x= (chunk_position[0] << c_chunk_width_log2) + local_x;
-	int global_y= (chunk_position[1] << c_chunk_width_log2) + local_y;
+	int global_x= (chunk_position.x << c_chunk_width_log2) + local_x;
+	int global_y= (chunk_position.y << c_chunk_width_log2) + local_y;
 
 	int ground_z= GetGroundLevel(global_x, global_y);
 
-	int column_offset= chunk_data_offset + ChunkBlockAddress(local_x, local_y, 0);
+	int column_offset= chunk_data_offset + ChunkBlockAddress(ivec3(local_x, local_y, 0));
 
 	// Zero level - place single block of special type.
 	chunks_data[column_offset]= c_block_type_spherical_block;

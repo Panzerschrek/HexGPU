@@ -9,7 +9,7 @@
 
 layout(binding= 0, std430) buffer chunks_data_buffer
 {
-	uint8_t chunks_data[c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
+	uint8_t chunks_data[];
 };
 
 // This struct must be identical to the same struct in C++ code!
@@ -25,6 +25,7 @@ layout(push_constant) uniform uniforms_block
 	// Use vec4 for proper padding
 	vec4 player_pos;
 	vec4 player_dir;
+	ivec2 world_size_chunks;
 	// Use "uint8_t", because "bool" in GLSL has size different from C++.
 	uint8_t build_block_type;
 	uint8_t build_triggered;
@@ -132,8 +133,8 @@ void UpdateBuildPos()
 		if(grid_pos == last_grid_pos)
 			continue; // Located in the same grid cell.
 
-		if(IsInWorldBorders(grid_pos) &&
-			chunks_data[GetBlockFullAddress(grid_pos)] != c_block_type_air)
+		if(IsInWorldBorders(grid_pos, world_size_chunks) &&
+			chunks_data[GetBlockFullAddress(grid_pos, world_size_chunks)] != c_block_type_air)
 		{
 			// Reached non-air block.
 			// Destroy position is in this block, build position is in previous block.
@@ -157,14 +158,14 @@ void main()
 
 	// Perform building/destroying.
 	// Update build pos if building/destroying was triggered.
-	if(build_triggered != uint8_t(0) && IsInWorldBorders(build_pos.xyz))
+	if(build_triggered != uint8_t(0) && IsInWorldBorders(build_pos.xyz, world_size_chunks))
 	{
-		chunks_data[GetBlockFullAddress(build_pos.xyz)]= build_block_type;
+		chunks_data[GetBlockFullAddress(build_pos.xyz, world_size_chunks)]= build_block_type;
 		UpdateBuildPos();
 	}
-	if(destroy_triggered != uint8_t(0) && IsInWorldBorders(destroy_pos.xyz))
+	if(destroy_triggered != uint8_t(0) && IsInWorldBorders(destroy_pos.xyz, world_size_chunks))
 	{
-		chunks_data[GetBlockFullAddress(destroy_pos.xyz)]= c_block_type_air;
+		chunks_data[GetBlockFullAddress(destroy_pos.xyz, world_size_chunks)]= c_block_type_air;
 		UpdateBuildPos();
 	}
 }

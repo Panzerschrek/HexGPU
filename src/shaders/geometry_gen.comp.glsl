@@ -32,22 +32,23 @@ layout(binding= 0, std430) buffer vertices_buffer
 
 layout(binding= 1, std430) buffer chunks_data_buffer
 {
-	uint8_t chunks_data[c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
+	uint8_t chunks_data[];
 };
 
 layout(binding= 2, std430) buffer chunk_light_buffer
 {
-	uint8_t light_buffer[c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
+	uint8_t light_buffer[];
 };
 
 layout(binding= 3, std430) buffer chunk_draw_info_buffer
 {
-	ChunkDrawInfo chunk_draw_info[c_chunk_matrix_size[0] * c_chunk_matrix_size[1]];
+	ChunkDrawInfo chunk_draw_info[];
 };
 
 layout(push_constant) uniform uniforms_block
 {
-	int chunk_position[2];
+	ivec2 world_size_chunks;
+	ivec2 chunk_position;
 };
 
 // Use scale slightly less or equal to 272.
@@ -69,25 +70,27 @@ void main()
 	// Generate quads geoemtry.
 	// This code must mutch code in geometry size calculation code!
 
-	int chunk_index= chunk_position[0] + chunk_position[1] * c_chunk_matrix_size[0];
+	int chunk_index= chunk_position.x + chunk_position.y * world_size_chunks.x;
 
 	const uint quads_offset= chunk_draw_info[chunk_index].first_quad;
 
 	uvec3 invocation= gl_GlobalInvocationID;
 
-	int block_global_x= (chunk_position[0] << c_chunk_width_log2) + int(invocation.x);
-	int block_global_y= (chunk_position[1] << c_chunk_width_log2) + int(invocation.y);
+	int block_global_x= (chunk_position.x << c_chunk_width_log2) + int(invocation.x);
+	int block_global_y= (chunk_position.y << c_chunk_width_log2) + int(invocation.y);
 	int z= int(invocation.z);
 
-	int east_x_clamped= min(block_global_x + 1, c_max_global_x);
+	ivec2 max_global_coord= GetMaxGlobalCoord(world_size_chunks);
+
+	int east_x_clamped= min(block_global_x + 1, max_global_coord.x);
 	int east_y_base= block_global_y + ((block_global_x + 1) & 1);
 
 	// TODO - optimize this. Reuse calculations in the same chunk.
-	int block_address= GetBlockFullAddress(ivec3(block_global_x, block_global_y, z));
-	int block_address_up= GetBlockFullAddress(ivec3(block_global_x, block_global_y, min(z + 1, c_chunk_height - 1)));
-	int block_address_north= GetBlockFullAddress(ivec3(block_global_x, min(block_global_y + 1, c_max_global_y), z));
-	int block_address_north_east= GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(east_y_base - 0, c_max_global_y)), z));
-	int block_address_south_east= GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(east_y_base - 1, c_max_global_y)), z));
+	int block_address= GetBlockFullAddress(ivec3(block_global_x, block_global_y, z), world_size_chunks);
+	int block_address_up= GetBlockFullAddress(ivec3(block_global_x, block_global_y, min(z + 1, c_chunk_height - 1)), world_size_chunks);
+	int block_address_north= GetBlockFullAddress(ivec3(block_global_x, min(block_global_y + 1, max_global_coord.y), z), world_size_chunks);
+	int block_address_north_east= GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(east_y_base - 0, max_global_coord.y)), z), world_size_chunks);
+	int block_address_south_east= GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(east_y_base - 1, max_global_coord.y)), z), world_size_chunks);
 
 	uint8_t block_value= chunks_data[block_address];
 	uint8_t block_value_up= chunks_data[block_address_up];

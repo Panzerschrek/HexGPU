@@ -81,25 +81,25 @@ private:
 	vk::UniqueDescriptorSetLayout world_gen_decriptor_set_layout_;
 	vk::UniquePipelineLayout world_gen_pipeline_layout_;
 	vk::UniquePipeline world_gen_pipeline_;
-	vk::UniqueDescriptorSet world_gen_descriptor_set_;
+	vk::DescriptorSet world_gen_descriptor_set_;
 
 	vk::UniqueShaderModule world_blocks_update_shader_;
 	vk::UniqueDescriptorSetLayout world_blocks_update_decriptor_set_layout_;
 	vk::UniquePipelineLayout world_blocks_update_pipeline_layout_;
 	vk::UniquePipeline world_blocks_update_pipeline_;
-	vk::UniqueDescriptorSet world_blocks_update_descriptor_sets_[2];
+	vk::DescriptorSet world_blocks_update_descriptor_sets_[2];
 
 	vk::UniqueShaderModule light_update_shader_;
 	vk::UniqueDescriptorSetLayout light_update_decriptor_set_layout_;
 	vk::UniquePipelineLayout light_update_pipeline_layout_;
 	vk::UniquePipeline light_update_pipeline_;
-	vk::UniqueDescriptorSet light_update_descriptor_sets_[2];
+	vk::DescriptorSet light_update_descriptor_sets_[2];
 
 	vk::UniqueShaderModule player_update_shader_;
 	vk::UniqueDescriptorSetLayout player_update_decriptor_set_layout_;
 	vk::UniquePipelineLayout player_update_pipeline_layout_;
 	vk::UniquePipeline player_update_pipeline_;
-	vk::UniqueDescriptorSet player_update_descriptor_set_;
+	vk::DescriptorSet player_update_descriptor_set_;
 
 	bool world_generated_= false;
 };

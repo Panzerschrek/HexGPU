@@ -19,7 +19,7 @@ vk::UniqueDescriptorPool CreateGlobalDescriptorPool(const vk::Device vk_device)
 	return
 		vk_device.createDescriptorPoolUnique(
 			vk::DescriptorPoolCreateInfo(
-				vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
+				vk::DescriptorPoolCreateFlagBits(), // Do not allow freeing individual sets.
 				max_sets,
 				uint32_t(std::size(descriptor_pool_sizes)), descriptor_pool_sizes));
 }

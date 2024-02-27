@@ -37,7 +37,7 @@ private:
 	vk::UniquePipelineLayout pipeline_layout_;
 	vk::UniquePipeline pipeline_;
 
-	vk::UniqueDescriptorSet descriptor_set_;
+	vk::DescriptorSet descriptor_set_;
 };
 
 } // namespace HexGPU

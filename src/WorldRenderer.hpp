@@ -38,7 +38,7 @@ private:
 	vk::UniqueDescriptorSetLayout draw_indirect_buffer_build_decriptor_set_layout_;
 	vk::UniquePipelineLayout draw_indirect_buffer_build_pipeline_layout_;
 	vk::UniquePipeline draw_indirect_buffer_build_pipeline_;
-	vk::UniqueDescriptorSet draw_indirect_buffer_build_descriptor_set_;
+	vk::DescriptorSet draw_indirect_buffer_build_descriptor_set_;
 
 	vk::UniqueShaderModule shader_vert_;
 	vk::UniqueShaderModule shader_frag_;
@@ -46,7 +46,7 @@ private:
 	vk::UniqueDescriptorSetLayout decriptor_set_layout_;
 	vk::UniquePipelineLayout pipeline_layout_;
 	vk::UniquePipeline pipeline_;
-	vk::UniqueDescriptorSet descriptor_set_;
+	vk::DescriptorSet descriptor_set_;
 
 	vk::UniqueBuffer index_buffer_;
 	vk::UniqueDeviceMemory index_buffer_memory_;

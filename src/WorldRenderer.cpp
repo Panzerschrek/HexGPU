@@ -148,13 +148,10 @@ WorldRenderer::WorldRenderer(
 			*draw_indirect_buffer_build_pipeline_layout_)));
 
 	// Create descriptor set.
-	draw_indirect_buffer_build_descriptor_set_=
-		std::move(
-			vk_device_.allocateDescriptorSetsUnique(
-				vk::DescriptorSetAllocateInfo(
-					global_descriptor_pool,
-					1u, &*draw_indirect_buffer_build_decriptor_set_layout_)).front());
-
+	draw_indirect_buffer_build_descriptor_set_= vk_device_.allocateDescriptorSets(
+		vk::DescriptorSetAllocateInfo(
+			global_descriptor_pool,
+			1u, &*draw_indirect_buffer_build_decriptor_set_layout_)).front();
 
 	// Update descriptor set.
 	{
@@ -171,7 +168,7 @@ WorldRenderer::WorldRenderer(
 		vk_device_.updateDescriptorSets(
 			{
 				{
-					*draw_indirect_buffer_build_descriptor_set_,
+					draw_indirect_buffer_build_descriptor_set_,
 					DrawIndirectBufferBuildShaderBindings::chunk_draw_info_buffer,
 					0u,
 					1u,
@@ -181,7 +178,7 @@ WorldRenderer::WorldRenderer(
 					nullptr
 				},
 				{
-					*draw_indirect_buffer_build_descriptor_set_,
+					draw_indirect_buffer_build_descriptor_set_,
 					DrawIndirectBufferBuildShaderBindings::draw_indirect_buffer,
 					0u,
 					1u,
@@ -395,12 +392,10 @@ WorldRenderer::WorldRenderer(
 	}
 
 	// Create descriptor set.
-	descriptor_set_=
-		std::move(
-		vk_device_.allocateDescriptorSetsUnique(
-			vk::DescriptorSetAllocateInfo(
-				global_descriptor_pool,
-				1u, &*decriptor_set_layout_)).front());
+	descriptor_set_= vk_device_.allocateDescriptorSets(
+		vk::DescriptorSetAllocateInfo(
+			global_descriptor_pool,
+			1u, &*decriptor_set_layout_)).front();
 
 	// Update descriptor set.
 	{
@@ -412,7 +407,7 @@ WorldRenderer::WorldRenderer(
 		vk_device_.updateDescriptorSets(
 			{
 				{
-					*descriptor_set_,
+					descriptor_set_,
 					1u,
 					0u,
 					1u,
@@ -450,7 +445,7 @@ void WorldRenderer::Draw(const vk::CommandBuffer command_buffer, const m_Mat4& v
 		vk::PipelineBindPoint::eGraphics,
 		*pipeline_layout_,
 		0u,
-		1u, &*descriptor_set_,
+		1u, &descriptor_set_,
 		0u, nullptr);
 
 	const m_Vec3 scale_vec(0.5f / std::sqrt(3.0f), 0.5f, 1.0f );
@@ -477,7 +472,7 @@ void WorldRenderer::BuildDrawIndirectBuffer(const vk::CommandBuffer command_buff
 		vk::PipelineBindPoint::eCompute,
 		*draw_indirect_buffer_build_pipeline_layout_,
 		0u,
-		1u, &*draw_indirect_buffer_build_descriptor_set_,
+		1u, &draw_indirect_buffer_build_descriptor_set_,
 		0u, nullptr);
 
 	DrawIndirectBufferBuildUniforms uniforms;

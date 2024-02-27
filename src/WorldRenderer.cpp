@@ -245,20 +245,20 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan, WorldProcessor& world_
 				vk::DescriptorSetLayoutCreateFlags(),
 				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
 
-	const vk::PushConstantRange vk_push_constant_range(
-		vk::ShaderStageFlagBits::eVertex,
-		0u,
-		sizeof(m_Mat4));
-
 	// Create pipeline layout
-	pipeline_layout_=
-		vk_device_.createPipelineLayoutUnique(
-			vk::PipelineLayoutCreateInfo(
-				vk::PipelineLayoutCreateFlags(),
-				1u,
-				&*decriptor_set_layout_,
-				1u,
-				&vk_push_constant_range));
+	{
+		const vk::PushConstantRange push_constant_range(
+			vk::ShaderStageFlagBits::eVertex,
+			0u,
+			sizeof(m_Mat4));
+
+		pipeline_layout_=
+			vk_device_.createPipelineLayoutUnique(
+				vk::PipelineLayoutCreateInfo(
+					vk::PipelineLayoutCreateFlags(),
+					1u, &*decriptor_set_layout_,
+					1u, &push_constant_range));
+	}
 
 	// Create pipeline.
 

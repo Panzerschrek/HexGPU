@@ -55,6 +55,11 @@ struct ChunkPositionUniforms
 	int32_t chunk_position[2];
 };
 
+struct GeometryAllocateUniforms
+{
+	int32_t world_size_chunks[2];
+};
+
 // This should match the same constant in GLSL code!
 const uint32_t c_allocation_unut_size_quads= 512;
 
@@ -367,11 +372,18 @@ WorldGeometryGenerator::WorldGeometryGenerator(WindowVulkan& window_vulkan, Worl
 	}
 
 	// Create pipeline layout.
-	geometry_allocate_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
-		vk::PipelineLayoutCreateInfo(
-			vk::PipelineLayoutCreateFlags(),
-			1u, &*geometry_allocate_decriptor_set_layout_,
-			0u, nullptr));
+	{
+		const vk::PushConstantRange push_constant_range(
+			vk::ShaderStageFlagBits::eCompute,
+			0u,
+			sizeof(GeometryAllocateUniforms));
+
+		geometry_allocate_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
+			vk::PipelineLayoutCreateInfo(
+				vk::PipelineLayoutCreateFlags(),
+				1u, &*geometry_allocate_decriptor_set_layout_,
+				1u, &push_constant_range));
+	}
 
 	// Create pipeline.
 	geometry_allocate_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
@@ -782,6 +794,16 @@ void WorldGeometryGenerator::AllocateMemoryForGeometry(const vk::CommandBuffer c
 		0u,
 		1u, &*geometry_allocate_descriptor_set_,
 		0u, nullptr);
+
+	GeometryAllocateUniforms uniforms;
+	uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+	uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+
+	command_buffer.pushConstants(
+		*geometry_allocate_pipeline_layout_,
+		vk::ShaderStageFlagBits::eCompute,
+		0,
+		sizeof(GeometryAllocateUniforms), static_cast<const void*>(&uniforms));
 
 	// Use single thread for allocation.
 	command_buffer.dispatch(1, 1 , 1);

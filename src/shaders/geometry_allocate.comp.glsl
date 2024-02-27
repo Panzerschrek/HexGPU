@@ -8,6 +8,11 @@
 #include "inc/chunk_draw_info.glsl"
 #include "inc/constants.glsl"
 
+layout(push_constant) uniform uniforms_block
+{
+	int world_size_chunks[2];
+};
+
 layout(binding= 0, std430) buffer chunk_draw_info_buffer
 {
 	ChunkDrawInfo chunk_draw_info[];
@@ -20,10 +25,10 @@ const uint c_allocation_unut_size_quads= 512;
 void main()
 {
 	// Perform updates for all chunks in single thread.
-	for(int chunk_y= 0; chunk_y < c_chunk_matrix_size[1]; ++chunk_y)
-	for(int chunk_x= 0; chunk_x < c_chunk_matrix_size[0]; ++chunk_x)
+	for(int chunk_y= 0; chunk_y < world_size_chunks[1]; ++chunk_y)
+	for(int chunk_x= 0; chunk_x < world_size_chunks[0]; ++chunk_x)
 	{
-		int chunk_index= chunk_x + chunk_y * c_chunk_matrix_size[0];
+		int chunk_index= chunk_x + chunk_y * world_size_chunks[0];
 		chunk_draw_info[chunk_index].num_quads= 0;
 
 		// Calculate rounded up number of memory units.

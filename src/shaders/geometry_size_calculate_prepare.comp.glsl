@@ -9,7 +9,7 @@
 
 layout(push_constant) uniform uniforms_block
 {
-	int world_size_chunks[2];
+	ivec2 world_size_chunks;
 };
 
 layout(binding= 0, std430) buffer chunk_draw_info_buffer
@@ -24,7 +24,7 @@ void main()
 	uint chunk_x= gl_GlobalInvocationID.x;
 	uint chunk_y= gl_GlobalInvocationID.y;
 
-	uint chunk_index= chunk_x + chunk_y * uint(world_size_chunks[0]);
+	uint chunk_index= chunk_x + chunk_y * uint(world_size_chunks.x);
 
 	chunk_draw_info[chunk_index].new_num_quads= 0;
 }

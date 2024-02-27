@@ -13,7 +13,7 @@ layout(local_size_x= 4, local_size_y = 4, local_size_z= 8) in;
 
 layout(push_constant) uniform uniforms_block
 {
-	int world_size_chunks[2];
+	ivec2 world_size_chunks;
 	int chunk_position[2];
 };
 
@@ -36,21 +36,21 @@ uint8_t TransformBlock(int block_global_x, int block_global_y, int z)
 	int z_up_clamped= min(z + 1, c_chunk_height - 1);
 	int z_down_clamped= max(z - 1, 0);
 
-	int column_address= GetBlockFullAddress(ivec3(block_global_x, block_global_y, 0));
+	int column_address= GetBlockFullAddress(ivec3(block_global_x, block_global_y, 0), world_size_chunks);
 
 	int adjacent_columns[6]= int[6](
 		// north
-		GetBlockFullAddress(ivec3(block_global_x, min(block_global_y + 1, c_max_global_y), 0)),
+		GetBlockFullAddress(ivec3(block_global_x, min(block_global_y + 1, c_max_global_y), 0), world_size_chunks),
 		// south
-		GetBlockFullAddress(ivec3(block_global_x, max(block_global_y - 1, 0), 0)),
+		GetBlockFullAddress(ivec3(block_global_x, max(block_global_y - 1, 0), 0), world_size_chunks),
 		// north-east
-		GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(side_y_base - 0, c_max_global_y)), 0)),
+		GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(side_y_base - 0, c_max_global_y)), 0), world_size_chunks),
 		// south-east
-		GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(side_y_base - 1, c_max_global_y)), 0)),
+		GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(side_y_base - 1, c_max_global_y)), 0), world_size_chunks),
 		// north-west
-		GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 0, c_max_global_y)), 0)),
+		GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 0, c_max_global_y)), 0), world_size_chunks),
 		// south-west
-		GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 1, c_max_global_y)), 0)) );
+		GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 1, c_max_global_y)), 0), world_size_chunks) );
 
 	uint8_t block_type= chunks_input_data[column_address + z];
 

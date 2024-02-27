@@ -5,23 +5,23 @@ int ChunkBlockAddress(ivec3 coord)
 	return coord.z + (coord.y << c_chunk_height_log2) + (coord.x << (c_chunk_width_log2 + c_chunk_height_log2));
 }
 
-bool IsInWorldBorders(ivec3 pos)
+bool IsInWorldBorders(ivec3 pos, ivec2 world_size_chunks)
 {
 	return
-		pos.x >= 0 && pos.x < c_chunk_width * c_chunk_matrix_size[0] &&
-		pos.y >= 0 && pos.y < c_chunk_width * c_chunk_matrix_size[1] &&
+		pos.x >= 0 && pos.x < c_chunk_width * world_size_chunks.x &&
+		pos.y >= 0 && pos.y < c_chunk_width * world_size_chunks.y &&
 		pos.z >= 0 && pos.z < c_chunk_height;
 }
 
 // Block must be in world borders!
-int GetBlockFullAddress(ivec3 pos)
+int GetBlockFullAddress(ivec3 pos, ivec2 world_size_chunks)
 {
 	int chunk_x= pos.x >> c_chunk_width_log2;
 	int chunk_y= pos.y >> c_chunk_width_log2;
 	int local_x= pos.x & (c_chunk_width - 1);
 	int local_y= pos.y & (c_chunk_width - 1);
 
-	int chunk_index= chunk_x + chunk_y * c_chunk_matrix_size[0];
+	int chunk_index= chunk_x + chunk_y * world_size_chunks.x;
 	int chunk_data_offset= chunk_index * c_chunk_volume;
 
 	return chunk_data_offset + ChunkBlockAddress(ivec3(local_x, local_y, pos.z));

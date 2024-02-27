@@ -47,7 +47,7 @@ layout(binding= 3, std430) buffer chunk_draw_info_buffer
 
 layout(push_constant) uniform uniforms_block
 {
-	int world_size_chunks[2];
+	ivec2 world_size_chunks;
 	int chunk_position[2];
 };
 
@@ -70,7 +70,7 @@ void main()
 	// Generate quads geoemtry.
 	// This code must mutch code in geometry size calculation code!
 
-	int chunk_index= chunk_position[0] + chunk_position[1] * world_size_chunks[0];
+	int chunk_index= chunk_position[0] + chunk_position[1] * world_size_chunks.x;
 
 	const uint quads_offset= chunk_draw_info[chunk_index].first_quad;
 
@@ -84,11 +84,11 @@ void main()
 	int east_y_base= block_global_y + ((block_global_x + 1) & 1);
 
 	// TODO - optimize this. Reuse calculations in the same chunk.
-	int block_address= GetBlockFullAddress(ivec3(block_global_x, block_global_y, z));
-	int block_address_up= GetBlockFullAddress(ivec3(block_global_x, block_global_y, min(z + 1, c_chunk_height - 1)));
-	int block_address_north= GetBlockFullAddress(ivec3(block_global_x, min(block_global_y + 1, c_max_global_y), z));
-	int block_address_north_east= GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(east_y_base - 0, c_max_global_y)), z));
-	int block_address_south_east= GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(east_y_base - 1, c_max_global_y)), z));
+	int block_address= GetBlockFullAddress(ivec3(block_global_x, block_global_y, z), world_size_chunks);
+	int block_address_up= GetBlockFullAddress(ivec3(block_global_x, block_global_y, min(z + 1, c_chunk_height - 1)), world_size_chunks);
+	int block_address_north= GetBlockFullAddress(ivec3(block_global_x, min(block_global_y + 1, c_max_global_y), z), world_size_chunks);
+	int block_address_north_east= GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(east_y_base - 0, c_max_global_y)), z), world_size_chunks);
+	int block_address_south_east= GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(east_y_base - 1, c_max_global_y)), z), world_size_chunks);
 
 	uint8_t block_value= chunks_data[block_address];
 	uint8_t block_value_up= chunks_data[block_address_up];

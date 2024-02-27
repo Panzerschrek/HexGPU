@@ -13,7 +13,7 @@ layout(local_size_x= 4, local_size_y = 4, local_size_z= 8) in;
 
 layout(push_constant) uniform uniforms_block
 {
-	int world_size_chunks[2];
+	ivec2 world_size_chunks;
 	int chunk_position[2];
 };
 
@@ -49,15 +49,15 @@ void main()
 	int west_x_clamped= max(block_global_x - 1, 0);
 
 	// TODO - optimize this. Reuse calculations in the same chunk.
-	int block_address= GetBlockFullAddress(ivec3(block_global_x, block_global_y, z));
-	int block_address_up= GetBlockFullAddress(ivec3(block_global_x, block_global_y, min(z + 1, c_chunk_height - 1)));
-	int block_address_down= GetBlockFullAddress(ivec3(block_global_x, block_global_y, max(z - 1, 0)));
-	int block_address_north= GetBlockFullAddress(ivec3(block_global_x, min(block_global_y + 1, c_max_global_y), z));
-	int block_address_south= GetBlockFullAddress(ivec3(block_global_x, max(block_global_y - 1, 0), z));
-	int block_address_north_east= GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(side_y_base - 0, c_max_global_y)), z));
-	int block_address_south_east= GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(side_y_base - 1, c_max_global_y)), z));
-	int block_address_north_west= GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 0, c_max_global_y)), z));
-	int block_address_south_west= GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 1, c_max_global_y)), z));
+	int block_address= GetBlockFullAddress(ivec3(block_global_x, block_global_y, z), world_size_chunks);
+	int block_address_up= GetBlockFullAddress(ivec3(block_global_x, block_global_y, min(z + 1, c_chunk_height - 1)), world_size_chunks);
+	int block_address_down= GetBlockFullAddress(ivec3(block_global_x, block_global_y, max(z - 1, 0)), world_size_chunks);
+	int block_address_north= GetBlockFullAddress(ivec3(block_global_x, min(block_global_y + 1, c_max_global_y), z), world_size_chunks);
+	int block_address_south= GetBlockFullAddress(ivec3(block_global_x, max(block_global_y - 1, 0), z), world_size_chunks);
+	int block_address_north_east= GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(side_y_base - 0, c_max_global_y)), z), world_size_chunks);
+	int block_address_south_east= GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(side_y_base - 1, c_max_global_y)), z), world_size_chunks);
+	int block_address_north_west= GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 0, c_max_global_y)), z), world_size_chunks);
+	int block_address_south_west= GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 1, c_max_global_y)), z), world_size_chunks);
 
 	uint8_t block_value= chunks_data[block_address];
 	uint8_t optical_density= c_block_optical_density_table[int(block_value)];

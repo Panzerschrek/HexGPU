@@ -58,9 +58,10 @@ struct PlayerUpdateUniforms
 WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 	: vk_device_(window_vulkan.GetVulkanDevice())
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
+	, world_size_{8u, 8u}
 {
 	// Create chunk data buffers.
-	chunk_data_buffer_size_= c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1];
+	chunk_data_buffer_size_= c_chunk_volume * world_size_[0] * world_size_[1];
 	for(uint32_t i= 0; i < 2; ++i)
 	{
 		chunk_data_buffers_[i].buffer=
@@ -90,7 +91,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan)
 	}
 
 	// Create light buffers.
-	light_buffer_size_= c_chunk_volume * c_chunk_matrix_size[0] * c_chunk_matrix_size[1];
+	light_buffer_size_= c_chunk_volume * world_size_[0] * world_size_[1];
 	for(uint32_t i= 0; i < 2; ++i)
 	{
 		light_buffers_[i].buffer=
@@ -635,11 +636,6 @@ uint32_t WorldProcessor::GetChunkDataBufferSize() const
 	return chunk_data_buffer_size_;
 }
 
-vk::Buffer WorldProcessor::GetPlayerStateBuffer() const
-{
-	return player_state_buffer_.get();
-}
-
 vk::Buffer WorldProcessor::GetLightDataBuffer() const
 {
 	// 0 - actual
@@ -649,6 +645,16 @@ vk::Buffer WorldProcessor::GetLightDataBuffer() const
 uint32_t WorldProcessor::GetLightDataBufferSize() const
 {
 	return light_buffer_size_;
+}
+
+vk::Buffer WorldProcessor::GetPlayerStateBuffer() const
+{
+	return player_state_buffer_.get();
+}
+
+WorldSizeChunks WorldProcessor::GetWorldSize() const
+{
+	return world_size_;
 }
 
 void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
@@ -666,8 +672,8 @@ void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
 		1u, &*world_gen_descriptor_set_,
 		0u, nullptr);
 
-	for(uint32_t x= 0; x < c_chunk_matrix_size[0]; ++x)
-	for(uint32_t y= 0; y < c_chunk_matrix_size[1]; ++y)
+	for(uint32_t x= 0; x < world_size_[0]; ++x)
+	for(uint32_t y= 0; y < world_size_[1]; ++y)
 	{
 		ChunkPositionUniforms chunk_position_uniforms;
 		chunk_position_uniforms.chunk_position[0]= int32_t(x);
@@ -749,8 +755,8 @@ void WorldProcessor::UpdateWorldBlocks(const vk::CommandBuffer command_buffer)
 			1u, &*world_blocks_update_descriptor_sets_[i],
 			0u, nullptr);
 
-		for(uint32_t x= 0; x < c_chunk_matrix_size[0]; ++x)
-		for(uint32_t y= 0; y < c_chunk_matrix_size[1]; ++y)
+		for(uint32_t x= 0; x < world_size_[0]; ++x)
+		for(uint32_t y= 0; y < world_size_[1]; ++y)
 		{
 			ChunkPositionUniforms chunk_position_uniforms;
 			chunk_position_uniforms.chunk_position[0]= int32_t(x);
@@ -809,8 +815,8 @@ void WorldProcessor::UpdateLight(const vk::CommandBuffer command_buffer)
 			1u, &*light_update_descriptor_sets_[i],
 			0u, nullptr);
 
-		for(uint32_t x= 0; x < c_chunk_matrix_size[0]; ++x)
-		for(uint32_t y= 0; y < c_chunk_matrix_size[1]; ++y)
+		for(uint32_t x= 0; x < world_size_[0]; ++x)
+		for(uint32_t y= 0; y < world_size_[1]; ++y)
 		{
 			ChunkPositionUniforms chunk_position_uniforms;
 			chunk_position_uniforms.chunk_position[0]= int32_t(x);

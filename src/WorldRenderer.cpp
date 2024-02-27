@@ -50,12 +50,13 @@ using QuadVertices= std::array<WorldVertex, 4>;
 WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan, WorldProcessor& world_processor)
 	: vk_device_(window_vulkan.GetVulkanDevice())
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
+	, world_size_(world_processor.GetWorldSize())
 	, geometry_generator_(window_vulkan, world_processor)
 	, world_textures_manager_(window_vulkan)
 {
 	// Create draw indirect buffer.
 	{
-		const uint32_t num_commands= c_chunk_matrix_size[0] * c_chunk_matrix_size[1];
+		const uint32_t num_commands= world_size_[0] * world_size_[1];
 		const uint32_t buffer_size= uint32_t(sizeof(vk::DrawIndexedIndirectCommand)) * num_commands;
 
 		draw_indirect_buffer_=
@@ -161,7 +162,7 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan, WorldProcessor& world_
 		const vk::DescriptorBufferInfo descriptor_draw_indirect_buffer_info(
 			*draw_indirect_buffer_,
 			0u,
-			uint32_t(sizeof(vk::DrawIndexedIndirectCommand)) * c_chunk_matrix_size[0] * c_chunk_matrix_size[1]);
+			uint32_t(sizeof(vk::DrawIndexedIndirectCommand)) * world_size_[0] * world_size_[1]);
 
 		vk_device_.updateDescriptorSets(
 			{
@@ -469,7 +470,7 @@ void WorldRenderer::Draw(const vk::CommandBuffer command_buffer, const m_Mat4& v
 	command_buffer.drawIndexedIndirect(
 		*draw_indirect_buffer_,
 		0,
-		c_chunk_matrix_size[0] * c_chunk_matrix_size[1],
+		world_size_[0] * world_size_[1],
 		sizeof(vk::DrawIndexedIndirectCommand));
 }
 
@@ -485,7 +486,7 @@ void WorldRenderer::BuildDrawIndirectBuffer(const vk::CommandBuffer command_buff
 		0u, nullptr);
 
 	// Dispatch a thread for each chunk.
-	command_buffer.dispatch(c_chunk_matrix_size[0], c_chunk_matrix_size[1], 1);
+	command_buffer.dispatch(world_size_[0], world_size_[1], 1);
 
 	// Create barrier between update indirect draw buffer and its usage for rendering.
 	// TODO - check this is correct.

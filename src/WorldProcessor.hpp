@@ -6,6 +6,8 @@
 namespace HexGPU
 {
 
+using WorldSizeChunks= std::array<uint32_t, 2>;
+
 class WorldProcessor
 {
 public:
@@ -27,7 +29,9 @@ public:
 
 	vk::Buffer GetPlayerStateBuffer() const;
 
-public:
+	WorldSizeChunks GetWorldSize() const;
+
+public:	
 	// This struct must be identical to the same struct in GLSL code!
 	struct PlayerState
 	{
@@ -57,6 +61,8 @@ private:
 private:
 	const vk::Device vk_device_;
 	const uint32_t queue_family_index_;
+
+	const WorldSizeChunks world_size_;
 
 	// Use double buffering for world update.
 	// On each step data is read from one of them and written into another.

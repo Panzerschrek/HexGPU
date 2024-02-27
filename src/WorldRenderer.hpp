@@ -23,6 +23,8 @@ private:
 	const vk::Device vk_device_;
 	const uint32_t queue_family_index_;
 
+	const WorldSizeChunks world_size_;
+
 	WorldGeometryGenerator geometry_generator_;
 	WorldTexturesManager world_textures_manager_;
 

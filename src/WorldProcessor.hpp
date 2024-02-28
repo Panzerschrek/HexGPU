@@ -31,7 +31,7 @@ public:
 
 	WorldSizeChunks GetWorldSize() const;
 
-public:	
+public:
 	// This struct must be identical to the same struct in GLSL code!
 	struct PlayerState
 	{
@@ -44,6 +44,24 @@ private:
 	{
 		vk::UniqueBuffer buffer;
 		vk::UniqueDeviceMemory memory;
+	};
+
+	// This struct must be identical to the same struct in GLSL code!
+	struct WorldBlockExternalUpdate
+	{
+		uint32_t position[4]{};
+		BlockType old_block_type= BlockType::Air;
+		BlockType new_block_type= BlockType::Air;
+		uint8_t reserved[2];
+	};
+
+	static constexpr uint32_t c_max_world_blocks_external_updates= 64;
+
+	// This struct must be identical to the same struct in GLSL code!
+	struct WorldBlocksExternalUpdateQueue
+	{
+		uint32_t num_updates= 0;
+		WorldBlockExternalUpdate updates[c_max_world_blocks_external_updates];
 	};
 
 private:
@@ -75,6 +93,7 @@ private:
 	uint32_t light_buffer_size_= 0;
 
 	BufferWithMemory player_state_buffer_;
+	BufferWithMemory world_blocks_external_update_queue_buffer_;
 
 	vk::UniqueShaderModule world_gen_shader_;
 	vk::UniqueDescriptorSetLayout world_gen_decriptor_set_layout_;

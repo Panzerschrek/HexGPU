@@ -34,6 +34,15 @@ uint32_t chunk_output_light_buffer= 2;
 
 }
 
+namespace PlayerUpdateShaderBindings
+{
+
+uint32_t chunk_data_buffer= 0;
+uint32_t player_state_buffer= 1;
+uint32_t world_blocks_external_update_queue_buffer= 2;
+
+}
+
 // Size limit of this struct is 128 bytes.
 // 128 bytes is guaranted maximum size of push constants uniform block.
 struct ChunkPositionUniforms
@@ -158,6 +167,44 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 		vk_device_.mapMemory(*player_state_buffer_.memory, 0u, memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_side);
 		std::memset(data_gpu_side, 0, sizeof(PlayerState));
 		vk_device_.unmapMemory(*player_state_buffer_.memory);
+	}
+
+	// Create world blocks external update queue buffer.
+	{
+		world_blocks_external_update_queue_buffer_.buffer=
+			vk_device_.createBufferUnique(
+				vk::BufferCreateInfo(
+					vk::BufferCreateFlags(),
+					sizeof(WorldBlocksExternalUpdateQueue),
+					vk::BufferUsageFlagBits::eStorageBuffer));
+
+		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*world_blocks_external_update_queue_buffer_.buffer);
+
+		const auto memory_properties= window_vulkan.GetMemoryProperties();
+
+		vk::MemoryAllocateInfo memory_allocate_info(buffer_memory_requirements.size);
+		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
+		{
+			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
+				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags() &&
+				// TODO - avoid making host visible.
+				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible) != vk::MemoryPropertyFlags() &&
+				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent) != vk::MemoryPropertyFlags())
+			{
+				memory_allocate_info.memoryTypeIndex= i;
+				break;
+			}
+		}
+
+		world_blocks_external_update_queue_buffer_.memory= vk_device_.allocateMemoryUnique(memory_allocate_info);
+		vk_device_.bindBufferMemory(*world_blocks_external_update_queue_buffer_.buffer, *world_blocks_external_update_queue_buffer_.memory, 0u);
+
+		// Fill the buffer with zeros to prevent later warnings.
+		// TODO - use "command_buffer.fillBuffer"
+		void* data_gpu_side= nullptr;
+		vk_device_.mapMemory(*world_blocks_external_update_queue_buffer_.memory, 0u, memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_side);
+		std::memset(data_gpu_side, 0, sizeof(WorldBlocksExternalUpdateQueue));
+		vk_device_.unmapMemory(*world_blocks_external_update_queue_buffer_.memory);
 	}
 
 	// Create world generation shader.
@@ -463,14 +510,21 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 		const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
 		{
 			{
-				0u,
+				PlayerUpdateShaderBindings::chunk_data_buffer,
 				vk::DescriptorType::eStorageBuffer,
 				1u,
 				vk::ShaderStageFlagBits::eCompute,
 				nullptr,
 			},
 			{
+				PlayerUpdateShaderBindings::player_state_buffer,
+				vk::DescriptorType::eStorageBuffer,
 				1u,
+				vk::ShaderStageFlagBits::eCompute,
+				nullptr,
+			},
+			{
+				PlayerUpdateShaderBindings::world_blocks_external_update_queue_buffer,
 				vk::DescriptorType::eStorageBuffer,
 				1u,
 				vk::ShaderStageFlagBits::eCompute,
@@ -527,11 +581,16 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 			0u,
 			sizeof(PlayerState));
 
+		const vk::DescriptorBufferInfo world_blocks_external_update_queue_buffer_info(
+			world_blocks_external_update_queue_buffer_.buffer.get(),
+			0u,
+			sizeof(WorldBlocksExternalUpdateQueue));
+
 		vk_device_.updateDescriptorSets(
 			{
 				{
 					player_update_descriptor_set_,
-					0u,
+					PlayerUpdateShaderBindings::chunk_data_buffer,
 					0u,
 					1u,
 					vk::DescriptorType::eStorageBuffer,
@@ -541,12 +600,22 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 				},
 				{
 					player_update_descriptor_set_,
-					1u,
+					PlayerUpdateShaderBindings::player_state_buffer,
 					0u,
 					1u,
 					vk::DescriptorType::eStorageBuffer,
 					nullptr,
 					&descriptor_player_state_buffer_info,
+					nullptr
+				},
+				{
+					player_update_descriptor_set_,
+					PlayerUpdateShaderBindings::world_blocks_external_update_queue_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&world_blocks_external_update_queue_buffer_info,
 					nullptr
 				},
 			},

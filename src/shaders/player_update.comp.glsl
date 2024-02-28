@@ -6,6 +6,7 @@
 
 #include "inc/block_type.glsl"
 #include "inc/hex_funcs.glsl"
+#include "inc/world_blocks_external_update_queue.glsl"
 
 layout(binding= 0, std430) buffer chunks_data_buffer
 {
@@ -18,6 +19,11 @@ layout(binding= 1, std430) buffer player_state_buffer
 	// Use vec4 for proper padding
 	ivec4 build_pos; // .w - direction
 	ivec4 destroy_pos;
+};
+
+layout(binding= 2, std430) buffer world_blocks_external_update_queue_buffer
+{
+	WorldBlocksExternalUpdateQueue world_blocks_external_update_queue;
 };
 
 layout(push_constant) uniform uniforms_block

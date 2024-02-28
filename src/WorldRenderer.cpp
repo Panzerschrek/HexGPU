@@ -430,7 +430,7 @@ WorldRenderer::~WorldRenderer()
 void WorldRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
 {
 	world_textures_manager_.PrepareFrame(command_buffer);
-	geometry_generator_.PrepareFrame(command_buffer);
+	geometry_generator_.Update(command_buffer);
 	BuildDrawIndirectBuffer(command_buffer);
 }
 

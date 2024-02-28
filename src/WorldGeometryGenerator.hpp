@@ -34,7 +34,7 @@ public:
 		vk::DescriptorPool global_descriptor_pool);
 	~WorldGeometryGenerator();
 
-	void PrepareFrame(vk::CommandBuffer command_buffer);
+	void Update(vk::CommandBuffer command_buffer);
 
 	vk::Buffer GetVertexBuffer() const;
 
@@ -43,6 +43,7 @@ public:
 
 private:
 	void InitialFillBuffers(vk::CommandBuffer command_buffer);
+	void BuildChunksToUpdateList();
 	void PrepareGeometrySizeCalculation(vk::CommandBuffer command_buffer);
 	void CalculateGeometrySize(vk::CommandBuffer command_buffer);
 	void AllocateMemoryForGeometry(vk::CommandBuffer command_buffer);
@@ -89,6 +90,9 @@ private:
 	vk::UniquePipelineLayout geometry_gen_pipeline_layout_;
 	vk::UniquePipeline geometry_gen_pipeline_;
 	vk::DescriptorSet geometry_gen_descriptor_set_;
+
+	uint32_t frame_counter_= 0;
+	std::vector<std::array<uint32_t, 2>> chunks_to_update_;
 };
 
 } // namespace HexGPU

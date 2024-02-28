@@ -60,10 +60,16 @@ struct GeometrySizeCalculatePrepareUniforms
 	int32_t world_size_chunks[2];
 };
 
+constexpr uint32_t c_max_chunks_to_allocate= 62;
+
 struct GeometryAllocateUniforms
 {
-	int32_t world_size_chunks[2];
+	uint32_t num_chunks_to_allocate= 0;
+	uint16_t chunks_to_allocate_list[c_max_chunks_to_allocate]{};
 };
+
+// This struct should be not bigger than minimum PushUniforms size.
+static_assert(sizeof(GeometryAllocateUniforms) == 128, "Invalid size!");
 
 // This should match the same constant in GLSL code!
 const uint32_t c_allocation_unut_size_quads= 512;
@@ -579,14 +585,17 @@ WorldGeometryGenerator::~WorldGeometryGenerator()
 	vk_device_.waitIdle();
 }
 
-void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer)
+void WorldGeometryGenerator::Update(const vk::CommandBuffer command_buffer)
 {
 	vertex_memory_allocator_.EnsureInitialized(command_buffer);
 	InitialFillBuffers(command_buffer);
+	BuildChunksToUpdateList();
 	PrepareGeometrySizeCalculation(command_buffer);
 	CalculateGeometrySize(command_buffer);
 	AllocateMemoryForGeometry(command_buffer);
 	GenGeometry(command_buffer);
+
+	++frame_counter_;
 }
 
 vk::Buffer WorldGeometryGenerator::GetVertexBuffer() const
@@ -653,6 +662,52 @@ void WorldGeometryGenerator::InitialFillBuffers(const vk::CommandBuffer command_
 	}
 }
 
+void WorldGeometryGenerator::BuildChunksToUpdateList()
+{
+	chunks_to_update_.clear();
+
+	if(frame_counter_ == 0)
+	{
+		// On first frame update all chunks.
+		for(uint32_t y= 0; y < world_size_[1]; ++y)
+		for(uint32_t x= 0; x < world_size_[0]; ++x)
+			chunks_to_update_.push_back({x, y});
+	}
+	else
+	{
+		// Update each frame only 1 / N of all chunks.
+		// TODO - use some fixed period, indipendnent on framerate?
+		const uint32_t update_period= 64;
+		const uint32_t update_period_fast= 4;
+
+		const uint32_t center_x= world_size_[0] / 2;
+		const uint32_t center_y= world_size_[1] / 2;
+		const uint32_t center_radius= 1;
+
+		for(uint32_t y= 0; y < world_size_[1]; ++y)
+		for(uint32_t x= 0; x < world_size_[0]; ++x)
+		{
+			const uint32_t chunk_index= x + y * world_size_[0];
+			const uint32_t chunk_index_frame_shifted= chunk_index + frame_counter_;
+
+			if( x >= center_x - center_radius && x <= center_x + center_radius &&
+				y >= center_y - center_radius && y <= center_y + center_radius)
+			{
+				// Update chunks in the center with more frequently.
+				// Do this because the player should be somewhere in the middle of the world
+				// and we need to show player actions (build/destroy) results faster.
+				if(chunk_index_frame_shifted % update_period_fast == 0)
+					chunks_to_update_.push_back({x, y});
+			}
+			else
+			{
+				if(chunk_index_frame_shifted % update_period == 0)
+					chunks_to_update_.push_back({x, y});
+			}
+		}
+	}
+}
+
 void WorldGeometryGenerator::PrepareGeometrySizeCalculation(const vk::CommandBuffer command_buffer)
 {
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *geometry_size_calculate_prepare_pipeline_);
@@ -710,14 +765,13 @@ void WorldGeometryGenerator::CalculateGeometrySize(const vk::CommandBuffer comma
 
 	// Execute geometry size calculation for all chunks.
 	// TODO - do this no each frame and not for each chunk.
-	for(uint32_t x= 0; x < world_size_[0]; ++x)
-	for(uint32_t y= 0; y < world_size_[1]; ++y)
+	for(const auto& chunk_to_update : chunks_to_update_)
 	{
 		ChunkPositionUniforms chunk_position_uniforms;
 		chunk_position_uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
 		chunk_position_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-		chunk_position_uniforms.chunk_position[0]= int32_t(x);
-		chunk_position_uniforms.chunk_position[1]= int32_t(y);
+		chunk_position_uniforms.chunk_position[0]= int32_t(chunk_to_update[0]);
+		chunk_position_uniforms.chunk_position[1]= int32_t(chunk_to_update[1]);
 
 		command_buffer.pushConstants(
 			*geometry_size_calculate_pipeline_layout_,
@@ -768,18 +822,47 @@ void WorldGeometryGenerator::AllocateMemoryForGeometry(const vk::CommandBuffer c
 		1u, &geometry_allocate_descriptor_set_,
 		0u, nullptr);
 
-	GeometryAllocateUniforms uniforms;
-	uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
-	uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+	// We have limited uniform size for chunks to update list.
+	// So, perform several updates if necessary.
+	for(size_t offset= 0; offset < chunks_to_update_.size(); offset+= c_max_chunks_to_allocate)
+	{
+		GeometryAllocateUniforms uniforms;
+		uniforms.num_chunks_to_allocate= uint32_t(std::min(size_t(c_max_chunks_to_allocate), chunks_to_update_.size() - offset));
+		for(uint32_t i= 0; i < uniforms.num_chunks_to_allocate; ++i)
+		{
+			const auto& chunk_to_update= chunks_to_update_[uint32_t(offset) + i];
+			const uint32_t chunk_index= chunk_to_update[0] + chunk_to_update[1] * world_size_[0];
+			uniforms.chunks_to_allocate_list[i]= uint16_t(chunk_index);
+		}
 
-	command_buffer.pushConstants(
-		*geometry_allocate_pipeline_layout_,
-		vk::ShaderStageFlagBits::eCompute,
-		0,
-		sizeof(GeometryAllocateUniforms), static_cast<const void*>(&uniforms));
+		command_buffer.pushConstants(
+			*geometry_allocate_pipeline_layout_,
+			vk::ShaderStageFlagBits::eCompute,
+			0,
+			sizeof(GeometryAllocateUniforms), static_cast<const void*>(&uniforms));
 
-	// Use single thread for allocation.
-	command_buffer.dispatch(1, 1 , 1);
+		// Use single thread for allocation.
+		command_buffer.dispatch(1, 1 , 1);
+
+		// Create barrier between update allocation buffer and its later usage.
+		// TODO - check this is correct.
+		{
+			const vk::BufferMemoryBarrier barrier(
+				vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+				queue_family_index_, queue_family_index_,
+				vertex_memory_allocator_.GetAllocatorDataBuffer(),
+				0,
+				vertex_memory_allocator_.GetAllocatorDataBufferSize());
+
+			command_buffer.pipelineBarrier(
+				vk::PipelineStageFlagBits::eComputeShader,
+				vk::PipelineStageFlagBits::eComputeShader,
+				vk::DependencyFlags(),
+				0, nullptr,
+				1, &barrier,
+				0, nullptr);
+		}
+	}
 
 	// Create barrier between update chunk draw info buffer and its later usage.
 	// TODO - check this is correct.
@@ -816,14 +899,13 @@ void WorldGeometryGenerator::GenGeometry(const vk::CommandBuffer command_buffer)
 
 	// Execute geometry generation for all chunks.
 	// TODO - do this no each frame and not for each chunk.
-	for(uint32_t x= 0; x < world_size_[0]; ++x)
-	for(uint32_t y= 0; y < world_size_[1]; ++y)
+	for(const auto& chunk_to_update : chunks_to_update_)
 	{
 		ChunkPositionUniforms chunk_position_uniforms;
 		chunk_position_uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
 		chunk_position_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-		chunk_position_uniforms.chunk_position[0]= int32_t(x);
-		chunk_position_uniforms.chunk_position[1]= int32_t(y);
+		chunk_position_uniforms.chunk_position[0]= int32_t(chunk_to_update[0]);
+		chunk_position_uniforms.chunk_position[1]= int32_t(chunk_to_update[1]);
 
 		command_buffer.pushConstants(
 			*geometry_gen_pipeline_layout_,

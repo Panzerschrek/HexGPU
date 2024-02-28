@@ -9,11 +9,6 @@
 #include "inc/player_world_window.glsl"
 #include "inc/world_blocks_external_update_queue.glsl"
 
-layout(binding= 0, std430) buffer chunks_data_buffer
-{
-	uint8_t chunks_data[];
-};
-
 // This struct must be identical to the same struct in C++ code!
 layout(binding= 1, std430) buffer player_state_buffer
 {
@@ -148,12 +143,9 @@ void UpdateBuildPos()
 		if(IsInWorldBorders(grid_pos, world_size_chunks))
 		{
 			ivec3 pos_in_window= grid_pos - player_world_window.offset.xyz;
-			if( pos_in_window.x >= 0 && pos_in_window.x < c_player_world_window_size.x &&
-				pos_in_window.y >= 0 && pos_in_window.y < c_player_world_window_size.y &&
-				pos_in_window.z >= 0 && pos_in_window.z < c_player_world_window_size.z)
+			if(IsPosInsidePlayerWorldWindow(pos_in_window))
 			{
-				int address_in_window= pos_in_window.z + pos_in_window.y * c_player_world_window_size.z + pos_in_window.x * (c_player_world_window_size.z * c_player_world_window_size.y);
-				if(player_world_window.window_data[address_in_window] != c_block_type_air)
+				if(player_world_window.window_data[GetAddressOfBlockInPlayerWorldWindow(pos_in_window)] != c_block_type_air)
 				{
 					// Reached non-air block.
 					// Destroy position is in this block, build position is in previous block.
@@ -191,22 +183,36 @@ void main()
 	// Update build pos if building/destroying was triggered.
 	if(build_triggered != uint8_t(0) && IsInWorldBorders(build_pos.xyz, world_size_chunks))
 	{
-		WorldBlockExternalUpdate update;
-		update.position= ivec4(build_pos.xyz, 0);
-		update.old_block_type= chunks_data[GetBlockFullAddress(build_pos.xyz, world_size_chunks)];
-		update.new_block_type= build_block_type;
-		PushUpdateIntoQueue(update);
+		ivec3 pos_in_window= build_pos.xyz - player_world_window.offset.xyz;
+		if(IsPosInsidePlayerWorldWindow(pos_in_window))
+		{
+			int address_in_window= GetAddressOfBlockInPlayerWorldWindow(pos_in_window);
 
-		UpdateBuildPos();
+			WorldBlockExternalUpdate update;
+			update.position= ivec4(build_pos.xyz, 0);
+			update.old_block_type= player_world_window.window_data[address_in_window];
+			update.new_block_type= build_block_type;
+			PushUpdateIntoQueue(update);
+
+			player_world_window.window_data[address_in_window]= build_block_type;
+			UpdateBuildPos();
+		}
 	}
 	if(destroy_triggered != uint8_t(0) && IsInWorldBorders(destroy_pos.xyz, world_size_chunks))
 	{
-		WorldBlockExternalUpdate update;
-		update.position= ivec4(destroy_pos.xyz, 0);
-		update.old_block_type= chunks_data[GetBlockFullAddress(destroy_pos.xyz, world_size_chunks)];
-		update.new_block_type= c_block_type_air;
-		PushUpdateIntoQueue(update);
+		ivec3 pos_in_window= destroy_pos.xyz - player_world_window.offset.xyz;
+		if(IsPosInsidePlayerWorldWindow(pos_in_window))
+		{
+			int address_in_window= GetAddressOfBlockInPlayerWorldWindow(pos_in_window);
 
-		UpdateBuildPos();
+			WorldBlockExternalUpdate update;
+			update.position= ivec4(destroy_pos.xyz, 0);
+			update.old_block_type= player_world_window.window_data[address_in_window];
+			update.new_block_type= c_block_type_air;
+			PushUpdateIntoQueue(update);
+
+			player_world_window.window_data[address_in_window]= c_block_type_air;
+			UpdateBuildPos();
+		}
 	}
 }

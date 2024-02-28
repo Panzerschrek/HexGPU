@@ -45,7 +45,6 @@ uint32_t player_world_window_buffer= 1;
 namespace PlayerUpdateShaderBindings
 {
 
-uint32_t chunk_data_buffer= 0;
 uint32_t player_state_buffer= 1;
 uint32_t world_blocks_external_update_queue_buffer= 2;
 uint32_t player_world_window_buffer= 3;
@@ -674,13 +673,6 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 		const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
 		{
 			{
-				PlayerUpdateShaderBindings::chunk_data_buffer,
-				vk::DescriptorType::eStorageBuffer,
-				1u,
-				vk::ShaderStageFlagBits::eCompute,
-				nullptr,
-			},
-			{
 				PlayerUpdateShaderBindings::player_state_buffer,
 				vk::DescriptorType::eStorageBuffer,
 				1u,
@@ -742,11 +734,6 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 
 	// Update player update descriptor set.
 	{
-		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
-			chunk_data_buffers_[0].buffer.get(),
-			0u,
-			chunk_data_buffer_size_);
-
 		const vk::DescriptorBufferInfo descriptor_player_state_buffer_info(
 			player_state_buffer_.buffer.get(),
 			0u,
@@ -764,16 +751,6 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 
 		vk_device_.updateDescriptorSets(
 			{
-				{
-					player_update_descriptor_set_,
-					PlayerUpdateShaderBindings::chunk_data_buffer,
-					0u,
-					1u,
-					vk::DescriptorType::eStorageBuffer,
-					nullptr,
-					&descriptor_chunk_data_buffer_info,
-					nullptr
-				},
 				{
 					player_update_descriptor_set_,
 					PlayerUpdateShaderBindings::player_state_buffer,
@@ -1261,24 +1238,6 @@ void WorldProcessor::UpdatePlayer(
 	// Player update is single-threaded.
 	command_buffer.dispatch(1, 1, 1);
 
-	// Create barrier between world changes in player update and world later usage.
-	// TODO - check this is correct.
-	{
-		const vk::BufferMemoryBarrier barrier(
-			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
-			queue_family_index_, queue_family_index_,
-			*chunk_data_buffers_[0].buffer,
-			0,
-			VK_WHOLE_SIZE);
-
-		command_buffer.pipelineBarrier(
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::DependencyFlags(),
-			0, nullptr,
-			1, &barrier,
-			0, nullptr);
-	}
 	// Create barrier between player update and later player state usage.
 	// TODO - check this is correct.
 	{

@@ -43,6 +43,5 @@ void main()
 		block_value= chunks_data[GetBlockFullAddress(global_block_coord, world_size_chunks)];
 	}
 
-	int dst_address= invocation.z + invocation.y * c_player_world_window_size.z + invocation.x * (c_player_world_window_size.z * c_player_world_window_size.y);
-	player_world_window.window_data[dst_address]= block_value;
+	player_world_window.window_data[GetAddressOfBlockInPlayerWorldWindow(invocation)]= block_value;
 }

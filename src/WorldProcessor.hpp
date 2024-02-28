@@ -74,8 +74,7 @@ private:
 	BufferWithMemory light_buffers_[2];
 	uint32_t light_buffer_size_= 0;
 
-	vk::UniqueBuffer player_state_buffer_;
-	vk::UniqueDeviceMemory player_state_buffer_memory_;
+	BufferWithMemory player_state_buffer_;
 
 	vk::UniqueShaderModule world_gen_shader_;
 	vk::UniqueDescriptorSetLayout world_gen_decriptor_set_layout_;

@@ -124,14 +124,14 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 
 	// Create player state buffer.
 	{
-		player_state_buffer_=
+		player_state_buffer_.buffer=
 			vk_device_.createBufferUnique(
 				vk::BufferCreateInfo(
 					vk::BufferCreateFlags(),
 					sizeof(PlayerState),
 					vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferSrc));
 
-		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*player_state_buffer_);
+		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*player_state_buffer_.buffer);
 
 		const auto memory_properties= window_vulkan.GetMemoryProperties();
 
@@ -149,15 +149,15 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 			}
 		}
 
-		player_state_buffer_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);
-		vk_device_.bindBufferMemory(*player_state_buffer_, *player_state_buffer_memory_, 0u);
+		player_state_buffer_.memory= vk_device_.allocateMemoryUnique(memory_allocate_info);
+		vk_device_.bindBufferMemory(*player_state_buffer_.buffer, *player_state_buffer_.memory, 0u);
 
 		// Fill the buffer with zeros to prevent later warnings.
 		// TODO - use "command_buffer.fillBuffer"
 		void* data_gpu_side= nullptr;
-		vk_device_.mapMemory(*player_state_buffer_memory_, 0u, memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_side);
+		vk_device_.mapMemory(*player_state_buffer_.memory, 0u, memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_side);
 		std::memset(data_gpu_side, 0, sizeof(PlayerState));
-		vk_device_.unmapMemory(*player_state_buffer_memory_);
+		vk_device_.unmapMemory(*player_state_buffer_.memory);
 	}
 
 	// Create world generation shader.
@@ -523,7 +523,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 			chunk_data_buffer_size_);
 
 		const vk::DescriptorBufferInfo descriptor_player_state_buffer_info(
-			player_state_buffer_.get(),
+			player_state_buffer_.buffer.get(),
 			0u,
 			sizeof(PlayerState));
 
@@ -597,7 +597,7 @@ uint32_t WorldProcessor::GetLightDataBufferSize() const
 
 vk::Buffer WorldProcessor::GetPlayerStateBuffer() const
 {
-	return player_state_buffer_.get();
+	return player_state_buffer_.buffer.get();
 }
 
 WorldSizeChunks WorldProcessor::GetWorldSize() const
@@ -875,7 +875,7 @@ void WorldProcessor::UpdatePlayer(
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eTransferRead,
 			queue_family_index_, queue_family_index_,
-			*player_state_buffer_,
+			*player_state_buffer_.buffer,
 			0,
 			VK_WHOLE_SIZE);
 

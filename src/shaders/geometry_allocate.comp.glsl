@@ -10,7 +10,8 @@
 
 layout(push_constant) uniform uniforms_block
 {
-	ivec2 world_size_chunks;
+	uint num_chunks_to_allocate;
+	uint16_t chunks_to_allocate_list[62];
 };
 
 layout(binding= 0, std430) buffer chunk_draw_info_buffer
@@ -25,10 +26,9 @@ const uint c_allocation_unut_size_quads= 512;
 void main()
 {
 	// Perform updates for all chunks in single thread.
-	for(int chunk_y= 0; chunk_y < world_size_chunks.y; ++chunk_y)
-	for(int chunk_x= 0; chunk_x < world_size_chunks.x; ++chunk_x)
+	for(uint i= 0; i < num_chunks_to_allocate; ++i)
 	{
-		int chunk_index= chunk_x + chunk_y * world_size_chunks.x;
+		uint chunk_index= uint (chunks_to_allocate_list[i]);
 		chunk_draw_info[chunk_index].num_quads= 0;
 
 		// Calculate rounded up number of memory units.

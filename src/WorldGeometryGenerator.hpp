@@ -91,6 +91,7 @@ private:
 	vk::UniquePipeline geometry_gen_pipeline_;
 	vk::DescriptorSet geometry_gen_descriptor_set_;
 
+	uint32_t frame_counter_= 0;
 	std::vector<std::array<uint32_t, 2>> chunks_to_update_;
 };
 

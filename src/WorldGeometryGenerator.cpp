@@ -593,6 +593,8 @@ void WorldGeometryGenerator::Update(const vk::CommandBuffer command_buffer)
 	CalculateGeometrySize(command_buffer);
 	AllocateMemoryForGeometry(command_buffer);
 	GenGeometry(command_buffer);
+
+	++frame_counter_;
 }
 
 vk::Buffer WorldGeometryGenerator::GetVertexBuffer() const
@@ -663,9 +665,26 @@ void WorldGeometryGenerator::BuildChunksToUpdateList()
 {
 	chunks_to_update_.clear();
 
-	for(uint32_t y= 0; y < world_size_[1]; ++y)
-	for(uint32_t x= 0; x < world_size_[0]; ++x)
-		chunks_to_update_.push_back({x, y});
+	if(frame_counter_ == 0)
+	{
+		// On first frame update all chunks.
+		for(uint32_t y= 0; y < world_size_[1]; ++y)
+		for(uint32_t x= 0; x < world_size_[0]; ++x)
+			chunks_to_update_.push_back({x, y});
+	}
+	else
+	{
+		// Update each frame only 1 / N of all chunks.
+		// TODO - use some fixed period, indipendnent on framerate?
+		const uint32_t update_period= 32;
+		for(uint32_t y= 0; y < world_size_[1]; ++y)
+		for(uint32_t x= 0; x < world_size_[0]; ++x)
+		{
+			const uint32_t chunk_index= x + y * world_size_[0];
+			if((chunk_index + frame_counter_) % update_period == 0)
+				chunks_to_update_.push_back({x, y});
+		}
+	}
 }
 
 void WorldGeometryGenerator::PrepareGeometrySizeCalculation(const vk::CommandBuffer command_buffer)

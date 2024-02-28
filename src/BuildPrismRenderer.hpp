@@ -8,7 +8,10 @@ namespace HexGPU
 class BuildPrismRenderer
 {
 public:
-	BuildPrismRenderer(WindowVulkan& window_vulkan, WorldProcessor& world_processor);
+	BuildPrismRenderer(
+		WindowVulkan& window_vulkan,
+		WorldProcessor& world_processor,
+		vk::DescriptorPool global_descriptor_pool);
 
 	~BuildPrismRenderer();
 
@@ -34,8 +37,7 @@ private:
 	vk::UniquePipelineLayout pipeline_layout_;
 	vk::UniquePipeline pipeline_;
 
-	vk::UniqueDescriptorPool descriptor_pool_;
-	vk::UniqueDescriptorSet descriptor_set_;
+	vk::DescriptorSet descriptor_set_;
 };
 
 } // namespace HexGPU

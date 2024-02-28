@@ -9,7 +9,10 @@ namespace HexGPU
 class WorldRenderer
 {
 public:
-	WorldRenderer(WindowVulkan& window_vulkan, WorldProcessor& world_processor);
+	WorldRenderer(
+		WindowVulkan& window_vulkan,
+		WorldProcessor& world_processor,
+		vk::DescriptorPool global_descriptor_pool);
 
 	~WorldRenderer();
 
@@ -35,8 +38,7 @@ private:
 	vk::UniqueDescriptorSetLayout draw_indirect_buffer_build_decriptor_set_layout_;
 	vk::UniquePipelineLayout draw_indirect_buffer_build_pipeline_layout_;
 	vk::UniquePipeline draw_indirect_buffer_build_pipeline_;
-	vk::UniqueDescriptorPool draw_indirect_buffer_build_descriptor_pool_;
-	vk::UniqueDescriptorSet draw_indirect_buffer_build_descriptor_set_;
+	vk::DescriptorSet draw_indirect_buffer_build_descriptor_set_;
 
 	vk::UniqueShaderModule shader_vert_;
 	vk::UniqueShaderModule shader_frag_;
@@ -44,8 +46,7 @@ private:
 	vk::UniqueDescriptorSetLayout decriptor_set_layout_;
 	vk::UniquePipelineLayout pipeline_layout_;
 	vk::UniquePipeline pipeline_;
-	vk::UniqueDescriptorPool descriptor_pool_;
-	vk::UniqueDescriptorSet descriptor_set_;
+	vk::DescriptorSet descriptor_set_;
 
 	vk::UniqueBuffer index_buffer_;
 	vk::UniqueDeviceMemory index_buffer_memory_;

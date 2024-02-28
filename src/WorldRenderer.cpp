@@ -52,11 +52,14 @@ using QuadVertices= std::array<WorldVertex, 4>;
 
 } // namespace
 
-WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan, WorldProcessor& world_processor)
+WorldRenderer::WorldRenderer(
+	WindowVulkan& window_vulkan,
+	WorldProcessor& world_processor,
+	const vk::DescriptorPool global_descriptor_pool)
 	: vk_device_(window_vulkan.GetVulkanDevice())
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, world_size_(world_processor.GetWorldSize())
-	, geometry_generator_(window_vulkan, world_processor)
+	, geometry_generator_(window_vulkan, world_processor, global_descriptor_pool)
 	, world_textures_manager_(window_vulkan)
 {
 	// Create draw indirect buffer.
@@ -144,25 +147,11 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan, WorldProcessor& world_
 				"main"),
 			*draw_indirect_buffer_build_pipeline_layout_)));
 
-	// Create descriptor set pool.
-	{
-		const vk::DescriptorPoolSize descriptor_pool_size(vk::DescriptorType::eStorageBuffer, 2u /*num descriptors*/);
-		draw_indirect_buffer_build_descriptor_pool_=
-			vk_device_.createDescriptorPoolUnique(
-				vk::DescriptorPoolCreateInfo(
-					vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-					1u, // max sets.
-					1u, &descriptor_pool_size));
-	}
-
 	// Create descriptor set.
-	draw_indirect_buffer_build_descriptor_set_=
-		std::move(
-			vk_device_.allocateDescriptorSetsUnique(
-				vk::DescriptorSetAllocateInfo(
-					*draw_indirect_buffer_build_descriptor_pool_,
-					1u, &*draw_indirect_buffer_build_decriptor_set_layout_)).front());
-
+	draw_indirect_buffer_build_descriptor_set_= vk_device_.allocateDescriptorSets(
+		vk::DescriptorSetAllocateInfo(
+			global_descriptor_pool,
+			1u, &*draw_indirect_buffer_build_decriptor_set_layout_)).front();
 
 	// Update descriptor set.
 	{
@@ -179,7 +168,7 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan, WorldProcessor& world_
 		vk_device_.updateDescriptorSets(
 			{
 				{
-					*draw_indirect_buffer_build_descriptor_set_,
+					draw_indirect_buffer_build_descriptor_set_,
 					DrawIndirectBufferBuildShaderBindings::chunk_draw_info_buffer,
 					0u,
 					1u,
@@ -189,7 +178,7 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan, WorldProcessor& world_
 					nullptr
 				},
 				{
-					*draw_indirect_buffer_build_descriptor_set_,
+					draw_indirect_buffer_build_descriptor_set_,
 					DrawIndirectBufferBuildShaderBindings::draw_indirect_buffer,
 					0u,
 					1u,
@@ -402,22 +391,11 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan, WorldProcessor& world_
 		vk_device_.unmapMemory(*index_buffer_memory_);
 	}
 
-	// Create descriptor set pool.
-	const vk::DescriptorPoolSize descriptor_pool_size(vk::DescriptorType::eCombinedImageSampler, 1u);
-	descriptor_pool_=
-		vk_device_.createDescriptorPoolUnique(
-			vk::DescriptorPoolCreateInfo(
-				vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-				1u, // max sets.
-				1u, &descriptor_pool_size));
-
 	// Create descriptor set.
-	descriptor_set_=
-		std::move(
-		vk_device_.allocateDescriptorSetsUnique(
-			vk::DescriptorSetAllocateInfo(
-				*descriptor_pool_,
-				1u, &*decriptor_set_layout_)).front());
+	descriptor_set_= vk_device_.allocateDescriptorSets(
+		vk::DescriptorSetAllocateInfo(
+			global_descriptor_pool,
+			1u, &*decriptor_set_layout_)).front();
 
 	// Update descriptor set.
 	{
@@ -429,7 +407,7 @@ WorldRenderer::WorldRenderer(WindowVulkan& window_vulkan, WorldProcessor& world_
 		vk_device_.updateDescriptorSets(
 			{
 				{
-					*descriptor_set_,
+					descriptor_set_,
 					1u,
 					0u,
 					1u,
@@ -467,7 +445,7 @@ void WorldRenderer::Draw(const vk::CommandBuffer command_buffer, const m_Mat4& v
 		vk::PipelineBindPoint::eGraphics,
 		*pipeline_layout_,
 		0u,
-		1u, &*descriptor_set_,
+		1u, &descriptor_set_,
 		0u, nullptr);
 
 	const m_Vec3 scale_vec(0.5f / std::sqrt(3.0f), 0.5f, 1.0f );
@@ -494,7 +472,7 @@ void WorldRenderer::BuildDrawIndirectBuffer(const vk::CommandBuffer command_buff
 		vk::PipelineBindPoint::eCompute,
 		*draw_indirect_buffer_build_pipeline_layout_,
 		0u,
-		1u, &*draw_indirect_buffer_build_descriptor_set_,
+		1u, &draw_indirect_buffer_build_descriptor_set_,
 		0u, nullptr);
 
 	DrawIndirectBufferBuildUniforms uniforms;

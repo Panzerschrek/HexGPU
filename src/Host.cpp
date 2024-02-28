@@ -1,5 +1,6 @@
 #include "Host.hpp"
 #include "Assert.hpp"
+#include "GlobalDescriptorPool.hpp"
 #include "Log.hpp"
 #include <thread>
 
@@ -20,9 +21,10 @@ float CalculateAspect(const vk::Extent2D& viewport_size)
 Host::Host()
 	: system_window_()
 	, window_vulkan_(system_window_)
-	, world_processor_(window_vulkan_)
-	, world_renderer_(window_vulkan_, world_processor_)
-	, build_prism_renderer_(window_vulkan_, world_processor_)
+	, global_descriptor_pool_(CreateGlobalDescriptorPool(window_vulkan_.GetVulkanDevice()))
+	, world_processor_(window_vulkan_, *global_descriptor_pool_)
+	, world_renderer_(window_vulkan_, world_processor_, *global_descriptor_pool_)
+	, build_prism_renderer_(window_vulkan_, world_processor_, *global_descriptor_pool_)
 	, camera_controller_(CalculateAspect(window_vulkan_.GetViewportSize()))
 	, init_time_(Clock::now())
 	, prev_tick_time_(init_time_)

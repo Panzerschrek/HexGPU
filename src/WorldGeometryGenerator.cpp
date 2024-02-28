@@ -68,6 +68,7 @@ struct GeometryAllocateUniforms
 	uint16_t chunks_to_allocate_list[c_max_chunks_to_allocate]{};
 };
 
+// This struct should be not bigger than minimum PushUniforms size.
 static_assert(sizeof(GeometryAllocateUniforms) == 128, "Invalid size!");
 
 // This should match the same constant in GLSL code!
@@ -692,9 +693,9 @@ void WorldGeometryGenerator::BuildChunksToUpdateList()
 			if( x >= center_x - center_radius && x <= center_x + center_radius &&
 				y >= center_y - center_radius && y <= center_y + center_radius)
 			{
-				// Update chunks in the center with greater frequency.
+				// Update chunks in the center with more frequently.
 				// Do this because the player should be somewhere in the middle of the world
-				// and we need to perform updates more frequently to show player actions (build/destroy) results faster.
+				// and we need to show player actions (build/destroy) results faster.
 				if(chunk_index_frame_shifted % update_period_fast == 0)
 					chunks_to_update_.push_back({x, y});
 			}
@@ -830,7 +831,8 @@ void WorldGeometryGenerator::AllocateMemoryForGeometry(const vk::CommandBuffer c
 		for(uint32_t i= 0; i < uniforms.num_chunks_to_allocate; ++i)
 		{
 			const auto& chunk_to_update= chunks_to_update_[uint32_t(offset) + i];
-			uniforms.chunks_to_allocate_list[i]= uint16_t(chunk_to_update[0] + chunk_to_update[1] * world_size_[0]);
+			const uint32_t chunk_index= chunk_to_update[0] + chunk_to_update[1] * world_size_[0];
+			uniforms.chunks_to_allocate_list[i]= uint16_t(chunk_index);
 		}
 
 		command_buffer.pushConstants(

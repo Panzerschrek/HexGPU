@@ -28,7 +28,7 @@ void main()
 	// Perform updates for all chunks in single thread.
 	for(uint i= 0; i < num_chunks_to_allocate; ++i)
 	{
-		uint chunk_index= uint (chunks_to_allocate_list[i]);
+		uint chunk_index= uint(chunks_to_allocate_list[i]);
 		chunk_draw_info[chunk_index].num_quads= 0;
 
 		// Calculate rounded up number of memory units.

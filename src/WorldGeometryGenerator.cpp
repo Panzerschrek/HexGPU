@@ -676,13 +676,33 @@ void WorldGeometryGenerator::BuildChunksToUpdateList()
 	{
 		// Update each frame only 1 / N of all chunks.
 		// TODO - use some fixed period, indipendnent on framerate?
-		const uint32_t update_period= 32;
+		const uint32_t update_period= 64;
+		const uint32_t update_period_fast= 4;
+
+		const uint32_t center_x= world_size_[0] / 2;
+		const uint32_t center_y= world_size_[1] / 2;
+		const uint32_t center_radius= 1;
+
 		for(uint32_t y= 0; y < world_size_[1]; ++y)
 		for(uint32_t x= 0; x < world_size_[0]; ++x)
 		{
 			const uint32_t chunk_index= x + y * world_size_[0];
-			if((chunk_index + frame_counter_) % update_period == 0)
-				chunks_to_update_.push_back({x, y});
+			const uint32_t chunk_index_frame_shifted= chunk_index + frame_counter_;
+
+			if( x >= center_x - center_radius && x <= center_x + center_radius &&
+				y >= center_y - center_radius && y <= center_y + center_radius)
+			{
+				// Update chunks in the center with greater frequency.
+				// Do this because the player should be somewhere in the middle of the world
+				// and we need to perform updates more frequently to show player actions (build/destroy) results faster.
+				if(chunk_index_frame_shifted % update_period_fast == 0)
+					chunks_to_update_.push_back({x, y});
+			}
+			else
+			{
+				if(chunk_index_frame_shifted % update_period == 0)
+					chunks_to_update_.push_back({x, y});
+			}
 		}
 	}
 }

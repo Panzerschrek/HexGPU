@@ -6,8 +6,6 @@ The order represents importance and/or dependency.
 * Textures without cross-block repetition (with zeroing at each block)
 * Flowing water
 * Fixed world update speed (like 15 ticks/secodns)
-* Sparse light recalculation - not on each world update
-* Sparse chunk mesh recalculation - not on each world update
 * Improved textures loading - use smaller staging buffer and free it at the end of the loading process
 * Biome-based world generation
 * Trees generation
@@ -31,3 +29,4 @@ The order represents importance and/or dependency.
 * Rain/snow
 * Time of day change
 * GUI
+* Sparse chunk geometry update improvements - update area around player frequently, use direction of view, etc.

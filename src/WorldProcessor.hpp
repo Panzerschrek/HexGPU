@@ -46,10 +46,11 @@ private:
 		vk::UniqueDeviceMemory memory;
 	};
 
+	// These constants must be the same in GLSL code!
 	static constexpr uint32_t c_player_world_window_size[3]{16, 16, 16};
 	static constexpr uint32_t c_player_world_window_volume= c_player_world_window_size[0] * c_player_world_window_size[1] * c_player_world_window_size[2];
 
-	// This struct must be identical to the same struct in CGLSL code!
+	// This struct must be identical to the same struct in GLSL code!
 	struct PlayerWorldWindow
 	{
 		int32_t offset[4]{}; // Position of the window start (in blocks)

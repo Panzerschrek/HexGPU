@@ -1,3 +1,4 @@
+// These constants must be the same in GLSL code!
 const ivec3 c_player_world_window_size= ivec3(16, 16, 16);
 const int c_player_world_window_volume= c_player_world_window_size.x * c_player_world_window_size.y * c_player_world_window_size.z;
 

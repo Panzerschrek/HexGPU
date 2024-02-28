@@ -579,7 +579,7 @@ WorldGeometryGenerator::~WorldGeometryGenerator()
 	vk_device_.waitIdle();
 }
 
-void WorldGeometryGenerator::PrepareFrame(const vk::CommandBuffer command_buffer)
+void WorldGeometryGenerator::Update(const vk::CommandBuffer command_buffer)
 {
 	vertex_memory_allocator_.EnsureInitialized(command_buffer);
 	InitialFillBuffers(command_buffer);

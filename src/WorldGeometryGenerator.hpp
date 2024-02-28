@@ -34,7 +34,7 @@ public:
 		vk::DescriptorPool global_descriptor_pool);
 	~WorldGeometryGenerator();
 
-	void PrepareFrame(vk::CommandBuffer command_buffer);
+	void Update(vk::CommandBuffer command_buffer);
 
 	vk::Buffer GetVertexBuffer() const;
 

@@ -27,6 +27,11 @@ layout(binding= 2, std430) buffer world_blocks_external_update_queue_buffer
 	WorldBlocksExternalUpdateQueue world_blocks_external_update_queue;
 };
 
+layout(binding= 3, std430) buffer player_world_window_buffer
+{
+	PlayerWorldWindow player_world_window;
+};
+
 layout(push_constant) uniform uniforms_block
 {
 	// Use vec4 for proper padding
@@ -140,15 +145,24 @@ void UpdateBuildPos()
 		if(grid_pos == last_grid_pos)
 			continue; // Located in the same grid cell.
 
-		if(IsInWorldBorders(grid_pos, world_size_chunks) &&
-			chunks_data[GetBlockFullAddress(grid_pos, world_size_chunks)] != c_block_type_air)
+		if(IsInWorldBorders(grid_pos, world_size_chunks))
 		{
-			// Reached non-air block.
-			// Destroy position is in this block, build position is in previous block.
-			destroy_pos.xyz= grid_pos;
-			build_pos.xyz= last_grid_pos;
-			build_pos.w= int(GetBuildDirection(last_grid_pos, grid_pos));
-			return;
+			ivec3 pos_in_window= grid_pos - player_world_window.offset.xyz;
+			if( pos_in_window.x >= 0 && pos_in_window.x < c_player_world_window_size.x &&
+				pos_in_window.y >= 0 && pos_in_window.y < c_player_world_window_size.y &&
+				pos_in_window.z >= 0 && pos_in_window.z < c_player_world_window_size.z)
+			{
+				int address_in_window= pos_in_window.z + pos_in_window.y * c_player_world_window_size.z + pos_in_window.x * (c_player_world_window_size.z * c_player_world_window_size.y);
+				if(player_world_window.window_data[address_in_window] != c_block_type_air)
+				{
+					// Reached non-air block.
+					// Destroy position is in this block, build position is in previous block.
+					destroy_pos.xyz= grid_pos;
+					build_pos.xyz= last_grid_pos;
+					build_pos.w= int(GetBuildDirection(last_grid_pos, grid_pos));
+					return;
+				}
+			}
 		}
 
 		last_grid_pos= grid_pos;

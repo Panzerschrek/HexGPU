@@ -48,6 +48,7 @@ namespace PlayerUpdateShaderBindings
 uint32_t chunk_data_buffer= 0;
 uint32_t player_state_buffer= 1;
 uint32_t world_blocks_external_update_queue_buffer= 2;
+uint32_t player_world_window_buffer= 3;
 
 }
 
@@ -638,7 +639,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 		const vk::DescriptorBufferInfo player_world_window_buffer_info(
 			player_world_window_buffer_.buffer.get(),
 			0u,
-			sizeof(PlayerState));
+			sizeof(PlayerWorldWindow));
 
 		vk_device_.updateDescriptorSets(
 			{
@@ -689,6 +690,13 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 			},
 			{
 				PlayerUpdateShaderBindings::world_blocks_external_update_queue_buffer,
+				vk::DescriptorType::eStorageBuffer,
+				1u,
+				vk::ShaderStageFlagBits::eCompute,
+				nullptr,
+			},
+			{
+				PlayerUpdateShaderBindings::player_world_window_buffer,
 				vk::DescriptorType::eStorageBuffer,
 				1u,
 				vk::ShaderStageFlagBits::eCompute,
@@ -750,6 +758,11 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 			0u,
 			sizeof(WorldBlocksExternalUpdateQueue));
 
+		const vk::DescriptorBufferInfo player_world_window_buffer_info(
+			player_world_window_buffer_.buffer.get(),
+			0u,
+			sizeof(PlayerWorldWindow));
+
 		vk_device_.updateDescriptorSets(
 			{
 				{
@@ -780,6 +793,16 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 					vk::DescriptorType::eStorageBuffer,
 					nullptr,
 					&world_blocks_external_update_queue_buffer_info,
+					nullptr
+				},
+				{
+					player_update_descriptor_set_,
+					PlayerUpdateShaderBindings::player_world_window_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&player_world_window_buffer_info,
 					nullptr
 				},
 			},
@@ -1162,7 +1185,7 @@ void WorldProcessor::BuildPlayerWorldWindow(const vk::CommandBuffer command_buff
 	PlayerWorldWindowBuildUniforms uniforms;
 	uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
 	uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-	uniforms.player_world_window_offset[0]= (int32_t(player_pos.x) - int32_t(c_player_world_window_size[0] / 2u)) & 0xFFFFFFFE;
+	uniforms.player_world_window_offset[0]= (int32_t(player_pos.x * c_space_scale_x) - int32_t(c_player_world_window_size[0] / 2u)) & 0xFFFFFFFE;
 	uniforms.player_world_window_offset[1]= (int32_t(player_pos.y) - int32_t(c_player_world_window_size[1] / 2u)) & 0xFFFFFFFE;
 	uniforms.player_world_window_offset[2]= int32_t(player_pos.z) - int32_t(c_player_world_window_size[2] / 2u);
 	uniforms.player_world_window_offset[3]= 0;
@@ -1282,6 +1305,24 @@ void WorldProcessor::UpdatePlayer(
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
 			*world_blocks_external_update_queue_buffer_.buffer,
+			0,
+			VK_WHOLE_SIZE);
+
+		command_buffer.pipelineBarrier(
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::DependencyFlags(),
+			0, nullptr,
+			1, &barrier,
+			0, nullptr);
+	}
+	// Create barrier between player world window buffer update and its later usage.
+	// TODO - check this is correct.
+	{
+		const vk::BufferMemoryBarrier barrier(
+			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			*player_world_window_buffer_.buffer,
 			0,
 			VK_WHOLE_SIZE);
 

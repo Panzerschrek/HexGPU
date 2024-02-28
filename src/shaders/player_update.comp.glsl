@@ -160,8 +160,12 @@ void UpdateBuildPos()
 
 void PushUpdateIntoQueue(WorldBlockExternalUpdate update)
 {
-	world_blocks_external_update_queue.updates[world_blocks_external_update_queue.num_updates]= update;
-	++world_blocks_external_update_queue.num_updates;
+	// Use atomic in case someone else pushes updates into this queue.
+	uint index= atomicAdd(world_blocks_external_update_queue.num_updates, 1);
+	if(index < c_max_world_blocks_external_updates)
+	{
+		world_blocks_external_update_queue.updates[index]= update;
+	}
 }
 
 void main()

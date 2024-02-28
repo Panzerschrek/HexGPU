@@ -6,6 +6,7 @@
 
 #include "inc/block_type.glsl"
 #include "inc/hex_funcs.glsl"
+#include "inc/player_world_window.glsl"
 #include "inc/world_blocks_external_update_queue.glsl"
 
 layout(binding= 0, std430) buffer chunks_data_buffer

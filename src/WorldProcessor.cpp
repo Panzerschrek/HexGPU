@@ -34,6 +34,14 @@ uint32_t chunk_output_light_buffer= 2;
 
 }
 
+namespace PlayerWorldWindowBuildShaderBindings
+{
+
+uint32_t chunk_data_buffer= 0;
+uint32_t player_world_window_buffer= 1;
+
+}
+
 namespace PlayerUpdateShaderBindings
 {
 
@@ -57,6 +65,12 @@ struct ChunkPositionUniforms
 {
 	int32_t world_size_chunks[2];
 	int32_t chunk_position[2];
+};
+
+struct PlayerWorldWindowBuildUniforms
+{
+	int32_t world_size_chunks[2]{};
+	int32_t player_world_window_offset[4]{};
 };
 
 struct PlayerUpdateUniforms
@@ -218,6 +232,44 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 		vk_device_.mapMemory(*world_blocks_external_update_queue_buffer_.memory, 0u, memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_side);
 		std::memset(data_gpu_side, 0, sizeof(WorldBlocksExternalUpdateQueue));
 		vk_device_.unmapMemory(*world_blocks_external_update_queue_buffer_.memory);
+	}
+
+	// Create player world window buffer.
+	{
+		player_world_window_buffer_.buffer=
+			vk_device_.createBufferUnique(
+				vk::BufferCreateInfo(
+					vk::BufferCreateFlags(),
+					sizeof(PlayerWorldWindow),
+					vk::BufferUsageFlagBits::eStorageBuffer));
+
+		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*player_world_window_buffer_.buffer);
+
+		const auto memory_properties= window_vulkan.GetMemoryProperties();
+
+		vk::MemoryAllocateInfo memory_allocate_info(buffer_memory_requirements.size);
+		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
+		{
+			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
+				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags() &&
+				// TODO - avoid making host visible.
+				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible) != vk::MemoryPropertyFlags() &&
+				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent) != vk::MemoryPropertyFlags())
+			{
+				memory_allocate_info.memoryTypeIndex= i;
+				break;
+			}
+		}
+
+		player_world_window_buffer_.memory= vk_device_.allocateMemoryUnique(memory_allocate_info);
+		vk_device_.bindBufferMemory(*player_world_window_buffer_.buffer, *player_world_window_buffer_.memory, 0u);
+
+		// Fill the buffer with zeros to prevent later warnings.
+		// TODO - use "command_buffer.fillBuffer"
+		void* data_gpu_side= nullptr;
+		vk_device_.mapMemory(*player_world_window_buffer_.memory, 0u, memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_side);
+		std::memset(data_gpu_side, 0, sizeof(PlayerWorldWindow));
+		vk_device_.unmapMemory(*player_world_window_buffer_.memory);
 	}
 
 	// Create world generation shader.
@@ -515,6 +567,105 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 			{});
 	}
 
+	// Create player world window build shader.
+	player_world_window_build_shader_= CreateShader(vk_device_, ShaderNames::player_world_window_build_comp);
+
+	// Create player world window build descriptor set layout.
+	{
+		const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
+		{
+			{
+				PlayerWorldWindowBuildShaderBindings::chunk_data_buffer,
+				vk::DescriptorType::eStorageBuffer,
+				1u,
+				vk::ShaderStageFlagBits::eCompute,
+				nullptr,
+			},
+			{
+				PlayerWorldWindowBuildShaderBindings::player_world_window_buffer,
+				vk::DescriptorType::eStorageBuffer,
+				1u,
+				vk::ShaderStageFlagBits::eCompute,
+				nullptr,
+			},
+		};
+		player_world_window_build_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
+			vk::DescriptorSetLayoutCreateInfo(
+				vk::DescriptorSetLayoutCreateFlags(),
+				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
+	}
+
+	// Create player world window build pipeline layout.
+	{
+		const vk::PushConstantRange push_constant_range(
+			vk::ShaderStageFlagBits::eCompute,
+			0u,
+			sizeof(PlayerWorldWindowBuildUniforms));
+
+		player_world_window_build_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
+			vk::PipelineLayoutCreateInfo(
+				vk::PipelineLayoutCreateFlags(),
+				1u, &*player_world_window_build_decriptor_set_layout_,
+				1u, &push_constant_range));
+	}
+
+	// Create player world window build pipeline.
+	player_world_window_build_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
+		nullptr,
+		vk::ComputePipelineCreateInfo(
+			vk::PipelineCreateFlags(),
+			vk::PipelineShaderStageCreateInfo(
+				vk::PipelineShaderStageCreateFlags(),
+				vk::ShaderStageFlagBits::eCompute,
+				*player_world_window_build_shader_,
+				"main"),
+			*player_world_window_build_pipeline_layout_)));
+
+
+	// Create player world window build descriptor set.
+	player_world_window_build_descriptor_set_= vk_device_.allocateDescriptorSets(
+		vk::DescriptorSetAllocateInfo(
+			global_descriptor_pool,
+			1u, &*player_world_window_build_decriptor_set_layout_)).front();
+
+	// Update player world window build descriptor set.
+	{
+		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
+			chunk_data_buffers_[0].buffer.get(),
+			0u,
+			chunk_data_buffer_size_);
+
+		const vk::DescriptorBufferInfo player_world_window_buffer_info(
+			player_world_window_buffer_.buffer.get(),
+			0u,
+			sizeof(PlayerState));
+
+		vk_device_.updateDescriptorSets(
+			{
+				{
+					player_world_window_build_descriptor_set_,
+					PlayerWorldWindowBuildShaderBindings::chunk_data_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_chunk_data_buffer_info,
+					nullptr
+				},
+				{
+					player_world_window_build_descriptor_set_,
+					PlayerWorldWindowBuildShaderBindings::player_world_window_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&player_world_window_buffer_info,
+					nullptr
+				},
+			},
+			{});
+	}
+
 	// Create player update shader.
 	player_update_shader_= CreateShader(vk_device_, ShaderNames::player_update_comp);
 
@@ -751,6 +902,7 @@ void WorldProcessor::Update(
 	GenerateWorld(command_buffer);
 	UpdateWorldBlocks(command_buffer);
 	UpdateLight(command_buffer);
+	BuildPlayerWorldWindow(command_buffer, player_pos);
 	UpdatePlayer(command_buffer, player_pos, player_dir, build_block_type, build_triggered, destroy_triggered);
 	FlushWorldBlocksExternalUpdateQueue(command_buffer);
 }
@@ -993,6 +1145,62 @@ void WorldProcessor::UpdateLight(const vk::CommandBuffer command_buffer)
 				1, &barrier,
 				0, nullptr);
 		}
+	}
+}
+
+void WorldProcessor::BuildPlayerWorldWindow(const vk::CommandBuffer command_buffer, const m_Vec3& player_pos)
+{
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *player_world_window_build_pipeline_);
+
+	command_buffer.bindDescriptorSets(
+		vk::PipelineBindPoint::eCompute,
+		*player_world_window_build_pipeline_layout_,
+		0u,
+		1u, &player_world_window_build_descriptor_set_,
+		0u, nullptr);
+
+	PlayerWorldWindowBuildUniforms uniforms;
+	uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+	uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+	uniforms.player_world_window_offset[0]= (int32_t(player_pos.x) - int32_t(c_player_world_window_size[0] / 2u)) & 0xFFFFFFFE;
+	uniforms.player_world_window_offset[1]= (int32_t(player_pos.y) - int32_t(c_player_world_window_size[1] / 2u)) & 0xFFFFFFFE;
+	uniforms.player_world_window_offset[2]= int32_t(player_pos.z) - int32_t(c_player_world_window_size[2] / 2u);
+	uniforms.player_world_window_offset[3]= 0;
+
+	command_buffer.pushConstants(
+		*player_world_window_build_pipeline_layout_,
+		vk::ShaderStageFlagBits::eCompute,
+		0,
+		sizeof(PlayerWorldWindowBuildUniforms), static_cast<const void*>(&uniforms));
+
+	// This constant should match workgroup size in shader!
+	constexpr uint32_t c_workgroup_size[]{4, 4, 8};
+	static_assert(c_player_world_window_size[0] % c_workgroup_size[0] == 0, "Wrong workgroup size!");
+	static_assert(c_player_world_window_size[1] % c_workgroup_size[1] == 0, "Wrong workgroup size!");
+	static_assert(c_player_world_window_size[2] % c_workgroup_size[2] == 0, "Wrong workgroup size!");
+
+	command_buffer.dispatch(
+		c_player_world_window_size[0] / c_workgroup_size[0],
+		c_player_world_window_size[1] / c_workgroup_size[1],
+		c_player_world_window_size[2] / c_workgroup_size[2]);
+
+	// Create barrier between player world window buffer building and its later usage.
+	// TODO - check this is correct.
+	{
+		const vk::BufferMemoryBarrier barrier(
+			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			*player_world_window_buffer_.buffer,
+			0,
+			VK_WHOLE_SIZE);
+
+		command_buffer.pipelineBarrier(
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::DependencyFlags(),
+			0, nullptr,
+			1, &barrier,
+			0, nullptr);
 	}
 }
 

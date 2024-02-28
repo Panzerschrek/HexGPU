@@ -46,6 +46,16 @@ private:
 		vk::UniqueDeviceMemory memory;
 	};
 
+	static constexpr uint32_t c_player_world_window_size[3]{16, 16, 16};
+	static constexpr uint32_t c_player_world_window_volume= c_player_world_window_size[0] * c_player_world_window_size[1] * c_player_world_window_size[2];
+
+	// This struct must be identical to the same struct in CGLSL code!
+	struct PlayerWorldWindow
+	{
+		int32_t offset[4]{}; // Position of the window start (in blocks)
+		uint8_t window_data[c_player_world_window_volume];
+	};
+
 	// This struct must be identical to the same struct in GLSL code!
 	struct WorldBlockExternalUpdate
 	{
@@ -68,6 +78,7 @@ private:
 	void GenerateWorld(vk::CommandBuffer command_buffer);
 	void UpdateWorldBlocks(vk::CommandBuffer command_buffer);
 	void UpdateLight(vk::CommandBuffer command_buffer);
+	void BuildPlayerWorldWindow(vk::CommandBuffer command_buffer, const m_Vec3& player_pos);
 	void UpdatePlayer(
 		vk::CommandBuffer command_buffer,
 		const m_Vec3& player_pos,
@@ -95,6 +106,7 @@ private:
 
 	BufferWithMemory player_state_buffer_;
 	BufferWithMemory world_blocks_external_update_queue_buffer_;
+	BufferWithMemory player_world_window_buffer_;
 
 	vk::UniqueShaderModule world_gen_shader_;
 	vk::UniqueDescriptorSetLayout world_gen_decriptor_set_layout_;
@@ -113,6 +125,12 @@ private:
 	vk::UniquePipelineLayout light_update_pipeline_layout_;
 	vk::UniquePipeline light_update_pipeline_;
 	vk::DescriptorSet light_update_descriptor_sets_[2];
+
+	vk::UniqueShaderModule player_world_window_build_shader_;
+	vk::UniqueDescriptorSetLayout player_world_window_build_decriptor_set_layout_;
+	vk::UniquePipelineLayout player_world_window_build_pipeline_layout_;
+	vk::UniquePipeline player_world_window_build_pipeline_;
+	vk::DescriptorSet player_world_window_build_descriptor_set_;
 
 	vk::UniqueShaderModule player_update_shader_;
 	vk::UniqueDescriptorSetLayout player_update_decriptor_set_layout_;

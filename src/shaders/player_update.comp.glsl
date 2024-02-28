@@ -158,6 +158,12 @@ void UpdateBuildPos()
 	destroy_pos= ivec4(-1, -1, -1, 0);
 }
 
+void PushUpdateIntoQueue(WorldBlockExternalUpdate update)
+{
+	world_blocks_external_update_queue.updates[world_blocks_external_update_queue.num_updates]= update;
+	++world_blocks_external_update_queue.num_updates;
+}
+
 void main()
 {
 	UpdateBuildPos();
@@ -166,12 +172,30 @@ void main()
 	// Update build pos if building/destroying was triggered.
 	if(build_triggered != uint8_t(0) && IsInWorldBorders(build_pos.xyz, world_size_chunks))
 	{
-		chunks_data[GetBlockFullAddress(build_pos.xyz, world_size_chunks)]= build_block_type;
+		int address= GetBlockFullAddress(build_pos.xyz, world_size_chunks);
+		uint8_t prev_block_value= chunks_data[address];
+		// chunks_data[address]= build_block_type;
+
+		WorldBlockExternalUpdate update;
+		update.position= ivec4(build_pos.xyz, 0);
+		update.old_block_type= prev_block_value;
+		update.new_block_type= build_block_type;
+		PushUpdateIntoQueue(update);
+
 		UpdateBuildPos();
 	}
 	if(destroy_triggered != uint8_t(0) && IsInWorldBorders(destroy_pos.xyz, world_size_chunks))
 	{
-		chunks_data[GetBlockFullAddress(destroy_pos.xyz, world_size_chunks)]= c_block_type_air;
+		int address= GetBlockFullAddress(destroy_pos.xyz, world_size_chunks);
+		uint8_t prev_block_value= chunks_data[address];
+		// chunks_data[address]= c_block_type_air;
+
+		WorldBlockExternalUpdate update;
+		update.position= ivec4(destroy_pos.xyz, 0);
+		update.old_block_type= prev_block_value;
+		update.new_block_type= c_block_type_air;
+		PushUpdateIntoQueue(update);
+
 		UpdateBuildPos();
 	}
 }

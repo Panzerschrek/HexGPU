@@ -70,8 +70,8 @@ struct ChunkPositionUniforms
 
 struct PlayerWorldWindowBuildUniforms
 {
-	int32_t world_size_chunks[2]{};
 	int32_t player_world_window_offset[4]{};
+	int32_t world_size_chunks[2]{};
 };
 
 struct PlayerUpdateUniforms
@@ -621,7 +621,6 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 				*player_world_window_build_shader_,
 				"main"),
 			*player_world_window_build_pipeline_layout_)));
-
 
 	// Create player world window build descriptor set.
 	player_world_window_build_descriptor_set_= vk_device_.allocateDescriptorSets(
@@ -1185,7 +1184,7 @@ void WorldProcessor::BuildPlayerWorldWindow(const vk::CommandBuffer command_buff
 	PlayerWorldWindowBuildUniforms uniforms;
 	uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
 	uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-	uniforms.player_world_window_offset[0]= (int32_t(player_pos.x * c_space_scale_x) - int32_t(c_player_world_window_size[0] / 2u)) & 0xFFFFFFFE;
+	uniforms.player_world_window_offset[0]= (int32_t(player_pos.x / c_space_scale_x) - int32_t(c_player_world_window_size[0] / 2u)) & 0xFFFFFFFE;
 	uniforms.player_world_window_offset[1]= (int32_t(player_pos.y) - int32_t(c_player_world_window_size[1] / 2u)) & 0xFFFFFFFE;
 	uniforms.player_world_window_offset[2]= int32_t(player_pos.z) - int32_t(c_player_world_window_size[2] / 2u);
 	uniforms.player_world_window_offset[3]= 0;

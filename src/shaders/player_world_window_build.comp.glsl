@@ -14,8 +14,8 @@ layout(local_size_x= 4, local_size_y = 4, local_size_z= 8) in;
 
 layout(push_constant) uniform uniforms_block
 {
-	ivec2 world_size_chunks;
 	ivec4 player_world_window_offset;
+	ivec2 world_size_chunks;
 };
 
 layout(binding= 0, std430) buffer chunks_data_buffer

@@ -18,7 +18,6 @@ layout(binding= 0, std430) buffer chunks_data_buffer
 	uint8_t chunks_data[];
 };
 
-
 layout(binding= 1, std430) buffer world_blocks_external_update_queue_buffer
 {
 	WorldBlocksExternalUpdateQueue world_blocks_external_update_queue;
@@ -29,11 +28,22 @@ void main()
 	for(uint i= 0; i < min(world_blocks_external_update_queue.num_updates, c_max_world_blocks_external_updates); ++i)
 	{
 		WorldBlockExternalUpdate update= world_blocks_external_update_queue.updates[i];
-		// TODO - check in bounds.
-
-		int address= GetBlockFullAddress(update.position.xyz, world_size_chunks);
-		chunks_data[address]= update.new_block_type;
+		if(IsInWorldBorders(update.position.xyz, world_size_chunks))
+		{
+			int address= GetBlockFullAddress(update.position.xyz, world_size_chunks);
+			uint8_t current_block_value= chunks_data[address];
+			if(current_block_value == update.old_block_type)
+			{
+				// Allow changing block if it isn't changed by someone else.
+				chunks_data[address]= update.new_block_type;
+			}
+			else
+			{
+				// TODO - handle this situation somehow.
+			}
+		}
 	}
 
+	// Reset the queue.
 	world_blocks_external_update_queue.num_updates= 0;
 }

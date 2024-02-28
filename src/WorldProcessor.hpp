@@ -75,6 +75,7 @@ private:
 		BlockType build_block_type,
 		bool build_triggered,
 		bool destroy_triggered);
+	void FlushWorldBlocksExternalUpdateQueue(vk::CommandBuffer command_buffer);
 
 private:
 	const vk::Device vk_device_;
@@ -118,6 +119,12 @@ private:
 	vk::UniquePipelineLayout player_update_pipeline_layout_;
 	vk::UniquePipeline player_update_pipeline_;
 	vk::DescriptorSet player_update_descriptor_set_;
+
+	vk::UniqueShaderModule world_blocks_external_update_queue_flush_shader_;
+	vk::UniqueDescriptorSetLayout world_blocks_external_update_queue_flush_decriptor_set_layout_;
+	vk::UniquePipelineLayout world_blocks_external_update_queue_flush_pipeline_layout_;
+	vk::UniquePipeline world_blocks_external_update_queue_flush_pipeline_;
+	vk::DescriptorSet world_blocks_external_update_queue_flush_descriptor_set_;
 
 	bool world_generated_= false;
 };

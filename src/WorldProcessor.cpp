@@ -43,6 +43,14 @@ uint32_t world_blocks_external_update_queue_buffer= 2;
 
 }
 
+namespace WorldBlocksExternalUpdateQueueFlushBindigns
+{
+
+uint32_t chunk_data_buffer= 0;
+uint32_t world_blocks_external_update_queue_buffer= 1;
+
+}
+
 // Size limit of this struct is 128 bytes.
 // 128 bytes is guaranted maximum size of push constants uniform block.
 struct ChunkPositionUniforms
@@ -62,6 +70,11 @@ struct PlayerUpdateUniforms
 	bool build_triggered= false;
 	bool destroy_triggered= false;
 	uint8_t reserved2[1];
+};
+
+struct WorldBlocksExternalUpdateQueueFlushUniforms
+{
+	int32_t world_size_chunks[2]{0, 0};
 };
 
 } // namespace
@@ -621,6 +634,104 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 			},
 			{});
 	}
+
+	// Create world blocks external update queue flush shader.
+	world_blocks_external_update_queue_flush_shader_= CreateShader(vk_device_, ShaderNames::world_blocks_external_queue_flush_comp);
+
+	// Create world blocks external update queue flush descriptor set layout.
+	{
+		const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
+		{
+			{
+				WorldBlocksExternalUpdateQueueFlushBindigns::chunk_data_buffer,
+				vk::DescriptorType::eStorageBuffer,
+				1u,
+				vk::ShaderStageFlagBits::eCompute,
+				nullptr,
+			},
+			{
+				WorldBlocksExternalUpdateQueueFlushBindigns::world_blocks_external_update_queue_buffer,
+				vk::DescriptorType::eStorageBuffer,
+				1u,
+				vk::ShaderStageFlagBits::eCompute,
+				nullptr,
+			},
+		};
+		world_blocks_external_update_queue_flush_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
+			vk::DescriptorSetLayoutCreateInfo(
+				vk::DescriptorSetLayoutCreateFlags(),
+				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
+	}
+
+	// Create world blocks external update queue flush pipeline layout.
+	{
+		const vk::PushConstantRange push_constant_range(
+			vk::ShaderStageFlagBits::eCompute,
+			0u,
+			sizeof(WorldBlocksExternalUpdateQueueFlushUniforms));
+
+		world_blocks_external_update_queue_flush_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
+			vk::PipelineLayoutCreateInfo(
+				vk::PipelineLayoutCreateFlags(),
+				1u, &*world_blocks_external_update_queue_flush_decriptor_set_layout_,
+				1u, &push_constant_range));
+	}
+
+	// Create world blocks external update queue flush pipeline.
+	world_blocks_external_update_queue_flush_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
+		nullptr,
+		vk::ComputePipelineCreateInfo(
+			vk::PipelineCreateFlags(),
+			vk::PipelineShaderStageCreateInfo(
+				vk::PipelineShaderStageCreateFlags(),
+				vk::ShaderStageFlagBits::eCompute,
+				*world_blocks_external_update_queue_flush_shader_,
+				"main"),
+			*world_blocks_external_update_queue_flush_pipeline_layout_)));
+
+	// Create world blocks external update queue flush descriptor set.
+	world_blocks_external_update_queue_flush_descriptor_set_= vk_device_.allocateDescriptorSets(
+		vk::DescriptorSetAllocateInfo(
+			global_descriptor_pool,
+			1u, &*world_blocks_external_update_queue_flush_decriptor_set_layout_)).front();
+
+	// Update world blocks external update queue flush descriptor set.
+	{
+		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
+			chunk_data_buffers_[0].buffer.get(),
+			0u,
+			chunk_data_buffer_size_);
+
+		const vk::DescriptorBufferInfo world_blocks_external_update_queue_buffer_info(
+			world_blocks_external_update_queue_buffer_.buffer.get(),
+			0u,
+			sizeof(WorldBlocksExternalUpdateQueue));
+
+		vk_device_.updateDescriptorSets(
+			{
+				{
+					world_blocks_external_update_queue_flush_descriptor_set_,
+					WorldBlocksExternalUpdateQueueFlushBindigns::chunk_data_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_chunk_data_buffer_info,
+					nullptr
+				},
+				{
+					world_blocks_external_update_queue_flush_descriptor_set_,
+					WorldBlocksExternalUpdateQueueFlushBindigns::world_blocks_external_update_queue_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&world_blocks_external_update_queue_buffer_info,
+					nullptr
+				},
+			},
+			{});
+	}
 }
 
 WorldProcessor::~WorldProcessor()
@@ -641,6 +752,7 @@ void WorldProcessor::Update(
 	UpdateWorldBlocks(command_buffer);
 	UpdateLight(command_buffer);
 	UpdatePlayer(command_buffer, player_pos, player_dir, build_block_type, build_triggered, destroy_triggered);
+	FlushWorldBlocksExternalUpdateQueue(command_buffer);
 }
 
 vk::Buffer WorldProcessor::GetChunkDataBuffer() const
@@ -892,7 +1004,6 @@ void WorldProcessor::UpdatePlayer(
 	const bool build_triggered,
 	const bool destroy_triggered)
 {
-	// Update player.
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *player_update_pipeline_);
 
 	command_buffer.bindDescriptorSets(
@@ -951,6 +1062,86 @@ void WorldProcessor::UpdatePlayer(
 		command_buffer.pipelineBarrier(
 			vk::PipelineStageFlagBits::eComputeShader,
 			vk::PipelineStageFlagBits::eComputeShader | vk::PipelineStageFlagBits::eTransfer,
+			vk::DependencyFlags(),
+			0, nullptr,
+			1, &barrier,
+			0, nullptr);
+	}
+	// Create barrier after usage of world blocks external update queue.
+	// TODO - check this is correct.
+	{
+		const vk::BufferMemoryBarrier barrier(
+			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			*world_blocks_external_update_queue_buffer_.buffer,
+			0,
+			VK_WHOLE_SIZE);
+
+		command_buffer.pipelineBarrier(
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::DependencyFlags(),
+			0, nullptr,
+			1, &barrier,
+			0, nullptr);
+	}
+}
+
+void WorldProcessor::FlushWorldBlocksExternalUpdateQueue(const vk::CommandBuffer command_buffer)
+{
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_blocks_external_update_queue_flush_pipeline_);
+
+	command_buffer.bindDescriptorSets(
+		vk::PipelineBindPoint::eCompute,
+		*world_blocks_external_update_queue_flush_pipeline_layout_,
+		0u,
+		1u, &world_blocks_external_update_queue_flush_descriptor_set_,
+		0u, nullptr);
+
+	WorldBlocksExternalUpdateQueueFlushUniforms uniforms;
+	uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+	uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+
+	command_buffer.pushConstants(
+		*player_update_pipeline_layout_,
+		vk::ShaderStageFlagBits::eCompute,
+		0,
+		sizeof(WorldBlocksExternalUpdateQueueFlushUniforms), static_cast<const void*>(&uniforms));
+
+	// Queue flushing is single-threaded.
+	command_buffer.dispatch(1, 1, 1);
+
+	// Create barrier between world changes in queue flush and world later usage.
+	// TODO - check this is correct.
+	{
+		const vk::BufferMemoryBarrier barrier(
+			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			*chunk_data_buffers_[0].buffer,
+			0,
+			VK_WHOLE_SIZE);
+
+		command_buffer.pipelineBarrier(
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::DependencyFlags(),
+			0, nullptr,
+			1, &barrier,
+			0, nullptr);
+	}
+	// Create barrier after usage of world blocks external update queue.
+	// TODO - check this is correct.
+	{
+		const vk::BufferMemoryBarrier barrier(
+			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			*world_blocks_external_update_queue_buffer_.buffer,
+			0,
+			VK_WHOLE_SIZE);
+
+		command_buffer.pipelineBarrier(
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::PipelineStageFlagBits::eComputeShader,
 			vk::DependencyFlags(),
 			0, nullptr,
 			1, &barrier,

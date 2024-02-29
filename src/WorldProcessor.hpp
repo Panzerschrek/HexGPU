@@ -148,6 +148,8 @@ private:
 
 	bool initial_buffers_filled_= false;
 	bool world_generated_= false;
+
+	uint32_t current_tick_= 0;
 };
 
 } // namespace HexGPU

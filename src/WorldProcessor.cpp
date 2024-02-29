@@ -887,8 +887,11 @@ void WorldProcessor::Update(
 		HEX_ASSERT(prev_offset_within_tick <= 1.0f);
 		const float cur_offset_within_tick= std::min(1.0f, cur_tick_fractional - float(current_tick_));
 		BuildCurrentFrameChunksToUpdateList(prev_offset_within_tick, cur_offset_within_tick);
+
 		UpdateWorldBlocks(command_buffer);
 		UpdateLight(command_buffer);
+		// No need to synchronize world blocks and lighting update here.
+		// Add a barier only at the beginning of next tick.
 	}
 
 	// Switch to the next tick (if necessary).
@@ -1199,6 +1202,7 @@ void WorldProcessor::UpdateLight(const vk::CommandBuffer command_buffer)
 void WorldProcessor::CreateWorldBlocksAndLightUpdateBarrier(const vk::CommandBuffer command_buffer)
 {
 	// Wait until blocks and light updates are finished.
+	// TODO - check if this is correct.
 	const uint32_t dst_buffer_index= GetDstBufferIndex();
 
 	const vk::BufferMemoryBarrier barriers[]

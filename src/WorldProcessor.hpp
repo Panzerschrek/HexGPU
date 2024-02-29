@@ -159,6 +159,7 @@ private:
 
 	uint32_t current_tick_= 0;
 	float current_tick_fractional_= 0.0f;
+	// Update this list each frame.
 	std::vector<std::array<uint32_t, 2>> current_frame_chunks_to_update_list_;
 };
 

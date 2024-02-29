@@ -877,17 +877,18 @@ void WorldProcessor::Update(
 	const float prev_tick_time_s= prev_tick_time_s_;
 	prev_tick_time_s_+= time_delta_s;
 
-	const bool start_new_tick= current_tick_ == 0 || uint32_t(prev_tick_time_s) < uint32_t(prev_tick_time_s_);
+	const bool start_new_tick= uint32_t(prev_tick_time_s) < uint32_t(prev_tick_time_s_);
 	if(start_new_tick)
 	{
-		BuildPlayerWorldWindow(command_buffer, player_pos);
-
 		UpdateWorldBlocks(command_buffer);
 		UpdateLight(command_buffer);
 
 		FlushWorldBlocksExternalUpdateQueue(command_buffer);
 
 		++current_tick_;
+
+		BuildPlayerWorldWindow(command_buffer, player_pos);
+
 	}
 }
 

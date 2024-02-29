@@ -290,23 +290,23 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 			*world_gen_pipeline_layout_)));
 
 
-	// Create world generation descriptor set.
-	world_gen_descriptor_set_= vk_device_.allocateDescriptorSets(
-		vk::DescriptorSetAllocateInfo(
-			global_descriptor_pool,
-			1u, &*world_gen_decriptor_set_layout_)).front();
-
-	// Update world generator descriptor set.
+	// Create and update world generation descriptor sets.
+	for(uint32_t i= 0; i < 2; ++i)
 	{
+		world_gen_descriptor_sets_[i]= vk_device_.allocateDescriptorSets(
+			vk::DescriptorSetAllocateInfo(
+				global_descriptor_pool,
+				1u, &*world_gen_decriptor_set_layout_)).front();
+
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
-			chunk_data_buffers_[0].buffer.get(),
+			chunk_data_buffers_[i].buffer.get(),
 			0u,
 			chunk_data_buffer_size_);
 
 		vk_device_.updateDescriptorSets(
 			{
 				{
-					world_gen_descriptor_set_,
+					world_gen_descriptor_sets_[i],
 					WorldGenShaderBindings::chunk_data_buffer,
 					0u,
 					1u,
@@ -981,13 +981,16 @@ void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
 		return;
 	world_generated_= true;
 
+	// Use current dst buffer to generate world.
+	const uint32_t dst_buffer_index= GetSrcBufferIndex(); // Use src buffer for first world generation.
+
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_gen_pipeline_);
 
 	command_buffer.bindDescriptorSets(
 		vk::PipelineBindPoint::eCompute,
 		*world_gen_pipeline_layout_,
 		0u,
-		1u, &world_gen_descriptor_set_,
+		1u, &world_gen_descriptor_sets_[dst_buffer_index],
 		0u, nullptr);
 
 	for(uint32_t x= 0; x < world_size_[0]; ++x)
@@ -1024,7 +1027,7 @@ void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*chunk_data_buffers_[0].buffer,
+			*chunk_data_buffers_[dst_buffer_index].buffer,
 			0,
 			VK_WHOLE_SIZE);
 

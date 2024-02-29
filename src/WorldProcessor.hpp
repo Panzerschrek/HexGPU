@@ -117,7 +117,7 @@ private:
 	vk::UniqueDescriptorSetLayout world_gen_decriptor_set_layout_;
 	vk::UniquePipelineLayout world_gen_pipeline_layout_;
 	vk::UniquePipeline world_gen_pipeline_;
-	vk::DescriptorSet world_gen_descriptor_set_;
+	vk::DescriptorSet world_gen_descriptor_sets_[2];
 
 	vk::UniqueShaderModule world_blocks_update_shader_;
 	vk::UniqueDescriptorSetLayout world_blocks_update_decriptor_set_layout_;

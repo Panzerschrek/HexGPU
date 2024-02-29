@@ -621,45 +621,36 @@ void WorldGeometryGenerator::InitialFillBuffers(const vk::CommandBuffer command_
 
 	// Fill initially vertex buffer with zeros.
 	// Do this only to supress warnings.
-
 	command_buffer.fillBuffer(*vertex_buffer_, 0, vertex_buffer_num_quads_ * sizeof(QuadVertices), 0);
-
-	{
-		const vk::BufferMemoryBarrier barrier(
-			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
-			queue_family_index_, queue_family_index_,
-			*vertex_buffer_,
-			0,
-			VK_WHOLE_SIZE);
-
-		command_buffer.pipelineBarrier(
-			vk::PipelineStageFlagBits::eTransfer,
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::DependencyFlags(),
-			0, nullptr,
-			1, &barrier,
-			0, nullptr);
-	}
 
 	// Fill initially chunk draw info buffer with zeros.
 	command_buffer.fillBuffer(*chunk_draw_info_buffer_, 0, chunk_draw_info_buffer_size_, 0);
 
+	const vk::BufferMemoryBarrier barriers[]
 	{
-		const vk::BufferMemoryBarrier barrier(
+		{
+			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			*vertex_buffer_,
+			0,
+			VK_WHOLE_SIZE
+		},
+		{
 			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
 			*chunk_draw_info_buffer_,
 			0,
-			VK_WHOLE_SIZE);
+			VK_WHOLE_SIZE
+		},
+	};
 
-		command_buffer.pipelineBarrier(
-			vk::PipelineStageFlagBits::eTransfer,
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::DependencyFlags(),
-			0, nullptr,
-			1, &barrier,
-			0, nullptr);
-	}
+	command_buffer.pipelineBarrier(
+		vk::PipelineStageFlagBits::eTransfer,
+		vk::PipelineStageFlagBits::eComputeShader,
+		vk::DependencyFlags(),
+		0, nullptr,
+		uint32_t(std::size(barriers)), barriers,
+		0, nullptr);
 }
 
 void WorldGeometryGenerator::BuildChunksToUpdateList()

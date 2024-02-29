@@ -23,14 +23,16 @@ public:
 		bool build_triggered,
 		bool destroy_triggered);
 
-	vk::Buffer GetChunkDataBuffer() const;
+	vk::Buffer GetChunkDataBuffer(uint32_t index) const;
 	uint32_t GetChunkDataBufferSize() const;
-	vk::Buffer GetLightDataBuffer() const;
+	vk::Buffer GetLightDataBuffer(uint32_t index) const;
 	uint32_t GetLightDataBufferSize() const;
 
 	vk::Buffer GetPlayerStateBuffer() const;
 
 	WorldSizeChunks GetWorldSize() const;
+
+	uint32_t GetActualBuffersIndex() const;
 
 public:
 	// This struct must be identical to the same struct in GLSL code!

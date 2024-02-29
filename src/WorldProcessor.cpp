@@ -893,9 +893,10 @@ void WorldProcessor::Update(
 	}
 }
 
-vk::Buffer WorldProcessor::GetChunkDataBuffer() const
+vk::Buffer WorldProcessor::GetChunkDataBuffer(const uint32_t index) const
 {
-	return chunk_data_buffers_[0].buffer.get();
+	HEX_ASSERT(index < 2);
+	return chunk_data_buffers_[index].buffer.get();
 }
 
 uint32_t WorldProcessor::GetChunkDataBufferSize() const
@@ -903,10 +904,10 @@ uint32_t WorldProcessor::GetChunkDataBufferSize() const
 	return chunk_data_buffer_size_;
 }
 
-vk::Buffer WorldProcessor::GetLightDataBuffer() const
+vk::Buffer WorldProcessor::GetLightDataBuffer(const uint32_t index) const
 {
-	// 0 - actual
-	return light_buffers_[0].buffer.get();
+	HEX_ASSERT(index < 2);
+	return light_buffers_[index].buffer.get();
 }
 
 uint32_t WorldProcessor::GetLightDataBufferSize() const
@@ -922,6 +923,11 @@ vk::Buffer WorldProcessor::GetPlayerStateBuffer() const
 WorldSizeChunks WorldProcessor::GetWorldSize() const
 {
 	return world_size_;
+}
+
+uint32_t WorldProcessor::GetActualBuffersIndex() const
+{
+	return GetSrcBufferIndex();
 }
 
 void WorldProcessor::InitialFillBuffers(const vk::CommandBuffer command_buffer)

@@ -294,16 +294,16 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 				"main"),
 			*geometry_size_calculate_pipeline_layout_)));
 
-	// Create descriptor set.
-	geometry_size_calculate_descriptor_set_= vk_device_.allocateDescriptorSets(
-		vk::DescriptorSetAllocateInfo(
-			global_descriptor_pool,
-			1u, &*geometry_size_calculate_decriptor_set_layout_)).front();
-
-	// Update descriptor set.
+	// Create and update descriptor sets.
+	for(uint32_t i= 0; i < 2; ++i)
 	{
+		geometry_size_calculate_descriptor_sets_[i]= vk_device_.allocateDescriptorSets(
+			vk::DescriptorSetAllocateInfo(
+				global_descriptor_pool,
+				1u, &*geometry_size_calculate_decriptor_set_layout_)).front();
+
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
-			world_processor_.GetChunkDataBuffer(),
+			world_processor_.GetChunkDataBuffer(i),
 			0u,
 			world_processor_.GetChunkDataBufferSize());
 
@@ -315,7 +315,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 		vk_device_.updateDescriptorSets(
 			{
 				{
-					geometry_size_calculate_descriptor_set_,
+					geometry_size_calculate_descriptor_sets_[i],
 					GeometrySizeCalculateBindings::chunk_data_buffer,
 					0u,
 					1u,
@@ -325,7 +325,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 					nullptr
 				},
 				{
-					geometry_size_calculate_descriptor_set_,
+					geometry_size_calculate_descriptor_sets_[i],
 					GeometrySizeCalculateBindings::chunk_draw_info_buffer,
 					0u,
 					1u,
@@ -504,26 +504,26 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 				"main"),
 			*geometry_gen_pipeline_layout_)));
 
-	// Create descriptor set.
-	geometry_gen_descriptor_set_= vk_device_.allocateDescriptorSets(
-		vk::DescriptorSetAllocateInfo(
-			global_descriptor_pool,
-			1u, &*geometry_gen_decriptor_set_layout_)).front();
-
-	// Update descriptor set.
+	// Create and update descriptor sets.
+	for(uint32_t i= 0; i < 2; ++i)
 	{
+		geometry_gen_descriptor_sets_[i]= vk_device_.allocateDescriptorSets(
+			vk::DescriptorSetAllocateInfo(
+				global_descriptor_pool,
+				1u, &*geometry_gen_decriptor_set_layout_)).front();
+
 		const vk::DescriptorBufferInfo descriptor_vertex_buffer_info(
 			*vertex_buffer_,
 			0u,
 			vertex_buffer_num_quads_ * sizeof(QuadVertices));
 
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
-			world_processor_.GetChunkDataBuffer(),
+			world_processor_.GetChunkDataBuffer(i),
 			0u,
 			world_processor_.GetChunkDataBufferSize());
 
 		const vk::DescriptorBufferInfo descriptor_light_buffer_info(
-			world_processor_.GetLightDataBuffer(),
+			world_processor_.GetLightDataBuffer(i),
 			0u,
 			world_processor_.GetLightDataBufferSize());
 
@@ -535,7 +535,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 		vk_device_.updateDescriptorSets(
 			{
 				{
-					geometry_gen_descriptor_set_,
+					geometry_gen_descriptor_sets_[i],
 					GeometryGenShaderBindings::vertices_buffer,
 					0u,
 					1u,
@@ -545,7 +545,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 					nullptr
 				},
 				{
-					geometry_gen_descriptor_set_,
+					geometry_gen_descriptor_sets_[i],
 					GeometryGenShaderBindings::chunk_data_buffer,
 					0u,
 					1u,
@@ -555,7 +555,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 					nullptr
 				},
 				{
-					geometry_gen_descriptor_set_,
+					geometry_gen_descriptor_sets_[i],
 					GeometryGenShaderBindings::chunk_light_buffer,
 					0u,
 					1u,
@@ -565,7 +565,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 					nullptr
 				},
 				{
-					geometry_gen_descriptor_set_,
+					geometry_gen_descriptor_sets_[i],
 					GeometryGenShaderBindings::chunk_draw_info_buffer,
 					0u,
 					1u,
@@ -751,7 +751,7 @@ void WorldGeometryGenerator::CalculateGeometrySize(const vk::CommandBuffer comma
 		vk::PipelineBindPoint::eCompute,
 		*geometry_size_calculate_pipeline_layout_,
 		0u,
-		1u, &geometry_size_calculate_descriptor_set_,
+		1u, &geometry_size_calculate_descriptor_sets_[world_processor_.GetActualBuffersIndex()],
 		0u, nullptr);
 
 	// Execute geometry size calculation for all chunks.
@@ -885,7 +885,7 @@ void WorldGeometryGenerator::GenGeometry(const vk::CommandBuffer command_buffer)
 		vk::PipelineBindPoint::eCompute,
 		*geometry_gen_pipeline_layout_,
 		0u,
-		1u, &geometry_gen_descriptor_set_,
+		1u, &geometry_gen_descriptor_sets_[world_processor_.GetActualBuffersIndex()],
 		0u, nullptr);
 
 	// Execute geometry generation for all chunks.

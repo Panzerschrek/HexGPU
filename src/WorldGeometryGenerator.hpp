@@ -77,7 +77,7 @@ private:
 	vk::UniqueDescriptorSetLayout geometry_size_calculate_decriptor_set_layout_;
 	vk::UniquePipelineLayout geometry_size_calculate_pipeline_layout_;
 	vk::UniquePipeline geometry_size_calculate_pipeline_;
-	vk::DescriptorSet geometry_size_calculate_descriptor_set_;
+	vk::DescriptorSet geometry_size_calculate_descriptor_sets_[2];
 
 	vk::UniqueShaderModule geometry_allocate_shader_;
 	vk::UniqueDescriptorSetLayout geometry_allocate_decriptor_set_layout_;
@@ -89,7 +89,7 @@ private:
 	vk::UniqueDescriptorSetLayout geometry_gen_decriptor_set_layout_;
 	vk::UniquePipelineLayout geometry_gen_pipeline_layout_;
 	vk::UniquePipeline geometry_gen_pipeline_;
-	vk::DescriptorSet geometry_gen_descriptor_set_;
+	vk::DescriptorSet geometry_gen_descriptor_sets_[2];
 
 	uint32_t frame_counter_= 0;
 	std::vector<std::array<uint32_t, 2>> chunks_to_update_;

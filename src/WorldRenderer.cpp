@@ -385,9 +385,9 @@ WorldRenderer::WorldRenderer(
 		index_buffer_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);
 		vk_device_.bindBufferMemory(*index_buffer_, *index_buffer_memory_, 0u);
 
-		void* vertex_data_gpu_size= nullptr;
-		vk_device_.mapMemory(*index_buffer_memory_, 0u, memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &vertex_data_gpu_size);
-		std::memcpy(vertex_data_gpu_size, world_indeces.data(), indices_size);
+		void* index_data_gpu_size= nullptr;
+		vk_device_.mapMemory(*index_buffer_memory_, 0u, memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &index_data_gpu_size);
+		std::memcpy(index_data_gpu_size, world_indeces.data(), indices_size);
 		vk_device_.unmapMemory(*index_buffer_memory_);
 	}
 

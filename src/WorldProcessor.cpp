@@ -872,23 +872,39 @@ void WorldProcessor::Update(
 	InitialFillBuffers(command_buffer);
 	GenerateWorld(command_buffer);
 
-	const float prev_tick_time_s= prev_tick_time_s_;
-	prev_tick_time_s_+= time_delta_s;
-
 	const float c_update_frequency= 4.0f; // TODO - tune this.
 
-	const bool start_new_tick= current_tick_ == 0 || uint32_t(prev_tick_time_s * c_update_frequency) < uint32_t(prev_tick_time_s_ * c_update_frequency);
-	if(start_new_tick)
+	// Do not allow updating slightly less than whole world in a frame.
+	const float tick_delta_clamped= std::min(time_delta_s * c_update_frequency, 0.75f);
+
+	const float prev_tick_fractional= current_tick_fractional_;
+	const float cur_tick_fractional= current_tick_fractional_ + tick_delta_clamped;
+
+	// Continue updates of blocks and lighting.
+	if(current_tick_ != 0)
 	{
-		FlushWorldBlocksExternalUpdateQueue(command_buffer);
-
-		++current_tick_;
-
-		BuildPlayerWorldWindow(command_buffer, player_pos);
-
+		const float prev_offset_within_tick= prev_tick_fractional - float(current_tick_);
+		HEX_ASSERT(prev_offset_within_tick <= 1.0f);
+		const float cur_offset_within_tick= std::min(1.0f, cur_tick_fractional - float(current_tick_));
+		BuildCurrentFrameChunksToUpdateList(prev_offset_within_tick, cur_offset_within_tick);
 		UpdateWorldBlocks(command_buffer);
 		UpdateLight(command_buffer);
 	}
+
+	// Switch to the next tick (if necessary).
+	if(current_tick_ == 0 || uint32_t(prev_tick_fractional) < uint32_t(cur_tick_fractional))
+	{
+		CreateWorldBlocksAndLightUpdateBarrier(command_buffer); // Wait until all block and light updates are finished.
+
+		FlushWorldBlocksExternalUpdateQueue(command_buffer);
+
+		++current_tick_;
+		current_tick_fractional_= float(current_tick_);
+
+		BuildPlayerWorldWindow(command_buffer, player_pos);
+	}
+	else
+		current_tick_fractional_= cur_tick_fractional;
 
 	// Run player update independent on world update - every frame.
 	// This is needed in order to make player movement and rotation smooth.
@@ -1080,10 +1096,29 @@ void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
 	// TODO - perform fast initial sky light propagation.
 }
 
+void WorldProcessor::BuildCurrentFrameChunksToUpdateList(
+	const float prev_offset_within_tick,
+	const float cur_offset_within_tick)
+{
+	// Split update of world blocks and lighting evenly between multiple frames of the same tick.
+
+	HEX_ASSERT(prev_offset_within_tick >= 0.0f);
+	HEX_ASSERT(cur_offset_within_tick <= 1.0f);
+	HEX_ASSERT(prev_offset_within_tick <= cur_offset_within_tick);
+
+	current_frame_chunks_to_update_list_.clear();
+
+	const uint32_t total_chunks= world_size_[0] * world_size_[1];
+	const uint32_t start_chunk_index= uint32_t(float(total_chunks) * prev_offset_within_tick);
+	const uint32_t end_chunk_index= std::min(total_chunks, uint32_t(float(total_chunks) * cur_offset_within_tick));
+
+	for(uint32_t chunk_index= start_chunk_index; chunk_index < end_chunk_index; ++chunk_index)
+		current_frame_chunks_to_update_list_.push_back({chunk_index % world_size_[0], chunk_index / world_size_[0]});
+}
+
 void WorldProcessor::UpdateWorldBlocks(const vk::CommandBuffer command_buffer)
 {
 	const uint32_t src_buffer_index= GetSrcBufferIndex();
-	const uint32_t dst_buffer_index= GetDstBufferIndex();
 
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_blocks_update_pipeline_);
 
@@ -1094,14 +1129,13 @@ void WorldProcessor::UpdateWorldBlocks(const vk::CommandBuffer command_buffer)
 		1u, &world_blocks_update_descriptor_sets_[src_buffer_index],
 		0u, nullptr);
 
-	for(uint32_t x= 0; x < world_size_[0]; ++x)
-	for(uint32_t y= 0; y < world_size_[1]; ++y)
+	for(const auto& chunk_to_update : current_frame_chunks_to_update_list_)
 	{
 		ChunkPositionUniforms chunk_position_uniforms;
 		chunk_position_uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
 		chunk_position_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-		chunk_position_uniforms.chunk_position[0]= int32_t(x);
-		chunk_position_uniforms.chunk_position[1]= int32_t(y);
+		chunk_position_uniforms.chunk_position[0]= int32_t(chunk_to_update[0]);
+		chunk_position_uniforms.chunk_position[1]= int32_t(chunk_to_update[1]);
 
 		command_buffer.pushConstants(
 			*world_blocks_update_pipeline_layout_,
@@ -1120,31 +1154,11 @@ void WorldProcessor::UpdateWorldBlocks(const vk::CommandBuffer command_buffer)
 			c_chunk_width / c_workgroup_size[1],
 			c_chunk_height / c_workgroup_size[2]);
 	}
-
-	// Create barrier between destination world blocks buffer update and its later usage.
-	// TODO - check this is correct.
-	{
-		const vk::BufferMemoryBarrier barrier(
-			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
-			queue_family_index_, queue_family_index_,
-			*chunk_data_buffers_[dst_buffer_index].buffer,
-			0,
-			VK_WHOLE_SIZE);
-
-		command_buffer.pipelineBarrier(
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::DependencyFlags(),
-			0, nullptr,
-			1, &barrier,
-			0, nullptr);
-	}
 }
 
 void WorldProcessor::UpdateLight(const vk::CommandBuffer command_buffer)
 {
 	const uint32_t src_buffer_index= GetSrcBufferIndex();
-	const uint32_t dst_buffer_index= GetDstBufferIndex();
 
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *light_update_pipeline_);
 
@@ -1155,14 +1169,13 @@ void WorldProcessor::UpdateLight(const vk::CommandBuffer command_buffer)
 		1u, &light_update_descriptor_sets_[src_buffer_index],
 		0u, nullptr);
 
-	for(uint32_t x= 0; x < world_size_[0]; ++x)
-	for(uint32_t y= 0; y < world_size_[1]; ++y)
+	for(const auto& chunk_to_update : current_frame_chunks_to_update_list_)
 	{
 		ChunkPositionUniforms chunk_position_uniforms;
 		chunk_position_uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
 		chunk_position_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-		chunk_position_uniforms.chunk_position[0]= int32_t(x);
-		chunk_position_uniforms.chunk_position[1]= int32_t(y);
+		chunk_position_uniforms.chunk_position[0]= int32_t(chunk_to_update[0]);
+		chunk_position_uniforms.chunk_position[1]= int32_t(chunk_to_update[1]);
 
 		command_buffer.pushConstants(
 			*light_update_pipeline_layout_,
@@ -1181,25 +1194,38 @@ void WorldProcessor::UpdateLight(const vk::CommandBuffer command_buffer)
 			c_chunk_width / c_workgroup_size[1],
 			c_chunk_height / c_workgroup_size[2]);
 	}
+}
 
-	// Create barrier between destination light buffer update and its later usage.
-	// TODO - check this is correct.
+void WorldProcessor::CreateWorldBlocksAndLightUpdateBarrier(const vk::CommandBuffer command_buffer)
+{
+	// Wait until blocks and light updates are finished.
+	const uint32_t dst_buffer_index= GetDstBufferIndex();
+
+	const vk::BufferMemoryBarrier barriers[]
 	{
-		const vk::BufferMemoryBarrier barrier(
+		{
+			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			*chunk_data_buffers_[dst_buffer_index].buffer,
+			0,
+			VK_WHOLE_SIZE
+		},
+		{
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
 			*light_buffers_[dst_buffer_index].buffer,
 			0,
-			VK_WHOLE_SIZE);
+			VK_WHOLE_SIZE
+		},
+	};
 
-		command_buffer.pipelineBarrier(
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::DependencyFlags(),
-			0, nullptr,
-			1, &barrier,
-			0, nullptr);
-	}
+	command_buffer.pipelineBarrier(
+		vk::PipelineStageFlagBits::eComputeShader,
+		vk::PipelineStageFlagBits::eComputeShader,
+		vk::DependencyFlags(),
+		0, nullptr,
+		uint32_t(std::size(barriers)), barriers,
+		0, nullptr);
 }
 
 void WorldProcessor::BuildPlayerWorldWindow(const vk::CommandBuffer command_buffer, const m_Vec3& player_pos)

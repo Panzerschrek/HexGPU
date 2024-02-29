@@ -81,8 +81,10 @@ private:
 private:
 	void InitialFillBuffers(vk::CommandBuffer command_buffer);
 	void GenerateWorld(vk::CommandBuffer command_buffer);
+	void BuildCurrentFrameChunksToUpdateList(float prev_offset_within_tick, float cur_offset_within_tick);
 	void UpdateWorldBlocks(vk::CommandBuffer command_buffer);
 	void UpdateLight(vk::CommandBuffer command_buffer);
+	void CreateWorldBlocksAndLightUpdateBarrier(vk::CommandBuffer command_buffer);
 	void BuildPlayerWorldWindow(vk::CommandBuffer command_buffer, const m_Vec3& player_pos);
 	void UpdatePlayer(
 		vk::CommandBuffer command_buffer,
@@ -155,8 +157,9 @@ private:
 	bool initial_buffers_filled_= false;
 	bool world_generated_= false;
 
-	float prev_tick_time_s_= 0.0f;
 	uint32_t current_tick_= 0;
+	float current_tick_fractional_= 0.0f;
+	std::vector<std::array<uint32_t, 2>> current_frame_chunks_to_update_list_;
 };
 
 } // namespace HexGPU

@@ -877,7 +877,7 @@ void WorldProcessor::Update(
 
 	const float c_update_frequency= 4.0f; // TODO - tune this.
 
-	const bool start_new_tick= uint32_t(prev_tick_time_s * c_update_frequency) < uint32_t(prev_tick_time_s_ * c_update_frequency);
+	const bool start_new_tick= current_tick_ == 0 || uint32_t(prev_tick_time_s * c_update_frequency) < uint32_t(prev_tick_time_s_ * c_update_frequency);
 	if(start_new_tick)
 	{
 		FlushWorldBlocksExternalUpdateQueue(command_buffer);

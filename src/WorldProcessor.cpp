@@ -487,7 +487,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 				1u, &*light_update_decriptor_set_layout_)).front();
 
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
-			chunk_data_buffers_[0].buffer.get(),
+			chunk_data_buffers_[i].buffer.get(),
 			0u,
 			chunk_data_buffer_size_);
 
@@ -1317,7 +1317,8 @@ void WorldProcessor::FlushWorldBlocksExternalUpdateQueue(const vk::CommandBuffer
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_blocks_external_update_queue_flush_pipeline_);
 
 	// Flush the queue into the destination world buffer.
-	const auto descriptor_set= world_blocks_external_update_queue_flush_descriptor_sets_[GetDstBufferIndex()];
+	const uint32_t dst_buffer_index= GetDstBufferIndex();
+	const auto descriptor_set= world_blocks_external_update_queue_flush_descriptor_sets_[dst_buffer_index];
 
 	command_buffer.bindDescriptorSets(
 		vk::PipelineBindPoint::eCompute,
@@ -1345,7 +1346,7 @@ void WorldProcessor::FlushWorldBlocksExternalUpdateQueue(const vk::CommandBuffer
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*chunk_data_buffers_[0].buffer,
+			*chunk_data_buffers_[dst_buffer_index].buffer,
 			0,
 			VK_WHOLE_SIZE);
 

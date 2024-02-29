@@ -135,7 +135,7 @@ private:
 	vk::UniqueDescriptorSetLayout player_world_window_build_decriptor_set_layout_;
 	vk::UniquePipelineLayout player_world_window_build_pipeline_layout_;
 	vk::UniquePipeline player_world_window_build_pipeline_;
-	vk::DescriptorSet player_world_window_build_descriptor_set_;
+	vk::DescriptorSet player_world_window_build_descriptor_sets_[2];
 
 	vk::UniqueShaderModule player_update_shader_;
 	vk::UniqueDescriptorSetLayout player_update_decriptor_set_layout_;

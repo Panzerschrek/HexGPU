@@ -591,16 +591,16 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 				"main"),
 			*player_world_window_build_pipeline_layout_)));
 
-	// Create player world window build descriptor set.
-	player_world_window_build_descriptor_set_= vk_device_.allocateDescriptorSets(
-		vk::DescriptorSetAllocateInfo(
-			global_descriptor_pool,
-			1u, &*player_world_window_build_decriptor_set_layout_)).front();
-
-	// Update player world window build descriptor set.
+	// Create and update player world window build descriptor set.
+	for(uint32_t i= 0; i < 2; ++i)
 	{
+		player_world_window_build_descriptor_sets_[i]= vk_device_.allocateDescriptorSets(
+			vk::DescriptorSetAllocateInfo(
+				global_descriptor_pool,
+				1u, &*player_world_window_build_decriptor_set_layout_)).front();
+
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
-			chunk_data_buffers_[0].buffer.get(),
+			chunk_data_buffers_[i].buffer.get(),
 			0u,
 			chunk_data_buffer_size_);
 
@@ -612,7 +612,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 		vk_device_.updateDescriptorSets(
 			{
 				{
-					player_world_window_build_descriptor_set_,
+					player_world_window_build_descriptor_sets_[i],
 					PlayerWorldWindowBuildShaderBindings::chunk_data_buffer,
 					0u,
 					1u,
@@ -622,7 +622,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 					nullptr
 				},
 				{
-					player_world_window_build_descriptor_set_,
+					player_world_window_build_descriptor_sets_[i],
 					PlayerWorldWindowBuildShaderBindings::player_world_window_buffer,
 					0u,
 					1u,
@@ -1166,11 +1166,14 @@ void WorldProcessor::BuildPlayerWorldWindow(const vk::CommandBuffer command_buff
 {
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *player_world_window_build_pipeline_);
 
+	// Build player world window based on src world state.
+	const auto descriptor_set= player_world_window_build_descriptor_sets_[GetSrcBufferIndex()];
+
 	command_buffer.bindDescriptorSets(
 		vk::PipelineBindPoint::eCompute,
 		*player_world_window_build_pipeline_layout_,
 		0u,
-		1u, &player_world_window_build_descriptor_set_,
+		1u, &descriptor_set,
 		0u, nullptr);
 
 	PlayerWorldWindowBuildUniforms uniforms;

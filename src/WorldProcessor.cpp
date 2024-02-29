@@ -862,6 +862,7 @@ WorldProcessor::~WorldProcessor()
 
 void WorldProcessor::Update(
 	const vk::CommandBuffer command_buffer,
+	const float time_delta_s,
 	const m_Vec3& player_pos,
 	const m_Vec3& player_dir,
 	const BlockType build_block_type,
@@ -870,15 +871,24 @@ void WorldProcessor::Update(
 {
 	InitialFillBuffers(command_buffer);
 	GenerateWorld(command_buffer);
-	UpdateWorldBlocks(command_buffer);
-	UpdateLight(command_buffer);
-	BuildPlayerWorldWindow(command_buffer, player_pos);
-	UpdatePlayer(command_buffer, player_pos, player_dir, build_block_type, build_triggered, destroy_triggered);
-	FlushWorldBlocksExternalUpdateQueue(command_buffer);
 
-	// For now just perform update tick every frame.
-	// TODO - use fixed update frequency.
-	++current_tick_;
+	UpdatePlayer(command_buffer, player_pos, player_dir, build_block_type, build_triggered, destroy_triggered);
+
+	const float prev_tick_time_s= prev_tick_time_s_;
+	prev_tick_time_s_+= time_delta_s;
+
+	const bool start_new_tick= current_tick_ == 0 || uint32_t(prev_tick_time_s) < uint32_t(prev_tick_time_s_);
+	if(start_new_tick)
+	{
+		BuildPlayerWorldWindow(command_buffer, player_pos);
+
+		UpdateWorldBlocks(command_buffer);
+		UpdateLight(command_buffer);
+
+		FlushWorldBlocksExternalUpdateQueue(command_buffer);
+
+		++current_tick_;
+	}
 }
 
 vk::Buffer WorldProcessor::GetChunkDataBuffer() const

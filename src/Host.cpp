@@ -75,6 +75,7 @@ bool Host::Loop()
 	// TODO - pass directly events and keyboard state.
 	world_processor_.Update(
 		command_buffer,
+		dt_s,
 		camera_controller_.GetCameraPosition(),
 		camera_controller_.GetCameraDirection(),
 		build_block_type_,

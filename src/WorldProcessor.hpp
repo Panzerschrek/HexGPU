@@ -16,6 +16,7 @@ public:
 
 	void Update(
 		vk::CommandBuffer command_buffer,
+		float time_delta_s,
 		const m_Vec3& player_pos,
 		const m_Vec3& player_dir,
 		BlockType build_block_type,
@@ -152,6 +153,7 @@ private:
 	bool initial_buffers_filled_= false;
 	bool world_generated_= false;
 
+	float prev_tick_time_s_= 0.0f;
 	uint32_t current_tick_= 0;
 };
 

@@ -809,16 +809,16 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 				"main"),
 			*world_blocks_external_update_queue_flush_pipeline_layout_)));
 
-	// Create world blocks external update queue flush descriptor set.
-	world_blocks_external_update_queue_flush_descriptor_set_= vk_device_.allocateDescriptorSets(
-		vk::DescriptorSetAllocateInfo(
-			global_descriptor_pool,
-			1u, &*world_blocks_external_update_queue_flush_decriptor_set_layout_)).front();
-
-	// Update world blocks external update queue flush descriptor set.
+	// Create and update world blocks external update queue flush descriptor sets.
+	for(uint32_t i= 0; i < 2; ++i)
 	{
+		world_blocks_external_update_queue_flush_descriptor_sets_[i]= vk_device_.allocateDescriptorSets(
+			vk::DescriptorSetAllocateInfo(
+				global_descriptor_pool,
+				1u, &*world_blocks_external_update_queue_flush_decriptor_set_layout_)).front();
+
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
-			chunk_data_buffers_[0].buffer.get(),
+			chunk_data_buffers_[i].buffer.get(),
 			0u,
 			chunk_data_buffer_size_);
 
@@ -830,7 +830,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 		vk_device_.updateDescriptorSets(
 			{
 				{
-					world_blocks_external_update_queue_flush_descriptor_set_,
+					world_blocks_external_update_queue_flush_descriptor_sets_[i],
 					WorldBlocksExternalUpdateQueueFlushBindigns::chunk_data_buffer,
 					0u,
 					1u,
@@ -840,7 +840,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 					nullptr
 				},
 				{
-					world_blocks_external_update_queue_flush_descriptor_set_,
+					world_blocks_external_update_queue_flush_descriptor_sets_[i],
 					WorldBlocksExternalUpdateQueueFlushBindigns::world_blocks_external_update_queue_buffer,
 					0u,
 					1u,
@@ -1042,8 +1042,8 @@ void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
 
 void WorldProcessor::UpdateWorldBlocks(const vk::CommandBuffer command_buffer)
 {
-	const uint32_t src_buffer_index= current_tick_ & 1;
-	const uint32_t dst_buffer_index= src_buffer_index ^ 1;
+	const uint32_t src_buffer_index= GetSrcBufferIndex();
+	const uint32_t dst_buffer_index= GetDstBufferIndex();
 
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_blocks_update_pipeline_);
 
@@ -1103,9 +1103,8 @@ void WorldProcessor::UpdateWorldBlocks(const vk::CommandBuffer command_buffer)
 
 void WorldProcessor::UpdateLight(const vk::CommandBuffer command_buffer)
 {
-	const uint32_t src_buffer_index= current_tick_ & 1;
-	const uint32_t dst_buffer_index= src_buffer_index ^ 1;
-
+	const uint32_t src_buffer_index= GetSrcBufferIndex();
+	const uint32_t dst_buffer_index= GetDstBufferIndex();
 
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *light_update_pipeline_);
 
@@ -1314,11 +1313,14 @@ void WorldProcessor::FlushWorldBlocksExternalUpdateQueue(const vk::CommandBuffer
 {
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_blocks_external_update_queue_flush_pipeline_);
 
+	// Flush the queue into the destination world buffer.
+	const auto descriptor_set= world_blocks_external_update_queue_flush_descriptor_sets_[GetDstBufferIndex()];
+
 	command_buffer.bindDescriptorSets(
 		vk::PipelineBindPoint::eCompute,
 		*world_blocks_external_update_queue_flush_pipeline_layout_,
 		0u,
-		1u, &world_blocks_external_update_queue_flush_descriptor_set_,
+		1u, &descriptor_set,
 		0u, nullptr);
 
 	WorldBlocksExternalUpdateQueueFlushUniforms uniforms;
@@ -1370,6 +1372,16 @@ void WorldProcessor::FlushWorldBlocksExternalUpdateQueue(const vk::CommandBuffer
 			1, &barrier,
 			0, nullptr);
 	}
+}
+
+uint32_t WorldProcessor::GetSrcBufferIndex() const
+{
+	return current_tick_ & 1;
+}
+
+uint32_t WorldProcessor::GetDstBufferIndex() const
+{
+	return GetSrcBufferIndex() ^ 1;
 }
 
 } // namespace HexGPU

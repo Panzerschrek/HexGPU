@@ -90,6 +90,9 @@ private:
 		bool destroy_triggered);
 	void FlushWorldBlocksExternalUpdateQueue(vk::CommandBuffer command_buffer);
 
+	uint32_t GetSrcBufferIndex() const;
+	uint32_t GetDstBufferIndex() const;
+
 private:
 	const vk::Device vk_device_;
 	const uint32_t queue_family_index_;
@@ -144,7 +147,7 @@ private:
 	vk::UniqueDescriptorSetLayout world_blocks_external_update_queue_flush_decriptor_set_layout_;
 	vk::UniquePipelineLayout world_blocks_external_update_queue_flush_pipeline_layout_;
 	vk::UniquePipeline world_blocks_external_update_queue_flush_pipeline_;
-	vk::DescriptorSet world_blocks_external_update_queue_flush_descriptor_set_;
+	vk::DescriptorSet world_blocks_external_update_queue_flush_descriptor_sets_[2];
 
 	bool initial_buffers_filled_= false;
 	bool world_generated_= false;

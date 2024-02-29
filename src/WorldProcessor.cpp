@@ -165,7 +165,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 				vk::BufferCreateInfo(
 					vk::BufferCreateFlags(),
 					sizeof(PlayerState),
-					vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferSrc));
+					vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst));
 
 		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*player_state_buffer_.buffer);
 
@@ -175,10 +175,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
 		{
 			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags() &&
-				// TODO - avoid making host visible.
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible) != vk::MemoryPropertyFlags() &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent) != vk::MemoryPropertyFlags())
+				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
 			{
 				memory_allocate_info.memoryTypeIndex= i;
 				break;
@@ -187,13 +184,6 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 
 		player_state_buffer_.memory= vk_device_.allocateMemoryUnique(memory_allocate_info);
 		vk_device_.bindBufferMemory(*player_state_buffer_.buffer, *player_state_buffer_.memory, 0u);
-
-		// Fill the buffer with zeros to prevent later warnings.
-		// TODO - use "command_buffer.fillBuffer"
-		void* data_gpu_side= nullptr;
-		vk_device_.mapMemory(*player_state_buffer_.memory, 0u, memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_side);
-		std::memset(data_gpu_side, 0, sizeof(PlayerState));
-		vk_device_.unmapMemory(*player_state_buffer_.memory);
 	}
 
 	// Create world blocks external update queue buffer.
@@ -203,7 +193,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 				vk::BufferCreateInfo(
 					vk::BufferCreateFlags(),
 					sizeof(WorldBlocksExternalUpdateQueue),
-					vk::BufferUsageFlagBits::eStorageBuffer));
+					vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst));
 
 		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*world_blocks_external_update_queue_buffer_.buffer);
 
@@ -213,10 +203,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
 		{
 			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags() &&
-				// TODO - avoid making host visible.
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible) != vk::MemoryPropertyFlags() &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent) != vk::MemoryPropertyFlags())
+				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
 			{
 				memory_allocate_info.memoryTypeIndex= i;
 				break;
@@ -225,13 +212,6 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 
 		world_blocks_external_update_queue_buffer_.memory= vk_device_.allocateMemoryUnique(memory_allocate_info);
 		vk_device_.bindBufferMemory(*world_blocks_external_update_queue_buffer_.buffer, *world_blocks_external_update_queue_buffer_.memory, 0u);
-
-		// Fill the buffer with zeros to prevent later warnings.
-		// TODO - use "command_buffer.fillBuffer"
-		void* data_gpu_side= nullptr;
-		vk_device_.mapMemory(*world_blocks_external_update_queue_buffer_.memory, 0u, memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_side);
-		std::memset(data_gpu_side, 0, sizeof(WorldBlocksExternalUpdateQueue));
-		vk_device_.unmapMemory(*world_blocks_external_update_queue_buffer_.memory);
 	}
 
 	// Create player world window buffer.
@@ -241,7 +221,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 				vk::BufferCreateInfo(
 					vk::BufferCreateFlags(),
 					sizeof(PlayerWorldWindow),
-					vk::BufferUsageFlagBits::eStorageBuffer));
+					vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst));
 
 		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*player_world_window_buffer_.buffer);
 
@@ -251,10 +231,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
 		{
 			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags() &&
-				// TODO - avoid making host visible.
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible) != vk::MemoryPropertyFlags() &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent) != vk::MemoryPropertyFlags())
+				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
 			{
 				memory_allocate_info.memoryTypeIndex= i;
 				break;
@@ -263,13 +240,6 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 
 		player_world_window_buffer_.memory= vk_device_.allocateMemoryUnique(memory_allocate_info);
 		vk_device_.bindBufferMemory(*player_world_window_buffer_.buffer, *player_world_window_buffer_.memory, 0u);
-
-		// Fill the buffer with zeros to prevent later warnings.
-		// TODO - use "command_buffer.fillBuffer"
-		void* data_gpu_side= nullptr;
-		vk_device_.mapMemory(*player_world_window_buffer_.memory, 0u, memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &data_gpu_side);
-		std::memset(data_gpu_side, 0, sizeof(PlayerWorldWindow));
-		vk_device_.unmapMemory(*player_world_window_buffer_.memory);
 	}
 
 	// Create world generation shader.
@@ -898,6 +868,7 @@ void WorldProcessor::Update(
 	const bool build_triggered,
 	const bool destroy_triggered)
 {
+	InitialFillBuffers(command_buffer);
 	GenerateWorld(command_buffer);
 	UpdateWorldBlocks(command_buffer);
 	UpdateLight(command_buffer);
@@ -935,6 +906,69 @@ vk::Buffer WorldProcessor::GetPlayerStateBuffer() const
 WorldSizeChunks WorldProcessor::GetWorldSize() const
 {
 	return world_size_;
+}
+
+void WorldProcessor::InitialFillBuffers(const vk::CommandBuffer command_buffer)
+{
+	if(initial_buffers_filled_)
+		return;
+	initial_buffers_filled_= true;
+
+	for(uint32_t i= 0; i < 2; ++i)
+		command_buffer.fillBuffer(*light_buffers_[i].buffer, 0, light_buffer_size_, 0);
+
+	command_buffer.fillBuffer(*player_state_buffer_.buffer, 0, sizeof(PlayerState), 0);
+
+	command_buffer.fillBuffer(*world_blocks_external_update_queue_buffer_.buffer, 0, sizeof(WorldBlocksExternalUpdateQueue), 0);
+
+	command_buffer.fillBuffer(*player_world_window_buffer_.buffer, 0, sizeof(PlayerWorldWindow), 0);
+
+	const vk::BufferMemoryBarrier barriers[]
+	{
+		{
+			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			*light_buffers_[0].buffer,
+			0,
+			VK_WHOLE_SIZE,
+		},
+		{
+			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			*light_buffers_[1].buffer,
+			0,
+			VK_WHOLE_SIZE,
+		},
+		{
+			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			*player_state_buffer_.buffer,
+			0,
+			VK_WHOLE_SIZE,
+		},
+		{
+			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			*world_blocks_external_update_queue_buffer_.buffer,
+			0,
+			VK_WHOLE_SIZE,
+		},
+		{
+			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			*player_world_window_buffer_.buffer,
+			0,
+			VK_WHOLE_SIZE,
+		},
+	};
+
+	command_buffer.pipelineBarrier(
+		vk::PipelineStageFlagBits::eTransfer,
+		vk::PipelineStageFlagBits::eComputeShader,
+		vk::DependencyFlags(),
+		0, nullptr,
+		uint32_t(std::size(barriers)), barriers,
+		0, nullptr);
 }
 
 void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
@@ -992,28 +1026,6 @@ void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
 
 		command_buffer.pipelineBarrier(
 			vk::PipelineStageFlagBits::eComputeShader,
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::DependencyFlags(),
-			0, nullptr,
-			1, &barrier,
-			0, nullptr);
-	}
-
-	// Fill light buffer with zeros.
-	for(uint32_t i= 0; i < 2; ++i)
-	{
-		command_buffer.fillBuffer(*light_buffers_[i].buffer, 0, light_buffer_size_, 0);
-
-		// Add barrier between filling and performing light calculation.
-		const vk::BufferMemoryBarrier barrier(
-			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
-			queue_family_index_, queue_family_index_,
-			*light_buffers_[i].buffer,
-			0,
-			VK_WHOLE_SIZE);
-
-		command_buffer.pipelineBarrier(
-			vk::PipelineStageFlagBits::eTransfer,
 			vk::PipelineStageFlagBits::eComputeShader,
 			vk::DependencyFlags(),
 			0, nullptr,

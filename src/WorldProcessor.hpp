@@ -76,6 +76,7 @@ private:
 	};
 
 private:
+	void InitialFillBuffers(vk::CommandBuffer command_buffer);
 	void GenerateWorld(vk::CommandBuffer command_buffer);
 	void UpdateWorldBlocks(vk::CommandBuffer command_buffer);
 	void UpdateLight(vk::CommandBuffer command_buffer);
@@ -145,6 +146,7 @@ private:
 	vk::UniquePipeline world_blocks_external_update_queue_flush_pipeline_;
 	vk::DescriptorSet world_blocks_external_update_queue_flush_descriptor_set_;
 
+	bool initial_buffers_filled_= false;
 	bool world_generated_= false;
 };
 

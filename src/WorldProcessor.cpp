@@ -872,12 +872,10 @@ void WorldProcessor::Update(
 	InitialFillBuffers(command_buffer);
 	GenerateWorld(command_buffer);
 
-	UpdatePlayer(command_buffer, player_pos, player_dir, build_block_type, build_triggered, destroy_triggered);
-
 	const float prev_tick_time_s= prev_tick_time_s_;
 	prev_tick_time_s_+= time_delta_s;
 
-	const float c_update_frequency= 1.0f; // TODO - tune this.
+	const float c_update_frequency= 4.0f; // TODO - tune this.
 
 	const bool start_new_tick= uint32_t(prev_tick_time_s * c_update_frequency) < uint32_t(prev_tick_time_s_ * c_update_frequency);
 	if(start_new_tick)
@@ -891,6 +889,10 @@ void WorldProcessor::Update(
 		UpdateWorldBlocks(command_buffer);
 		UpdateLight(command_buffer);
 	}
+
+	// Run player update independent on world update - every frame.
+	// This is needed in order to make player movement and rotation smooth.
+	UpdatePlayer(command_buffer, player_pos, player_dir, build_block_type, build_triggered, destroy_triggered);
 }
 
 vk::Buffer WorldProcessor::GetChunkDataBuffer(const uint32_t index) const

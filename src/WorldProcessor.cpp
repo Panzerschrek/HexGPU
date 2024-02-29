@@ -107,7 +107,7 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 				vk::BufferCreateInfo(
 					vk::BufferCreateFlags(),
 					chunk_data_buffer_size_,
-					vk::BufferUsageFlagBits::eStorageBuffer));
+					vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst));
 
 		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*chunk_data_buffers_[i].buffer);
 

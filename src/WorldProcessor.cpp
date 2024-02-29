@@ -929,6 +929,10 @@ void WorldProcessor::InitialFillBuffers(const vk::CommandBuffer command_buffer)
 		return;
 	initial_buffers_filled_= true;
 
+	// Zero chunk data buffers in order to prevent bugs with uninitialized memory.
+	for(uint32_t i= 0; i < 2; ++i)
+		command_buffer.fillBuffer(*chunk_data_buffers_[i].buffer, 0, chunk_data_buffer_size_, 0);
+
 	for(uint32_t i= 0; i < 2; ++i)
 		command_buffer.fillBuffer(*light_buffers_[i].buffer, 0, light_buffer_size_, 0);
 
@@ -940,6 +944,20 @@ void WorldProcessor::InitialFillBuffers(const vk::CommandBuffer command_buffer)
 
 	const vk::BufferMemoryBarrier barriers[]
 	{
+		{
+			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			*chunk_data_buffers_[0].buffer,
+			0,
+			VK_WHOLE_SIZE,
+		},
+		{
+			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			*chunk_data_buffers_[1].buffer,
+			0,
+			VK_WHOLE_SIZE,
+		},
 		{
 			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,

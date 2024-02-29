@@ -877,18 +877,19 @@ void WorldProcessor::Update(
 	const float prev_tick_time_s= prev_tick_time_s_;
 	prev_tick_time_s_+= time_delta_s;
 
-	const bool start_new_tick= uint32_t(prev_tick_time_s) < uint32_t(prev_tick_time_s_);
+	const float c_update_frequency= 1.0f; // TODO - tune this.
+
+	const bool start_new_tick= uint32_t(prev_tick_time_s * c_update_frequency) < uint32_t(prev_tick_time_s_ * c_update_frequency);
 	if(start_new_tick)
 	{
-		UpdateWorldBlocks(command_buffer);
-		UpdateLight(command_buffer);
-
 		FlushWorldBlocksExternalUpdateQueue(command_buffer);
 
 		++current_tick_;
 
 		BuildPlayerWorldWindow(command_buffer, player_pos);
 
+		UpdateWorldBlocks(command_buffer);
+		UpdateLight(command_buffer);
 	}
 }
 
@@ -1010,8 +1011,7 @@ void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
 		return;
 	world_generated_= true;
 
-	// Use current dst buffer to generate world.
-	const uint32_t dst_buffer_index= GetSrcBufferIndex(); // Use src buffer for first world generation.
+	const uint32_t dst_buffer_index= GetDstBufferIndex();
 
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_gen_pipeline_);
 

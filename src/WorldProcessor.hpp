@@ -16,20 +16,23 @@ public:
 
 	void Update(
 		vk::CommandBuffer command_buffer,
+		float time_delta_s,
 		const m_Vec3& player_pos,
 		const m_Vec3& player_dir,
 		BlockType build_block_type,
 		bool build_triggered,
 		bool destroy_triggered);
 
-	vk::Buffer GetChunkDataBuffer() const;
+	vk::Buffer GetChunkDataBuffer(uint32_t index) const;
 	uint32_t GetChunkDataBufferSize() const;
-	vk::Buffer GetLightDataBuffer() const;
+	vk::Buffer GetLightDataBuffer(uint32_t index) const;
 	uint32_t GetLightDataBufferSize() const;
 
 	vk::Buffer GetPlayerStateBuffer() const;
 
 	WorldSizeChunks GetWorldSize() const;
+
+	uint32_t GetActualBuffersIndex() const;
 
 public:
 	// This struct must be identical to the same struct in GLSL code!
@@ -78,8 +81,10 @@ private:
 private:
 	void InitialFillBuffers(vk::CommandBuffer command_buffer);
 	void GenerateWorld(vk::CommandBuffer command_buffer);
+	void BuildCurrentFrameChunksToUpdateList(float prev_offset_within_tick, float cur_offset_within_tick);
 	void UpdateWorldBlocks(vk::CommandBuffer command_buffer);
 	void UpdateLight(vk::CommandBuffer command_buffer);
+	void CreateWorldBlocksAndLightUpdateBarrier(vk::CommandBuffer command_buffer);
 	void BuildPlayerWorldWindow(vk::CommandBuffer command_buffer, const m_Vec3& player_pos);
 	void UpdatePlayer(
 		vk::CommandBuffer command_buffer,
@@ -89,6 +94,9 @@ private:
 		bool build_triggered,
 		bool destroy_triggered);
 	void FlushWorldBlocksExternalUpdateQueue(vk::CommandBuffer command_buffer);
+
+	uint32_t GetSrcBufferIndex() const;
+	uint32_t GetDstBufferIndex() const;
 
 private:
 	const vk::Device vk_device_;
@@ -114,7 +122,7 @@ private:
 	vk::UniqueDescriptorSetLayout world_gen_decriptor_set_layout_;
 	vk::UniquePipelineLayout world_gen_pipeline_layout_;
 	vk::UniquePipeline world_gen_pipeline_;
-	vk::DescriptorSet world_gen_descriptor_set_;
+	vk::DescriptorSet world_gen_descriptor_sets_[2];
 
 	vk::UniqueShaderModule world_blocks_update_shader_;
 	vk::UniqueDescriptorSetLayout world_blocks_update_decriptor_set_layout_;
@@ -132,7 +140,7 @@ private:
 	vk::UniqueDescriptorSetLayout player_world_window_build_decriptor_set_layout_;
 	vk::UniquePipelineLayout player_world_window_build_pipeline_layout_;
 	vk::UniquePipeline player_world_window_build_pipeline_;
-	vk::DescriptorSet player_world_window_build_descriptor_set_;
+	vk::DescriptorSet player_world_window_build_descriptor_sets_[2];
 
 	vk::UniqueShaderModule player_update_shader_;
 	vk::UniqueDescriptorSetLayout player_update_decriptor_set_layout_;
@@ -144,10 +152,15 @@ private:
 	vk::UniqueDescriptorSetLayout world_blocks_external_update_queue_flush_decriptor_set_layout_;
 	vk::UniquePipelineLayout world_blocks_external_update_queue_flush_pipeline_layout_;
 	vk::UniquePipeline world_blocks_external_update_queue_flush_pipeline_;
-	vk::DescriptorSet world_blocks_external_update_queue_flush_descriptor_set_;
+	vk::DescriptorSet world_blocks_external_update_queue_flush_descriptor_sets_[2];
 
 	bool initial_buffers_filled_= false;
 	bool world_generated_= false;
+
+	uint32_t current_tick_= 0;
+	float current_tick_fractional_= 0.0f;
+	// Update this list each frame.
+	std::vector<std::array<uint32_t, 2>> current_frame_chunks_to_update_list_;
 };
 
 } // namespace HexGPU

@@ -5,7 +5,6 @@ The order represents importance and/or dependency.
 * Textures with scale based on block type/side
 * Textures without cross-block repetition (with zeroing at each block)
 * Flowing water
-* Fixed world update speed (like 15 ticks/secodns)
 * Improved textures loading - use smaller staging buffer and free it at the end of the loading process
 * Biome-based world generation
 * Trees generation

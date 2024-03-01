@@ -8,6 +8,7 @@
 #include "inc/hex_funcs.glsl"
 #include "inc/player_world_window.glsl"
 #include "inc/matrix.glsl"
+#include "inc/mouse.glsl"
 #include "inc/world_blocks_external_update_queue.glsl"
 
 // This struct must be identical to the same struct in C++ code!
@@ -36,11 +37,9 @@ layout(push_constant) uniform uniforms_block
 	vec4 player_pos;
 	vec4 player_angles; // azimuth, elevation, aspect
 	ivec2 world_size_chunks;
+	uint mouse_state;
 	// Use "uint8_t", because "bool" in GLSL has size different from C++.
 	uint8_t build_block_type;
-	uint8_t build_triggered;
-	uint8_t destroy_triggered;
-	uint8_t reserved[1];
 };
 
 uint8_t GetBuildDirection(ivec3 last_grid_pos, ivec3 grid_pos)
@@ -202,7 +201,7 @@ void main()
 
 	// Perform building/destroying.
 	// Update build pos if building/destroying was triggered.
-	if(build_triggered != uint8_t(0))
+	if((mouse_state & (1 << c_mouse_r_clicked_bit)) != 0)
 	{
 		ivec3 pos_in_window= build_pos.xyz - player_world_window.offset.xyz;
 		if(IsPosInsidePlayerWorldWindow(pos_in_window))
@@ -219,7 +218,7 @@ void main()
 			UpdateBuildPos();
 		}
 	}
-	if(destroy_triggered != uint8_t(0))
+	if((mouse_state & (1 << c_mouse_l_clicked_bit)) != 0)
 	{
 		ivec3 pos_in_window= destroy_pos.xyz - player_world_window.offset.xyz;
 		if(IsPosInsidePlayerWorldWindow(pos_in_window))

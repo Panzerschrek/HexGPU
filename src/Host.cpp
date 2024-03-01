@@ -40,7 +40,7 @@ bool Host::Loop()
 
 	const float dt_s= float(dt.count()) * float(Clock::duration::period::num) / float(Clock::duration::period::den);
 
-	bool build_triggered= false, destroy_triggered= false;
+	MouseState mouse_state= 0;
 	for( const SDL_Event& event : system_window_.ProcessEvents() )
 	{
 		if(event.type == SDL_QUIT)
@@ -50,9 +50,9 @@ bool Host::Loop()
 		if(event.type == SDL_MOUSEBUTTONDOWN)
 		{
 			if(event.button.button == SDL_BUTTON_LEFT)
-				destroy_triggered= true;
+				mouse_state|= 1 << c_mouse_l_clicked_bit;
 			if(event.button.button == SDL_BUTTON_RIGHT)
-				build_triggered= true;
+				mouse_state|= 1 << c_mouse_r_clicled_bit;
 		}
 		if(event.type == SDL_MOUSEWHEEL)
 		{
@@ -80,8 +80,7 @@ bool Host::Loop()
 		camera_controller_.GetCameraPosition(),
 		camera_controller_.GetCameraAngles(),
 		build_block_type_,
-		build_triggered,
-		destroy_triggered,
+		mouse_state,
 		CalculateAspect(window_vulkan_.GetViewportSize()));
 
 	world_renderer_.PrepareFrame(command_buffer);

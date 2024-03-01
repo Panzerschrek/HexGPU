@@ -1,5 +1,6 @@
 #pragma once
 #include "BlockType.hpp"
+#include "Mouse.hpp"
 #include "Vec.hpp"
 #include "WindowVulkan.hpp"
 
@@ -21,8 +22,7 @@ public:
 		const m_Vec3& player_pos,
 		const m_Vec2& player_angles,
 		BlockType build_block_type,
-		bool build_triggered,
-		bool destroy_triggered,
+		MouseState mouse_state,
 		float aspect);
 
 	vk::Buffer GetChunkDataBuffer(uint32_t index) const;
@@ -95,8 +95,7 @@ private:
 		const m_Vec3& player_pos,
 		const m_Vec2& player_angles,
 		BlockType build_block_type,
-		bool build_triggered,
-		bool destroy_triggered,
+		MouseState mouse_state,
 		float aspect);
 	void FlushWorldBlocksExternalUpdateQueue(vk::CommandBuffer command_buffer);
 

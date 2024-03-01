@@ -215,6 +215,15 @@ mat4 MateTranslateMatrix(vec3 shift)
 	return m;
 }
 
+mat4 MakeScaleMatrix(vec3 scale)
+{
+	mat4 m= mat4(1.0); // identity
+	m[0][0]= scale.x;
+	m[1][1]= scale.y;
+	m[2][2]= scale.z;
+	return m;
+}
+
 void UpdateBlocksMatrix()
 {
 	const float z_near= 0.125;
@@ -229,8 +238,9 @@ void UpdateBlocksMatrix()
 	mat4 perspective= MakePerspectiveProjectionMatrix(aspect, fov, z_near, z_far);
 	mat4 basis_change= MakePerspectiveChangeBasisMatrix();
 	mat4 translate= MateTranslateMatrix(-player_pos.xyz);
+	mat4 blocks_scale= MakeScaleMatrix(vec3(0.5 / sqrt(3.0), 0.5, 1.0));
 
-	blocks_matrix= perspective * basis_change * translate;
+	blocks_matrix= perspective * basis_change * translate * blocks_scale;
 }
 
 void main()

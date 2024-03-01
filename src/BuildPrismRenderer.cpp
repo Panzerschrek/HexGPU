@@ -11,7 +11,7 @@ namespace HexGPU
 namespace
 {
 
-struct Uniforms
+struct DrawUniforms
 {
 	float view_matrix[16]{};
 	int32_t build_pos[4]{}; // component 3 - direction.
@@ -129,7 +129,7 @@ BuildPrismRenderer::BuildPrismRenderer(
 			vk_device_.createBufferUnique(
 				vk::BufferCreateInfo(
 					vk::BufferCreateFlags(),
-					sizeof(Uniforms),
+					sizeof(DrawUniforms),
 					vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst));
 
 		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*uniform_buffer_);
@@ -336,7 +336,7 @@ BuildPrismRenderer::BuildPrismRenderer(
 		const vk::DescriptorBufferInfo descriptor_uniform_buffer_info(
 			*uniform_buffer_,
 			0u,
-			sizeof(Uniforms));
+			sizeof(DrawUniforms));
 
 		vk_device_.updateDescriptorSets(
 			{
@@ -367,7 +367,7 @@ void BuildPrismRenderer::PrepareFrame(const vk::CommandBuffer command_buffer, co
 	{
 		const vk::BufferCopy copy_region(
 			offsetof(WorldProcessor::PlayerState, build_pos),
-			offsetof(Uniforms, build_pos),
+			offsetof(DrawUniforms, build_pos),
 			sizeof(int32_t) * 4);
 
 		command_buffer.copyBuffer(
@@ -384,7 +384,7 @@ void BuildPrismRenderer::PrepareFrame(const vk::CommandBuffer command_buffer, co
 
 	command_buffer.updateBuffer(
 		*uniform_buffer_,
-		offsetof(Uniforms, view_matrix),
+		offsetof(DrawUniforms, view_matrix),
 		sizeof(final_mat),
 		static_cast<const void*>(&final_mat));
 

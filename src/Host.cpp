@@ -84,13 +84,13 @@ bool Host::Loop()
 		build_triggered,
 		destroy_triggered);
 
-	world_renderer_.PrepareFrame(command_buffer);
+	world_renderer_.PrepareFrame(command_buffer, view_matrix);
 	build_prism_renderer_.PrepareFrame(command_buffer, view_matrix);
 
 	window_vulkan_.EndFrame(
 		[&](const vk::CommandBuffer command_buffer)
 		{
-			world_renderer_.Draw(command_buffer, view_matrix);
+			world_renderer_.Draw(command_buffer);
 			build_prism_renderer_.Draw(command_buffer);
 		});
 

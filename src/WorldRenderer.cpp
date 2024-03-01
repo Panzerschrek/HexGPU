@@ -21,9 +21,22 @@ const uint32_t draw_indirect_buffer= 1;
 
 }
 
+namespace DrawShaderBindings
+{
+
+const uint32_t uniform_buffer= 0;
+const uint32_t sampler= 1;
+
+}
+
 struct DrawIndirectBufferBuildUniforms
 {
 	int32_t world_size_chunks[2];
+};
+
+struct DrawUniforms
+{
+	float view_matrix[16]{};
 };
 
 // Returns indeces for quads with size - maximum uint16_t vertex index.
@@ -91,6 +104,34 @@ WorldRenderer::WorldRenderer(
 
 		draw_indirect_buffer_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);
 		vk_device_.bindBufferMemory(*draw_indirect_buffer_, *draw_indirect_buffer_memory_, 0u);
+	}
+
+	// Create uniform buffer.
+	{
+		uniform_buffer_=
+			vk_device_.createBufferUnique(
+				vk::BufferCreateInfo(
+					vk::BufferCreateFlags(),
+					sizeof(DrawUniforms),
+					vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst));
+
+		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*uniform_buffer_);
+
+		const auto memory_properties= window_vulkan.GetMemoryProperties();
+
+		vk::MemoryAllocateInfo memory_allocate_info(buffer_memory_requirements.size);
+		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
+		{
+			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
+				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
+			{
+				memory_allocate_info.memoryTypeIndex= i;
+				break;
+			}
+		}
+
+		uniform_buffer_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);
+		vk_device_.bindBufferMemory(*uniform_buffer_, *uniform_buffer_memory_, 0u);
 	}
 
 	// Create shaders.
@@ -220,7 +261,13 @@ WorldRenderer::WorldRenderer(
 	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
 	{
 		{
+			DrawShaderBindings::uniform_buffer,
+			vk::DescriptorType::eUniformBuffer,
 			1u,
+			vk::ShaderStageFlagBits::eVertex,
+		},
+		{
+			DrawShaderBindings::sampler,
 			vk::DescriptorType::eCombinedImageSampler,
 			1u,
 			vk::ShaderStageFlagBits::eFragment,
@@ -235,19 +282,12 @@ WorldRenderer::WorldRenderer(
 				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
 
 	// Create pipeline layout
-	{
-		const vk::PushConstantRange push_constant_range(
-			vk::ShaderStageFlagBits::eVertex,
-			0u,
-			sizeof(m_Mat4));
-
-		pipeline_layout_=
-			vk_device_.createPipelineLayoutUnique(
-				vk::PipelineLayoutCreateInfo(
-					vk::PipelineLayoutCreateFlags(),
-					1u, &*decriptor_set_layout_,
-					1u, &push_constant_range));
-	}
+	pipeline_layout_=
+		vk_device_.createPipelineLayoutUnique(
+			vk::PipelineLayoutCreateInfo(
+				vk::PipelineLayoutCreateFlags(),
+				1u, &*decriptor_set_layout_,
+				0u, nullptr));
 
 	// Create pipeline.
 
@@ -399,6 +439,11 @@ WorldRenderer::WorldRenderer(
 
 	// Update descriptor set.
 	{
+		const vk::DescriptorBufferInfo descriptor_uniform_buffer_info(
+			*uniform_buffer_,
+			0u,
+			sizeof(DrawUniforms));
+
 		const vk::DescriptorImageInfo descriptor_tex_info(
 			vk::Sampler(),
 			world_textures_manager_.GetImageView(),
@@ -408,7 +453,17 @@ WorldRenderer::WorldRenderer(
 			{
 				{
 					descriptor_set_,
+					DrawShaderBindings::uniform_buffer,
+					0u,
 					1u,
+					vk::DescriptorType::eUniformBuffer,
+					nullptr,
+					&descriptor_uniform_buffer_info,
+					nullptr
+				},
+				{
+					descriptor_set_,
+					DrawShaderBindings::sampler,
 					0u,
 					1u,
 					vk::DescriptorType::eCombinedImageSampler,
@@ -427,14 +482,43 @@ WorldRenderer::~WorldRenderer()
 	vk_device_.waitIdle();
 }
 
-void WorldRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
+void WorldRenderer::PrepareFrame(const vk::CommandBuffer command_buffer, const m_Mat4& view_matrix)
 {
 	world_textures_manager_.PrepareFrame(command_buffer);
 	geometry_generator_.Update(command_buffer);
 	BuildDrawIndirectBuffer(command_buffer);
+
+	const m_Vec3 scale_vec(0.5f / std::sqrt(3.0f), 0.5f, 1.0f );
+	m_Mat4 scale_mat;
+	scale_mat.Scale(scale_vec);
+	const m_Mat4 final_mat= scale_mat * view_matrix;
+
+	command_buffer.updateBuffer(
+		*uniform_buffer_,
+		offsetof(DrawUniforms, view_matrix),
+		sizeof(final_mat),
+		static_cast<const void*>(&final_mat));
+
+	// Add barrier between uniform buffer memory copy and result usage in shader.
+	{
+		const vk::BufferMemoryBarrier barrier(
+			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead,
+			queue_family_index_, queue_family_index_,
+			*uniform_buffer_,
+			0,
+			VK_WHOLE_SIZE);
+
+		command_buffer.pipelineBarrier(
+			vk::PipelineStageFlagBits::eTransfer,
+			vk::PipelineStageFlagBits::eVertexShader,
+			vk::DependencyFlags(),
+			0, nullptr,
+			1, &barrier,
+			0, nullptr);
+	}
 }
 
-void WorldRenderer::Draw(const vk::CommandBuffer command_buffer, const m_Mat4& view_matrix)
+void WorldRenderer::Draw(const vk::CommandBuffer command_buffer)
 {
 	const vk::Buffer vertex_buffer= geometry_generator_.GetVertexBuffer();
 
@@ -447,13 +531,6 @@ void WorldRenderer::Draw(const vk::CommandBuffer command_buffer, const m_Mat4& v
 		0u,
 		1u, &descriptor_set_,
 		0u, nullptr);
-
-	const m_Vec3 scale_vec(0.5f / std::sqrt(3.0f), 0.5f, 1.0f );
-	m_Mat4 scale_mat;
-	scale_mat.Scale(scale_vec);
-	const m_Mat4 final_mat= scale_mat * view_matrix;
-
-	command_buffer.pushConstants(*pipeline_layout_, vk::ShaderStageFlagBits::eVertex, 0, sizeof(view_matrix), &final_mat);
 
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline_);
 

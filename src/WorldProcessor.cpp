@@ -17,6 +17,14 @@ uint32_t chunk_data_buffer= 0;
 
 }
 
+namespace InitialLightFillShaderBindings
+{
+
+uint32_t chunk_data_buffer= 0;
+uint32_t light_data_buffer= 1;
+
+}
+
 namespace WorldBlocksUpdateShaderBindings
 {
 
@@ -313,6 +321,104 @@ WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::Descriptor
 					vk::DescriptorType::eStorageBuffer,
 					nullptr,
 					&descriptor_chunk_data_buffer_info,
+					nullptr
+				},
+			},
+			{});
+	}
+
+	// Create initial light fill shader.
+	initial_light_fill_shader_= CreateShader(vk_device_, ShaderNames::initial_light_fill_comp);
+
+	// Create initial light fill descriptor set layout.
+	{
+		const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
+		{
+			{
+				InitialLightFillShaderBindings::chunk_data_buffer,
+				vk::DescriptorType::eStorageBuffer,
+				1u,
+				vk::ShaderStageFlagBits::eCompute,
+				nullptr,
+			},
+			{
+				InitialLightFillShaderBindings::light_data_buffer,
+				vk::DescriptorType::eStorageBuffer,
+				1u,
+				vk::ShaderStageFlagBits::eCompute,
+				nullptr,
+			},
+		};
+		initial_light_fill_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
+			vk::DescriptorSetLayoutCreateInfo(
+				vk::DescriptorSetLayoutCreateFlags(),
+				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
+	}
+
+	// Create initial light fill pipeline layout.
+	{
+		const vk::PushConstantRange push_constant_range(
+			vk::ShaderStageFlagBits::eCompute,
+			0u,
+			sizeof(ChunkPositionUniforms));
+
+		initial_light_fill_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
+			vk::PipelineLayoutCreateInfo(
+				vk::PipelineLayoutCreateFlags(),
+				1u, &*initial_light_fill_decriptor_set_layout_,
+				1u, &push_constant_range));
+	}
+
+	// Create initial light fill pipeline.
+	initial_light_fill_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
+		nullptr,
+		vk::ComputePipelineCreateInfo(
+			vk::PipelineCreateFlags(),
+			vk::PipelineShaderStageCreateInfo(
+				vk::PipelineShaderStageCreateFlags(),
+				vk::ShaderStageFlagBits::eCompute,
+				*initial_light_fill_shader_,
+				"main"),
+			*initial_light_fill_pipeline_layout_)));
+
+	// Create and update initial light fill descriptor sets.
+	for(uint32_t i= 0; i < 2; ++i)
+	{
+		initial_light_fill_descriptor_sets_[i]= vk_device_.allocateDescriptorSets(
+			vk::DescriptorSetAllocateInfo(
+				global_descriptor_pool,
+				1u, &*initial_light_fill_decriptor_set_layout_)).front();
+
+		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
+			chunk_data_buffers_[i].buffer.get(),
+			0u,
+			chunk_data_buffer_size_);
+
+		const vk::DescriptorBufferInfo descriptor_light_data_buffer_info(
+			light_buffers_[i].buffer.get(),
+			0u,
+			light_buffer_size_);
+
+		vk_device_.updateDescriptorSets(
+			{
+				{
+					initial_light_fill_descriptor_sets_[i],
+					InitialLightFillShaderBindings::chunk_data_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_chunk_data_buffer_info,
+					nullptr
+				},
+				{
+					initial_light_fill_descriptor_sets_[i],
+					InitialLightFillShaderBindings::light_data_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_light_data_buffer_info,
 					nullptr
 				},
 			},
@@ -1096,7 +1202,63 @@ void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
 			0, nullptr);
 	}
 
-	// TODO - perform fast initial sky light propagation.
+	// Perform initial light fill.
+
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *initial_light_fill_pipeline_);
+
+	command_buffer.bindDescriptorSets(
+		vk::PipelineBindPoint::eCompute,
+		*initial_light_fill_pipeline_layout_,
+		0u,
+		1u, &initial_light_fill_descriptor_sets_[dst_buffer_index],
+		0u, nullptr);
+
+	for(uint32_t x= 0; x < world_size_[0]; ++x)
+	for(uint32_t y= 0; y < world_size_[1]; ++y)
+	{
+		ChunkPositionUniforms chunk_position_uniforms;
+		chunk_position_uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+		chunk_position_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+		chunk_position_uniforms.chunk_position[0]= int32_t(x);
+		chunk_position_uniforms.chunk_position[1]= int32_t(y);
+
+		command_buffer.pushConstants(
+			*initial_light_fill_pipeline_layout_,
+			vk::ShaderStageFlagBits::eCompute,
+			0,
+			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
+
+		// This constant should match workgroup size in shader!
+		constexpr uint32_t c_workgroup_size[]{8, 8, 1};
+		static_assert(c_chunk_width % c_workgroup_size[0] == 0, "Wrong workgroup size!");
+		static_assert(c_chunk_width % c_workgroup_size[1] == 0, "Wrong workgroup size!");
+		static_assert(c_chunk_height % c_workgroup_size[2] == 0, "Wrong workgroup size!");
+
+		// Dispatch only 2D group - perform light fill for columns.
+		command_buffer.dispatch(
+			c_chunk_width / c_workgroup_size[0],
+			c_chunk_width / c_workgroup_size[1],
+			1 / c_workgroup_size[2]);
+	}
+
+	// Create barrier between light buffer fill and its later usage.
+	// TODO - check this is correct.
+	{
+		const vk::BufferMemoryBarrier barrier(
+			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			*light_buffers_[dst_buffer_index].buffer,
+			0,
+			VK_WHOLE_SIZE);
+
+		command_buffer.pipelineBarrier(
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::DependencyFlags(),
+			0, nullptr,
+			1, &barrier,
+			0, nullptr);
+	}
 }
 
 void WorldProcessor::BuildCurrentFrameChunksToUpdateList(

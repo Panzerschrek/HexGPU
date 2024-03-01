@@ -71,6 +71,7 @@ WorldRenderer::WorldRenderer(
 	const vk::DescriptorPool global_descriptor_pool)
 	: vk_device_(window_vulkan.GetVulkanDevice())
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
+	, world_processor_(world_processor)
 	, world_size_(world_processor.GetWorldSize())
 	, geometry_generator_(window_vulkan, world_processor, global_descriptor_pool)
 	, world_textures_manager_(window_vulkan)
@@ -482,22 +483,24 @@ WorldRenderer::~WorldRenderer()
 	vk_device_.waitIdle();
 }
 
-void WorldRenderer::PrepareFrame(const vk::CommandBuffer command_buffer, const m_Mat4& view_matrix)
+void WorldRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
 {
 	world_textures_manager_.PrepareFrame(command_buffer);
 	geometry_generator_.Update(command_buffer);
 	BuildDrawIndirectBuffer(command_buffer);
 
-	const m_Vec3 scale_vec(0.5f / std::sqrt(3.0f), 0.5f, 1.0f );
-	m_Mat4 scale_mat;
-	scale_mat.Scale(scale_vec);
-	const m_Mat4 final_mat= scale_mat * view_matrix;
+	// Copy view matrix.
+	{
+		const vk::BufferCopy copy_region(
+			offsetof(WorldProcessor::PlayerState, blocks_matrix),
+			offsetof(DrawUniforms, view_matrix),
+			sizeof(float) * 16);
 
-	command_buffer.updateBuffer(
-		*uniform_buffer_,
-		offsetof(DrawUniforms, view_matrix),
-		sizeof(final_mat),
-		static_cast<const void*>(&final_mat));
+		command_buffer.copyBuffer(
+			world_processor_.GetPlayerStateBuffer(),
+			*uniform_buffer_,
+			1u, &copy_region);
+	}
 
 	// Add barrier between uniform buffer memory copy and result usage in shader.
 	{

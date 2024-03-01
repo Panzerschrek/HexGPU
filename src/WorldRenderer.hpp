@@ -16,7 +16,7 @@ public:
 
 	~WorldRenderer();
 
-	void PrepareFrame(vk::CommandBuffer command_buffer, const m_Mat4& view_matrix);
+	void PrepareFrame(vk::CommandBuffer command_buffer);
 	void Draw(vk::CommandBuffer command_buffer);
 
 private:
@@ -25,6 +25,7 @@ private:
 private:
 	const vk::Device vk_device_;
 	const uint32_t queue_family_index_;
+	const WorldProcessor& world_processor_;
 
 	const WorldSizeChunks world_size_;
 

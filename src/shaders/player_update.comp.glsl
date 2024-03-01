@@ -12,6 +12,7 @@
 // This struct must be identical to the same struct in C++ code!
 layout(binding= 1, std430) buffer player_state_buffer
 {
+	mat4 blocks_matrix;
 	// Use vec4 for proper padding
 	// positions are global
 	ivec4 build_pos; // .w - direction
@@ -173,6 +174,65 @@ void PushUpdateIntoQueue(WorldBlockExternalUpdate update)
 	}
 }
 
+mat4 MakePerspectiveProjectionMatrix(float aspect, float fov_y, float z_near, const float z_far)
+{
+	const float inv_half_fov_tan= 1.0 / tan(fov_y * 0.5);
+
+	mat4 m= mat4(0.0);
+
+	m[0][0]= inv_half_fov_tan / aspect;
+	m[1][1]= inv_half_fov_tan;
+
+	// Vulkan depth range [0; 1]
+	m[3][2]= 1.0 / (1.0 / z_far - 1.0 / z_near);
+	m[2][2]= 1.0 / (1.0 - z_near / z_far);
+	m[2][3]= 1.0;
+
+	m[0][1]= m[0][2]= m[0][3]= 0.0;
+	m[1][0]= m[1][2]= m[1][3]= 0.0;
+	m[2][0]= m[2][1]= 0.0;
+	m[3][0]= m[3][1]= m[3][3]= 0.0;
+
+	return m;
+}
+
+mat4 MakePerspectiveChangeBasisMatrix()
+{
+	mat4 m= mat4(1.0); // identity.
+	m[1][1]= 0.0;
+	m[1][2]= 1.0;
+	m[2][1]= -1.0;
+	m[2][2]= 0.0;
+	return m;
+}
+
+mat4 MateTranslateMatrix(vec3 shift)
+{
+	mat4 m= mat4(1.0); // identity.
+	m[3][0]= shift.x;
+	m[3][1]= shift.y;
+	m[3][2]= shift.z;
+	return m;
+}
+
+void UpdateBlocksMatrix()
+{
+	const float z_near= 0.125;
+	const float z_far= 1024.0;
+	const float fov_deg= 75.0;
+
+	const float fov= fov_deg * (3.1415926535 / 180.0);
+
+	float aspect= 1.0;
+	float fov_y= fov;
+
+	mat4 perspective= MakePerspectiveProjectionMatrix(aspect, fov, z_near, z_far);
+	mat4 basis_change= MakePerspectiveChangeBasisMatrix();
+	mat4 translate= MateTranslateMatrix(-player_pos.xyz);
+
+	blocks_matrix= perspective * basis_change * translate;
+}
+
 void main()
 {
 	UpdateBuildPos();
@@ -213,4 +273,6 @@ void main()
 			UpdateBuildPos();
 		}
 	}
+
+	UpdateBlocksMatrix();
 }

@@ -1,6 +1,7 @@
 #include "WorldProcessor.hpp"
 #include "Assert.hpp"
 #include "Constants.hpp"
+#include "Log.hpp"
 #include "ShaderList.hpp"
 #include "VulkanUtils.hpp"
 
@@ -99,12 +100,28 @@ struct WorldBlocksExternalUpdateQueueFlushUniforms
 	int32_t world_size_chunks[2]{0, 0};
 };
 
+WorldSizeChunks ReadWorldSize(Settings& settings)
+{
+	const int32_t world_size_x= std::max(2, std::min(int32_t(settings.GetInt("g_world_size_x", 8)), 32));
+	const int32_t world_size_y= std::max(2, std::min(int32_t(settings.GetInt("g_world_size_y", 8)), 32));
+
+	settings.SetInt("g_world_size_x", world_size_x);
+	settings.SetInt("g_world_size_y", world_size_y);
+
+	Log::Info("World size is ", world_size_x, "x", world_size_y, " chunks");
+
+	return WorldSizeChunks{uint32_t(world_size_x), uint32_t(world_size_y)};
+}
+
 } // namespace
 
-WorldProcessor::WorldProcessor(WindowVulkan& window_vulkan, const vk::DescriptorPool global_descriptor_pool)
+WorldProcessor::WorldProcessor(
+	WindowVulkan& window_vulkan,
+	const vk::DescriptorPool global_descriptor_pool,
+	Settings& settings)
 	: vk_device_(window_vulkan.GetVulkanDevice())
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
-	, world_size_{8u, 8u}
+	, world_size_(ReadWorldSize(settings))
 {
 	// Create chunk data buffers.
 	chunk_data_buffer_size_= c_chunk_volume * world_size_[0] * world_size_[1];

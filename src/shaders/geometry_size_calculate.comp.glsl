@@ -42,17 +42,17 @@ void main()
 	int block_y= (chunk_position.y << c_chunk_width_log2) + int(invocation.y);
 	int z= int(invocation.z);
 
-	ivec2 max_global_coord= GetMaxGlobalCoord(world_size_chunks);
+	ivec2 max_world_coord= GetMaxWorldCoord(world_size_chunks);
 
-	int east_x_clamped= min(block_x + 1, max_global_coord.x);
+	int east_x_clamped= min(block_x + 1, max_world_coord.x);
 	int east_y_base= block_y + ((block_x + 1) & 1);
 
 	// TODO - optimize this. Reuse calculations in the same chunk.
 	int block_address= GetBlockFullAddress(ivec3(block_x, block_y, z), world_size_chunks);
 	int block_address_up= GetBlockFullAddress(ivec3(block_x, block_y, min(z + 1, c_chunk_height - 1)), world_size_chunks);
-	int block_address_north= GetBlockFullAddress(ivec3(block_x, min(block_y + 1, max_global_coord.y), z), world_size_chunks);
-	int block_address_north_east= GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(east_y_base - 0, max_global_coord.y)), z), world_size_chunks);
-	int block_address_south_east= GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(east_y_base - 1, max_global_coord.y)), z), world_size_chunks);
+	int block_address_north= GetBlockFullAddress(ivec3(block_x, min(block_y + 1, max_world_coord.y), z), world_size_chunks);
+	int block_address_north_east= GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(east_y_base - 0, max_world_coord.y)), z), world_size_chunks);
+	int block_address_south_east= GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(east_y_base - 1, max_world_coord.y)), z), world_size_chunks);
 
 	uint8_t block_value= chunks_data[block_address];
 	uint8_t block_value_up= chunks_data[block_address_up];

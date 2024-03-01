@@ -13,7 +13,8 @@ namespace
 
 struct Uniforms
 {
-	int32_t build_pos[4]; // component 3 - direction.
+	float view_matrix[16]{};
+	int32_t build_pos[4]{}; // component 3 - direction.
 };
 
 struct BuildPrismVertex
@@ -212,20 +213,13 @@ BuildPrismRenderer::BuildPrismRenderer(
 					uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
 	}
 
-	const vk::PushConstantRange push_constant_range(
-		vk::ShaderStageFlagBits::eVertex,
-		0u,
-		sizeof(m_Mat4));
-
 	// Create pipeline layout
 	pipeline_layout_=
 		vk_device_.createPipelineLayoutUnique(
 			vk::PipelineLayoutCreateInfo(
 				vk::PipelineLayoutCreateFlags(),
-				1u,
-				&*decriptor_set_layout_,
-				1u,
-				&push_constant_range));
+				1u, &*decriptor_set_layout_,
+				0u, nullptr));
 
 	// Create pipeline.
 	{
@@ -416,7 +410,11 @@ void BuildPrismRenderer::Draw(const vk::CommandBuffer command_buffer, const m_Ma
 	scale_mat.Scale(scale_vec);
 	const m_Mat4 final_mat= scale_mat * view_matrix;
 
-	command_buffer.pushConstants(*pipeline_layout_, vk::ShaderStageFlagBits::eVertex, 0, sizeof(view_matrix), &final_mat);
+	command_buffer.updateBuffer(
+		*uniform_buffer_,
+		offsetof(Uniforms, view_matrix),
+		sizeof(final_mat),
+		static_cast<const void*>(&final_mat));
 
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline_);
 

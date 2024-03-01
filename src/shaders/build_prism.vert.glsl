@@ -1,12 +1,8 @@
 #version 450
 
-layout(push_constant) uniform uniforms_block
-{
-	mat4 view_matrix;
-};
-
 layout(binding= 0) uniform uniforms_block_variable
 {
+	mat4 view_matrix;
 	ivec4 build_pos; // w - direction
 };
 

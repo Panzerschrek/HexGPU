@@ -79,7 +79,7 @@ bool Host::Loop()
 		command_buffer,
 		dt_s,
 		camera_controller_.GetCameraPosition(),
-		camera_controller_.GetCameraDirection(),
+		camera_controller_.GetCameraAngles(),
 		build_block_type_,
 		build_triggered,
 		destroy_triggered);

@@ -113,4 +113,9 @@ m_Vec3 CameraController::GetCameraDirection() const
 	return m_Vec3(-std::sin(azimuth_) * elevation_cos, +std::cos(azimuth_) * elevation_cos, elevation_sin);
 }
 
+m_Vec2 CameraController::GetCameraAngles() const
+{
+	return m_Vec2(azimuth_, elevation_);
+}
+
 } // namespace HexGPU

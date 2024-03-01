@@ -19,7 +19,7 @@ public:
 		vk::CommandBuffer command_buffer,
 		float time_delta_s,
 		const m_Vec3& player_pos,
-		const m_Vec3& player_dir,
+		const m_Vec2& player_angles,
 		BlockType build_block_type,
 		bool build_triggered,
 		bool destroy_triggered);
@@ -92,7 +92,7 @@ private:
 	void UpdatePlayer(
 		vk::CommandBuffer command_buffer,
 		const m_Vec3& player_pos,
-		const m_Vec3& player_dir,
+		const m_Vec2& player_angles,
 		BlockType build_block_type,
 		bool build_triggered,
 		bool destroy_triggered);

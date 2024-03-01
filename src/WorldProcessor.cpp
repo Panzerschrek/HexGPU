@@ -88,8 +88,8 @@ struct PlayerUpdateUniforms
 {
 	m_Vec3 player_pos;
 	float reserved0= 0.0f;
-	m_Vec3 player_dir;
-	float reserved1= 0.0f;
+	m_Vec2 player_angles{};
+	float reserved1[2]{};
 	int32_t world_size_chunks[2]{0, 0};
 	BlockType build_block_type= BlockType::Stone;
 	bool build_triggered= false;
@@ -991,7 +991,7 @@ void WorldProcessor::Update(
 	const vk::CommandBuffer command_buffer,
 	const float time_delta_s,
 	const m_Vec3& player_pos,
-	const m_Vec3& player_dir,
+	const m_Vec2& player_angles,
 	const BlockType build_block_type,
 	const bool build_triggered,
 	const bool destroy_triggered)
@@ -1038,7 +1038,7 @@ void WorldProcessor::Update(
 
 	// Run player update independent on world update - every frame.
 	// This is needed in order to make player movement and rotation smooth.
-	UpdatePlayer(command_buffer, player_pos, player_dir, build_block_type, build_triggered, destroy_triggered);
+	UpdatePlayer(command_buffer, player_pos, player_angles, build_block_type, build_triggered, destroy_triggered);
 }
 
 vk::Buffer WorldProcessor::GetChunkDataBuffer(const uint32_t index) const
@@ -1492,7 +1492,7 @@ void WorldProcessor::BuildPlayerWorldWindow(const vk::CommandBuffer command_buff
 void WorldProcessor::UpdatePlayer(
 	const vk::CommandBuffer command_buffer,
 	const m_Vec3& player_pos,
-	const m_Vec3& player_dir,
+	const m_Vec2& player_angles,
 	const BlockType build_block_type,
 	const bool build_triggered,
 	const bool destroy_triggered)
@@ -1508,7 +1508,7 @@ void WorldProcessor::UpdatePlayer(
 
 	PlayerUpdateUniforms player_update_uniforms;
 	player_update_uniforms.player_pos= player_pos;
-	player_update_uniforms.player_dir= player_dir;
+	player_update_uniforms.player_angles= player_angles;
 	player_update_uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
 	player_update_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
 	player_update_uniforms.build_block_type= build_block_type;

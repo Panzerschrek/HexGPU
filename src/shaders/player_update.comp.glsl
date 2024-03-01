@@ -33,7 +33,7 @@ layout(push_constant) uniform uniforms_block
 {
 	// Use vec4 for proper padding
 	vec4 player_pos;
-	vec4 player_dir;
+	vec4 player_angles; // azimuth, elevation
 	ivec2 world_size_chunks;
 	// Use "uint8_t", because "bool" in GLSL has size different from C++.
 	uint8_t build_block_type;
@@ -115,6 +115,15 @@ uint8_t GetBuildDirection(ivec3 last_grid_pos, ivec3 grid_pos)
 	}
 }
 
+// Result vector is normalized.
+vec3 CalculateCameraDirection(vec2 angles)
+{
+	float elevation_sin= sin(angles.y);
+	float elevation_cos= cos(angles.y);
+
+	return vec3(-sin(angles.x) * elevation_cos, +cos(angles.x) * elevation_cos, elevation_sin);
+}
+
 void UpdateBuildPos()
 {
 	// For now just trace hex grid with fixed step to find nearest intersection.
@@ -122,16 +131,7 @@ void UpdateBuildPos()
 	const float c_build_radius= 5.0;
 	const int c_num_steps= 64;
 
-	float player_dir_len= length(player_dir);
-	if(player_dir_len <= 0.0)
-	{
-		// Something went wrong.
-		build_pos= ivec4(-1, -1, -1, 0);
-		destroy_pos= ivec4(-1, -1, -1, 0);
-		return;
-	}
-
-	vec3 player_dir_normalized= player_dir.xyz / player_dir_len;
+	vec3 player_dir_normalized= CalculateCameraDirection(player_angles.xy);
 	vec3 cur_pos= player_pos.xyz;
 	vec3 step_vec= player_dir_normalized * (c_build_radius / float(c_num_steps));
 
@@ -224,6 +224,48 @@ mat4 MakeScaleMatrix(vec3 scale)
 	return m;
 }
 
+mat4 MakeRotationXMatrix(float angle)
+{
+	float s= sin(angle);
+	float c= cos(angle);
+
+	mat4 m;
+
+	m[1][1]= c;
+	m[2][1]= -s;
+	m[1][2]= s;
+	m[2][2]= c;
+
+	m[0][0]= m[3][3]= 1.0;
+	m[0][1]= m[0][2]= m[0][3]= 0.0;
+	m[1][0]= m[1][3]= 0.0;
+	m[2][0]= m[2][3]= 0.0;
+	m[3][0]= m[3][1]= m[3][2]= 0.0;
+
+	return m;
+}
+
+mat4 MakeRotationZMatrix(float angle)
+{
+	float s= sin(angle);
+	float c= cos(angle);
+
+	mat4 m;
+
+	m[0][0]= c;
+	m[1][0]= -s;
+	m[0][1]= s;
+	m[1][1]= c;
+
+	m[2][2]= m[3][3]= 1.0;
+	m[0][2]= m[0][3]= 0.0;
+	m[1][2]= m[1][3]= 0.0;
+	m[2][0]= m[2][1]= m[2][3]= 0.0;
+	m[3][0]= m[3][1]= m[3][2]= 0.0;
+
+	return m;
+}
+
 void UpdateBlocksMatrix()
 {
 	const float z_near= 0.125;
@@ -237,10 +279,12 @@ void UpdateBlocksMatrix()
 
 	mat4 perspective= MakePerspectiveProjectionMatrix(aspect, fov, z_near, z_far);
 	mat4 basis_change= MakePerspectiveChangeBasisMatrix();
+	mat4 rotate_x= MakeRotationXMatrix(-player_angles.y);
+	mat4 rotate_z= MakeRotationZMatrix(-player_angles.x);
 	mat4 translate= MateTranslateMatrix(-player_pos.xyz);
 	mat4 blocks_scale= MakeScaleMatrix(vec3(0.5 / sqrt(3.0), 0.5, 1.0));
 
-	blocks_matrix= perspective * basis_change * translate * blocks_scale;
+	blocks_matrix= perspective * basis_change * rotate_x * rotate_z * translate * blocks_scale;
 }
 
 void main()

@@ -91,7 +91,6 @@ struct PlayerUpdateUniforms
 	float time_delta_s= 0.0f;
 	KeyboardState keyboard_state= 0;
 	MouseState mouse_state= 0;
-	BlockType build_block_type= BlockType::Stone;
 };
 
 struct WorldBlocksExternalUpdateQueueFlushUniforms
@@ -987,7 +986,6 @@ WorldProcessor::~WorldProcessor()
 void WorldProcessor::Update(
 	const vk::CommandBuffer command_buffer,
 	const float time_delta_s,
-	const BlockType build_block_type,
 	const KeyboardState keyboard_state,
 	const MouseState mouse_state,
 	const float aspect)
@@ -1034,7 +1032,7 @@ void WorldProcessor::Update(
 
 	// Run player update independent on world update - every frame.
 	// This is needed in order to make player movement and rotation smooth.
-	UpdatePlayer(command_buffer, time_delta_s, build_block_type, keyboard_state, mouse_state, aspect);
+	UpdatePlayer(command_buffer, time_delta_s, keyboard_state, mouse_state, aspect);
 }
 
 vk::Buffer WorldProcessor::GetChunkDataBuffer(const uint32_t index) const
@@ -1489,7 +1487,6 @@ void WorldProcessor::BuildPlayerWorldWindow(const vk::CommandBuffer command_buff
 void WorldProcessor::UpdatePlayer(
 	const vk::CommandBuffer command_buffer,
 	const float time_delta_s,
-	const BlockType build_block_type,
 	const KeyboardState keyboard_state,
 	const MouseState mouse_state,
 	const float aspect)
@@ -1508,7 +1505,6 @@ void WorldProcessor::UpdatePlayer(
 	player_update_uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
 	player_update_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
 	player_update_uniforms.time_delta_s= time_delta_s;
-	player_update_uniforms.build_block_type= build_block_type;
 	player_update_uniforms.keyboard_state= keyboard_state;
 	player_update_uniforms.mouse_state= mouse_state;
 

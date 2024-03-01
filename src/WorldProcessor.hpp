@@ -19,7 +19,6 @@ public:
 	void Update(
 		vk::CommandBuffer command_buffer,
 		float time_delta_s,
-		BlockType build_block_type,
 		KeyboardState keyboard_state,
 		MouseState mouse_state,
 		float aspect);
@@ -45,6 +44,7 @@ public:
 		float player_angles[4]{};
 		int32_t build_pos[4]; // component 3 - direction
 		int32_t destroy_pos[4];
+		uint8_t build_block_type= 0;
 	};
 
 private:
@@ -94,7 +94,6 @@ private:
 	void UpdatePlayer(
 		vk::CommandBuffer command_buffer,
 		float time_delta_s,
-		BlockType build_block_type,
 		KeyboardState keyboard_state,
 		MouseState mouse_state,
 		float aspect);

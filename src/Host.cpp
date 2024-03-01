@@ -40,7 +40,7 @@ bool Host::Loop()
 	const float dt_s= float(dt.count()) * float(Clock::duration::period::num) / float(Clock::duration::period::den);
 
 	MouseState mouse_state= 0;
-	for( const SDL_Event& event : system_window_.ProcessEvents() )
+	for(const SDL_Event& event : system_window_.ProcessEvents())
 	{
 		if(event.type == SDL_QUIT)
 			quit_requested_= true;
@@ -56,15 +56,9 @@ bool Host::Loop()
 		if(event.type == SDL_MOUSEWHEEL)
 		{
 			if(event.wheel.y > 0)
-			{
-				build_block_type_= BlockType((int32_t(build_block_type_) + 1) % int32_t(BlockType::NumBlockTypes));
-				if(build_block_type_ == BlockType::Air)
-					build_block_type_= BlockType(int32_t(BlockType::Air) + 1);
-			}
+				mouse_state|= 1 << c_mouse_wheel_up_clicked_bit;
 			if(event.wheel.y < 0)
-			{
-				build_block_type_= BlockType((int32_t(build_block_type_) + int32_t(BlockType::NumBlockTypes) - 1) % int32_t(BlockType::NumBlockTypes));
-			}
+				mouse_state|= 1 << c_mouse_wheel_down_clicked_bit;
 		}
 	}
 
@@ -93,11 +87,9 @@ bool Host::Loop()
 
 	const vk::CommandBuffer command_buffer= window_vulkan_.BeginFrame();
 
-	// TODO - pass directly events and keyboard state.
 	world_processor_.Update(
 		command_buffer,
 		dt_s,
-		build_block_type_,
 		keyboard_state,
 		mouse_state,
 		CalculateAspect(window_vulkan_.GetViewportSize()));

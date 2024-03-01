@@ -22,6 +22,7 @@ layout(binding= 1, std430) buffer player_state_buffer
 	// positions are global
 	ivec4 build_pos; // .w - direction
 	ivec4 destroy_pos;
+	uint8_t build_block_type;
 };
 
 layout(binding= 2, std430) buffer world_blocks_external_update_queue_buffer
@@ -42,8 +43,6 @@ layout(push_constant) uniform uniforms_block
 	float time_delta_s;
 	uint keyboard_state;
 	uint mouse_state;
-	// Use "uint8_t", because "bool" in GLSL has size different from C++.
-	uint8_t build_block_type;
 };
 
 void MovePlayer()
@@ -91,6 +90,24 @@ void MovePlayer()
 		player_angles.x+= 2.0 * c_pi;
 
 	player_angles.y= max(-0.5 * c_pi, min(player_angles.y, +0.5 * c_pi));
+}
+
+void UpdateBuildBlockType()
+{
+	if((mouse_state & (1 << c_mouse_wheel_up_clicked_bit)) != 0)
+	{
+		++build_block_type;
+	}
+	if((mouse_state & (1 << c_mouse_wheel_down_clicked_bit)) != 0)
+	{
+		if(build_block_type - 1 == int(c_block_type_air))
+			build_block_type= uint8_t(c_num_block_types - 1);
+		else
+			--build_block_type;
+	}
+
+	if(build_block_type <= 0 || build_block_type >= c_num_block_types)
+		build_block_type= c_block_type_spherical_block;
 }
 
 uint8_t GetBuildDirection(ivec3 last_grid_pos, ivec3 grid_pos)
@@ -248,6 +265,7 @@ void UpdateBlocksMatrix()
 void main()
 {
 	MovePlayer();
+	UpdateBuildBlockType();
 
 	UpdateBuildPos();
 

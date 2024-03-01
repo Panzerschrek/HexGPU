@@ -361,7 +361,7 @@ BuildPrismRenderer::~BuildPrismRenderer()
 	vk_device_.waitIdle();
 }
 
-void BuildPrismRenderer::PrepareFrame(const vk::CommandBuffer command_buffer, const m_Mat4& view_matrix)
+void BuildPrismRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
 {
 	// Get build position from player state.
 	{
@@ -376,17 +376,18 @@ void BuildPrismRenderer::PrepareFrame(const vk::CommandBuffer command_buffer, co
 			1u, &copy_region);
 	}
 
-	// Pass view matrix.
-	const m_Vec3 scale_vec(0.5f / std::sqrt(3.0f), 0.5f, 1.0f );
-	m_Mat4 scale_mat;
-	scale_mat.Scale(scale_vec);
-	const m_Mat4 final_mat= scale_mat * view_matrix;
+	// Copy view matrix.
+	{
+		const vk::BufferCopy copy_region(
+			offsetof(WorldProcessor::PlayerState, blocks_matrix),
+			offsetof(DrawUniforms, view_matrix),
+			sizeof(float) * 16);
 
-	command_buffer.updateBuffer(
-		*uniform_buffer_,
-		offsetof(DrawUniforms, view_matrix),
-		sizeof(final_mat),
-		static_cast<const void*>(&final_mat));
+		command_buffer.copyBuffer(
+			world_processor_.GetPlayerStateBuffer(),
+			*uniform_buffer_,
+			1u, &copy_region);
+	}
 
 	// Add barrier between uniform buffer memory copy and result usage in shader.
 	{

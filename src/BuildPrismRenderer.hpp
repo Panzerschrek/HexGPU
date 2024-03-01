@@ -15,7 +15,7 @@ public:
 
 	~BuildPrismRenderer();
 
-	void PrepareFrame(vk::CommandBuffer command_buffer, const m_Mat4& view_matrix);
+	void PrepareFrame(vk::CommandBuffer command_buffer);
 	void Draw(vk::CommandBuffer command_buffer);
 
 private:

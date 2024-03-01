@@ -70,7 +70,6 @@ bool Host::Loop()
 	}
 
 	camera_controller_.Update(dt_s, system_window_.GetKeyboardState());
-	const m_Mat4 view_matrix= camera_controller_.CalculateFullViewMatrix();
 
 	const vk::CommandBuffer command_buffer= window_vulkan_.BeginFrame();
 
@@ -85,7 +84,7 @@ bool Host::Loop()
 		destroy_triggered);
 
 	world_renderer_.PrepareFrame(command_buffer);
-	build_prism_renderer_.PrepareFrame(command_buffer, view_matrix);
+	build_prism_renderer_.PrepareFrame(command_buffer);
 
 	window_vulkan_.EndFrame(
 		[&](const vk::CommandBuffer command_buffer)

@@ -1,6 +1,6 @@
 #pragma once
+#include <map>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 
@@ -39,7 +39,8 @@ public:
 private:
 	const std::string file_name_;
 	std::string temp_key_;
-	std::unordered_map<std::string, std::string> values_map_;
+	// Use std::map in order to save values in alphabetical order.
+	std::map<std::string, std::string> values_map_;
 };
 
 } // namespace HexGPU

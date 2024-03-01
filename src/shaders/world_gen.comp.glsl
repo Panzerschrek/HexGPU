@@ -53,8 +53,8 @@ void main()
 
 	int local_x= int(gl_GlobalInvocationID.x);
 	int local_y= int(gl_GlobalInvocationID.y);
-	int global_x= (chunk_position.x << c_chunk_width_log2) + local_x;
-	int global_y= (chunk_position.y << c_chunk_width_log2) + local_y;
+	int global_x= (chunk_global_position.x << c_chunk_width_log2) + local_x;
+	int global_y= (chunk_global_position.y << c_chunk_width_log2) + local_y;
 
 	int ground_z= GetGroundLevel(global_x, global_y);
 

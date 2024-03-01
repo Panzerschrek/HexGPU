@@ -34,7 +34,7 @@ layout(push_constant) uniform uniforms_block
 {
 	// Use vec4 for proper padding
 	vec4 player_pos;
-	vec4 player_angles; // azimuth, elevation
+	vec4 player_angles; // azimuth, elevation, aspect
 	ivec2 world_size_chunks;
 	// Use "uint8_t", because "bool" in GLSL has size different from C++.
 	uint8_t build_block_type;
@@ -183,7 +183,7 @@ void UpdateBlocksMatrix()
 
 	const float fov= fov_deg * (3.1415926535 / 180.0);
 
-	float aspect= 1.0;
+	float aspect= player_angles.z;
 	float fov_y= fov;
 
 	mat4 perspective= MakePerspectiveProjectionMatrix(aspect, fov, z_near, z_far);

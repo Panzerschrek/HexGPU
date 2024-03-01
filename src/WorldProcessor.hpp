@@ -22,7 +22,8 @@ public:
 		const m_Vec2& player_angles,
 		BlockType build_block_type,
 		bool build_triggered,
-		bool destroy_triggered);
+		bool destroy_triggered,
+		float aspect);
 
 	vk::Buffer GetChunkDataBuffer(uint32_t index) const;
 	uint32_t GetChunkDataBufferSize() const;
@@ -95,7 +96,8 @@ private:
 		const m_Vec2& player_angles,
 		BlockType build_block_type,
 		bool build_triggered,
-		bool destroy_triggered);
+		bool destroy_triggered,
+		float aspect);
 	void FlushWorldBlocksExternalUpdateQueue(vk::CommandBuffer command_buffer);
 
 	uint32_t GetSrcBufferIndex() const;

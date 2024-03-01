@@ -81,7 +81,8 @@ bool Host::Loop()
 		camera_controller_.GetCameraAngles(),
 		build_block_type_,
 		build_triggered,
-		destroy_triggered);
+		destroy_triggered,
+		CalculateAspect(window_vulkan_.GetViewportSize()));
 
 	world_renderer_.PrepareFrame(command_buffer);
 	build_prism_renderer_.PrepareFrame(command_buffer);

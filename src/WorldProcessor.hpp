@@ -7,6 +7,7 @@ namespace HexGPU
 {
 
 using WorldSizeChunks= std::array<uint32_t, 2>;
+using WorldOffsetChunks= std::array<int32_t, 2>;
 
 class WorldProcessor
 {
@@ -31,6 +32,7 @@ public:
 	vk::Buffer GetPlayerStateBuffer() const;
 
 	WorldSizeChunks GetWorldSize() const;
+	WorldOffsetChunks GetWorldOffset() const;
 
 	uint32_t GetActualBuffersIndex() const;
 
@@ -103,6 +105,8 @@ private:
 	const uint32_t queue_family_index_;
 
 	const WorldSizeChunks world_size_;
+
+	WorldOffsetChunks world_offset_;
 
 	// Use double buffering for world update.
 	// On each step data is read from one of them and written into another.

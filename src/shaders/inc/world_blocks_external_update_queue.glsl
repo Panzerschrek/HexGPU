@@ -2,7 +2,7 @@
 // This struct must be identical to the same struct in C++ code!
 struct WorldBlockExternalUpdate
 {
-	ivec4 position;
+	ivec4 position; // global
 	uint8_t old_block_type;
 	uint8_t new_block_type;
 	uint8_t reserved[2];

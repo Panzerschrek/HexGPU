@@ -72,14 +72,16 @@ uint32_t world_blocks_external_update_queue_buffer= 1;
 // 128 bytes is guaranted maximum size of push constants uniform block.
 struct ChunkPositionUniforms
 {
-	int32_t world_size_chunks[2];
-	int32_t chunk_position[2];
+	int32_t world_size_chunks[2]{};
+	int32_t chunk_position[2]{}; // Position relative current loaded region.
+	int32_t chunk_global_position[2]{}; // Global position.
 };
 
 struct PlayerWorldWindowBuildUniforms
 {
 	int32_t player_world_window_offset[4]{};
 	int32_t world_size_chunks[2]{};
+	int32_t world_offset_chunks[2]{};
 };
 
 struct PlayerUpdateUniforms
@@ -98,6 +100,7 @@ struct PlayerUpdateUniforms
 struct WorldBlocksExternalUpdateQueueFlushUniforms
 {
 	int32_t world_size_chunks[2]{0, 0};
+	int32_t world_offset_chunks[2]{0, 0};
 };
 
 WorldSizeChunks ReadWorldSize(Settings& settings)
@@ -122,6 +125,7 @@ WorldProcessor::WorldProcessor(
 	: vk_device_(window_vulkan.GetVulkanDevice())
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, world_size_(ReadWorldSize(settings))
+	, world_offset_{-int32_t(world_size_[0] / 2u), -int32_t(world_size_[1] / 2u)}
 {
 	// Create chunk data buffers.
 	chunk_data_buffer_size_= c_chunk_volume * world_size_[0] * world_size_[1];
@@ -1069,6 +1073,11 @@ WorldSizeChunks WorldProcessor::GetWorldSize() const
 	return world_size_;
 }
 
+WorldOffsetChunks WorldProcessor::GetWorldOffset() const
+{
+	return world_offset_;
+}
+
 uint32_t WorldProcessor::GetActualBuffersIndex() const
 {
 	return GetSrcBufferIndex();
@@ -1180,6 +1189,8 @@ void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
 		chunk_position_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
 		chunk_position_uniforms.chunk_position[0]= int32_t(x);
 		chunk_position_uniforms.chunk_position[1]= int32_t(y);
+		chunk_position_uniforms.chunk_global_position[0]= world_offset_[0] + int32_t(x);
+		chunk_position_uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(y);
 
 		command_buffer.pushConstants(
 			*world_gen_pipeline_layout_,
@@ -1238,6 +1249,8 @@ void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
 		chunk_position_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
 		chunk_position_uniforms.chunk_position[0]= int32_t(x);
 		chunk_position_uniforms.chunk_position[1]= int32_t(y);
+		chunk_position_uniforms.chunk_global_position[0]= world_offset_[0] + int32_t(x);
+		chunk_position_uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(y);
 
 		command_buffer.pushConstants(
 			*initial_light_fill_pipeline_layout_,
@@ -1318,6 +1331,8 @@ void WorldProcessor::UpdateWorldBlocks(const vk::CommandBuffer command_buffer)
 		chunk_position_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
 		chunk_position_uniforms.chunk_position[0]= int32_t(chunk_to_update[0]);
 		chunk_position_uniforms.chunk_position[1]= int32_t(chunk_to_update[1]);
+		chunk_position_uniforms.chunk_global_position[0]= world_offset_[0] + int32_t(chunk_to_update[0]);
+		chunk_position_uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(chunk_to_update[1]);
 
 		command_buffer.pushConstants(
 			*world_blocks_update_pipeline_layout_,
@@ -1358,6 +1373,8 @@ void WorldProcessor::UpdateLight(const vk::CommandBuffer command_buffer)
 		chunk_position_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
 		chunk_position_uniforms.chunk_position[0]= int32_t(chunk_to_update[0]);
 		chunk_position_uniforms.chunk_position[1]= int32_t(chunk_to_update[1]);
+		chunk_position_uniforms.chunk_global_position[0]= world_offset_[0] + int32_t(chunk_to_update[0]);
+		chunk_position_uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(chunk_to_update[1]);
 
 		command_buffer.pushConstants(
 			*light_update_pipeline_layout_,
@@ -1432,6 +1449,8 @@ void WorldProcessor::BuildPlayerWorldWindow(const vk::CommandBuffer command_buff
 	uniforms.player_world_window_offset[1]= (int32_t(player_pos.y) - int32_t(c_player_world_window_size[1] / 2u)) & 0xFFFFFFFE;
 	uniforms.player_world_window_offset[2]= int32_t(player_pos.z) - int32_t(c_player_world_window_size[2] / 2u);
 	uniforms.player_world_window_offset[3]= 0;
+	uniforms.world_offset_chunks[0]= world_offset_[0];
+	uniforms.world_offset_chunks[1]= world_offset_[1];
 
 	command_buffer.pushConstants(
 		*player_world_window_build_pipeline_layout_,
@@ -1579,6 +1598,8 @@ void WorldProcessor::FlushWorldBlocksExternalUpdateQueue(const vk::CommandBuffer
 	WorldBlocksExternalUpdateQueueFlushUniforms uniforms;
 	uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
 	uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+	uniforms.world_offset_chunks[0]= world_offset_[0];
+	uniforms.world_offset_chunks[1]= world_offset_[1];
 
 	command_buffer.pushConstants(
 		*player_update_pipeline_layout_,

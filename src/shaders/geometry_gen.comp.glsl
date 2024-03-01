@@ -49,6 +49,7 @@ layout(push_constant) uniform uniforms_block
 {
 	ivec2 world_size_chunks;
 	ivec2 chunk_position;
+	ivec2 chunk_global_position;
 };
 
 // Use scale slightly less or equal to 272.
@@ -76,21 +77,21 @@ void main()
 
 	uvec3 invocation= gl_GlobalInvocationID;
 
-	int block_global_x= (chunk_position.x << c_chunk_width_log2) + int(invocation.x);
-	int block_global_y= (chunk_position.y << c_chunk_width_log2) + int(invocation.y);
+	int block_x= (chunk_position.x << c_chunk_width_log2) + int(invocation.x);
+	int block_y= (chunk_position.y << c_chunk_width_log2) + int(invocation.y);
 	int z= int(invocation.z);
 
-	ivec2 max_global_coord= GetMaxGlobalCoord(world_size_chunks);
+	ivec2 max_world_coord= GetMaxWorldCoord(world_size_chunks);
 
-	int east_x_clamped= min(block_global_x + 1, max_global_coord.x);
-	int east_y_base= block_global_y + ((block_global_x + 1) & 1);
+	int east_x_clamped= min(block_x + 1, max_world_coord.x);
+	int east_y_base= block_y + ((block_x + 1) & 1);
 
 	// TODO - optimize this. Reuse calculations in the same chunk.
-	int block_address= GetBlockFullAddress(ivec3(block_global_x, block_global_y, z), world_size_chunks);
-	int block_address_up= GetBlockFullAddress(ivec3(block_global_x, block_global_y, min(z + 1, c_chunk_height - 1)), world_size_chunks);
-	int block_address_north= GetBlockFullAddress(ivec3(block_global_x, min(block_global_y + 1, max_global_coord.y), z), world_size_chunks);
-	int block_address_north_east= GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(east_y_base - 0, max_global_coord.y)), z), world_size_chunks);
-	int block_address_south_east= GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(east_y_base - 1, max_global_coord.y)), z), world_size_chunks);
+	int block_address= GetBlockFullAddress(ivec3(block_x, block_y, z), world_size_chunks);
+	int block_address_up= GetBlockFullAddress(ivec3(block_x, block_y, min(z + 1, c_chunk_height - 1)), world_size_chunks);
+	int block_address_north= GetBlockFullAddress(ivec3(block_x, min(block_y + 1, max_world_coord.y), z), world_size_chunks);
+	int block_address_north_east= GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(east_y_base - 0, max_world_coord.y)), z), world_size_chunks);
+	int block_address_south_east= GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(east_y_base - 1, max_world_coord.y)), z), world_size_chunks);
 
 	uint8_t block_value= chunks_data[block_address];
 	uint8_t block_value_up= chunks_data[block_address_up];
@@ -106,8 +107,8 @@ void main()
 
 	// Perform calculations in integers - for simplicity.
 	// Hexagon grid vertices are nicely aligned to scaled square grid.
-	int base_x= 3 * block_global_x;
-	int base_y= 2 * block_global_y - (block_global_x & 1) + 1;
+	int base_x= 3 * ((chunk_global_position.x << c_chunk_width_log2) + int(invocation.x));
+	int base_y= 2 * ((chunk_global_position.y << c_chunk_width_log2) + int(invocation.y)) - (block_x & 1) + 1;
 	const int tex_scale= 1; // TODO - read block properties to determine texture scale.
 
 	if(optical_density != optical_density_up)

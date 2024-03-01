@@ -15,6 +15,7 @@ layout(push_constant) uniform uniforms_block
 {
 	ivec2 world_size_chunks;
 	ivec2 chunk_position;
+	ivec2 chunk_global_position;
 };
 
 layout(binding= 0, std430) buffer chunks_data_buffer
@@ -32,12 +33,7 @@ void main()
 	int chunk_index= chunk_position.x + chunk_position.y * world_size_chunks.x;
 	int chunk_data_offset= chunk_index * c_chunk_volume;
 
-	int local_x= int(gl_GlobalInvocationID.x);
-	int local_y= int(gl_GlobalInvocationID.y);
-	int global_x= (chunk_position.x << c_chunk_width_log2) + local_x;
-	int global_y= (chunk_position.y << c_chunk_width_log2) + local_y;
-
-	int column_offset= chunk_data_offset + ChunkBlockAddress(ivec3(local_x, local_y, 0));
+	int column_offset= chunk_data_offset + ChunkBlockAddress(ivec3(gl_GlobalInvocationID.xy, 0));
 
 	int z= c_chunk_height - 1;
 	// Propagate maximum sky light value down, until non-air block is reached.

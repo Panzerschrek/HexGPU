@@ -10,6 +10,7 @@
 layout(push_constant) uniform uniforms_block
 {
 	ivec2 world_size_chunks;
+	ivec2 world_offset_chunks;
 };
 
 layout(binding= 0, std430) buffer chunks_data_buffer
@@ -27,9 +28,10 @@ void main()
 	for(uint i= 0; i < min(world_blocks_external_update_queue.num_updates, c_max_world_blocks_external_updates); ++i)
 	{
 		WorldBlockExternalUpdate update= world_blocks_external_update_queue.updates[i];
-		if(IsInWorldBorders(update.position.xyz, world_size_chunks))
+		ivec3 position_in_world= update.position.xyz - ivec3(world_offset_chunks << c_chunk_width_log2, 0);
+		if(IsInWorldBorders(position_in_world, world_size_chunks))
 		{
-			int address= GetBlockFullAddress(update.position.xyz, world_size_chunks);
+			int address= GetBlockFullAddress(position_in_world, world_size_chunks);
 			uint8_t current_block_value= chunks_data[address];
 			if(current_block_value == update.old_block_type)
 			{

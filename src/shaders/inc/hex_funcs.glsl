@@ -5,6 +5,7 @@ int ChunkBlockAddress(ivec3 coord)
 	return coord.z + (coord.y << c_chunk_height_log2) + (coord.x << (c_chunk_width_log2 + c_chunk_height_log2));
 }
 
+// Input coordinates are relative to the world offset.
 bool IsInWorldBorders(ivec3 pos, ivec2 world_size_chunks)
 {
 	return
@@ -13,6 +14,7 @@ bool IsInWorldBorders(ivec3 pos, ivec2 world_size_chunks)
 		pos.z >= 0 && pos.z < c_chunk_height;
 }
 
+// Input coordinates are relative to the world offset.
 // Block must be in world borders!
 int GetBlockFullAddress(ivec3 pos, ivec2 world_size_chunks)
 {
@@ -27,7 +29,7 @@ int GetBlockFullAddress(ivec3 pos, ivec2 world_size_chunks)
 	return chunk_data_offset + ChunkBlockAddress(ivec3(local_x, local_y, pos.z));
 }
 
-ivec2 GetMaxGlobalCoord(ivec2 world_size_chunks)
+ivec2 GetMaxWorldCoord(ivec2 world_size_chunks)
 {
 	return ivec2(world_size_chunks.x * c_chunk_width - 1, world_size_chunks.y * c_chunk_width - 1);
 }

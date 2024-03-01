@@ -42,9 +42,9 @@ public:
 		float blocks_matrix[16]{};
 		float player_pos[4]{};
 		float player_angles[4]{};
-		int32_t build_pos[4]; // component 3 - direction
-		int32_t destroy_pos[4];
-		uint8_t build_block_type= 0;
+		int32_t build_pos[4]{}; // component 3 - direction
+		int32_t destroy_pos[4]{};
+		BlockType build_block_type= BlockType::Air;
 	};
 
 private:

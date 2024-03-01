@@ -1090,7 +1090,20 @@ void WorldProcessor::InitialFillBuffers(const vk::CommandBuffer command_buffer)
 	for(uint32_t i= 0; i < 2; ++i)
 		command_buffer.fillBuffer(*light_buffers_[i].buffer, 0, light_buffer_size_, 0);
 
-	command_buffer.fillBuffer(*player_state_buffer_.buffer, 0, sizeof(PlayerState), 0);
+	// Set initial player state.
+	{
+		PlayerState player_state;
+		player_state.player_pos[0]= 0.0f;
+		player_state.player_pos[1]= 0.0f;
+		player_state.player_pos[2]= 32.0f;
+		player_state.build_block_type= BlockType::Stone;
+
+		command_buffer.updateBuffer(
+			*player_state_buffer_.buffer,
+			0,
+			sizeof(PlayerState),
+			static_cast<const void*>(&player_state));
+	}
 
 	command_buffer.fillBuffer(*world_blocks_external_update_queue_buffer_.buffer, 0, sizeof(WorldBlocksExternalUpdateQueue), 0);
 

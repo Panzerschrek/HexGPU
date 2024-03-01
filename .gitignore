@@ -7,6 +7,9 @@ CMakeLists.txt.user
 # Log file
 HexGPU.log
 
+# Settings file
+HexGPU.cfg
+
 # Screenshotsh directory
 screenshots/
 

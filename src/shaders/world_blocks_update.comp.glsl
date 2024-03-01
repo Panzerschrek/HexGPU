@@ -57,7 +57,21 @@ uint8_t TransformBlock(int block_global_x, int block_global_y, int z)
 	uint8_t block_type= chunks_input_data[column_address + z];
 
 	// Switch over block type.
-	if(block_type == c_block_type_soil)
+	if(block_type == c_block_type_air)
+	{
+		// If we have a sand block above, convert this block into sand.
+		// This should match sand block logic.
+		if(z < c_chunk_height - 1 && chunks_input_data[column_address + z + 1] == c_block_type_sand)
+			return c_block_type_sand;
+	}
+	else if(block_type == c_block_type_sand)
+	{
+		// If sand block has air below, it falls down and is replaced with air.
+		// This should match air block logic.
+		if(z > 0 && chunks_input_data[column_address + z - 1] == c_block_type_air)
+			return c_block_type_air;
+	}
+	else if(block_type == c_block_type_soil)
 	{
 		// Soil may be converted into grass, if there is a grass block nearby.
 

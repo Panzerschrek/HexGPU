@@ -17,7 +17,6 @@ The order represents importance and/or dependency.
 * Smooth lighting - average block light values at each vertex
 * More light source blocks
 * Use device-local memory almost everywhere
-* Settings
 * Anisotropy textures filtering
 * Run SPIR-V optimizer for compiled shaders
 * Configurable textures config

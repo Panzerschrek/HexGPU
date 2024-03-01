@@ -19,6 +19,7 @@ public:
 private:
 	using Clock= std::chrono::steady_clock;
 
+	Settings settings_;
 	SystemWindow system_window_;
 	WindowVulkan window_vulkan_;
 	const vk::UniqueDescriptorPool global_descriptor_pool_;

@@ -11,7 +11,7 @@ using WorldSizeChunks= std::array<uint32_t, 2>;
 class WorldProcessor
 {
 public:
-	WorldProcessor(WindowVulkan& window_vulkan, vk::DescriptorPool global_descriptor_pool);
+	WorldProcessor(WindowVulkan& window_vulkan, vk::DescriptorPool global_descriptor_pool, Settings& settings);
 	~WorldProcessor();
 
 	void Update(

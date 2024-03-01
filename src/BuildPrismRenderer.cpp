@@ -361,7 +361,7 @@ BuildPrismRenderer::~BuildPrismRenderer()
 	vk_device_.waitIdle();
 }
 
-void BuildPrismRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
+void BuildPrismRenderer::PrepareFrame(const vk::CommandBuffer command_buffer, const m_Mat4& view_matrix)
 {
 	// Get build position from player state.
 	{
@@ -375,6 +375,19 @@ void BuildPrismRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
 			*uniform_buffer_,
 			1u, &copy_region);
 	}
+
+	// Pass view matrix.
+	const m_Vec3 scale_vec(0.5f / std::sqrt(3.0f), 0.5f, 1.0f );
+	m_Mat4 scale_mat;
+	scale_mat.Scale(scale_vec);
+	const m_Mat4 final_mat= scale_mat * view_matrix;
+
+	command_buffer.updateBuffer(
+		*uniform_buffer_,
+		offsetof(Uniforms, view_matrix),
+		sizeof(final_mat),
+		static_cast<const void*>(&final_mat));
+
 	// Add barrier between uniform buffer memory copy and result usage in shader.
 	{
 		const vk::BufferMemoryBarrier barrier(
@@ -394,7 +407,7 @@ void BuildPrismRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
 	}
 }
 
-void BuildPrismRenderer::Draw(const vk::CommandBuffer command_buffer, const m_Mat4& view_matrix)
+void BuildPrismRenderer::Draw(const vk::CommandBuffer command_buffer)
 {
 	const vk::DeviceSize offsets= 0u;
 	command_buffer.bindVertexBuffers(0u, 1u, &*vertex_buffer_, &offsets);
@@ -404,17 +417,6 @@ void BuildPrismRenderer::Draw(const vk::CommandBuffer command_buffer, const m_Ma
 		0u,
 		1u, &descriptor_set_,
 		0u, nullptr);
-
-	const m_Vec3 scale_vec(0.5f / std::sqrt(3.0f), 0.5f, 1.0f );
-	m_Mat4 scale_mat;
-	scale_mat.Scale(scale_vec);
-	const m_Mat4 final_mat= scale_mat * view_matrix;
-
-	command_buffer.updateBuffer(
-		*uniform_buffer_,
-		offsetof(Uniforms, view_matrix),
-		sizeof(final_mat),
-		static_cast<const void*>(&final_mat));
 
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline_);
 

@@ -21,6 +21,7 @@ layout(push_constant) uniform uniforms_block
 {
 	ivec2 world_size_chunks;
 	ivec2 chunk_position;
+	ivec2 chunk_global_position;
 };
 
 int GetGroundLevel(int global_x, int global_y)

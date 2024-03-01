@@ -81,6 +81,7 @@ struct PlayerWorldWindowBuildUniforms
 {
 	int32_t player_world_window_offset[4]{};
 	int32_t world_size_chunks[2]{};
+	int32_t world_offset_chunks[2]{};
 };
 
 struct PlayerUpdateUniforms
@@ -99,6 +100,7 @@ struct PlayerUpdateUniforms
 struct WorldBlocksExternalUpdateQueueFlushUniforms
 {
 	int32_t world_size_chunks[2]{0, 0};
+	int32_t world_offset_chunks[2]{0, 0};
 };
 
 WorldSizeChunks ReadWorldSize(Settings& settings)
@@ -1447,6 +1449,8 @@ void WorldProcessor::BuildPlayerWorldWindow(const vk::CommandBuffer command_buff
 	uniforms.player_world_window_offset[1]= (int32_t(player_pos.y) - int32_t(c_player_world_window_size[1] / 2u)) & 0xFFFFFFFE;
 	uniforms.player_world_window_offset[2]= int32_t(player_pos.z) - int32_t(c_player_world_window_size[2] / 2u);
 	uniforms.player_world_window_offset[3]= 0;
+	uniforms.world_offset_chunks[0]= world_offset_[0];
+	uniforms.world_offset_chunks[1]= world_offset_[1];
 
 	command_buffer.pushConstants(
 		*player_world_window_build_pipeline_layout_,
@@ -1594,6 +1598,8 @@ void WorldProcessor::FlushWorldBlocksExternalUpdateQueue(const vk::CommandBuffer
 	WorldBlocksExternalUpdateQueueFlushUniforms uniforms;
 	uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
 	uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+	uniforms.world_offset_chunks[0]= world_offset_[0];
+	uniforms.world_offset_chunks[1]= world_offset_[1];
 
 	command_buffer.pushConstants(
 		*player_update_pipeline_layout_,

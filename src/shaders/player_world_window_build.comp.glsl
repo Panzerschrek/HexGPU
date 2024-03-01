@@ -16,6 +16,7 @@ layout(push_constant) uniform uniforms_block
 {
 	ivec4 player_world_window_offset;
 	ivec2 world_size_chunks;
+	ivec2 world_offset_chunks;
 };
 
 layout(binding= 0, std430) buffer chunks_data_buffer
@@ -35,12 +36,12 @@ void main()
 	if(invocation == ivec3(0, 0, 0))
 		player_world_window.offset= player_world_window_offset;
 
-	ivec3 global_block_coord= player_world_window_offset.xyz + invocation;
+	ivec3 block_coord= player_world_window_offset.xyz - ivec3(world_offset_chunks * c_chunk_width, 0) + invocation;
 
 	uint8_t block_value= c_block_type_air;
-	if(IsInWorldBorders(global_block_coord, world_size_chunks))
+	if(IsInWorldBorders(block_coord, world_size_chunks))
 	{
-		block_value= chunks_data[GetBlockFullAddress(global_block_coord, world_size_chunks)];
+		block_value= chunks_data[GetBlockFullAddress(block_coord, world_size_chunks)];
 	}
 
 	player_world_window.window_data[GetAddressOfBlockInPlayerWorldWindow(invocation)]= block_value;

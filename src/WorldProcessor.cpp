@@ -1027,8 +1027,7 @@ void WorldProcessor::Update(
 		++current_tick_;
 		current_tick_fractional_= float(current_tick_);
 
-		// TODO - pass player position.
-		BuildPlayerWorldWindow(command_buffer, m_Vec3(0.0f, 0.0f, 0.0f));
+		BuildPlayerWorldWindow(command_buffer);
 	}
 	else
 		current_tick_fractional_= cur_tick_fractional;
@@ -1425,7 +1424,7 @@ void WorldProcessor::CreateWorldBlocksAndLightUpdateBarrier(const vk::CommandBuf
 		0, nullptr);
 }
 
-void WorldProcessor::BuildPlayerWorldWindow(const vk::CommandBuffer command_buffer, const m_Vec3& player_pos)
+void WorldProcessor::BuildPlayerWorldWindow(const vk::CommandBuffer command_buffer)
 {
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *player_world_window_build_pipeline_);
 
@@ -1442,9 +1441,10 @@ void WorldProcessor::BuildPlayerWorldWindow(const vk::CommandBuffer command_buff
 	PlayerWorldWindowBuildUniforms uniforms;
 	uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
 	uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-	uniforms.player_world_window_offset[0]= (int32_t(player_pos.x / c_space_scale_x) - int32_t(c_player_world_window_size[0] / 2u)) & 0xFFFFFFFE;
-	uniforms.player_world_window_offset[1]= (int32_t(player_pos.y) - int32_t(c_player_world_window_size[1] / 2u)) & 0xFFFFFFFE;
-	uniforms.player_world_window_offset[2]= int32_t(player_pos.z) - int32_t(c_player_world_window_size[2] / 2u);
+	const float player_pos[3]{0.0f, 0.0f, 0.0f}; // TODO - calculate it properly.
+	uniforms.player_world_window_offset[0]= (int32_t(player_pos[0] / c_space_scale_x) - int32_t(c_player_world_window_size[0] / 2u)) & 0xFFFFFFFE;
+	uniforms.player_world_window_offset[1]= (int32_t(player_pos[1]) - int32_t(c_player_world_window_size[1] / 2u)) & 0xFFFFFFFE;
+	uniforms.player_world_window_offset[2]= int32_t(player_pos[2]) - int32_t(c_player_world_window_size[2] / 2u);
 	uniforms.player_world_window_offset[3]= 0;
 	uniforms.world_offset_chunks[0]= world_offset_[0];
 	uniforms.world_offset_chunks[1]= world_offset_[1];

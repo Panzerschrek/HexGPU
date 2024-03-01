@@ -2,7 +2,6 @@
 #include "BlockType.hpp"
 #include "Keyboard.hpp"
 #include "Mouse.hpp"
-#include "Vec.hpp"
 #include "WindowVulkan.hpp"
 
 namespace HexGPU
@@ -91,7 +90,7 @@ private:
 	void UpdateWorldBlocks(vk::CommandBuffer command_buffer);
 	void UpdateLight(vk::CommandBuffer command_buffer);
 	void CreateWorldBlocksAndLightUpdateBarrier(vk::CommandBuffer command_buffer);
-	void BuildPlayerWorldWindow(vk::CommandBuffer command_buffer, const m_Vec3& player_pos);
+	void BuildPlayerWorldWindow(vk::CommandBuffer command_buffer);
 	void UpdatePlayer(
 		vk::CommandBuffer command_buffer,
 		float time_delta_s,

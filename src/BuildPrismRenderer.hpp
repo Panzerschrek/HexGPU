@@ -1,6 +1,5 @@
 #pragma once
 #include "WorldProcessor.hpp"
-#include "Mat.hpp"
 
 namespace HexGPU
 {

@@ -1,5 +1,4 @@
 #pragma once
-#include "Mat.hpp"
 #include "WorldGeometryGenerator.hpp"
 #include "WorldTexturesManager.hpp"
 

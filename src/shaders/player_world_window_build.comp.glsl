@@ -36,7 +36,7 @@ void main()
 	if(invocation == ivec3(0, 0, 0))
 		player_world_window.offset= player_world_window_offset;
 
-	ivec3 block_coord= player_world_window_offset.xyz - ivec3(world_offset_chunks * c_chunk_width, 0) + invocation;
+	ivec3 block_coord= player_world_window_offset.xyz - ivec3(world_offset_chunks << c_chunk_width_log2, 0) + invocation;
 
 	uint8_t block_value= c_block_type_air;
 	if(IsInWorldBorders(block_coord, world_size_chunks))

@@ -1,4 +1,5 @@
 #pragma once
+#include "Settings.hpp"
 #include <SDL_events.h>
 #include <SDL_video.h>
 #include <vector>
@@ -9,7 +10,7 @@ namespace HexGPU
 class SystemWindow final
 {
 public:
-	SystemWindow();
+	explicit SystemWindow(Settings& settings);
 	~SystemWindow();
 
 	SDL_Window* GetSDLWindow() const;

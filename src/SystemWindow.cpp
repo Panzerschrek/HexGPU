@@ -9,15 +9,18 @@
 namespace HexGPU
 {
 
-SystemWindow::SystemWindow()
+SystemWindow::SystemWindow(Settings& settings)
 {
 	// TODO - check errors.
 	SDL_Init(SDL_INIT_VIDEO);
 
 	const Uint32 window_flags= SDL_WINDOW_SHOWN | SDL_WINDOW_VULKAN;
 
-	const int width = 960;
-	const int height= 720;
+	const int width = std::max(640, std::min(int(settings.GetInt("r_window_width" , 960)), 4096)) & ~3u;
+	const int height= std::max(480, std::min(int(settings.GetInt("r_window_height", 720)), 4096)) & ~3u;
+
+	settings.SetInt("r_window_width" , width );
+	settings.SetInt("r_window_height", height);
 
 	window_=
 		SDL_CreateWindow(

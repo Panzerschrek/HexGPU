@@ -19,7 +19,8 @@ float CalculateAspect(const vk::Extent2D& viewport_size)
 } // namespace
 
 Host::Host()
-	: system_window_()
+	: settings_("HexGPU.cfg")
+	, system_window_(settings_)
 	, window_vulkan_(system_window_)
 	, global_descriptor_pool_(CreateGlobalDescriptorPool(window_vulkan_.GetVulkanDevice()))
 	, world_processor_(window_vulkan_, *global_descriptor_pool_)

@@ -26,7 +26,6 @@ Host::Host()
 	, world_processor_(window_vulkan_, *global_descriptor_pool_, settings_)
 	, world_renderer_(window_vulkan_, world_processor_, *global_descriptor_pool_)
 	, build_prism_renderer_(window_vulkan_, world_processor_, *global_descriptor_pool_)
-	, camera_controller_(CalculateAspect(window_vulkan_.GetViewportSize()))
 	, init_time_(Clock::now())
 	, prev_tick_time_(init_time_)
 {
@@ -91,8 +90,6 @@ bool Host::Loop()
 		keyboard_state|= c_key_mask_rotate_up;
 	if(keys_state[size_t(SDL_SCANCODE_DOWN)])
 		keyboard_state|= c_key_mask_rotate_down;
-
-	camera_controller_.Update(dt_s, system_window_.GetKeyboardState());
 
 	const vk::CommandBuffer command_buffer= window_vulkan_.BeginFrame();
 

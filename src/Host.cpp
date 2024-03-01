@@ -69,6 +69,21 @@ bool Host::Loop()
 		}
 	}
 
+	const auto keys_state= system_window_.GetKeyboardState();
+	KeyboardState keyboard_state= 0;
+	if(keys_state[size_t(SDL_SCANCODE_W)])
+		keyboard_state|= c_key_mask_forward;
+	if(keys_state[size_t(SDL_SCANCODE_S)])
+		keyboard_state|= c_key_mask_backward;
+	if(keys_state[size_t(SDL_SCANCODE_D)])
+		keyboard_state|= c_key_mask_step_left;
+	if(keys_state[size_t(SDL_SCANCODE_A)])
+		keyboard_state|= c_key_mask_step_right;
+	if(keys_state[size_t(SDL_SCANCODE_SPACE)])
+		keyboard_state|= c_key_mask_fly_up;
+	if(keys_state[size_t(SDL_SCANCODE_C)])
+		keyboard_state|= c_key_mask_fly_down;
+
 	camera_controller_.Update(dt_s, system_window_.GetKeyboardState());
 
 	const vk::CommandBuffer command_buffer= window_vulkan_.BeginFrame();
@@ -77,9 +92,9 @@ bool Host::Loop()
 	world_processor_.Update(
 		command_buffer,
 		dt_s,
-		camera_controller_.GetCameraPosition(),
 		camera_controller_.GetCameraAngles(),
 		build_block_type_,
+		keyboard_state,
 		mouse_state,
 		CalculateAspect(window_vulkan_.GetViewportSize()));
 

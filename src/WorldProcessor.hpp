@@ -1,5 +1,6 @@
 #pragma once
 #include "BlockType.hpp"
+#include "Keyboard.hpp"
 #include "Mouse.hpp"
 #include "Vec.hpp"
 #include "WindowVulkan.hpp"
@@ -19,9 +20,9 @@ public:
 	void Update(
 		vk::CommandBuffer command_buffer,
 		float time_delta_s,
-		const m_Vec3& player_pos,
 		const m_Vec2& player_angles,
 		BlockType build_block_type,
+		KeyboardState keyboard_state,
 		MouseState mouse_state,
 		float aspect);
 
@@ -42,6 +43,7 @@ public:
 	struct PlayerState
 	{
 		float blocks_matrix[16]{};
+		float player_pos[4]{};
 		int32_t build_pos[4]; // component 3 - direction
 		int32_t destroy_pos[4];
 	};
@@ -92,9 +94,10 @@ private:
 	void BuildPlayerWorldWindow(vk::CommandBuffer command_buffer, const m_Vec3& player_pos);
 	void UpdatePlayer(
 		vk::CommandBuffer command_buffer,
-		const m_Vec3& player_pos,
+		float time_delta_s,
 		const m_Vec2& player_angles,
 		BlockType build_block_type,
+		KeyboardState keyboard_state,
 		MouseState mouse_state,
 		float aspect);
 	void FlushWorldBlocksExternalUpdateQueue(vk::CommandBuffer command_buffer);

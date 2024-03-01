@@ -86,10 +86,8 @@ struct PlayerWorldWindowBuildUniforms
 
 struct PlayerUpdateUniforms
 {
-	m_Vec2 player_angles{};
-	float player_aspect= 0.0f;
-	float reserved1= 0.0f;
 	int32_t world_size_chunks[2]{0, 0};
+	float aspect= 0.0f;
 	float time_delta_s= 0.0f;
 	KeyboardState keyboard_state= 0;
 	MouseState mouse_state= 0;
@@ -989,7 +987,6 @@ WorldProcessor::~WorldProcessor()
 void WorldProcessor::Update(
 	const vk::CommandBuffer command_buffer,
 	const float time_delta_s,
-	const m_Vec2& player_angles,
 	const BlockType build_block_type,
 	const KeyboardState keyboard_state,
 	const MouseState mouse_state,
@@ -1038,7 +1035,7 @@ void WorldProcessor::Update(
 
 	// Run player update independent on world update - every frame.
 	// This is needed in order to make player movement and rotation smooth.
-	UpdatePlayer(command_buffer, time_delta_s, player_angles, build_block_type, keyboard_state, mouse_state, aspect);
+	UpdatePlayer(command_buffer, time_delta_s, build_block_type, keyboard_state, mouse_state, aspect);
 }
 
 vk::Buffer WorldProcessor::GetChunkDataBuffer(const uint32_t index) const
@@ -1492,7 +1489,6 @@ void WorldProcessor::BuildPlayerWorldWindow(const vk::CommandBuffer command_buff
 void WorldProcessor::UpdatePlayer(
 	const vk::CommandBuffer command_buffer,
 	const float time_delta_s,
-	const m_Vec2& player_angles,
 	const BlockType build_block_type,
 	const KeyboardState keyboard_state,
 	const MouseState mouse_state,
@@ -1508,8 +1504,7 @@ void WorldProcessor::UpdatePlayer(
 		0u, nullptr);
 
 	PlayerUpdateUniforms player_update_uniforms;
-	player_update_uniforms.player_angles= player_angles;
-	player_update_uniforms.player_aspect= aspect;
+	player_update_uniforms.aspect= aspect;
 	player_update_uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
 	player_update_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
 	player_update_uniforms.time_delta_s= time_delta_s;

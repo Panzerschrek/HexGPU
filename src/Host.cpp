@@ -83,6 +83,14 @@ bool Host::Loop()
 		keyboard_state|= c_key_mask_fly_up;
 	if(keys_state[size_t(SDL_SCANCODE_C)])
 		keyboard_state|= c_key_mask_fly_down;
+	if(keys_state[size_t(SDL_SCANCODE_LEFT)])
+		keyboard_state|= c_key_mask_rotate_left;
+	if(keys_state[size_t(SDL_SCANCODE_RIGHT)])
+		keyboard_state|= c_key_mask_rotate_right;
+	if(keys_state[size_t(SDL_SCANCODE_UP)])
+		keyboard_state|= c_key_mask_rotate_up;
+	if(keys_state[size_t(SDL_SCANCODE_DOWN)])
+		keyboard_state|= c_key_mask_rotate_down;
 
 	camera_controller_.Update(dt_s, system_window_.GetKeyboardState());
 
@@ -92,7 +100,6 @@ bool Host::Loop()
 	world_processor_.Update(
 		command_buffer,
 		dt_s,
-		camera_controller_.GetCameraAngles(),
 		build_block_type_,
 		keyboard_state,
 		mouse_state,

@@ -20,7 +20,6 @@ public:
 	void Update(
 		vk::CommandBuffer command_buffer,
 		float time_delta_s,
-		const m_Vec2& player_angles,
 		BlockType build_block_type,
 		KeyboardState keyboard_state,
 		MouseState mouse_state,
@@ -44,6 +43,7 @@ public:
 	{
 		float blocks_matrix[16]{};
 		float player_pos[4]{};
+		float player_angles[4]{};
 		int32_t build_pos[4]; // component 3 - direction
 		int32_t destroy_pos[4];
 	};
@@ -95,7 +95,6 @@ private:
 	void UpdatePlayer(
 		vk::CommandBuffer command_buffer,
 		float time_delta_s,
-		const m_Vec2& player_angles,
 		BlockType build_block_type,
 		KeyboardState keyboard_state,
 		MouseState mouse_state,

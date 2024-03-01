@@ -17,6 +17,7 @@ layout(binding= 1, std430) buffer player_state_buffer
 {
 	mat4 blocks_matrix;
 	vec4 player_pos;
+	vec4 player_angles; // azimuth, elevation
 	// Use vec4 for proper padding
 	// positions are global
 	ivec4 build_pos; // .w - direction
@@ -36,8 +37,8 @@ layout(binding= 3, std430) buffer player_world_window_buffer
 layout(push_constant) uniform uniforms_block
 {
 	// Use vec4 for proper padding
-	vec4 player_angles; // azimuth, elevation, aspect
 	ivec2 world_size_chunks;
+	float aspect;
 	float time_delta_s;
 	uint keyboard_state;
 	uint mouse_state;
@@ -73,6 +74,23 @@ void MovePlayer()
 		player_pos.z+= time_delta_s * jump_speed;
 	if((keyboard_state & c_key_mask_fly_down) != 0)
 		player_pos.z-= time_delta_s * jump_speed;
+
+	if((keyboard_state & c_key_mask_rotate_left) != 0)
+		player_angles.x+= time_delta_s * angle_speed;
+	if((keyboard_state & c_key_mask_rotate_right) != 0)
+		player_angles.x-= time_delta_s * angle_speed;
+
+	if((keyboard_state & c_key_mask_rotate_up) != 0)
+		player_angles.y+= time_delta_s * angle_speed;
+	if((keyboard_state & c_key_mask_rotate_down) != 0)
+		player_angles.y-= time_delta_s * angle_speed;
+
+	while(player_angles.x > +c_pi)
+		player_angles.x-= 2.0 * c_pi;
+	while(player_angles.x < -c_pi)
+		player_angles.x+= 2.0 * c_pi;
+
+	player_angles.y= max(-0.5 * c_pi, min(player_angles.y, +0.5 * c_pi));
 }
 
 uint8_t GetBuildDirection(ivec3 last_grid_pos, ivec3 grid_pos)
@@ -213,9 +231,8 @@ void UpdateBlocksMatrix()
 	const float z_far= 1024.0;
 	const float fov_deg= 75.0;
 
-	const float fov= fov_deg * (3.1415926535 / 180.0);
+	const float fov= fov_deg * (c_pi / 180.0);
 
-	float aspect= player_angles.z;
 	float fov_y= fov;
 
 	mat4 perspective= MakePerspectiveProjectionMatrix(aspect, fov, z_near, z_far);

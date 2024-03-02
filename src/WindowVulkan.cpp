@@ -56,7 +56,7 @@ VkBool32 VulkanDebugReportCallback(
 
 } // namespace
 
-WindowVulkan::WindowVulkan(const SystemWindow& system_window)
+WindowVulkan::WindowVulkan(const SystemWindow& system_window, Settings& settings)
 {
 	#ifdef DEBUG
 	const bool use_debug_extensions_and_layers= true;
@@ -151,6 +151,7 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 	vk::PhysicalDevice physical_device= physical_devices.front();
 	if(physical_devices.size() > 1u)
 	{
+		// Choose first Diescrete GPU device.
 		for(const vk::PhysicalDevice& physical_device_candidate : physical_devices)
 		{
 			const vk::PhysicalDeviceProperties properties= physical_device_candidate.getProperties();
@@ -158,6 +159,19 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 			{
 				physical_device= physical_device_candidate;
 				break;
+			}
+		}
+
+		// Than try to choose device from settings.
+		const auto saved_device_id= settings.GetInt("r_device_id");
+		for(const vk::PhysicalDevice& physical_device_candidate : physical_devices)
+		{
+			const vk::PhysicalDeviceProperties properties= physical_device_candidate.getProperties();
+			Log::Info("Available device name=\"", properties.deviceName, "\", ID=", properties.deviceID, " type=", vk::to_string(properties.deviceType));
+			if(properties.deviceID == saved_device_id)
+			{
+				Log::Info("Select device from config ", saved_device_id);
+				physical_device= physical_device_candidate;
 			}
 		}
 	}
@@ -176,6 +190,8 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 		Log::Info("Device type: ", vk::to_string(properties.deviceType));
 		Log::Info("Device name: ", properties.deviceName);
 		Log::Info("");
+
+		settings.SetInt("r_device_id", properties.deviceID);
 	}
 
 	// Select queue family.

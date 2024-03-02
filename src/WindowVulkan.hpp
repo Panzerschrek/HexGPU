@@ -12,7 +12,7 @@ public:
 	using DrawFunction= std::function<void(vk::Framebuffer framebuffer)>;
 
 public:
-	explicit WindowVulkan(const SystemWindow& system_window);
+	WindowVulkan(const SystemWindow& system_window, Settings& settings);
 	~WindowVulkan();
 
 	vk::CommandBuffer BeginFrame();

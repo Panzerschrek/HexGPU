@@ -1,5 +1,4 @@
 #include "WorldTexturesManager.hpp"
-#include "BlockType.hpp"
 #include "TexturesTable.hpp"
 #include "Log.hpp"
 

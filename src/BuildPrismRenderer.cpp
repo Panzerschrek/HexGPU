@@ -1,6 +1,5 @@
 #include "BuildPrismRenderer.hpp"
 #include "Assert.hpp"
-#include "BlockType.hpp"
 #include "ShaderList.hpp"
 #include "VulkanUtils.hpp"
 

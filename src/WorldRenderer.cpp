@@ -124,13 +124,11 @@ WorldRenderer::WorldRenderer(
 	, draw_indirect_buffer_(
 		window_vulkan,
 		world_size_[0] * world_size_[1] * uint32_t(sizeof(vk::DrawIndexedIndirectCommand)),
-		vk::BufferUsageFlagBits::eIndirectBuffer | vk::BufferUsageFlagBits::eStorageBuffer,
-		vk::MemoryPropertyFlagBits::eDeviceLocal)
+		vk::BufferUsageFlagBits::eIndirectBuffer | vk::BufferUsageFlagBits::eStorageBuffer)
 	, uniform_buffer_(
 		window_vulkan,
 		sizeof(DrawUniforms),
-		vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst,
-		vk::MemoryPropertyFlagBits::eDeviceLocal)
+		vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst)
 	, draw_indirect_buffer_build_pipeline_(CreateDrawIndirectBufferBuildPipeline(vk_device_))
 	, draw_indirect_buffer_build_descriptor_set_(
 		CreateDescriptorSet(

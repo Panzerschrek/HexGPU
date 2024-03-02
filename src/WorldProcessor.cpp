@@ -447,8 +447,7 @@ Buffer CreateChunkDataBuffer(WindowVulkan& window_vulkan, const WorldSizeChunks&
 	return Buffer(
 		window_vulkan,
 		c_chunk_volume * world_size[0] * world_size[1],
-		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
-		vk::MemoryPropertyFlagBits::eDeviceLocal);
+		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
 }
 
 Buffer CreateLightBuffer(WindowVulkan& window_vulkan, const WorldSizeChunks& world_size)
@@ -456,8 +455,7 @@ Buffer CreateLightBuffer(WindowVulkan& window_vulkan, const WorldSizeChunks& wor
 	return Buffer(
 		window_vulkan,
 		c_chunk_volume * world_size[0] * world_size[1],
-		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
-		vk::MemoryPropertyFlagBits::eDeviceLocal);
+		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
 }
 
 } // namespace
@@ -479,18 +477,15 @@ WorldProcessor::WorldProcessor(
 	, player_state_buffer_(
 		window_vulkan,
 		sizeof(PlayerState),
-		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst,
-		vk::MemoryPropertyFlagBits::eDeviceLocal)
+		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst)
 	, world_blocks_external_update_queue_buffer_(
 		window_vulkan,
 		sizeof(WorldBlocksExternalUpdateQueue),
-		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
-		vk::MemoryPropertyFlagBits::eDeviceLocal)
+		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst)
 	, player_world_window_buffer_(
 		window_vulkan,
 		sizeof(PlayerWorldWindow),
-		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
-		vk::MemoryPropertyFlagBits::eDeviceLocal)
+		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst)
 	, world_gen_pipeline_(CreateWorldGenPipeline(vk_device_))
 	, initial_light_fill_pipeline_(CreateInitialLightFillPipeline(vk_device_))
 	, world_blocks_update_pipeline_(CreateWorldBlocksUpdatePipeline(vk_device_))

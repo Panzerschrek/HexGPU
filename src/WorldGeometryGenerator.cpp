@@ -293,14 +293,12 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 	, chunk_draw_info_buffer_(
 		window_vulkan,
 		world_size_[0] * world_size_[1] * uint32_t(sizeof(ChunkDrawInfo)),
-		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
-		vk::MemoryPropertyFlagBits::eDeviceLocal)
+		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst)
 	, vertex_buffer_num_quads_(GetTotalVertexBufferQuads(world_size_))
 	, vertex_buffer_(
 		window_vulkan,
 		vertex_buffer_num_quads_ * uint32_t(sizeof(QuadVertices)),
-		vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
-		vk::MemoryPropertyFlagBits::eDeviceLocal)
+		vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst)
 	, vertex_memory_allocator_(window_vulkan, GetTotalVertexBufferUnits(world_size_))
 	, geometry_size_calculate_prepare_pipeline_(CreateGeometrySizeCalculatePreparePipeline(vk_device_))
 	, geometry_size_calculate_prepare_descriptor_set_(

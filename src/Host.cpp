@@ -49,16 +49,16 @@ bool Host::Loop()
 		if(event.type == SDL_MOUSEBUTTONDOWN)
 		{
 			if(event.button.button == SDL_BUTTON_LEFT)
-				mouse_state|= 1 << c_mouse_l_clicked_bit;
+				mouse_state|= c_mouse_mask_l_clicked;
 			if(event.button.button == SDL_BUTTON_RIGHT)
-				mouse_state|= 1 << c_mouse_r_clicled_bit;
+				mouse_state|= c_mouse_mask_r_clicked;
 		}
 		if(event.type == SDL_MOUSEWHEEL)
 		{
 			if(event.wheel.y > 0)
-				mouse_state|= 1 << c_mouse_wheel_up_clicked_bit;
+				mouse_state|= c_mouse_mask_wheel_up_clicked;
 			if(event.wheel.y < 0)
-				mouse_state|= 1 << c_mouse_wheel_down_clicked_bit;
+				mouse_state|= c_mouse_mask_wheel_down_clicked;
 		}
 	}
 

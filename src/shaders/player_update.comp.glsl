@@ -87,11 +87,11 @@ void MovePlayer()
 
 void UpdateBuildBlockType()
 {
-	if((mouse_state & (1 << c_mouse_wheel_up_clicked_bit)) != 0)
+	if((mouse_state & c_mouse_mask_wheel_up_clicked) != 0)
 	{
 		++player_state.build_block_type;
 	}
-	if((mouse_state & (1 << c_mouse_wheel_down_clicked_bit)) != 0)
+	if((mouse_state & c_mouse_mask_wheel_down_clicked) != 0)
 	{
 		if(player_state.build_block_type - 1 == int(c_block_type_air))
 			player_state.build_block_type= uint8_t(c_num_block_types - 1);
@@ -273,7 +273,7 @@ void main()
 
 	// Perform building/destroying.
 	// Update build pos if building/destroying was triggered.
-	if((mouse_state & (1 << c_mouse_r_clicked_bit)) != 0)
+	if((mouse_state & c_mouse_mask_r_clicked) != 0)
 	{
 		ivec3 pos_in_window= player_state.build_pos.xyz - player_world_window.offset.xyz;
 		if(IsPosInsidePlayerWorldWindow(pos_in_window))
@@ -290,7 +290,7 @@ void main()
 			UpdateBuildPos();
 		}
 	}
-	if((mouse_state & (1 << c_mouse_l_clicked_bit)) != 0)
+	if((mouse_state & c_mouse_mask_l_clicked) != 0)
 	{
 		ivec3 pos_in_window= player_state.destroy_pos.xyz - player_world_window.offset.xyz;
 		if(IsPosInsidePlayerWorldWindow(pos_in_window))

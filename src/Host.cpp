@@ -16,6 +16,60 @@ float CalculateAspect(const vk::Extent2D& viewport_size)
 	return float(viewport_size.width) / float(viewport_size.height);
 }
 
+KeyboardState CreateKeyboardState(const std::vector<bool>& keys_state)
+{
+	// TODO - read key bindings from config.
+	KeyboardState keyboard_state= 0;
+
+	if(keys_state[size_t(SDL_SCANCODE_W)])
+		keyboard_state|= c_key_mask_forward;
+	if(keys_state[size_t(SDL_SCANCODE_S)])
+		keyboard_state|= c_key_mask_backward;
+	if(keys_state[size_t(SDL_SCANCODE_D)])
+		keyboard_state|= c_key_mask_step_left;
+	if(keys_state[size_t(SDL_SCANCODE_A)])
+		keyboard_state|= c_key_mask_step_right;
+	if(keys_state[size_t(SDL_SCANCODE_SPACE)])
+		keyboard_state|= c_key_mask_fly_up;
+	if(keys_state[size_t(SDL_SCANCODE_C)])
+		keyboard_state|= c_key_mask_fly_down;
+	if(keys_state[size_t(SDL_SCANCODE_LEFT)])
+		keyboard_state|= c_key_mask_rotate_left;
+	if(keys_state[size_t(SDL_SCANCODE_RIGHT)])
+		keyboard_state|= c_key_mask_rotate_right;
+	if(keys_state[size_t(SDL_SCANCODE_UP)])
+		keyboard_state|= c_key_mask_rotate_up;
+	if(keys_state[size_t(SDL_SCANCODE_DOWN)])
+		keyboard_state|= c_key_mask_rotate_down;
+
+	return keyboard_state;
+}
+
+MouseState CreateMouseState(const std::vector<SDL_Event>& events)
+{
+	MouseState mouse_state= 0;
+
+	for(const SDL_Event& event : events)
+	{
+		if(event.type == SDL_MOUSEBUTTONDOWN)
+		{
+			if(event.button.button == SDL_BUTTON_LEFT)
+				mouse_state|= c_mouse_mask_l_clicked;
+			if(event.button.button == SDL_BUTTON_RIGHT)
+				mouse_state|= c_mouse_mask_r_clicked;
+		}
+		if(event.type == SDL_MOUSEWHEEL)
+		{
+			if(event.wheel.y > 0)
+				mouse_state|= c_mouse_mask_wheel_up_clicked;
+			if(event.wheel.y < 0)
+				mouse_state|= c_mouse_mask_wheel_down_clicked;
+		}
+	}
+
+	return mouse_state;
+}
+
 } // namespace
 
 Host::Host()
@@ -26,7 +80,6 @@ Host::Host()
 	, world_processor_(window_vulkan_, *global_descriptor_pool_, settings_)
 	, world_renderer_(window_vulkan_, world_processor_, *global_descriptor_pool_)
 	, build_prism_renderer_(window_vulkan_, world_processor_, *global_descriptor_pool_)
-	, camera_controller_(CalculateAspect(window_vulkan_.GetViewportSize()))
 	, init_time_(Clock::now())
 	, prev_tick_time_(init_time_)
 {
@@ -40,48 +93,25 @@ bool Host::Loop()
 
 	const float dt_s= float(dt.count()) * float(Clock::duration::period::num) / float(Clock::duration::period::den);
 
-	bool build_triggered= false, destroy_triggered= false;
-	for( const SDL_Event& event : system_window_.ProcessEvents() )
+	const auto keys_state= system_window_.GetKeyboardState();
+	const auto events= system_window_.ProcessEvents();
+
+	for(const SDL_Event& event : events)
 	{
 		if(event.type == SDL_QUIT)
 			quit_requested_= true;
 		if(event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)
 			quit_requested_= true;
-		if(event.type == SDL_MOUSEBUTTONDOWN)
-		{
-			if(event.button.button == SDL_BUTTON_LEFT)
-				destroy_triggered= true;
-			if(event.button.button == SDL_BUTTON_RIGHT)
-				build_triggered= true;
-		}
-		if(event.type == SDL_MOUSEWHEEL)
-		{
-			if(event.wheel.y > 0)
-			{
-				build_block_type_= BlockType((int32_t(build_block_type_) + 1) % int32_t(BlockType::NumBlockTypes));
-				if(build_block_type_ == BlockType::Air)
-					build_block_type_= BlockType(int32_t(BlockType::Air) + 1);
-			}
-			if(event.wheel.y < 0)
-			{
-				build_block_type_= BlockType((int32_t(build_block_type_) + int32_t(BlockType::NumBlockTypes) - 1) % int32_t(BlockType::NumBlockTypes));
-			}
-		}
 	}
-
-	camera_controller_.Update(dt_s, system_window_.GetKeyboardState());
 
 	const vk::CommandBuffer command_buffer= window_vulkan_.BeginFrame();
 
-	// TODO - pass directly events and keyboard state.
 	world_processor_.Update(
 		command_buffer,
 		dt_s,
-		camera_controller_.GetCameraPosition(),
-		camera_controller_.GetCameraDirection(),
-		build_block_type_,
-		build_triggered,
-		destroy_triggered);
+		CreateKeyboardState(keys_state),
+		CreateMouseState(events),
+		CalculateAspect(window_vulkan_.GetViewportSize()));
 
 	world_renderer_.PrepareFrame(command_buffer);
 	build_prism_renderer_.PrepareFrame(command_buffer);
@@ -89,9 +119,8 @@ bool Host::Loop()
 	window_vulkan_.EndFrame(
 		[&](const vk::CommandBuffer command_buffer)
 		{
-			const m_Mat4 view_matrix= camera_controller_.CalculateFullViewMatrix();
-			world_renderer_.Draw(command_buffer, view_matrix);
-			build_prism_renderer_.Draw(command_buffer, view_matrix);
+			world_renderer_.Draw(command_buffer);
+			build_prism_renderer_.Draw(command_buffer);
 		});
 
 	const Clock::time_point tick_end_time= Clock::now();

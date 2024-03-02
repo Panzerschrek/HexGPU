@@ -1,6 +1,5 @@
 #pragma once
 #include "WorldProcessor.hpp"
-#include "Mat.hpp"
 
 namespace HexGPU
 {
@@ -16,7 +15,7 @@ public:
 	~BuildPrismRenderer();
 
 	void PrepareFrame(vk::CommandBuffer command_buffer);
-	void Draw(vk::CommandBuffer command_buffer, const m_Mat4& view_matrix);
+	void Draw(vk::CommandBuffer command_buffer);
 
 private:
 	const vk::Device vk_device_;

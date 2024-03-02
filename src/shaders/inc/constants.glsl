@@ -2,6 +2,8 @@
 #ifndef CONSTANTS_GLSL_HEADER
 #define CONSTANTS_GLSL_HEADER
 
+const float c_pi= 3.1415926535;
+
 const float c_space_scale_x= sqrt(3.0) / 2.0;
 
 const int c_chunk_width_log2= 4;

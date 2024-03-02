@@ -1,5 +1,4 @@
 #pragma once
-#include "Mat.hpp"
 #include "WorldGeometryGenerator.hpp"
 #include "WorldTexturesManager.hpp"
 
@@ -17,7 +16,7 @@ public:
 	~WorldRenderer();
 
 	void PrepareFrame(vk::CommandBuffer command_buffer);
-	void Draw(vk::CommandBuffer command_buffer, const m_Mat4& view_matrix);
+	void Draw(vk::CommandBuffer command_buffer);
 
 private:
 	void BuildDrawIndirectBuffer(vk::CommandBuffer command_buffer);
@@ -25,6 +24,7 @@ private:
 private:
 	const vk::Device vk_device_;
 	const uint32_t queue_family_index_;
+	const WorldProcessor& world_processor_;
 
 	const WorldSizeChunks world_size_;
 
@@ -33,6 +33,9 @@ private:
 
 	vk::UniqueBuffer draw_indirect_buffer_;
 	vk::UniqueDeviceMemory draw_indirect_buffer_memory_;
+
+	vk::UniqueBuffer uniform_buffer_;
+	vk::UniqueDeviceMemory uniform_buffer_memory_;
 
 	vk::UniqueShaderModule draw_indirect_buffer_build_shader_;
 	vk::UniqueDescriptorSetLayout draw_indirect_buffer_build_decriptor_set_layout_;

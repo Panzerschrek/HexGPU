@@ -1,6 +1,5 @@
 #pragma once
 #include "BuildPrismRenderer.hpp"
-#include "CameraController.hpp"
 #include "SystemWindow.hpp"
 #include "WorldRenderer.hpp"
 #include <chrono>
@@ -26,10 +25,6 @@ private:
 	WorldProcessor world_processor_;
 	WorldRenderer world_renderer_;
 	BuildPrismRenderer build_prism_renderer_;
-
-	CameraController camera_controller_;
-
-	BlockType build_block_type_= BlockType::Stone;
 
 	const Clock::time_point init_time_;
 	Clock::time_point prev_tick_time_;

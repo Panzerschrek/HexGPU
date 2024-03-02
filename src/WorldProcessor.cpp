@@ -48,6 +48,7 @@ namespace PlayerWorldWindowBuildShaderBindings
 
 uint32_t chunk_data_buffer= 0;
 uint32_t player_world_window_buffer= 1;
+uint32_t player_state_buffer= 2;
 
 }
 
@@ -79,22 +80,17 @@ struct ChunkPositionUniforms
 
 struct PlayerWorldWindowBuildUniforms
 {
-	int32_t player_world_window_offset[4]{};
 	int32_t world_size_chunks[2]{};
 	int32_t world_offset_chunks[2]{};
 };
 
 struct PlayerUpdateUniforms
 {
-	m_Vec3 player_pos;
-	float reserved0= 0.0f;
-	m_Vec3 player_dir;
-	float reserved1= 0.0f;
 	int32_t world_size_chunks[2]{0, 0};
-	BlockType build_block_type= BlockType::Stone;
-	bool build_triggered= false;
-	bool destroy_triggered= false;
-	uint8_t reserved2[1];
+	float aspect= 0.0f;
+	float time_delta_s= 0.0f;
+	KeyboardState keyboard_state= 0;
+	MouseState mouse_state= 0;
 };
 
 struct WorldBlocksExternalUpdateQueueFlushUniforms
@@ -685,6 +681,13 @@ WorldProcessor::WorldProcessor(
 				vk::ShaderStageFlagBits::eCompute,
 				nullptr,
 			},
+			{
+				PlayerWorldWindowBuildShaderBindings::player_state_buffer,
+				vk::DescriptorType::eStorageBuffer,
+				1u,
+				vk::ShaderStageFlagBits::eCompute,
+				nullptr,
+			},
 		};
 		player_world_window_build_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
 			vk::DescriptorSetLayoutCreateInfo(
@@ -736,6 +739,11 @@ WorldProcessor::WorldProcessor(
 			0u,
 			sizeof(PlayerWorldWindow));
 
+		const vk::DescriptorBufferInfo player_state_buffer_info(
+			player_state_buffer_.buffer.get(),
+			0u,
+			sizeof(PlayerState));
+
 		vk_device_.updateDescriptorSets(
 			{
 				{
@@ -756,6 +764,16 @@ WorldProcessor::WorldProcessor(
 					vk::DescriptorType::eStorageBuffer,
 					nullptr,
 					&player_world_window_buffer_info,
+					nullptr
+				},
+				{
+					player_world_window_build_descriptor_sets_[i],
+					PlayerWorldWindowBuildShaderBindings::player_state_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&player_state_buffer_info,
 					nullptr
 				},
 			},
@@ -990,11 +1008,9 @@ WorldProcessor::~WorldProcessor()
 void WorldProcessor::Update(
 	const vk::CommandBuffer command_buffer,
 	const float time_delta_s,
-	const m_Vec3& player_pos,
-	const m_Vec3& player_dir,
-	const BlockType build_block_type,
-	const bool build_triggered,
-	const bool destroy_triggered)
+	const KeyboardState keyboard_state,
+	const MouseState mouse_state,
+	const float aspect)
 {
 	InitialFillBuffers(command_buffer);
 	GenerateWorld(command_buffer);
@@ -1031,14 +1047,14 @@ void WorldProcessor::Update(
 		++current_tick_;
 		current_tick_fractional_= float(current_tick_);
 
-		BuildPlayerWorldWindow(command_buffer, player_pos);
+		BuildPlayerWorldWindow(command_buffer);
 	}
 	else
 		current_tick_fractional_= cur_tick_fractional;
 
 	// Run player update independent on world update - every frame.
 	// This is needed in order to make player movement and rotation smooth.
-	UpdatePlayer(command_buffer, player_pos, player_dir, build_block_type, build_triggered, destroy_triggered);
+	UpdatePlayer(command_buffer, time_delta_s, keyboard_state, mouse_state, aspect);
 }
 
 vk::Buffer WorldProcessor::GetChunkDataBuffer(const uint32_t index) const
@@ -1096,7 +1112,20 @@ void WorldProcessor::InitialFillBuffers(const vk::CommandBuffer command_buffer)
 	for(uint32_t i= 0; i < 2; ++i)
 		command_buffer.fillBuffer(*light_buffers_[i].buffer, 0, light_buffer_size_, 0);
 
-	command_buffer.fillBuffer(*player_state_buffer_.buffer, 0, sizeof(PlayerState), 0);
+	// Set initial player state.
+	{
+		PlayerState player_state;
+		player_state.pos[0]= 0.0f;
+		player_state.pos[1]= 0.0f;
+		player_state.pos[2]= 40.0f;
+		player_state.build_block_type= BlockType::Stone;
+
+		command_buffer.updateBuffer(
+			*player_state_buffer_.buffer,
+			0,
+			sizeof(PlayerState),
+			static_cast<const void*>(&player_state));
+	}
 
 	command_buffer.fillBuffer(*world_blocks_external_update_queue_buffer_.buffer, 0, sizeof(WorldBlocksExternalUpdateQueue), 0);
 
@@ -1428,7 +1457,7 @@ void WorldProcessor::CreateWorldBlocksAndLightUpdateBarrier(const vk::CommandBuf
 		0, nullptr);
 }
 
-void WorldProcessor::BuildPlayerWorldWindow(const vk::CommandBuffer command_buffer, const m_Vec3& player_pos)
+void WorldProcessor::BuildPlayerWorldWindow(const vk::CommandBuffer command_buffer)
 {
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *player_world_window_build_pipeline_);
 
@@ -1445,10 +1474,6 @@ void WorldProcessor::BuildPlayerWorldWindow(const vk::CommandBuffer command_buff
 	PlayerWorldWindowBuildUniforms uniforms;
 	uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
 	uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-	uniforms.player_world_window_offset[0]= (int32_t(player_pos.x / c_space_scale_x) - int32_t(c_player_world_window_size[0] / 2u)) & 0xFFFFFFFE;
-	uniforms.player_world_window_offset[1]= (int32_t(player_pos.y) - int32_t(c_player_world_window_size[1] / 2u)) & 0xFFFFFFFE;
-	uniforms.player_world_window_offset[2]= int32_t(player_pos.z) - int32_t(c_player_world_window_size[2] / 2u);
-	uniforms.player_world_window_offset[3]= 0;
 	uniforms.world_offset_chunks[0]= world_offset_[0];
 	uniforms.world_offset_chunks[1]= world_offset_[1];
 
@@ -1491,11 +1516,10 @@ void WorldProcessor::BuildPlayerWorldWindow(const vk::CommandBuffer command_buff
 
 void WorldProcessor::UpdatePlayer(
 	const vk::CommandBuffer command_buffer,
-	const m_Vec3& player_pos,
-	const m_Vec3& player_dir,
-	const BlockType build_block_type,
-	const bool build_triggered,
-	const bool destroy_triggered)
+	const float time_delta_s,
+	const KeyboardState keyboard_state,
+	const MouseState mouse_state,
+	const float aspect)
 {
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *player_update_pipeline_);
 
@@ -1507,13 +1531,12 @@ void WorldProcessor::UpdatePlayer(
 		0u, nullptr);
 
 	PlayerUpdateUniforms player_update_uniforms;
-	player_update_uniforms.player_pos= player_pos;
-	player_update_uniforms.player_dir= player_dir;
+	player_update_uniforms.aspect= aspect;
 	player_update_uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
 	player_update_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-	player_update_uniforms.build_block_type= build_block_type;
-	player_update_uniforms.build_triggered= build_triggered;
-	player_update_uniforms.destroy_triggered= destroy_triggered;
+	player_update_uniforms.time_delta_s= time_delta_s;
+	player_update_uniforms.keyboard_state= keyboard_state;
+	player_update_uniforms.mouse_state= mouse_state;
 
 	command_buffer.pushConstants(
 		*player_update_pipeline_layout_,

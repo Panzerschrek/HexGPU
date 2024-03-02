@@ -6,6 +6,7 @@
 
 #include "inc/block_type.glsl"
 #include "inc/hex_funcs.glsl"
+#include "inc/player_state.glsl"
 #include "inc/player_world_window.glsl"
 
 // maxComputeWorkGroupInvocations is at least 128.
@@ -14,7 +15,6 @@ layout(local_size_x= 4, local_size_y = 4, local_size_z= 8) in;
 
 layout(push_constant) uniform uniforms_block
 {
-	ivec4 player_world_window_offset;
 	ivec2 world_size_chunks;
 	ivec2 world_offset_chunks;
 };
@@ -29,8 +29,15 @@ layout(binding= 1, std430) buffer player_world_window_buffer
 	PlayerWorldWindow player_world_window;
 };
 
+layout(binding= 2, std430) buffer player_state_buffer
+{
+	PlayerState player_state;
+};
+
 void main()
 {
+	ivec4 player_world_window_offset= player_state.next_player_world_window_offset;
+
 	ivec3 invocation= ivec3(gl_GlobalInvocationID);
 
 	if(invocation == ivec3(0, 0, 0))

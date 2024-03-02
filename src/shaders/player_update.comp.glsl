@@ -6,16 +6,16 @@
 
 #include "inc/block_type.glsl"
 #include "inc/hex_funcs.glsl"
+#include "inc/keyboard.glsl"
+#include "inc/matrix.glsl"
+#include "inc/mouse.glsl"
+#include "inc/player_state.glsl"
 #include "inc/player_world_window.glsl"
 #include "inc/world_blocks_external_update_queue.glsl"
 
-// This struct must be identical to the same struct in C++ code!
 layout(binding= 1, std430) buffer player_state_buffer
 {
-	// Use vec4 for proper padding
-	// positions are global
-	ivec4 build_pos; // .w - direction
-	ivec4 destroy_pos;
+	PlayerState player_state;
 };
 
 layout(binding= 2, std430) buffer world_blocks_external_update_queue_buffer
@@ -31,15 +31,77 @@ layout(binding= 3, std430) buffer player_world_window_buffer
 layout(push_constant) uniform uniforms_block
 {
 	// Use vec4 for proper padding
-	vec4 player_pos;
-	vec4 player_dir;
 	ivec2 world_size_chunks;
-	// Use "uint8_t", because "bool" in GLSL has size different from C++.
-	uint8_t build_block_type;
-	uint8_t build_triggered;
-	uint8_t destroy_triggered;
-	uint8_t reserved[1];
+	float aspect;
+	float time_delta_s;
+	uint keyboard_state;
+	uint mouse_state;
 };
+
+void MovePlayer()
+{
+	const float speed= 4.0;
+	const float jump_speed= 0.8 * speed;
+	const float angle_speed= 1.0;
+
+	vec3 forward_vector= vec3(-sin(player_state.angles.x), +cos(player_state.angles.x), 0.0);
+	vec3 left_vector= vec3(cos(player_state.angles.x), sin(player_state.angles.x), 0.0);
+
+	vec3 move_vector= vec3(0.0, 0.0, 0.0);
+
+	if((keyboard_state & c_key_mask_forward) != 0)
+		move_vector+= forward_vector;
+	if((keyboard_state & c_key_mask_backward) != 0)
+		move_vector-= forward_vector;
+	if((keyboard_state & c_key_mask_step_left) != 0)
+		move_vector+= left_vector;
+	if((keyboard_state & c_key_mask_step_right) != 0)
+		move_vector-= left_vector;
+
+	const float move_vector_length= length(move_vector);
+	if(move_vector_length > 0.0)
+		player_state.pos.xyz+= move_vector * (time_delta_s * speed / move_vector_length);
+
+	if((keyboard_state & c_key_mask_fly_up) != 0)
+		player_state.pos.z+= time_delta_s * jump_speed;
+	if((keyboard_state & c_key_mask_fly_down) != 0)
+		player_state.pos.z-= time_delta_s * jump_speed;
+
+	if((keyboard_state & c_key_mask_rotate_left) != 0)
+		player_state.angles.x+= time_delta_s * angle_speed;
+	if((keyboard_state & c_key_mask_rotate_right) != 0)
+		player_state.angles.x-= time_delta_s * angle_speed;
+
+	if((keyboard_state & c_key_mask_rotate_up) != 0)
+		player_state.angles.y+= time_delta_s * angle_speed;
+	if((keyboard_state & c_key_mask_rotate_down) != 0)
+		player_state.angles.y-= time_delta_s * angle_speed;
+
+	while(player_state.angles.x > +c_pi)
+		player_state.angles.x-= 2.0 * c_pi;
+	while(player_state.angles.x < -c_pi)
+		player_state.angles.x+= 2.0 * c_pi;
+
+	player_state.angles.y= max(-0.5 * c_pi, min(player_state.angles.y, +0.5 * c_pi));
+}
+
+void UpdateBuildBlockType()
+{
+	if((mouse_state & c_mouse_mask_wheel_up_clicked) != 0)
+	{
+		++player_state.build_block_type;
+	}
+	if((mouse_state & c_mouse_mask_wheel_down_clicked) != 0)
+	{
+		if(player_state.build_block_type - 1 == int(c_block_type_air))
+			player_state.build_block_type= uint8_t(c_num_block_types - 1);
+		else
+			--player_state.build_block_type;
+	}
+
+	if(player_state.build_block_type <= 0 || player_state.build_block_type >= c_num_block_types)
+		player_state.build_block_type= c_block_type_spherical_block;
+}
 
 uint8_t GetBuildDirection(ivec3 last_grid_pos, ivec3 grid_pos)
 {
@@ -114,6 +176,15 @@ uint8_t GetBuildDirection(ivec3 last_grid_pos, ivec3 grid_pos)
 	}
 }
 
+// Result vector is normalized.
+vec3 CalculateCameraDirection(vec2 angles)
+{
+	float elevation_sin= sin(angles.y);
+	float elevation_cos= cos(angles.y);
+
+	return vec3(-sin(angles.x) * elevation_cos, +cos(angles.x) * elevation_cos, elevation_sin);
+}
+
 void UpdateBuildPos()
 {
 	// For now just trace hex grid with fixed step to find nearest intersection.
@@ -121,17 +192,8 @@ void UpdateBuildPos()
 	const float c_build_radius= 5.0;
 	const int c_num_steps= 64;
 
-	float player_dir_len= length(player_dir);
-	if(player_dir_len <= 0.0)
-	{
-		// Something went wrong.
-		build_pos= ivec4(-1, -1, -1, 0);
-		destroy_pos= ivec4(-1, -1, -1, 0);
-		return;
-	}
-
-	vec3 player_dir_normalized= player_dir.xyz / player_dir_len;
-	vec3 cur_pos= player_pos.xyz;
+	vec3 player_dir_normalized= CalculateCameraDirection(player_state.angles.xy);
+	vec3 cur_pos= player_state.pos.xyz;
 	vec3 step_vec= player_dir_normalized * (c_build_radius / float(c_num_steps));
 
 	ivec3 last_grid_pos= ivec3(-1, -1, -1);
@@ -148,9 +210,9 @@ void UpdateBuildPos()
 			{
 				// Reached non-air block.
 				// Destroy position is in this block, build position is in previous block.
-				destroy_pos.xyz= grid_pos;
-				build_pos.xyz= last_grid_pos;
-				build_pos.w= int(GetBuildDirection(last_grid_pos, grid_pos));
+				player_state.destroy_pos.xyz= grid_pos;
+				player_state.build_pos.xyz= last_grid_pos;
+				player_state.build_pos.w= int(GetBuildDirection(last_grid_pos, grid_pos));
 				return;
 			}
 		}
@@ -159,8 +221,8 @@ void UpdateBuildPos()
 	}
 
 	// Reached the end of the search - make build and destroy positions infinite.
-	build_pos= ivec4(-1, -1, -1, 0);
-	destroy_pos= ivec4(-1, -1, -1, 0);
+	player_state.build_pos= ivec4(-1, -1, -1, 0);
+	player_state.destroy_pos= ivec4(-1, -1, -1, 0);
 }
 
 void PushUpdateIntoQueue(WorldBlockExternalUpdate update)
@@ -173,38 +235,70 @@ void PushUpdateIntoQueue(WorldBlockExternalUpdate update)
 	}
 }
 
+void UpdateBlocksMatrix()
+{
+	const float z_near= 0.125;
+	const float z_far= 1024.0;
+	const float fov_deg= 75.0;
+
+	const float fov= radians(fov_deg);
+
+	float fov_y= fov;
+
+	mat4 perspective= MakePerspectiveProjectionMatrix(aspect, fov, z_near, z_far);
+	mat4 basis_change= MakePerspectiveChangeBasisMatrix();
+	mat4 rotate_x= MakeRotationXMatrix(-player_state.angles.y);
+	mat4 rotate_z= MakeRotationZMatrix(-player_state.angles.x);
+	mat4 translate= MateTranslateMatrix(-player_state.pos.xyz);
+	mat4 blocks_scale= MakeScaleMatrix(vec3(0.5 / sqrt(3.0), 0.5, 1.0));
+
+	player_state.blocks_matrix= perspective * basis_change * rotate_x * rotate_z * translate * blocks_scale;
+}
+
+void UpdateNextPlayerWorldWindowOffset()
+{
+	player_state.next_player_world_window_offset=
+		ivec4(
+			(GetHexogonCoord(player_state.pos.xy) - c_player_world_window_size.xy / 2) & 0xFFFFFFFE,
+			int(floor(player_state.pos.z)) - c_player_world_window_size.z / 2,
+			0);
+}
+
 void main()
 {
+	MovePlayer();
+	UpdateBuildBlockType();
+
 	UpdateBuildPos();
 
 	// Perform building/destroying.
 	// Update build pos if building/destroying was triggered.
-	if(build_triggered != uint8_t(0))
+	if((mouse_state & c_mouse_mask_r_clicked) != 0)
 	{
-		ivec3 pos_in_window= build_pos.xyz - player_world_window.offset.xyz;
+		ivec3 pos_in_window= player_state.build_pos.xyz - player_world_window.offset.xyz;
 		if(IsPosInsidePlayerWorldWindow(pos_in_window))
 		{
 			int address_in_window= GetAddressOfBlockInPlayerWorldWindow(pos_in_window);
 
 			WorldBlockExternalUpdate update;
-			update.position= ivec4(build_pos.xyz, 0);
+			update.position= ivec4(player_state.build_pos.xyz, 0);
 			update.old_block_type= player_world_window.window_data[address_in_window];
-			update.new_block_type= build_block_type;
+			update.new_block_type= player_state.build_block_type;
 			PushUpdateIntoQueue(update);
 
-			player_world_window.window_data[address_in_window]= build_block_type;
+			player_world_window.window_data[address_in_window]= player_state.build_block_type;
 			UpdateBuildPos();
 		}
 	}
-	if(destroy_triggered != uint8_t(0))
+	if((mouse_state & c_mouse_mask_l_clicked) != 0)
 	{
-		ivec3 pos_in_window= destroy_pos.xyz - player_world_window.offset.xyz;
+		ivec3 pos_in_window= player_state.destroy_pos.xyz - player_world_window.offset.xyz;
 		if(IsPosInsidePlayerWorldWindow(pos_in_window))
 		{
 			int address_in_window= GetAddressOfBlockInPlayerWorldWindow(pos_in_window);
 
 			WorldBlockExternalUpdate update;
-			update.position= ivec4(destroy_pos.xyz, 0);
+			update.position= ivec4(player_state.destroy_pos.xyz, 0);
 			update.old_block_type= player_world_window.window_data[address_in_window];
 			update.new_block_type= c_block_type_air;
 			PushUpdateIntoQueue(update);
@@ -213,4 +307,7 @@ void main()
 			UpdateBuildPos();
 		}
 	}
+
+	UpdateBlocksMatrix();
+	UpdateNextPlayerWorldWindowOffset();
 }

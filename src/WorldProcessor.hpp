@@ -1,6 +1,7 @@
 #pragma once
 #include "BlockType.hpp"
-#include "Vec.hpp"
+#include "Keyboard.hpp"
+#include "Mouse.hpp"
 #include "WindowVulkan.hpp"
 
 namespace HexGPU
@@ -18,11 +19,9 @@ public:
 	void Update(
 		vk::CommandBuffer command_buffer,
 		float time_delta_s,
-		const m_Vec3& player_pos,
-		const m_Vec3& player_dir,
-		BlockType build_block_type,
-		bool build_triggered,
-		bool destroy_triggered);
+		KeyboardState keyboard_state,
+		MouseState mouse_state,
+		float aspect);
 
 	vk::Buffer GetChunkDataBuffer(uint32_t index) const;
 	uint32_t GetChunkDataBufferSize() const;
@@ -40,8 +39,13 @@ public:
 	// This struct must be identical to the same struct in GLSL code!
 	struct PlayerState
 	{
-		int32_t build_pos[4]; // component 3 - direction
-		int32_t destroy_pos[4];
+		float blocks_matrix[16]{};
+		float pos[4]{};
+		float angles[4]{};
+		int32_t build_pos[4]{}; // component 3 - direction
+		int32_t destroy_pos[4]{};
+		int32_t next_player_world_window_offset[4]{};
+		BlockType build_block_type= BlockType::Air;
 	};
 
 private:
@@ -87,14 +91,13 @@ private:
 	void UpdateWorldBlocks(vk::CommandBuffer command_buffer);
 	void UpdateLight(vk::CommandBuffer command_buffer);
 	void CreateWorldBlocksAndLightUpdateBarrier(vk::CommandBuffer command_buffer);
-	void BuildPlayerWorldWindow(vk::CommandBuffer command_buffer, const m_Vec3& player_pos);
+	void BuildPlayerWorldWindow(vk::CommandBuffer command_buffer);
 	void UpdatePlayer(
 		vk::CommandBuffer command_buffer,
-		const m_Vec3& player_pos,
-		const m_Vec3& player_dir,
-		BlockType build_block_type,
-		bool build_triggered,
-		bool destroy_triggered);
+		float time_delta_s,
+		KeyboardState keyboard_state,
+		MouseState mouse_state,
+		float aspect);
 	void FlushWorldBlocksExternalUpdateQueue(vk::CommandBuffer command_buffer);
 
 	uint32_t GetSrcBufferIndex() const;

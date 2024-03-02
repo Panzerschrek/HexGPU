@@ -1,6 +1,5 @@
 #include "BuildPrismRenderer.hpp"
 #include "Assert.hpp"
-#include "BlockType.hpp"
 #include "ShaderList.hpp"
 #include "VulkanUtils.hpp"
 
@@ -11,9 +10,10 @@ namespace HexGPU
 namespace
 {
 
-struct Uniforms
+struct DrawUniforms
 {
-	int32_t build_pos[4]; // component 3 - direction.
+	float view_matrix[16]{};
+	int32_t build_pos[4]{}; // component 3 - direction.
 };
 
 struct BuildPrismVertex
@@ -128,7 +128,7 @@ BuildPrismRenderer::BuildPrismRenderer(
 			vk_device_.createBufferUnique(
 				vk::BufferCreateInfo(
 					vk::BufferCreateFlags(),
-					sizeof(Uniforms),
+					sizeof(DrawUniforms),
 					vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst));
 
 		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*uniform_buffer_);
@@ -212,20 +212,13 @@ BuildPrismRenderer::BuildPrismRenderer(
 					uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
 	}
 
-	const vk::PushConstantRange push_constant_range(
-		vk::ShaderStageFlagBits::eVertex,
-		0u,
-		sizeof(m_Mat4));
-
 	// Create pipeline layout
 	pipeline_layout_=
 		vk_device_.createPipelineLayoutUnique(
 			vk::PipelineLayoutCreateInfo(
 				vk::PipelineLayoutCreateFlags(),
-				1u,
-				&*decriptor_set_layout_,
-				1u,
-				&push_constant_range));
+				1u, &*decriptor_set_layout_,
+				0u, nullptr));
 
 	// Create pipeline.
 	{
@@ -342,7 +335,7 @@ BuildPrismRenderer::BuildPrismRenderer(
 		const vk::DescriptorBufferInfo descriptor_uniform_buffer_info(
 			*uniform_buffer_,
 			0u,
-			sizeof(Uniforms));
+			sizeof(DrawUniforms));
 
 		vk_device_.updateDescriptorSets(
 			{
@@ -373,7 +366,7 @@ void BuildPrismRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
 	{
 		const vk::BufferCopy copy_region(
 			offsetof(WorldProcessor::PlayerState, build_pos),
-			offsetof(Uniforms, build_pos),
+			offsetof(DrawUniforms, build_pos),
 			sizeof(int32_t) * 4);
 
 		command_buffer.copyBuffer(
@@ -381,6 +374,20 @@ void BuildPrismRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
 			*uniform_buffer_,
 			1u, &copy_region);
 	}
+
+	// Copy view matrix.
+	{
+		const vk::BufferCopy copy_region(
+			offsetof(WorldProcessor::PlayerState, blocks_matrix),
+			offsetof(DrawUniforms, view_matrix),
+			sizeof(float) * 16);
+
+		command_buffer.copyBuffer(
+			world_processor_.GetPlayerStateBuffer(),
+			*uniform_buffer_,
+			1u, &copy_region);
+	}
+
 	// Add barrier between uniform buffer memory copy and result usage in shader.
 	{
 		const vk::BufferMemoryBarrier barrier(
@@ -400,7 +407,7 @@ void BuildPrismRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
 	}
 }
 
-void BuildPrismRenderer::Draw(const vk::CommandBuffer command_buffer, const m_Mat4& view_matrix)
+void BuildPrismRenderer::Draw(const vk::CommandBuffer command_buffer)
 {
 	const vk::DeviceSize offsets= 0u;
 	command_buffer.bindVertexBuffers(0u, 1u, &*vertex_buffer_, &offsets);
@@ -410,13 +417,6 @@ void BuildPrismRenderer::Draw(const vk::CommandBuffer command_buffer, const m_Ma
 		0u,
 		1u, &descriptor_set_,
 		0u, nullptr);
-
-	const m_Vec3 scale_vec(0.5f / std::sqrt(3.0f), 0.5f, 1.0f );
-	m_Mat4 scale_mat;
-	scale_mat.Scale(scale_vec);
-	const m_Mat4 final_mat= scale_mat * view_matrix;
-
-	command_buffer.pushConstants(*pipeline_layout_, vk::ShaderStageFlagBits::eVertex, 0, sizeof(view_matrix), &final_mat);
 
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline_);
 

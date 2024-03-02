@@ -4,7 +4,7 @@ mat4 MakePerspectiveProjectionMatrix(float aspect, float fov_y, float z_near, co
 {
 	const float inv_half_fov_tan= 1.0 / tan(fov_y * 0.5);
 
-	mat4 m= mat4(0.0);
+	mat4 m;
 
 	m[0][0]= inv_half_fov_tan / aspect;
 	m[1][1]= inv_half_fov_tan;
@@ -24,7 +24,7 @@ mat4 MakePerspectiveProjectionMatrix(float aspect, float fov_y, float z_near, co
 
 mat4 MakePerspectiveChangeBasisMatrix()
 {
-	mat4 m= mat4(1.0); // identity.
+	mat4 m= mat4(1.0);
 	m[1][1]= 0.0;
 	m[1][2]= 1.0;
 	m[2][1]= -1.0;
@@ -34,7 +34,7 @@ mat4 MakePerspectiveChangeBasisMatrix()
 
 mat4 MateTranslateMatrix(vec3 shift)
 {
-	mat4 m= mat4(1.0); // identity.
+	mat4 m= mat4(1.0);
 	m[3][0]= shift.x;
 	m[3][1]= shift.y;
 	m[3][2]= shift.z;
@@ -43,7 +43,7 @@ mat4 MateTranslateMatrix(vec3 shift)
 
 mat4 MakeScaleMatrix(vec3 scale)
 {
-	mat4 m= mat4(1.0); // identity
+	mat4 m= mat4(1.0);
 	m[0][0]= scale.x;
 	m[1][1]= scale.y;
 	m[2][2]= scale.z;

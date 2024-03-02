@@ -40,9 +40,9 @@ layout(push_constant) uniform uniforms_block
 
 void MovePlayer()
 {
-	const float speed= 4.0f;
-	const float jump_speed= 0.8f * speed;
-	const float angle_speed= 1.0f;
+	const float speed= 4.0;
+	const float jump_speed= 0.8 * speed;
+	const float angle_speed= 1.0;
 
 	vec3 forward_vector= vec3(-sin(player_state.angles.x), +cos(player_state.angles.x), 0.0);
 	vec3 left_vector= vec3(cos(player_state.angles.x), sin(player_state.angles.x), 0.0);
@@ -241,7 +241,7 @@ void UpdateBlocksMatrix()
 	const float z_far= 1024.0;
 	const float fov_deg= 75.0;
 
-	const float fov= fov_deg * (c_pi / 180.0);
+	const float fov= radians(fov_deg);
 
 	float fov_y= fov;
 

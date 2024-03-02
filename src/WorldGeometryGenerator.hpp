@@ -1,5 +1,6 @@
 #pragma once
 #include "GPUAllocator.hpp"
+#include "Pipeline.hpp"
 #include "WorldProcessor.hpp"
 
 namespace HexGPU
@@ -67,28 +68,16 @@ private:
 
 	GPUAllocator vertex_memory_allocator_;
 
-	vk::UniqueShaderModule geometry_size_calculate_prepare_shader_;
-	vk::UniqueDescriptorSetLayout geometry_size_calculate_prepare_decriptor_set_layout_;
-	vk::UniquePipelineLayout geometry_size_calculate_prepare_pipeline_layout_;
-	vk::UniquePipeline geometry_size_calculate_prepare_pipeline_;
+	ComputePipeline geometry_size_calculate_prepare_pipeline_;
 	vk::DescriptorSet geometry_size_calculate_prepare_descriptor_set_;
 
-	vk::UniqueShaderModule geometry_size_calculate_shader_;
-	vk::UniqueDescriptorSetLayout geometry_size_calculate_decriptor_set_layout_;
-	vk::UniquePipelineLayout geometry_size_calculate_pipeline_layout_;
-	vk::UniquePipeline geometry_size_calculate_pipeline_;
+	ComputePipeline geometry_size_calculate_pipeline_;
 	vk::DescriptorSet geometry_size_calculate_descriptor_sets_[2];
 
-	vk::UniqueShaderModule geometry_allocate_shader_;
-	vk::UniqueDescriptorSetLayout geometry_allocate_decriptor_set_layout_;
-	vk::UniquePipelineLayout geometry_allocate_pipeline_layout_;
-	vk::UniquePipeline geometry_allocate_pipeline_;
+	ComputePipeline geometry_allocate_pipeline_;
 	vk::DescriptorSet geometry_allocate_descriptor_set_;
 
-	vk::UniqueShaderModule geometry_gen_shader_;
-	vk::UniqueDescriptorSetLayout geometry_gen_decriptor_set_layout_;
-	vk::UniquePipelineLayout geometry_gen_pipeline_layout_;
-	vk::UniquePipeline geometry_gen_pipeline_;
+	ComputePipeline geometry_gen_pipeline_;
 	vk::DescriptorSet geometry_gen_descriptor_sets_[2];
 
 	uint32_t frame_counter_= 0;

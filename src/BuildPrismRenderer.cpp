@@ -191,8 +191,8 @@ BuildPrismRenderer::BuildPrismRenderer(
 	}
 
 	// Create shaders
-	shader_vert_= CreateShader(vk_device_, ShaderNames::build_prism_vert);
-	shader_frag_= CreateShader(vk_device_, ShaderNames::build_prism_frag);
+	pipeline_.shader_vert= CreateShader(vk_device_, ShaderNames::build_prism_vert);
+	pipeline_.shader_frag= CreateShader(vk_device_, ShaderNames::build_prism_frag);
 
 	// Create descriptor set layout.
 	{
@@ -205,7 +205,7 @@ BuildPrismRenderer::BuildPrismRenderer(
 				vk::ShaderStageFlagBits::eVertex,
 			},
 		};
-		decriptor_set_layout_=
+		pipeline_.descriptor_set_layout=
 			vk_device_.createDescriptorSetLayoutUnique(
 				vk::DescriptorSetLayoutCreateInfo(
 					vk::DescriptorSetLayoutCreateFlags(),
@@ -213,11 +213,11 @@ BuildPrismRenderer::BuildPrismRenderer(
 	}
 
 	// Create pipeline layout
-	pipeline_layout_=
+	pipeline_.pipeline_layout=
 		vk_device_.createPipelineLayoutUnique(
 			vk::PipelineLayoutCreateInfo(
 				vk::PipelineLayoutCreateFlags(),
-				1u, &*decriptor_set_layout_,
+				1u, &*pipeline_.descriptor_set_layout,
 				0u, nullptr));
 
 	// Create pipeline.
@@ -227,13 +227,13 @@ BuildPrismRenderer::BuildPrismRenderer(
 			{
 				vk::PipelineShaderStageCreateFlags(),
 				vk::ShaderStageFlagBits::eVertex,
-				*shader_vert_,
+				*pipeline_.shader_vert,
 				"main"
 			},
 			{
 				vk::PipelineShaderStageCreateFlags(),
 				vk::ShaderStageFlagBits::eFragment,
-				*shader_frag_,
+				*pipeline_.shader_frag,
 				"main"
 			},
 		};
@@ -303,7 +303,7 @@ BuildPrismRenderer::BuildPrismRenderer(
 			vk::LogicOp::eCopy,
 			1u, &pipeline_color_blend_attachment_state);
 
-		pipeline_=
+		pipeline_.pipeline=
 			UnwrapPipeline(vk_device_.createGraphicsPipelineUnique(
 				nullptr,
 				vk::GraphicsPipelineCreateInfo(
@@ -319,7 +319,7 @@ BuildPrismRenderer::BuildPrismRenderer(
 					&pipeline_depth_state_create_info,
 					&pipeline_color_blend_state_create_info,
 					nullptr,
-					*pipeline_layout_,
+					*pipeline_.pipeline_layout,
 					window_vulkan.GetRenderPass(),
 					0u)));
 	}
@@ -328,7 +328,7 @@ BuildPrismRenderer::BuildPrismRenderer(
 	descriptor_set_= vk_device_.allocateDescriptorSets(
 		vk::DescriptorSetAllocateInfo(
 			global_descriptor_pool,
-			1u, &*decriptor_set_layout_)).front();
+			1u, &*pipeline_.descriptor_set_layout)).front();
 
 	// Update descriptor set.
 	{
@@ -413,12 +413,12 @@ void BuildPrismRenderer::Draw(const vk::CommandBuffer command_buffer)
 	command_buffer.bindVertexBuffers(0u, 1u, &*vertex_buffer_, &offsets);
 	command_buffer.bindDescriptorSets(
 		vk::PipelineBindPoint::eGraphics,
-		*pipeline_layout_,
+		*pipeline_.pipeline_layout,
 		0u,
 		1u, &descriptor_set_,
 		0u, nullptr);
 
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline_);
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline_.pipeline);
 
 	command_buffer.draw(vertex_buffer_num_vertices_, 1u, 0u, 0u);
 }

@@ -2,6 +2,7 @@
 #include "BlockType.hpp"
 #include "Keyboard.hpp"
 #include "Mouse.hpp"
+#include "Pipeline.hpp"
 #include "WindowVulkan.hpp"
 
 namespace HexGPU
@@ -125,46 +126,25 @@ private:
 	BufferWithMemory world_blocks_external_update_queue_buffer_;
 	BufferWithMemory player_world_window_buffer_;
 
-	vk::UniqueShaderModule world_gen_shader_;
-	vk::UniqueDescriptorSetLayout world_gen_decriptor_set_layout_;
-	vk::UniquePipelineLayout world_gen_pipeline_layout_;
-	vk::UniquePipeline world_gen_pipeline_;
+	ComputePipeline world_gen_pipeline_;
 	vk::DescriptorSet world_gen_descriptor_sets_[2];
 
-	vk::UniqueShaderModule initial_light_fill_shader_;
-	vk::UniqueDescriptorSetLayout initial_light_fill_decriptor_set_layout_;
-	vk::UniquePipelineLayout initial_light_fill_pipeline_layout_;
-	vk::UniquePipeline initial_light_fill_pipeline_;
+	ComputePipeline initial_light_fill_pipeline_;
 	vk::DescriptorSet initial_light_fill_descriptor_sets_[2];
 
-	vk::UniqueShaderModule world_blocks_update_shader_;
-	vk::UniqueDescriptorSetLayout world_blocks_update_decriptor_set_layout_;
-	vk::UniquePipelineLayout world_blocks_update_pipeline_layout_;
-	vk::UniquePipeline world_blocks_update_pipeline_;
+	ComputePipeline world_blocks_update_pipeline_;
 	vk::DescriptorSet world_blocks_update_descriptor_sets_[2];
 
-	vk::UniqueShaderModule light_update_shader_;
-	vk::UniqueDescriptorSetLayout light_update_decriptor_set_layout_;
-	vk::UniquePipelineLayout light_update_pipeline_layout_;
-	vk::UniquePipeline light_update_pipeline_;
+	ComputePipeline light_update_pipeline_;
 	vk::DescriptorSet light_update_descriptor_sets_[2];
 
-	vk::UniqueShaderModule player_world_window_build_shader_;
-	vk::UniqueDescriptorSetLayout player_world_window_build_decriptor_set_layout_;
-	vk::UniquePipelineLayout player_world_window_build_pipeline_layout_;
-	vk::UniquePipeline player_world_window_build_pipeline_;
+	ComputePipeline player_world_window_build_pipeline_;
 	vk::DescriptorSet player_world_window_build_descriptor_sets_[2];
 
-	vk::UniqueShaderModule player_update_shader_;
-	vk::UniqueDescriptorSetLayout player_update_decriptor_set_layout_;
-	vk::UniquePipelineLayout player_update_pipeline_layout_;
-	vk::UniquePipeline player_update_pipeline_;
+	ComputePipeline player_update_pipeline_;
 	vk::DescriptorSet player_update_descriptor_set_;
 
-	vk::UniqueShaderModule world_blocks_external_update_queue_flush_shader_;
-	vk::UniqueDescriptorSetLayout world_blocks_external_update_queue_flush_decriptor_set_layout_;
-	vk::UniquePipelineLayout world_blocks_external_update_queue_flush_pipeline_layout_;
-	vk::UniquePipeline world_blocks_external_update_queue_flush_pipeline_;
+	ComputePipeline world_blocks_external_update_queue_flush_pipeline_;
 	vk::DescriptorSet world_blocks_external_update_queue_flush_descriptor_sets_[2];
 
 	bool initial_buffers_filled_= false;

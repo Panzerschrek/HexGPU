@@ -1,4 +1,5 @@
 #pragma once
+#include "Pipeline.hpp"
 #include "WorldGeometryGenerator.hpp"
 #include "WorldTexturesManager.hpp"
 
@@ -37,18 +38,11 @@ private:
 	vk::UniqueBuffer uniform_buffer_;
 	vk::UniqueDeviceMemory uniform_buffer_memory_;
 
-	vk::UniqueShaderModule draw_indirect_buffer_build_shader_;
-	vk::UniqueDescriptorSetLayout draw_indirect_buffer_build_decriptor_set_layout_;
-	vk::UniquePipelineLayout draw_indirect_buffer_build_pipeline_layout_;
-	vk::UniquePipeline draw_indirect_buffer_build_pipeline_;
+	ComputePipeline draw_indirect_buffer_build_pipeline_;
 	vk::DescriptorSet draw_indirect_buffer_build_descriptor_set_;
 
-	vk::UniqueShaderModule shader_vert_;
-	vk::UniqueShaderModule shader_frag_;
 	vk::UniqueSampler texture_sampler_;
-	vk::UniqueDescriptorSetLayout decriptor_set_layout_;
-	vk::UniquePipelineLayout pipeline_layout_;
-	vk::UniquePipeline pipeline_;
+	GraphicsPipeline draw_pipeline_;
 	vk::DescriptorSet descriptor_set_;
 
 	vk::UniqueBuffer index_buffer_;

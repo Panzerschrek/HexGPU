@@ -166,7 +166,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 	}
 
 	// Create shaders.
-	geometry_size_calculate_prepare_shader_= CreateShader(vk_device_, ShaderNames::geometry_size_calculate_prepare_comp);
+	geometry_size_calculate_prepare_pipeline_.shader= CreateShader(vk_device_, ShaderNames::geometry_size_calculate_prepare_comp);
 
 	// Create descriptor set layout.
 	{
@@ -180,7 +180,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 				nullptr,
 			},
 		};
-		geometry_size_calculate_prepare_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
+		geometry_size_calculate_prepare_pipeline_.descriptor_set_layout= vk_device_.createDescriptorSetLayoutUnique(
 			vk::DescriptorSetLayoutCreateInfo(
 				vk::DescriptorSetLayoutCreateFlags(),
 				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
@@ -193,30 +193,30 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 			0u,
 			sizeof(GeometrySizeCalculatePrepareUniforms));
 
-		geometry_size_calculate_prepare_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
+		geometry_size_calculate_prepare_pipeline_.pipeline_layout= vk_device_.createPipelineLayoutUnique(
 			vk::PipelineLayoutCreateInfo(
 				vk::PipelineLayoutCreateFlags(),
-				1u, &*geometry_size_calculate_prepare_decriptor_set_layout_,
+				1u, &*geometry_size_calculate_prepare_pipeline_.descriptor_set_layout,
 				1u, &push_constant_range));
 	}
 
 	// Create pipeline.
-	geometry_size_calculate_prepare_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
+	geometry_size_calculate_prepare_pipeline_.pipeline= UnwrapPipeline(vk_device_.createComputePipelineUnique(
 		nullptr,
 		vk::ComputePipelineCreateInfo(
 			vk::PipelineCreateFlags(),
 			vk::PipelineShaderStageCreateInfo(
 				vk::PipelineShaderStageCreateFlags(),
 				vk::ShaderStageFlagBits::eCompute,
-				*geometry_size_calculate_prepare_shader_,
+				*geometry_size_calculate_prepare_pipeline_.shader,
 				"main"),
-			*geometry_size_calculate_prepare_pipeline_layout_)));
+			*geometry_size_calculate_prepare_pipeline_.pipeline_layout)));
 
 	// Create descriptor set.
 	geometry_size_calculate_prepare_descriptor_set_= vk_device_.allocateDescriptorSets(
 		vk::DescriptorSetAllocateInfo(
 			global_descriptor_pool,
-			1u, &*geometry_size_calculate_prepare_decriptor_set_layout_)).front();
+			1u, &*geometry_size_calculate_prepare_pipeline_.descriptor_set_layout)).front();
 
 	// Update descriptor set.
 	{
@@ -242,7 +242,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 	}
 
 	// Create shaders.
-	geometry_size_calculate_shader_= CreateShader(vk_device_, ShaderNames::geometry_size_calculate_comp);
+	geometry_size_calculate_pipeline_.shader= CreateShader(vk_device_, ShaderNames::geometry_size_calculate_comp);
 
 	// Create descriptor set layout.
 	{
@@ -263,7 +263,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 				nullptr,
 			},
 		};
-		geometry_size_calculate_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
+		geometry_size_calculate_pipeline_.descriptor_set_layout= vk_device_.createDescriptorSetLayoutUnique(
 			vk::DescriptorSetLayoutCreateInfo(
 				vk::DescriptorSetLayoutCreateFlags(),
 				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
@@ -276,24 +276,24 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 			0u,
 			sizeof(ChunkPositionUniforms));
 
-		geometry_size_calculate_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
+		geometry_size_calculate_pipeline_.pipeline_layout= vk_device_.createPipelineLayoutUnique(
 			vk::PipelineLayoutCreateInfo(
 				vk::PipelineLayoutCreateFlags(),
-				1u, &*geometry_size_calculate_decriptor_set_layout_,
+				1u, &*geometry_size_calculate_pipeline_.descriptor_set_layout,
 				1u, &push_constant_range));
 	}
 
 	// Create pipeline.
-	geometry_size_calculate_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
+	geometry_size_calculate_pipeline_.pipeline= UnwrapPipeline(vk_device_.createComputePipelineUnique(
 		nullptr,
 		vk::ComputePipelineCreateInfo(
 			vk::PipelineCreateFlags(),
 			vk::PipelineShaderStageCreateInfo(
 				vk::PipelineShaderStageCreateFlags(),
 				vk::ShaderStageFlagBits::eCompute,
-				*geometry_size_calculate_shader_,
+				*geometry_size_calculate_pipeline_.shader,
 				"main"),
-			*geometry_size_calculate_pipeline_layout_)));
+			*geometry_size_calculate_pipeline_.pipeline_layout)));
 
 	// Create and update descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
@@ -301,7 +301,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 		geometry_size_calculate_descriptor_sets_[i]= vk_device_.allocateDescriptorSets(
 			vk::DescriptorSetAllocateInfo(
 				global_descriptor_pool,
-				1u, &*geometry_size_calculate_decriptor_set_layout_)).front();
+				1u, &*geometry_size_calculate_pipeline_.descriptor_set_layout)).front();
 
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
 			world_processor_.GetChunkDataBuffer(i),
@@ -340,7 +340,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 	}
 
 	// Create shaders.
-	geometry_allocate_shader_= CreateShader(vk_device_, ShaderNames::geometry_allocate_comp);
+	geometry_allocate_pipeline_.shader= CreateShader(vk_device_, ShaderNames::geometry_allocate_comp);
 
 	// Create descriptor set layout.
 	{
@@ -361,7 +361,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 				nullptr,
 			},
 		};
-		geometry_allocate_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
+		geometry_allocate_pipeline_.descriptor_set_layout= vk_device_.createDescriptorSetLayoutUnique(
 			vk::DescriptorSetLayoutCreateInfo(
 				vk::DescriptorSetLayoutCreateFlags(),
 				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
@@ -374,30 +374,30 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 			0u,
 			sizeof(GeometryAllocateUniforms));
 
-		geometry_allocate_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
+		geometry_allocate_pipeline_.pipeline_layout= vk_device_.createPipelineLayoutUnique(
 			vk::PipelineLayoutCreateInfo(
 				vk::PipelineLayoutCreateFlags(),
-				1u, &*geometry_allocate_decriptor_set_layout_,
+				1u, &*geometry_allocate_pipeline_.descriptor_set_layout,
 				1u, &push_constant_range));
 	}
 
 	// Create pipeline.
-	geometry_allocate_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
+	geometry_allocate_pipeline_.pipeline= UnwrapPipeline(vk_device_.createComputePipelineUnique(
 		nullptr,
 		vk::ComputePipelineCreateInfo(
 			vk::PipelineCreateFlags(),
 			vk::PipelineShaderStageCreateInfo(
 				vk::PipelineShaderStageCreateFlags(),
 				vk::ShaderStageFlagBits::eCompute,
-				*geometry_allocate_shader_,
+				*geometry_allocate_pipeline_.shader,
 				"main"),
-			*geometry_allocate_pipeline_layout_)));
+			*geometry_allocate_pipeline_.pipeline_layout)));
 
 	// Create descriptor set.
 	geometry_allocate_descriptor_set_= vk_device_.allocateDescriptorSets(
 		vk::DescriptorSetAllocateInfo(
 			global_descriptor_pool,
-			1u, &*geometry_allocate_decriptor_set_layout_)).front();
+			1u, &*geometry_allocate_pipeline_.descriptor_set_layout)).front();
 
 	// Update descriptor set.
 	{
@@ -438,7 +438,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 	}
 
 	// Create shaders.
-	geometry_gen_shader_= CreateShader(vk_device_, ShaderNames::geometry_gen_comp);
+	geometry_gen_pipeline_.shader= CreateShader(vk_device_, ShaderNames::geometry_gen_comp);
 
 	// Create descriptor set layout.
 	{
@@ -473,7 +473,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 				nullptr,
 			},
 		};
-		geometry_gen_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
+		geometry_gen_pipeline_.descriptor_set_layout= vk_device_.createDescriptorSetLayoutUnique(
 			vk::DescriptorSetLayoutCreateInfo(
 				vk::DescriptorSetLayoutCreateFlags(),
 				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
@@ -486,24 +486,24 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 			0u,
 			sizeof(ChunkPositionUniforms));
 
-		geometry_gen_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
+		geometry_gen_pipeline_.pipeline_layout= vk_device_.createPipelineLayoutUnique(
 			vk::PipelineLayoutCreateInfo(
 				vk::PipelineLayoutCreateFlags(),
-				1u, &*geometry_gen_decriptor_set_layout_,
+				1u, &*geometry_gen_pipeline_.descriptor_set_layout,
 				1u, &push_constant_range));
 	}
 
 	// Create pipeline.
-	geometry_gen_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
+	geometry_gen_pipeline_.pipeline= UnwrapPipeline(vk_device_.createComputePipelineUnique(
 		nullptr,
 		vk::ComputePipelineCreateInfo(
 			vk::PipelineCreateFlags(),
 			vk::PipelineShaderStageCreateInfo(
 				vk::PipelineShaderStageCreateFlags(),
 				vk::ShaderStageFlagBits::eCompute,
-				*geometry_gen_shader_,
+				*geometry_gen_pipeline_.shader,
 				"main"),
-			*geometry_gen_pipeline_layout_)));
+			*geometry_gen_pipeline_.pipeline_layout)));
 
 	// Create and update descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
@@ -511,7 +511,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 		geometry_gen_descriptor_sets_[i]= vk_device_.allocateDescriptorSets(
 			vk::DescriptorSetAllocateInfo(
 				global_descriptor_pool,
-				1u, &*geometry_gen_decriptor_set_layout_)).front();
+				1u, &*geometry_gen_pipeline_.descriptor_set_layout)).front();
 
 		const vk::DescriptorBufferInfo descriptor_vertex_buffer_info(
 			*vertex_buffer_,
@@ -702,11 +702,11 @@ void WorldGeometryGenerator::BuildChunksToUpdateList()
 
 void WorldGeometryGenerator::PrepareGeometrySizeCalculation(const vk::CommandBuffer command_buffer)
 {
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *geometry_size_calculate_prepare_pipeline_);
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *geometry_size_calculate_prepare_pipeline_.pipeline);
 
 	command_buffer.bindDescriptorSets(
 		vk::PipelineBindPoint::eCompute,
-		*geometry_size_calculate_prepare_pipeline_layout_,
+		*geometry_size_calculate_prepare_pipeline_.pipeline_layout,
 		0u,
 		1u, &geometry_size_calculate_prepare_descriptor_set_,
 		0u, nullptr);
@@ -716,7 +716,7 @@ void WorldGeometryGenerator::PrepareGeometrySizeCalculation(const vk::CommandBuf
 	uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
 
 	command_buffer.pushConstants(
-		*geometry_size_calculate_prepare_pipeline_layout_,
+		*geometry_size_calculate_prepare_pipeline_.pipeline_layout,
 		vk::ShaderStageFlagBits::eCompute,
 		0,
 		sizeof(GeometrySizeCalculatePrepareUniforms), static_cast<const void*>(&uniforms));
@@ -746,11 +746,11 @@ void WorldGeometryGenerator::PrepareGeometrySizeCalculation(const vk::CommandBuf
 
 void WorldGeometryGenerator::CalculateGeometrySize(const vk::CommandBuffer command_buffer)
 {
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *geometry_size_calculate_pipeline_);
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *geometry_size_calculate_pipeline_.pipeline);
 
 	command_buffer.bindDescriptorSets(
 		vk::PipelineBindPoint::eCompute,
-		*geometry_size_calculate_pipeline_layout_,
+		*geometry_size_calculate_pipeline_.pipeline_layout,
 		0u,
 		1u, &geometry_size_calculate_descriptor_sets_[world_processor_.GetActualBuffersIndex()],
 		0u, nullptr);
@@ -770,7 +770,7 @@ void WorldGeometryGenerator::CalculateGeometrySize(const vk::CommandBuffer comma
 		chunk_position_uniforms.chunk_global_position[1]= world_offset[1] + int32_t(chunk_to_update[1]);
 
 		command_buffer.pushConstants(
-			*geometry_size_calculate_pipeline_layout_,
+			*geometry_size_calculate_pipeline_.pipeline_layout,
 			vk::ShaderStageFlagBits::eCompute,
 			0,
 			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
@@ -809,11 +809,11 @@ void WorldGeometryGenerator::CalculateGeometrySize(const vk::CommandBuffer comma
 
 void WorldGeometryGenerator::AllocateMemoryForGeometry(const vk::CommandBuffer command_buffer)
 {
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *geometry_allocate_pipeline_);
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *geometry_allocate_pipeline_.pipeline);
 
 	command_buffer.bindDescriptorSets(
 		vk::PipelineBindPoint::eCompute,
-		*geometry_allocate_pipeline_layout_,
+		*geometry_allocate_pipeline_.pipeline_layout,
 		0u,
 		1u, &geometry_allocate_descriptor_set_,
 		0u, nullptr);
@@ -832,7 +832,7 @@ void WorldGeometryGenerator::AllocateMemoryForGeometry(const vk::CommandBuffer c
 		}
 
 		command_buffer.pushConstants(
-			*geometry_allocate_pipeline_layout_,
+			*geometry_allocate_pipeline_.pipeline_layout,
 			vk::ShaderStageFlagBits::eCompute,
 			0,
 			sizeof(GeometryAllocateUniforms), static_cast<const void*>(&uniforms));
@@ -884,11 +884,11 @@ void WorldGeometryGenerator::GenGeometry(const vk::CommandBuffer command_buffer)
 {
 	// Update geometry, count number of quads.
 
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *geometry_gen_pipeline_);
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *geometry_gen_pipeline_.pipeline);
 
 	command_buffer.bindDescriptorSets(
 		vk::PipelineBindPoint::eCompute,
-		*geometry_gen_pipeline_layout_,
+		*geometry_gen_pipeline_.pipeline_layout,
 		0u,
 		1u, &geometry_gen_descriptor_sets_[world_processor_.GetActualBuffersIndex()],
 		0u, nullptr);
@@ -908,7 +908,7 @@ void WorldGeometryGenerator::GenGeometry(const vk::CommandBuffer command_buffer)
 		chunk_position_uniforms.chunk_global_position[1]= world_offset[1] + int32_t(chunk_to_update[1]);
 
 		command_buffer.pushConstants(
-			*geometry_gen_pipeline_layout_,
+			*geometry_gen_pipeline_.pipeline_layout,
 			vk::ShaderStageFlagBits::eCompute,
 			0,
 			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));

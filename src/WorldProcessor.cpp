@@ -268,7 +268,7 @@ WorldProcessor::WorldProcessor(
 	}
 
 	// Create world generation shader.
-	world_gen_shader_= CreateShader(vk_device_, ShaderNames::world_gen_comp);
+	world_gen_pipeline_.shader= CreateShader(vk_device_, ShaderNames::world_gen_comp);
 
 	// Create world generation descriptor set layout.
 	{
@@ -282,7 +282,7 @@ WorldProcessor::WorldProcessor(
 				nullptr,
 			},
 		};
-		world_gen_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
+		world_gen_pipeline_.descriptor_set_layout= vk_device_.createDescriptorSetLayoutUnique(
 			vk::DescriptorSetLayoutCreateInfo(
 				vk::DescriptorSetLayoutCreateFlags(),
 				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
@@ -295,25 +295,24 @@ WorldProcessor::WorldProcessor(
 			0u,
 			sizeof(ChunkPositionUniforms));
 
-		world_gen_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
+		world_gen_pipeline_.pipeline_layout= vk_device_.createPipelineLayoutUnique(
 			vk::PipelineLayoutCreateInfo(
 				vk::PipelineLayoutCreateFlags(),
-				1u, &*world_gen_decriptor_set_layout_,
+				1u, &*world_gen_pipeline_.descriptor_set_layout,
 				1u, &push_constant_range));
 	}
 
 	// Create world generation pipeline.
-	world_gen_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
+	world_gen_pipeline_.pipeline= UnwrapPipeline(vk_device_.createComputePipelineUnique(
 		nullptr,
 		vk::ComputePipelineCreateInfo(
 			vk::PipelineCreateFlags(),
 			vk::PipelineShaderStageCreateInfo(
 				vk::PipelineShaderStageCreateFlags(),
 				vk::ShaderStageFlagBits::eCompute,
-				*world_gen_shader_,
+				*world_gen_pipeline_.shader,
 				"main"),
-			*world_gen_pipeline_layout_)));
-
+			*world_gen_pipeline_.pipeline_layout)));
 
 	// Create and update world generation descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
@@ -321,7 +320,7 @@ WorldProcessor::WorldProcessor(
 		world_gen_descriptor_sets_[i]= vk_device_.allocateDescriptorSets(
 			vk::DescriptorSetAllocateInfo(
 				global_descriptor_pool,
-				1u, &*world_gen_decriptor_set_layout_)).front();
+				1u, &*world_gen_pipeline_.descriptor_set_layout)).front();
 
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
 			chunk_data_buffers_[i].buffer.get(),
@@ -345,7 +344,7 @@ WorldProcessor::WorldProcessor(
 	}
 
 	// Create initial light fill shader.
-	initial_light_fill_shader_= CreateShader(vk_device_, ShaderNames::initial_light_fill_comp);
+	initial_light_fill_pipeline_.shader= CreateShader(vk_device_, ShaderNames::initial_light_fill_comp);
 
 	// Create initial light fill descriptor set layout.
 	{
@@ -366,7 +365,7 @@ WorldProcessor::WorldProcessor(
 				nullptr,
 			},
 		};
-		initial_light_fill_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
+		initial_light_fill_pipeline_.descriptor_set_layout= vk_device_.createDescriptorSetLayoutUnique(
 			vk::DescriptorSetLayoutCreateInfo(
 				vk::DescriptorSetLayoutCreateFlags(),
 				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
@@ -379,24 +378,24 @@ WorldProcessor::WorldProcessor(
 			0u,
 			sizeof(ChunkPositionUniforms));
 
-		initial_light_fill_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
+		initial_light_fill_pipeline_.pipeline_layout= vk_device_.createPipelineLayoutUnique(
 			vk::PipelineLayoutCreateInfo(
 				vk::PipelineLayoutCreateFlags(),
-				1u, &*initial_light_fill_decriptor_set_layout_,
+				1u, &*initial_light_fill_pipeline_.descriptor_set_layout,
 				1u, &push_constant_range));
 	}
 
 	// Create initial light fill pipeline.
-	initial_light_fill_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
+	initial_light_fill_pipeline_.pipeline= UnwrapPipeline(vk_device_.createComputePipelineUnique(
 		nullptr,
 		vk::ComputePipelineCreateInfo(
 			vk::PipelineCreateFlags(),
 			vk::PipelineShaderStageCreateInfo(
 				vk::PipelineShaderStageCreateFlags(),
 				vk::ShaderStageFlagBits::eCompute,
-				*initial_light_fill_shader_,
+				*initial_light_fill_pipeline_.shader,
 				"main"),
-			*initial_light_fill_pipeline_layout_)));
+			*initial_light_fill_pipeline_.pipeline_layout)));
 
 	// Create and update initial light fill descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
@@ -404,7 +403,7 @@ WorldProcessor::WorldProcessor(
 		initial_light_fill_descriptor_sets_[i]= vk_device_.allocateDescriptorSets(
 			vk::DescriptorSetAllocateInfo(
 				global_descriptor_pool,
-				1u, &*initial_light_fill_decriptor_set_layout_)).front();
+				1u, &*initial_light_fill_pipeline_.descriptor_set_layout)).front();
 
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
 			chunk_data_buffers_[i].buffer.get(),
@@ -443,7 +442,7 @@ WorldProcessor::WorldProcessor(
 	}
 
 	// Create world blocks update shader.
-	world_blocks_update_shader_= CreateShader(vk_device_, ShaderNames::world_blocks_update_comp);
+	world_blocks_update_pipeline_.shader= CreateShader(vk_device_, ShaderNames::world_blocks_update_comp);
 
 	// Create world blocks update descriptor set layout.
 	{
@@ -464,7 +463,7 @@ WorldProcessor::WorldProcessor(
 				nullptr,
 			},
 		};
-		world_blocks_update_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
+		world_blocks_update_pipeline_.descriptor_set_layout= vk_device_.createDescriptorSetLayoutUnique(
 			vk::DescriptorSetLayoutCreateInfo(
 				vk::DescriptorSetLayoutCreateFlags(),
 				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
@@ -477,24 +476,24 @@ WorldProcessor::WorldProcessor(
 			0u,
 			sizeof(ChunkPositionUniforms));
 
-		world_blocks_update_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
+		world_blocks_update_pipeline_.pipeline_layout= vk_device_.createPipelineLayoutUnique(
 			vk::PipelineLayoutCreateInfo(
 				vk::PipelineLayoutCreateFlags(),
-				1u, &*world_blocks_update_decriptor_set_layout_,
+				1u, &*world_blocks_update_pipeline_.descriptor_set_layout,
 				1u, &push_constant_range));
 	}
 
 	// Create world blocks update pipeline.
-	world_blocks_update_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
+	world_blocks_update_pipeline_.pipeline= UnwrapPipeline(vk_device_.createComputePipelineUnique(
 		nullptr,
 		vk::ComputePipelineCreateInfo(
 			vk::PipelineCreateFlags(),
 			vk::PipelineShaderStageCreateInfo(
 				vk::PipelineShaderStageCreateFlags(),
 				vk::ShaderStageFlagBits::eCompute,
-				*world_blocks_update_shader_,
+				*world_blocks_update_pipeline_.shader,
 				"main"),
-			*world_blocks_update_pipeline_layout_)));
+			*world_blocks_update_pipeline_.pipeline_layout)));
 
 	// Create and update world blocks update descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
@@ -502,7 +501,7 @@ WorldProcessor::WorldProcessor(
 		world_blocks_update_descriptor_sets_[i]= vk_device_.allocateDescriptorSets(
 			vk::DescriptorSetAllocateInfo(
 				global_descriptor_pool,
-				1u, &*world_blocks_update_decriptor_set_layout_)).front();
+				1u, &*world_blocks_update_pipeline_.descriptor_set_layout)).front();
 
 		const vk::DescriptorBufferInfo descriptor_chunk_data_input_buffer_info(
 			chunk_data_buffers_[i].buffer.get(),
@@ -541,7 +540,7 @@ WorldProcessor::WorldProcessor(
 	}
 
 	// Create light update shader.
-	light_update_shader_= CreateShader(vk_device_, ShaderNames::light_update_comp);
+	light_update_pipeline_.shader= CreateShader(vk_device_, ShaderNames::light_update_comp);
 
 	// Create light update descriptor set layout.
 	{
@@ -569,7 +568,7 @@ WorldProcessor::WorldProcessor(
 				nullptr,
 			},
 		};
-		light_update_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
+		light_update_pipeline_.descriptor_set_layout= vk_device_.createDescriptorSetLayoutUnique(
 			vk::DescriptorSetLayoutCreateInfo(
 				vk::DescriptorSetLayoutCreateFlags(),
 				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
@@ -582,24 +581,24 @@ WorldProcessor::WorldProcessor(
 			0u,
 			sizeof(ChunkPositionUniforms));
 
-		light_update_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
+		light_update_pipeline_.pipeline_layout= vk_device_.createPipelineLayoutUnique(
 			vk::PipelineLayoutCreateInfo(
 				vk::PipelineLayoutCreateFlags(),
-				1u, &*light_update_decriptor_set_layout_,
+				1u, &*light_update_pipeline_.descriptor_set_layout,
 				1u, &push_constant_range));
 	}
 
 	// Create light update pipeline.
-	light_update_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
+	light_update_pipeline_.pipeline= UnwrapPipeline(vk_device_.createComputePipelineUnique(
 		nullptr,
 		vk::ComputePipelineCreateInfo(
 			vk::PipelineCreateFlags(),
 			vk::PipelineShaderStageCreateInfo(
 				vk::PipelineShaderStageCreateFlags(),
 				vk::ShaderStageFlagBits::eCompute,
-				*light_update_shader_,
+				*light_update_pipeline_.shader,
 				"main"),
-			*light_update_pipeline_layout_)));
+			*light_update_pipeline_.pipeline_layout)));
 
 	// Create and update light update descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
@@ -607,7 +606,7 @@ WorldProcessor::WorldProcessor(
 		light_update_descriptor_sets_[i]= vk_device_.allocateDescriptorSets(
 			vk::DescriptorSetAllocateInfo(
 				global_descriptor_pool,
-				1u, &*light_update_decriptor_set_layout_)).front();
+				1u, &*light_update_pipeline_.descriptor_set_layout)).front();
 
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
 			chunk_data_buffers_[i].buffer.get(),
@@ -661,7 +660,7 @@ WorldProcessor::WorldProcessor(
 	}
 
 	// Create player world window build shader.
-	player_world_window_build_shader_= CreateShader(vk_device_, ShaderNames::player_world_window_build_comp);
+	player_world_window_build_pipeline_.shader= CreateShader(vk_device_, ShaderNames::player_world_window_build_comp);
 
 	// Create player world window build descriptor set layout.
 	{
@@ -689,7 +688,7 @@ WorldProcessor::WorldProcessor(
 				nullptr,
 			},
 		};
-		player_world_window_build_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
+		player_world_window_build_pipeline_.descriptor_set_layout= vk_device_.createDescriptorSetLayoutUnique(
 			vk::DescriptorSetLayoutCreateInfo(
 				vk::DescriptorSetLayoutCreateFlags(),
 				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
@@ -702,24 +701,24 @@ WorldProcessor::WorldProcessor(
 			0u,
 			sizeof(PlayerWorldWindowBuildUniforms));
 
-		player_world_window_build_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
+		player_world_window_build_pipeline_.pipeline_layout= vk_device_.createPipelineLayoutUnique(
 			vk::PipelineLayoutCreateInfo(
 				vk::PipelineLayoutCreateFlags(),
-				1u, &*player_world_window_build_decriptor_set_layout_,
+				1u, &*player_world_window_build_pipeline_.descriptor_set_layout,
 				1u, &push_constant_range));
 	}
 
 	// Create player world window build pipeline.
-	player_world_window_build_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
+	player_world_window_build_pipeline_.pipeline= UnwrapPipeline(vk_device_.createComputePipelineUnique(
 		nullptr,
 		vk::ComputePipelineCreateInfo(
 			vk::PipelineCreateFlags(),
 			vk::PipelineShaderStageCreateInfo(
 				vk::PipelineShaderStageCreateFlags(),
 				vk::ShaderStageFlagBits::eCompute,
-				*player_world_window_build_shader_,
+				*player_world_window_build_pipeline_.shader,
 				"main"),
-			*player_world_window_build_pipeline_layout_)));
+			*player_world_window_build_pipeline_.pipeline_layout)));
 
 	// Create and update player world window build descriptor set.
 	for(uint32_t i= 0; i < 2; ++i)
@@ -727,7 +726,7 @@ WorldProcessor::WorldProcessor(
 		player_world_window_build_descriptor_sets_[i]= vk_device_.allocateDescriptorSets(
 			vk::DescriptorSetAllocateInfo(
 				global_descriptor_pool,
-				1u, &*player_world_window_build_decriptor_set_layout_)).front();
+				1u, &*player_world_window_build_pipeline_.descriptor_set_layout)).front();
 
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
 			chunk_data_buffers_[i].buffer.get(),
@@ -781,7 +780,7 @@ WorldProcessor::WorldProcessor(
 	}
 
 	// Create player update shader.
-	player_update_shader_= CreateShader(vk_device_, ShaderNames::player_update_comp);
+	player_update_pipeline_.shader= CreateShader(vk_device_, ShaderNames::player_update_comp);
 
 	// Create player update descriptor set layout.
 	{
@@ -809,7 +808,7 @@ WorldProcessor::WorldProcessor(
 				nullptr,
 			},
 		};
-		player_update_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
+		player_update_pipeline_.descriptor_set_layout= vk_device_.createDescriptorSetLayoutUnique(
 			vk::DescriptorSetLayoutCreateInfo(
 				vk::DescriptorSetLayoutCreateFlags(),
 				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
@@ -822,30 +821,30 @@ WorldProcessor::WorldProcessor(
 			0u,
 			sizeof(PlayerUpdateUniforms));
 
-		player_update_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
+		player_update_pipeline_.pipeline_layout= vk_device_.createPipelineLayoutUnique(
 			vk::PipelineLayoutCreateInfo(
 				vk::PipelineLayoutCreateFlags(),
-				1u, &*player_update_decriptor_set_layout_,
+				1u, &*player_update_pipeline_.descriptor_set_layout,
 				1u, &push_constant_range));
 	}
 
 	// Create player update pipeline.
-	player_update_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
+	player_update_pipeline_.pipeline= UnwrapPipeline(vk_device_.createComputePipelineUnique(
 		nullptr,
 		vk::ComputePipelineCreateInfo(
 			vk::PipelineCreateFlags(),
 			vk::PipelineShaderStageCreateInfo(
 				vk::PipelineShaderStageCreateFlags(),
 				vk::ShaderStageFlagBits::eCompute,
-				*player_update_shader_,
+				*player_update_pipeline_.shader,
 				"main"),
-			*player_update_pipeline_layout_)));
+			*player_update_pipeline_.pipeline_layout)));
 
 	// Create player update descriptor set.
 	player_update_descriptor_set_= vk_device_.allocateDescriptorSets(
 		vk::DescriptorSetAllocateInfo(
 			global_descriptor_pool,
-			1u, &*player_update_decriptor_set_layout_)).front();
+			1u, &*player_update_pipeline_.descriptor_set_layout)).front();
 
 	// Update player update descriptor set.
 	{
@@ -901,7 +900,7 @@ WorldProcessor::WorldProcessor(
 	}
 
 	// Create world blocks external update queue flush shader.
-	world_blocks_external_update_queue_flush_shader_= CreateShader(vk_device_, ShaderNames::world_blocks_external_queue_flush_comp);
+	world_blocks_external_update_queue_flush_pipeline_.shader= CreateShader(vk_device_, ShaderNames::world_blocks_external_queue_flush_comp);
 
 	// Create world blocks external update queue flush descriptor set layout.
 	{
@@ -922,7 +921,7 @@ WorldProcessor::WorldProcessor(
 				nullptr,
 			},
 		};
-		world_blocks_external_update_queue_flush_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
+		world_blocks_external_update_queue_flush_pipeline_.descriptor_set_layout= vk_device_.createDescriptorSetLayoutUnique(
 			vk::DescriptorSetLayoutCreateInfo(
 				vk::DescriptorSetLayoutCreateFlags(),
 				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
@@ -935,24 +934,24 @@ WorldProcessor::WorldProcessor(
 			0u,
 			sizeof(WorldBlocksExternalUpdateQueueFlushUniforms));
 
-		world_blocks_external_update_queue_flush_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
+		world_blocks_external_update_queue_flush_pipeline_.pipeline_layout= vk_device_.createPipelineLayoutUnique(
 			vk::PipelineLayoutCreateInfo(
 				vk::PipelineLayoutCreateFlags(),
-				1u, &*world_blocks_external_update_queue_flush_decriptor_set_layout_,
+				1u, &*world_blocks_external_update_queue_flush_pipeline_.descriptor_set_layout,
 				1u, &push_constant_range));
 	}
 
 	// Create world blocks external update queue flush pipeline.
-	world_blocks_external_update_queue_flush_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
+	world_blocks_external_update_queue_flush_pipeline_.pipeline= UnwrapPipeline(vk_device_.createComputePipelineUnique(
 		nullptr,
 		vk::ComputePipelineCreateInfo(
 			vk::PipelineCreateFlags(),
 			vk::PipelineShaderStageCreateInfo(
 				vk::PipelineShaderStageCreateFlags(),
 				vk::ShaderStageFlagBits::eCompute,
-				*world_blocks_external_update_queue_flush_shader_,
+				*world_blocks_external_update_queue_flush_pipeline_.shader,
 				"main"),
-			*world_blocks_external_update_queue_flush_pipeline_layout_)));
+			*world_blocks_external_update_queue_flush_pipeline_.pipeline_layout)));
 
 	// Create and update world blocks external update queue flush descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
@@ -960,7 +959,7 @@ WorldProcessor::WorldProcessor(
 		world_blocks_external_update_queue_flush_descriptor_sets_[i]= vk_device_.allocateDescriptorSets(
 			vk::DescriptorSetAllocateInfo(
 				global_descriptor_pool,
-				1u, &*world_blocks_external_update_queue_flush_decriptor_set_layout_)).front();
+				1u, &*world_blocks_external_update_queue_flush_pipeline_.descriptor_set_layout)).front();
 
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
 			chunk_data_buffers_[i].buffer.get(),
@@ -1202,11 +1201,11 @@ void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
 
 	const uint32_t dst_buffer_index= GetDstBufferIndex();
 
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_gen_pipeline_);
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_gen_pipeline_.pipeline);
 
 	command_buffer.bindDescriptorSets(
 		vk::PipelineBindPoint::eCompute,
-		*world_gen_pipeline_layout_,
+		*world_gen_pipeline_.pipeline_layout,
 		0u,
 		1u, &world_gen_descriptor_sets_[dst_buffer_index],
 		0u, nullptr);
@@ -1223,7 +1222,7 @@ void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
 		chunk_position_uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(y);
 
 		command_buffer.pushConstants(
-			*world_gen_pipeline_layout_,
+			*world_gen_pipeline_.pipeline_layout,
 			vk::ShaderStageFlagBits::eCompute,
 			0,
 			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
@@ -1262,11 +1261,11 @@ void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
 
 	// Perform initial light fill.
 
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *initial_light_fill_pipeline_);
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *initial_light_fill_pipeline_.pipeline);
 
 	command_buffer.bindDescriptorSets(
 		vk::PipelineBindPoint::eCompute,
-		*initial_light_fill_pipeline_layout_,
+		*initial_light_fill_pipeline_.pipeline_layout,
 		0u,
 		1u, &initial_light_fill_descriptor_sets_[dst_buffer_index],
 		0u, nullptr);
@@ -1283,7 +1282,7 @@ void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
 		chunk_position_uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(y);
 
 		command_buffer.pushConstants(
-			*initial_light_fill_pipeline_layout_,
+			*initial_light_fill_pipeline_.pipeline_layout,
 			vk::ShaderStageFlagBits::eCompute,
 			0,
 			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
@@ -1345,11 +1344,11 @@ void WorldProcessor::UpdateWorldBlocks(const vk::CommandBuffer command_buffer)
 {
 	const uint32_t src_buffer_index= GetSrcBufferIndex();
 
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_blocks_update_pipeline_);
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_blocks_update_pipeline_.pipeline);
 
 	command_buffer.bindDescriptorSets(
 		vk::PipelineBindPoint::eCompute,
-		*world_blocks_update_pipeline_layout_,
+		*world_blocks_update_pipeline_.pipeline_layout,
 		0u,
 		1u, &world_blocks_update_descriptor_sets_[src_buffer_index],
 		0u, nullptr);
@@ -1365,7 +1364,7 @@ void WorldProcessor::UpdateWorldBlocks(const vk::CommandBuffer command_buffer)
 		chunk_position_uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(chunk_to_update[1]);
 
 		command_buffer.pushConstants(
-			*world_blocks_update_pipeline_layout_,
+			*world_blocks_update_pipeline_.pipeline_layout,
 			vk::ShaderStageFlagBits::eCompute,
 			0,
 			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
@@ -1387,11 +1386,11 @@ void WorldProcessor::UpdateLight(const vk::CommandBuffer command_buffer)
 {
 	const uint32_t src_buffer_index= GetSrcBufferIndex();
 
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *light_update_pipeline_);
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *light_update_pipeline_.pipeline);
 
 	command_buffer.bindDescriptorSets(
 		vk::PipelineBindPoint::eCompute,
-		*light_update_pipeline_layout_,
+		*light_update_pipeline_.pipeline_layout,
 		0u,
 		1u, &light_update_descriptor_sets_[src_buffer_index],
 		0u, nullptr);
@@ -1407,7 +1406,7 @@ void WorldProcessor::UpdateLight(const vk::CommandBuffer command_buffer)
 		chunk_position_uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(chunk_to_update[1]);
 
 		command_buffer.pushConstants(
-			*light_update_pipeline_layout_,
+			*light_update_pipeline_.pipeline_layout,
 			vk::ShaderStageFlagBits::eCompute,
 			0,
 			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
@@ -1460,14 +1459,14 @@ void WorldProcessor::CreateWorldBlocksAndLightUpdateBarrier(const vk::CommandBuf
 
 void WorldProcessor::BuildPlayerWorldWindow(const vk::CommandBuffer command_buffer)
 {
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *player_world_window_build_pipeline_);
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *player_world_window_build_pipeline_.pipeline);
 
 	// Build player world window based on src world state.
 	const auto descriptor_set= player_world_window_build_descriptor_sets_[GetSrcBufferIndex()];
 
 	command_buffer.bindDescriptorSets(
 		vk::PipelineBindPoint::eCompute,
-		*player_world_window_build_pipeline_layout_,
+		*player_world_window_build_pipeline_.pipeline_layout,
 		0u,
 		1u, &descriptor_set,
 		0u, nullptr);
@@ -1479,7 +1478,7 @@ void WorldProcessor::BuildPlayerWorldWindow(const vk::CommandBuffer command_buff
 	uniforms.world_offset_chunks[1]= world_offset_[1];
 
 	command_buffer.pushConstants(
-		*player_world_window_build_pipeline_layout_,
+		*player_world_window_build_pipeline_.pipeline_layout,
 		vk::ShaderStageFlagBits::eCompute,
 		0,
 		sizeof(PlayerWorldWindowBuildUniforms), static_cast<const void*>(&uniforms));
@@ -1522,11 +1521,11 @@ void WorldProcessor::UpdatePlayer(
 	const MouseState mouse_state,
 	const float aspect)
 {
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *player_update_pipeline_);
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *player_update_pipeline_.pipeline);
 
 	command_buffer.bindDescriptorSets(
 		vk::PipelineBindPoint::eCompute,
-		*player_update_pipeline_layout_,
+		*player_update_pipeline_.pipeline_layout,
 		0u,
 		1u, &player_update_descriptor_set_,
 		0u, nullptr);
@@ -1540,7 +1539,7 @@ void WorldProcessor::UpdatePlayer(
 	player_update_uniforms.mouse_state= mouse_state;
 
 	command_buffer.pushConstants(
-		*player_update_pipeline_layout_,
+		*player_update_pipeline_.pipeline_layout,
 		vk::ShaderStageFlagBits::eCompute,
 		0,
 		sizeof(PlayerUpdateUniforms), static_cast<const void*>(&player_update_uniforms));
@@ -1606,7 +1605,7 @@ void WorldProcessor::UpdatePlayer(
 
 void WorldProcessor::FlushWorldBlocksExternalUpdateQueue(const vk::CommandBuffer command_buffer)
 {
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_blocks_external_update_queue_flush_pipeline_);
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_blocks_external_update_queue_flush_pipeline_.pipeline);
 
 	// Flush the queue into the destination world buffer.
 	const uint32_t dst_buffer_index= GetDstBufferIndex();
@@ -1614,7 +1613,7 @@ void WorldProcessor::FlushWorldBlocksExternalUpdateQueue(const vk::CommandBuffer
 
 	command_buffer.bindDescriptorSets(
 		vk::PipelineBindPoint::eCompute,
-		*world_blocks_external_update_queue_flush_pipeline_layout_,
+		*world_blocks_external_update_queue_flush_pipeline_.pipeline_layout,
 		0u,
 		1u, &descriptor_set,
 		0u, nullptr);
@@ -1626,7 +1625,7 @@ void WorldProcessor::FlushWorldBlocksExternalUpdateQueue(const vk::CommandBuffer
 	uniforms.world_offset_chunks[1]= world_offset_[1];
 
 	command_buffer.pushConstants(
-		*player_update_pipeline_layout_,
+		*world_blocks_external_update_queue_flush_pipeline_.pipeline_layout,
 		vk::ShaderStageFlagBits::eCompute,
 		0,
 		sizeof(WorldBlocksExternalUpdateQueueFlushUniforms), static_cast<const void*>(&uniforms));

@@ -136,7 +136,7 @@ WorldRenderer::WorldRenderer(
 	}
 
 	// Create shaders.
-	draw_indirect_buffer_build_shader_= CreateShader(vk_device_, ShaderNames::world_draw_indirect_buffer_build_comp);
+	draw_indirect_buffer_build_pipeline_.shader= CreateShader(vk_device_, ShaderNames::world_draw_indirect_buffer_build_comp);
 
 	// Create descriptor set layout.
 	{
@@ -157,7 +157,7 @@ WorldRenderer::WorldRenderer(
 				nullptr,
 			},
 		};
-		draw_indirect_buffer_build_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
+		draw_indirect_buffer_build_pipeline_.descriptor_set_layout= vk_device_.createDescriptorSetLayoutUnique(
 			vk::DescriptorSetLayoutCreateInfo(
 				vk::DescriptorSetLayoutCreateFlags(),
 				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
@@ -170,30 +170,30 @@ WorldRenderer::WorldRenderer(
 			0u,
 			sizeof(DrawIndirectBufferBuildUniforms));
 
-		draw_indirect_buffer_build_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
+		draw_indirect_buffer_build_pipeline_.pipeline_layout= vk_device_.createPipelineLayoutUnique(
 			vk::PipelineLayoutCreateInfo(
 				vk::PipelineLayoutCreateFlags(),
-				1u, &*draw_indirect_buffer_build_decriptor_set_layout_,
+				1u, &*draw_indirect_buffer_build_pipeline_.descriptor_set_layout,
 				1u, &push_constant_range));
 	}
 
 	// Create pipeline.
-	draw_indirect_buffer_build_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
+	draw_indirect_buffer_build_pipeline_.pipeline= UnwrapPipeline(vk_device_.createComputePipelineUnique(
 		nullptr,
 		vk::ComputePipelineCreateInfo(
 			vk::PipelineCreateFlags(),
 			vk::PipelineShaderStageCreateInfo(
 				vk::PipelineShaderStageCreateFlags(),
 				vk::ShaderStageFlagBits::eCompute,
-				*draw_indirect_buffer_build_shader_,
+				*draw_indirect_buffer_build_pipeline_.shader,
 				"main"),
-			*draw_indirect_buffer_build_pipeline_layout_)));
+			*draw_indirect_buffer_build_pipeline_.pipeline_layout)));
 
 	// Create descriptor set.
 	draw_indirect_buffer_build_descriptor_set_= vk_device_.allocateDescriptorSets(
 		vk::DescriptorSetAllocateInfo(
 			global_descriptor_pool,
-			1u, &*draw_indirect_buffer_build_decriptor_set_layout_)).front();
+			1u, &*draw_indirect_buffer_build_pipeline_.descriptor_set_layout)).front();
 
 	// Update descriptor set.
 	{
@@ -234,8 +234,8 @@ WorldRenderer::WorldRenderer(
 	}
 
 	// Create shaders
-	shader_vert_= CreateShader(vk_device_, ShaderNames::world_vert);
-	shader_frag_= CreateShader(vk_device_, ShaderNames::world_frag);
+	draw_pipeline_.shader_vert= CreateShader(vk_device_, ShaderNames::world_vert);
+	draw_pipeline_.shader_frag= CreateShader(vk_device_, ShaderNames::world_frag);
 
 	// Create texture sampler
 	texture_sampler_=
@@ -276,18 +276,18 @@ WorldRenderer::WorldRenderer(
 		},
 	};
 
-	decriptor_set_layout_=
+	draw_pipeline_.descriptor_set_layout=
 		vk_device_.createDescriptorSetLayoutUnique(
 			vk::DescriptorSetLayoutCreateInfo(
 				vk::DescriptorSetLayoutCreateFlags(),
 				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
 
 	// Create pipeline layout
-	pipeline_layout_=
+	draw_pipeline_.pipeline_layout=
 		vk_device_.createPipelineLayoutUnique(
 			vk::PipelineLayoutCreateInfo(
 				vk::PipelineLayoutCreateFlags(),
-				1u, &*decriptor_set_layout_,
+				1u, &*draw_pipeline_.descriptor_set_layout,
 				0u, nullptr));
 
 	// Create pipeline.
@@ -297,13 +297,13 @@ WorldRenderer::WorldRenderer(
 		{
 			vk::PipelineShaderStageCreateFlags(),
 			vk::ShaderStageFlagBits::eVertex,
-			*shader_vert_,
+			*draw_pipeline_.shader_vert,
 			"main"
 		},
 		{
 			vk::PipelineShaderStageCreateFlags(),
 			vk::ShaderStageFlagBits::eFragment,
-			*shader_frag_,
+			*draw_pipeline_.shader_frag,
 			"main"
 		},
 	};
@@ -373,7 +373,7 @@ WorldRenderer::WorldRenderer(
 		vk::LogicOp::eCopy,
 		1u, &pipeline_color_blend_attachment_state);
 
-	pipeline_=
+	draw_pipeline_.pipeline=
 		UnwrapPipeline(vk_device_.createGraphicsPipelineUnique(
 			nullptr,
 			vk::GraphicsPipelineCreateInfo(
@@ -389,7 +389,7 @@ WorldRenderer::WorldRenderer(
 				&pipeline_depth_state_create_info,
 				&pipeline_color_blend_state_create_info,
 				nullptr,
-				*pipeline_layout_,
+				*draw_pipeline_.pipeline_layout,
 				window_vulkan.GetRenderPass(),
 				0u)));
 
@@ -436,7 +436,7 @@ WorldRenderer::WorldRenderer(
 	descriptor_set_= vk_device_.allocateDescriptorSets(
 		vk::DescriptorSetAllocateInfo(
 			global_descriptor_pool,
-			1u, &*decriptor_set_layout_)).front();
+			1u, &*draw_pipeline_.descriptor_set_layout)).front();
 
 	// Update descriptor set.
 	{
@@ -530,12 +530,12 @@ void WorldRenderer::Draw(const vk::CommandBuffer command_buffer)
 	command_buffer.bindIndexBuffer(*index_buffer_, 0u, vk::IndexType::eUint16);
 	command_buffer.bindDescriptorSets(
 		vk::PipelineBindPoint::eGraphics,
-		*pipeline_layout_,
+		*draw_pipeline_.pipeline_layout,
 		0u,
 		1u, &descriptor_set_,
 		0u, nullptr);
 
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline_);
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *draw_pipeline_.pipeline);
 
 	command_buffer.drawIndexedIndirect(
 		*draw_indirect_buffer_,
@@ -546,11 +546,11 @@ void WorldRenderer::Draw(const vk::CommandBuffer command_buffer)
 
 void WorldRenderer::BuildDrawIndirectBuffer(const vk::CommandBuffer command_buffer)
 {
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *draw_indirect_buffer_build_pipeline_);
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *draw_indirect_buffer_build_pipeline_.pipeline);
 
 	command_buffer.bindDescriptorSets(
 		vk::PipelineBindPoint::eCompute,
-		*draw_indirect_buffer_build_pipeline_layout_,
+		*draw_indirect_buffer_build_pipeline_.pipeline_layout,
 		0u,
 		1u, &draw_indirect_buffer_build_descriptor_set_,
 		0u, nullptr);
@@ -560,7 +560,7 @@ void WorldRenderer::BuildDrawIndirectBuffer(const vk::CommandBuffer command_buff
 	uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
 
 	command_buffer.pushConstants(
-		*draw_indirect_buffer_build_pipeline_layout_,
+		*draw_indirect_buffer_build_pipeline_.pipeline_layout,
 		vk::ShaderStageFlagBits::eCompute,
 		0,
 		sizeof(DrawIndirectBufferBuildUniforms),

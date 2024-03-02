@@ -16,6 +16,60 @@ float CalculateAspect(const vk::Extent2D& viewport_size)
 	return float(viewport_size.width) / float(viewport_size.height);
 }
 
+KeyboardState CreateKeyboardState(const std::vector<bool>& keys_state)
+{
+	// TODO - read key bindings from config.
+	KeyboardState keyboard_state= 0;
+
+	if(keys_state[size_t(SDL_SCANCODE_W)])
+		keyboard_state|= c_key_mask_forward;
+	if(keys_state[size_t(SDL_SCANCODE_S)])
+		keyboard_state|= c_key_mask_backward;
+	if(keys_state[size_t(SDL_SCANCODE_D)])
+		keyboard_state|= c_key_mask_step_left;
+	if(keys_state[size_t(SDL_SCANCODE_A)])
+		keyboard_state|= c_key_mask_step_right;
+	if(keys_state[size_t(SDL_SCANCODE_SPACE)])
+		keyboard_state|= c_key_mask_fly_up;
+	if(keys_state[size_t(SDL_SCANCODE_C)])
+		keyboard_state|= c_key_mask_fly_down;
+	if(keys_state[size_t(SDL_SCANCODE_LEFT)])
+		keyboard_state|= c_key_mask_rotate_left;
+	if(keys_state[size_t(SDL_SCANCODE_RIGHT)])
+		keyboard_state|= c_key_mask_rotate_right;
+	if(keys_state[size_t(SDL_SCANCODE_UP)])
+		keyboard_state|= c_key_mask_rotate_up;
+	if(keys_state[size_t(SDL_SCANCODE_DOWN)])
+		keyboard_state|= c_key_mask_rotate_down;
+
+	return keyboard_state;
+}
+
+MouseState CreateMouseState(const std::vector<SDL_Event>& events)
+{
+	MouseState mouse_state= 0;
+
+	for(const SDL_Event& event : events)
+	{
+		if(event.type == SDL_MOUSEBUTTONDOWN)
+		{
+			if(event.button.button == SDL_BUTTON_LEFT)
+				mouse_state|= c_mouse_mask_l_clicked;
+			if(event.button.button == SDL_BUTTON_RIGHT)
+				mouse_state|= c_mouse_mask_r_clicked;
+		}
+		if(event.type == SDL_MOUSEWHEEL)
+		{
+			if(event.wheel.y > 0)
+				mouse_state|= c_mouse_mask_wheel_up_clicked;
+			if(event.wheel.y < 0)
+				mouse_state|= c_mouse_mask_wheel_down_clicked;
+		}
+	}
+
+	return mouse_state;
+}
+
 } // namespace
 
 Host::Host()
@@ -39,59 +93,24 @@ bool Host::Loop()
 
 	const float dt_s= float(dt.count()) * float(Clock::duration::period::num) / float(Clock::duration::period::den);
 
-	MouseState mouse_state= 0;
-	for(const SDL_Event& event : system_window_.ProcessEvents())
+	const auto keys_state= system_window_.GetKeyboardState();
+	const auto events= system_window_.ProcessEvents();
+
+	for(const SDL_Event& event : events)
 	{
 		if(event.type == SDL_QUIT)
 			quit_requested_= true;
 		if(event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)
 			quit_requested_= true;
-		if(event.type == SDL_MOUSEBUTTONDOWN)
-		{
-			if(event.button.button == SDL_BUTTON_LEFT)
-				mouse_state|= c_mouse_mask_l_clicked;
-			if(event.button.button == SDL_BUTTON_RIGHT)
-				mouse_state|= c_mouse_mask_r_clicked;
-		}
-		if(event.type == SDL_MOUSEWHEEL)
-		{
-			if(event.wheel.y > 0)
-				mouse_state|= c_mouse_mask_wheel_up_clicked;
-			if(event.wheel.y < 0)
-				mouse_state|= c_mouse_mask_wheel_down_clicked;
-		}
 	}
-
-	const auto keys_state= system_window_.GetKeyboardState();
-	KeyboardState keyboard_state= 0;
-	if(keys_state[size_t(SDL_SCANCODE_W)])
-		keyboard_state|= c_key_mask_forward;
-	if(keys_state[size_t(SDL_SCANCODE_S)])
-		keyboard_state|= c_key_mask_backward;
-	if(keys_state[size_t(SDL_SCANCODE_D)])
-		keyboard_state|= c_key_mask_step_left;
-	if(keys_state[size_t(SDL_SCANCODE_A)])
-		keyboard_state|= c_key_mask_step_right;
-	if(keys_state[size_t(SDL_SCANCODE_SPACE)])
-		keyboard_state|= c_key_mask_fly_up;
-	if(keys_state[size_t(SDL_SCANCODE_C)])
-		keyboard_state|= c_key_mask_fly_down;
-	if(keys_state[size_t(SDL_SCANCODE_LEFT)])
-		keyboard_state|= c_key_mask_rotate_left;
-	if(keys_state[size_t(SDL_SCANCODE_RIGHT)])
-		keyboard_state|= c_key_mask_rotate_right;
-	if(keys_state[size_t(SDL_SCANCODE_UP)])
-		keyboard_state|= c_key_mask_rotate_up;
-	if(keys_state[size_t(SDL_SCANCODE_DOWN)])
-		keyboard_state|= c_key_mask_rotate_down;
 
 	const vk::CommandBuffer command_buffer= window_vulkan_.BeginFrame();
 
 	world_processor_.Update(
 		command_buffer,
 		dt_s,
-		keyboard_state,
-		mouse_state,
+		CreateKeyboardState(keys_state),
+		CreateMouseState(events),
 		CalculateAspect(window_vulkan_.GetViewportSize()));
 
 	world_renderer_.PrepareFrame(command_buffer);

@@ -48,6 +48,7 @@ namespace PlayerWorldWindowBuildShaderBindings
 
 uint32_t chunk_data_buffer= 0;
 uint32_t player_world_window_buffer= 1;
+uint32_t player_state_buffer= 2;
 
 }
 
@@ -79,7 +80,6 @@ struct ChunkPositionUniforms
 
 struct PlayerWorldWindowBuildUniforms
 {
-	int32_t player_world_window_offset[4]{};
 	int32_t world_size_chunks[2]{};
 	int32_t world_offset_chunks[2]{};
 };
@@ -681,6 +681,13 @@ WorldProcessor::WorldProcessor(
 				vk::ShaderStageFlagBits::eCompute,
 				nullptr,
 			},
+			{
+				PlayerWorldWindowBuildShaderBindings::player_state_buffer,
+				vk::DescriptorType::eStorageBuffer,
+				1u,
+				vk::ShaderStageFlagBits::eCompute,
+				nullptr,
+			},
 		};
 		player_world_window_build_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
 			vk::DescriptorSetLayoutCreateInfo(
@@ -732,6 +739,11 @@ WorldProcessor::WorldProcessor(
 			0u,
 			sizeof(PlayerWorldWindow));
 
+		const vk::DescriptorBufferInfo player_state_buffer_info(
+			player_state_buffer_.buffer.get(),
+			0u,
+			sizeof(PlayerState));
+
 		vk_device_.updateDescriptorSets(
 			{
 				{
@@ -752,6 +764,16 @@ WorldProcessor::WorldProcessor(
 					vk::DescriptorType::eStorageBuffer,
 					nullptr,
 					&player_world_window_buffer_info,
+					nullptr
+				},
+				{
+					player_world_window_build_descriptor_sets_[i],
+					PlayerWorldWindowBuildShaderBindings::player_state_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&player_state_buffer_info,
 					nullptr
 				},
 			},
@@ -1452,11 +1474,6 @@ void WorldProcessor::BuildPlayerWorldWindow(const vk::CommandBuffer command_buff
 	PlayerWorldWindowBuildUniforms uniforms;
 	uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
 	uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-	const float player_pos[3]{0.0f, 0.0f, 0.0f}; // TODO - calculate it properly.
-	uniforms.player_world_window_offset[0]= (int32_t(player_pos[0] / c_space_scale_x) - int32_t(c_player_world_window_size[0] / 2u)) & 0xFFFFFFFE;
-	uniforms.player_world_window_offset[1]= (int32_t(player_pos[1]) - int32_t(c_player_world_window_size[1] / 2u)) & 0xFFFFFFFE;
-	uniforms.player_world_window_offset[2]= int32_t(player_pos[2]) - int32_t(c_player_world_window_size[2] / 2u);
-	uniforms.player_world_window_offset[3]= 0;
 	uniforms.world_offset_chunks[0]= world_offset_[0];
 	uniforms.world_offset_chunks[1]= world_offset_[1];
 

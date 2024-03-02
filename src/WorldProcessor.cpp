@@ -189,7 +189,6 @@ ComputePipeline CreateInitialLightFillPipeline(const vk::Device vk_device)
 			vk::DescriptorSetLayoutCreateFlags(),
 			uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
 
-
 	const vk::PushConstantRange push_constant_range(
 		vk::ShaderStageFlagBits::eCompute,
 		0u,
@@ -221,7 +220,6 @@ ComputePipeline CreateWorldBlocksUpdatePipeline(const vk::Device vk_device)
 
 	pipeline.shader= CreateShader(vk_device, ShaderNames::world_blocks_update_comp);
 
-
 	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
 	{
 		{
@@ -244,7 +242,6 @@ ComputePipeline CreateWorldBlocksUpdatePipeline(const vk::Device vk_device)
 		vk::DescriptorSetLayoutCreateInfo(
 			vk::DescriptorSetLayoutCreateFlags(),
 			uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
-
 
 	const vk::PushConstantRange push_constant_range(
 		vk::ShaderStageFlagBits::eCompute,
@@ -367,7 +364,6 @@ ComputePipeline CreatePlayerWorldWindowBuildPipeline(const vk::Device vk_device)
 		vk::DescriptorSetLayoutCreateInfo(
 			vk::DescriptorSetLayoutCreateFlags(),
 			uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
-
 
 	const vk::PushConstantRange push_constant_range(
 		vk::ShaderStageFlagBits::eCompute,

@@ -285,6 +285,7 @@ ComputePipeline CreateGeometryGenPipeline(const vk::Device vk_device)
 			nullptr,
 		},
 	};
+
 	pipeline.descriptor_set_layout= vk_device.createDescriptorSetLayoutUnique(
 		vk::DescriptorSetLayoutCreateInfo(
 			vk::DescriptorSetLayoutCreateFlags(),

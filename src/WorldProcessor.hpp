@@ -26,9 +26,9 @@ public:
 		float aspect);
 
 	vk::Buffer GetChunkDataBuffer(uint32_t index) const;
-	uint32_t GetChunkDataBufferSize() const;
+	vk::DeviceSize GetChunkDataBufferSize() const;
 	vk::Buffer GetLightDataBuffer(uint32_t index) const;
-	uint32_t GetLightDataBufferSize() const;
+	vk::DeviceSize GetLightDataBufferSize() const;
 
 	vk::Buffer GetPlayerStateBuffer() const;
 
@@ -51,12 +51,6 @@ public:
 	};
 
 private:
-	struct BufferWithMemory
-	{
-		vk::UniqueBuffer buffer;
-		vk::UniqueDeviceMemory memory;
-	};
-
 	// These constants must be the same in GLSL code!
 	static constexpr uint32_t c_player_world_window_size[3]{16, 16, 16};
 	static constexpr uint32_t c_player_world_window_volume= c_player_world_window_size[0] * c_player_world_window_size[1] * c_player_world_window_size[2];
@@ -115,13 +109,11 @@ private:
 
 	// Use double buffering for world update.
 	// On each step data is read from one of them and written into another.
-	BufferWithMemory chunk_data_buffers_[2];
-	uint32_t chunk_data_buffer_size_= 0;
+	const std::array<Buffer, 2> chunk_data_buffers_;
 
 	// Use double buffering for light update.
 	// On each step data is read from one of them and written into another.
-	BufferWithMemory light_buffers_[2];
-	uint32_t light_buffer_size_= 0;
+	const std::array<Buffer, 2> light_buffers_;
 
 	const Buffer player_state_buffer_;
 	const Buffer world_blocks_external_update_queue_buffer_;

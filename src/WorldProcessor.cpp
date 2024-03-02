@@ -505,6 +505,24 @@ ComputePipeline CreateWorldBlocksExternalUpdateQueueFlushPipeline(const vk::Devi
 	return pipeline;
 }
 
+Buffer CreateChunkDataBuffer(WindowVulkan& window_vulkan, const WorldSizeChunks& world_size)
+{
+	return Buffer(
+		window_vulkan,
+		c_chunk_volume * world_size[0] * world_size[1],
+		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+		vk::MemoryPropertyFlagBits::eDeviceLocal);
+}
+
+Buffer CreateLightBuffer(WindowVulkan& window_vulkan, const WorldSizeChunks& world_size)
+{
+	return Buffer(
+		window_vulkan,
+		c_chunk_volume * world_size[0] * world_size[1],
+		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+		vk::MemoryPropertyFlagBits::eDeviceLocal);
+}
+
 } // namespace
 
 WorldProcessor::WorldProcessor(
@@ -515,6 +533,12 @@ WorldProcessor::WorldProcessor(
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, world_size_(ReadWorldSize(settings))
 	, world_offset_{-int32_t(world_size_[0] / 2u), -int32_t(world_size_[1] / 2u)}
+	, chunk_data_buffers_{
+		CreateChunkDataBuffer(window_vulkan, world_size_),
+		CreateChunkDataBuffer(window_vulkan, world_size_)}
+	, light_buffers_{
+		CreateLightBuffer(window_vulkan, world_size_),
+		CreateLightBuffer(window_vulkan, world_size_)}
 	, player_state_buffer_(
 		window_vulkan,
 		sizeof(PlayerState),
@@ -543,66 +567,6 @@ WorldProcessor::WorldProcessor(
 			*player_update_pipeline_.descriptor_set_layout))
 	, world_blocks_external_update_queue_flush_pipeline_(CreateWorldBlocksExternalUpdateQueueFlushPipeline(vk_device_))
 {
-	// Create chunk data buffers.
-	chunk_data_buffer_size_= c_chunk_volume * world_size_[0] * world_size_[1];
-	for(uint32_t i= 0; i < 2; ++i)
-	{
-		chunk_data_buffers_[i].buffer=
-			vk_device_.createBufferUnique(
-				vk::BufferCreateInfo(
-					vk::BufferCreateFlags(),
-					chunk_data_buffer_size_,
-					vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst));
-
-		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*chunk_data_buffers_[i].buffer);
-
-		const auto memory_properties= window_vulkan.GetMemoryProperties();
-
-		vk::MemoryAllocateInfo memory_allocate_info(buffer_memory_requirements.size);
-		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
-		{
-			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
-			{
-				memory_allocate_info.memoryTypeIndex= i;
-				break;
-			}
-		}
-
-		chunk_data_buffers_[i].memory= vk_device_.allocateMemoryUnique(memory_allocate_info);
-		vk_device_.bindBufferMemory(*chunk_data_buffers_[i].buffer, *chunk_data_buffers_[i].memory, 0u);
-	}
-
-	// Create light buffers.
-	light_buffer_size_= c_chunk_volume * world_size_[0] * world_size_[1];
-	for(uint32_t i= 0; i < 2; ++i)
-	{
-		light_buffers_[i].buffer=
-			vk_device_.createBufferUnique(
-				vk::BufferCreateInfo(
-					vk::BufferCreateFlags(),
-					light_buffer_size_,
-					vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst));
-
-		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*light_buffers_[i].buffer);
-
-		const auto memory_properties= window_vulkan.GetMemoryProperties();
-
-		vk::MemoryAllocateInfo memory_allocate_info(buffer_memory_requirements.size);
-		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
-		{
-			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
-			{
-				memory_allocate_info.memoryTypeIndex= i;
-				break;
-			}
-		}
-
-		light_buffers_[i].memory= vk_device_.allocateMemoryUnique(memory_allocate_info);
-		vk_device_.bindBufferMemory(*light_buffers_[i].buffer, *light_buffers_[i].memory, 0u);
-	}	
-
 	// Create and update world generation descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
 	{
@@ -613,9 +577,9 @@ WorldProcessor::WorldProcessor(
 				*world_gen_pipeline_.descriptor_set_layout);
 
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
-			chunk_data_buffers_[i].buffer.get(),
+			chunk_data_buffers_[i].GetBuffer(),
 			0u,
-			chunk_data_buffer_size_);
+			chunk_data_buffers_[i].GetSize());
 
 		vk_device_.updateDescriptorSets(
 			{
@@ -643,14 +607,14 @@ WorldProcessor::WorldProcessor(
 				*initial_light_fill_pipeline_.descriptor_set_layout);
 
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
-			chunk_data_buffers_[i].buffer.get(),
+			chunk_data_buffers_[i].GetBuffer(),
 			0u,
-			chunk_data_buffer_size_);
+			chunk_data_buffers_[i].GetSize());
 
 		const vk::DescriptorBufferInfo descriptor_light_data_buffer_info(
-			light_buffers_[i].buffer.get(),
+			light_buffers_[i].GetBuffer(),
 			0u,
-			light_buffer_size_);
+			light_buffers_[i].GetSize());
 
 		vk_device_.updateDescriptorSets(
 			{
@@ -688,14 +652,14 @@ WorldProcessor::WorldProcessor(
 				*world_blocks_update_pipeline_.descriptor_set_layout);
 
 		const vk::DescriptorBufferInfo descriptor_chunk_data_input_buffer_info(
-			chunk_data_buffers_[i].buffer.get(),
+			chunk_data_buffers_[i].GetBuffer(),
 			0u,
-			chunk_data_buffer_size_);
+			chunk_data_buffers_[i].GetSize());
 
 		const vk::DescriptorBufferInfo descriptor_chunk_data_output_buffer_info(
-			chunk_data_buffers_[i ^ 1].buffer.get(),
+			chunk_data_buffers_[i ^ 1].GetBuffer(),
 			0u,
-			chunk_data_buffer_size_);
+			chunk_data_buffers_[i ^ 1].GetSize());
 
 		vk_device_.updateDescriptorSets(
 			{
@@ -733,19 +697,19 @@ WorldProcessor::WorldProcessor(
 				*light_update_pipeline_.descriptor_set_layout);
 
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
-			chunk_data_buffers_[i].buffer.get(),
+			chunk_data_buffers_[i].GetBuffer(),
 			0u,
-			chunk_data_buffer_size_);
+			chunk_data_buffers_[i].GetSize());
 
 		const vk::DescriptorBufferInfo descriptor_input_light_data_buffer_info(
-			light_buffers_[i].buffer.get(),
+			light_buffers_[i].GetBuffer(),
 			0u,
-			light_buffer_size_);
+			light_buffers_[i].GetSize());
 
 		const vk::DescriptorBufferInfo descriptor_output_light_data_buffer_info(
-			light_buffers_[i ^ 1].buffer.get(),
+			light_buffers_[i ^ 1].GetBuffer(),
 			0u,
-			light_buffer_size_);
+			light_buffers_[i ^ 1].GetSize());
 
 		vk_device_.updateDescriptorSets(
 			{
@@ -793,9 +757,9 @@ WorldProcessor::WorldProcessor(
 				*player_world_window_build_pipeline_.descriptor_set_layout);
 
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
-			chunk_data_buffers_[i].buffer.get(),
+			chunk_data_buffers_[i].GetBuffer(),
 			0u,
-			chunk_data_buffer_size_);
+			chunk_data_buffers_[i].GetSize());
 
 		const vk::DescriptorBufferInfo player_world_window_buffer_info(
 			player_world_window_buffer_.GetBuffer(),
@@ -906,9 +870,9 @@ WorldProcessor::WorldProcessor(
 				*world_blocks_external_update_queue_flush_pipeline_.descriptor_set_layout);
 
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
-			chunk_data_buffers_[i].buffer.get(),
+			chunk_data_buffers_[i].GetBuffer(),
 			0u,
-			chunk_data_buffer_size_);
+			chunk_data_buffers_[i].GetSize());
 
 		const vk::DescriptorBufferInfo world_blocks_external_update_queue_buffer_info(
 			world_blocks_external_update_queue_buffer_.GetBuffer(),
@@ -1004,23 +968,23 @@ void WorldProcessor::Update(
 vk::Buffer WorldProcessor::GetChunkDataBuffer(const uint32_t index) const
 {
 	HEX_ASSERT(index < 2);
-	return chunk_data_buffers_[index].buffer.get();
+	return chunk_data_buffers_[index].GetBuffer();
 }
 
-uint32_t WorldProcessor::GetChunkDataBufferSize() const
+vk::DeviceSize WorldProcessor::GetChunkDataBufferSize() const
 {
-	return chunk_data_buffer_size_;
+	return chunk_data_buffers_[0].GetSize();
 }
 
 vk::Buffer WorldProcessor::GetLightDataBuffer(const uint32_t index) const
 {
 	HEX_ASSERT(index < 2);
-	return light_buffers_[index].buffer.get();
+	return light_buffers_[index].GetBuffer();
 }
 
-uint32_t WorldProcessor::GetLightDataBufferSize() const
+vk::DeviceSize WorldProcessor::GetLightDataBufferSize() const
 {
-	return light_buffer_size_;
+	return light_buffers_[0].GetSize();
 }
 
 vk::Buffer WorldProcessor::GetPlayerStateBuffer() const
@@ -1051,10 +1015,10 @@ void WorldProcessor::InitialFillBuffers(const vk::CommandBuffer command_buffer)
 
 	// Zero chunk data buffers in order to prevent bugs with uninitialized memory.
 	for(uint32_t i= 0; i < 2; ++i)
-		command_buffer.fillBuffer(*chunk_data_buffers_[i].buffer, 0, chunk_data_buffer_size_, 0);
+		command_buffer.fillBuffer(chunk_data_buffers_[i].GetBuffer(), 0, chunk_data_buffers_[i].GetSize(), 0);
 
 	for(uint32_t i= 0; i < 2; ++i)
-		command_buffer.fillBuffer(*light_buffers_[i].buffer, 0, light_buffer_size_, 0);
+		command_buffer.fillBuffer(light_buffers_[i].GetBuffer(), 0, light_buffers_[i].GetSize(), 0);
 
 	// Set initial player state.
 	{
@@ -1080,28 +1044,28 @@ void WorldProcessor::InitialFillBuffers(const vk::CommandBuffer command_buffer)
 		{
 			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*chunk_data_buffers_[0].buffer,
+			chunk_data_buffers_[0].GetBuffer(),
 			0,
 			VK_WHOLE_SIZE,
 		},
 		{
 			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*chunk_data_buffers_[1].buffer,
+			chunk_data_buffers_[1].GetBuffer(),
 			0,
 			VK_WHOLE_SIZE,
 		},
 		{
 			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*light_buffers_[0].buffer,
+			light_buffers_[0].GetBuffer(),
 			0,
 			VK_WHOLE_SIZE,
 		},
 		{
 			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*light_buffers_[1].buffer,
+			light_buffers_[1].GetBuffer(),
 			0,
 			VK_WHOLE_SIZE,
 		},
@@ -1190,7 +1154,7 @@ void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*chunk_data_buffers_[dst_buffer_index].buffer,
+			chunk_data_buffers_[dst_buffer_index].GetBuffer(),
 			0,
 			VK_WHOLE_SIZE);
 
@@ -1250,7 +1214,7 @@ void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*light_buffers_[dst_buffer_index].buffer,
+			light_buffers_[dst_buffer_index].GetBuffer(),
 			0,
 			VK_WHOLE_SIZE);
 
@@ -1379,14 +1343,14 @@ void WorldProcessor::CreateWorldBlocksAndLightUpdateBarrier(const vk::CommandBuf
 		{
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*chunk_data_buffers_[dst_buffer_index].buffer,
+			chunk_data_buffers_[dst_buffer_index].GetBuffer(),
 			0,
 			VK_WHOLE_SIZE
 		},
 		{
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*light_buffers_[dst_buffer_index].buffer,
+			light_buffers_[dst_buffer_index].GetBuffer(),
 			0,
 			VK_WHOLE_SIZE
 		},
@@ -1583,7 +1547,7 @@ void WorldProcessor::FlushWorldBlocksExternalUpdateQueue(const vk::CommandBuffer
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*chunk_data_buffers_[dst_buffer_index].buffer,
+			chunk_data_buffers_[dst_buffer_index].GetBuffer(),
 			0,
 			VK_WHOLE_SIZE);
 

@@ -120,7 +120,8 @@ Settings::Settings(const std::string_view file_name)
 	const auto file_size= std::ftell(file);
 	file_contents.resize(file_size, '\0');
 	std::fseek(file, 0, SEEK_SET);
-	std::fread(file_contents.data(), 1, file_size, file);
+	const auto fread_result= std::fread(file_contents.data(), 1, file_size, file);
+	(void)fread_result; // TODO - use it
 	std::fclose(file);
 
 	const char* s= file_contents.data();

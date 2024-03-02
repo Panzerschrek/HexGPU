@@ -1047,8 +1047,8 @@ void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
 		vk::PipelineBindPoint::eCompute,
 		*world_gen_pipeline_.pipeline_layout,
 		0u,
-		1u, &world_gen_descriptor_sets_[dst_buffer_index],
-		0u, nullptr);
+		{world_gen_descriptor_sets_[dst_buffer_index]},
+		{});
 
 	for(uint32_t x= 0; x < world_size_[0]; ++x)
 	for(uint32_t y= 0; y < world_size_[1]; ++y)
@@ -1107,8 +1107,8 @@ void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
 		vk::PipelineBindPoint::eCompute,
 		*initial_light_fill_pipeline_.pipeline_layout,
 		0u,
-		1u, &initial_light_fill_descriptor_sets_[dst_buffer_index],
-		0u, nullptr);
+		{initial_light_fill_descriptor_sets_[dst_buffer_index]},
+		{});
 
 	for(uint32_t x= 0; x < world_size_[0]; ++x)
 	for(uint32_t y= 0; y < world_size_[1]; ++y)
@@ -1190,8 +1190,8 @@ void WorldProcessor::UpdateWorldBlocks(const vk::CommandBuffer command_buffer)
 		vk::PipelineBindPoint::eCompute,
 		*world_blocks_update_pipeline_.pipeline_layout,
 		0u,
-		1u, &world_blocks_update_descriptor_sets_[src_buffer_index],
-		0u, nullptr);
+		{world_blocks_update_descriptor_sets_[src_buffer_index]},
+		{});
 
 	for(const auto& chunk_to_update : current_frame_chunks_to_update_list_)
 	{
@@ -1232,8 +1232,8 @@ void WorldProcessor::UpdateLight(const vk::CommandBuffer command_buffer)
 		vk::PipelineBindPoint::eCompute,
 		*light_update_pipeline_.pipeline_layout,
 		0u,
-		1u, &light_update_descriptor_sets_[src_buffer_index],
-		0u, nullptr);
+		{light_update_descriptor_sets_[src_buffer_index]},
+		{});
 
 	for(const auto& chunk_to_update : current_frame_chunks_to_update_list_)
 	{
@@ -1308,8 +1308,8 @@ void WorldProcessor::BuildPlayerWorldWindow(const vk::CommandBuffer command_buff
 		vk::PipelineBindPoint::eCompute,
 		*player_world_window_build_pipeline_.pipeline_layout,
 		0u,
-		1u, &descriptor_set,
-		0u, nullptr);
+		{descriptor_set},
+		{});
 
 	PlayerWorldWindowBuildUniforms uniforms;
 	uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
@@ -1367,8 +1367,8 @@ void WorldProcessor::UpdatePlayer(
 		vk::PipelineBindPoint::eCompute,
 		*player_update_pipeline_.pipeline_layout,
 		0u,
-		1u, &player_update_descriptor_set_,
-		0u, nullptr);
+		{player_update_descriptor_set_},
+		{});
 
 	PlayerUpdateUniforms player_update_uniforms;
 	player_update_uniforms.aspect= aspect;
@@ -1455,8 +1455,8 @@ void WorldProcessor::FlushWorldBlocksExternalUpdateQueue(const vk::CommandBuffer
 		vk::PipelineBindPoint::eCompute,
 		*world_blocks_external_update_queue_flush_pipeline_.pipeline_layout,
 		0u,
-		1u, &descriptor_set,
-		0u, nullptr);
+		{descriptor_set},
+		{});
 
 	WorldBlocksExternalUpdateQueueFlushUniforms uniforms;
 	uniforms.world_size_chunks[0]= int32_t(world_size_[0]);

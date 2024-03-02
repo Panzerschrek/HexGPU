@@ -227,9 +227,9 @@ void WorldTexturesManager::PrepareFrame(const vk::CommandBuffer command_buffer)
 			vk::PipelineStageFlagBits::eTransfer,
 			vk::PipelineStageFlagBits::eBottomOfPipe,
 			vk::DependencyFlags(),
-			0u, nullptr,
-			0u, nullptr,
-			1u, &image_memory_transfer);
+			{},
+			{},
+			{image_memory_transfer});
 	}
 
 	for(uint32_t dst_image_index= 0; dst_image_index < c_num_layers; ++dst_image_index)
@@ -240,18 +240,19 @@ void WorldTexturesManager::PrepareFrame(const vk::CommandBuffer command_buffer)
 		{
 			const uint32_t current_size= c_texture_size >> mip;
 
-			const vk::BufferImageCopy copy_region(
-				offset,
-				current_size, current_size,
-				vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, mip, dst_image_index, 1u),
-				vk::Offset3D(0, 0, 0),
-				vk::Extent3D(current_size, current_size, 1u));
-
 			command_buffer.copyBufferToImage(
 				*staging_buffer_,
 				*image_,
 				vk::ImageLayout::eTransferDstOptimal,
-				1u, &copy_region);
+				{
+					{
+						offset,
+						current_size, current_size,
+						vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, mip, dst_image_index, 1u),
+						vk::Offset3D(0, 0, 0),
+						vk::Extent3D(current_size, current_size, 1u)
+					}
+				});
 
 			offset+= current_size * current_size * uint32_t(sizeof(PixelType));
 		}

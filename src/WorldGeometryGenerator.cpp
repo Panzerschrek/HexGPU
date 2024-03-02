@@ -619,8 +619,8 @@ void WorldGeometryGenerator::PrepareGeometrySizeCalculation(const vk::CommandBuf
 		vk::PipelineBindPoint::eCompute,
 		*geometry_size_calculate_prepare_pipeline_.pipeline_layout,
 		0u,
-		1u, &geometry_size_calculate_prepare_descriptor_set_,
-		0u, nullptr);
+		{geometry_size_calculate_prepare_descriptor_set_},
+		{});
 
 	GeometrySizeCalculatePrepareUniforms uniforms;
 	uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
@@ -663,8 +663,8 @@ void WorldGeometryGenerator::CalculateGeometrySize(const vk::CommandBuffer comma
 		vk::PipelineBindPoint::eCompute,
 		*geometry_size_calculate_pipeline_.pipeline_layout,
 		0u,
-		1u, &geometry_size_calculate_descriptor_sets_[world_processor_.GetActualBuffersIndex()],
-		0u, nullptr);
+		{geometry_size_calculate_descriptor_sets_[world_processor_.GetActualBuffersIndex()]},
+		{});
 
 	const WorldOffsetChunks world_offset= world_processor_.GetWorldOffset();
 
@@ -726,8 +726,8 @@ void WorldGeometryGenerator::AllocateMemoryForGeometry(const vk::CommandBuffer c
 		vk::PipelineBindPoint::eCompute,
 		*geometry_allocate_pipeline_.pipeline_layout,
 		0u,
-		1u, &geometry_allocate_descriptor_set_,
-		0u, nullptr);
+		{geometry_allocate_descriptor_set_},
+		{});
 
 	// We have limited uniform size for chunks to update list.
 	// So, perform several updates if necessary.
@@ -801,8 +801,8 @@ void WorldGeometryGenerator::GenGeometry(const vk::CommandBuffer command_buffer)
 		vk::PipelineBindPoint::eCompute,
 		*geometry_gen_pipeline_.pipeline_layout,
 		0u,
-		1u, &geometry_gen_descriptor_sets_[world_processor_.GetActualBuffersIndex()],
-		0u, nullptr);
+		{geometry_gen_descriptor_sets_[world_processor_.GetActualBuffersIndex()]},
+		{});
 
 	const WorldOffsetChunks world_offset= world_processor_.GetWorldOffset();
 

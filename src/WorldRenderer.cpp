@@ -268,17 +268,16 @@ void WorldRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
 	BuildDrawIndirectBuffer(command_buffer);
 
 	// Copy view matrix.
-	{
-		const vk::BufferCopy copy_region(
-			offsetof(WorldProcessor::PlayerState, blocks_matrix),
-			offsetof(DrawUniforms, view_matrix),
-			sizeof(float) * 16);
-
-		command_buffer.copyBuffer(
-			world_processor_.GetPlayerStateBuffer(),
-			uniform_buffer_.GetBuffer(),
-			1u, &copy_region);
-	}
+	command_buffer.copyBuffer(
+		world_processor_.GetPlayerStateBuffer(),
+		uniform_buffer_.GetBuffer(),
+		{
+			{
+				offsetof(WorldProcessor::PlayerState, blocks_matrix),
+				offsetof(DrawUniforms, view_matrix),
+				sizeof(float) * 16
+			}
+		});
 
 	// Add barrier between uniform buffer memory copy and result usage in shader.
 	{
@@ -310,8 +309,8 @@ void WorldRenderer::Draw(const vk::CommandBuffer command_buffer)
 		vk::PipelineBindPoint::eGraphics,
 		*draw_pipeline_.pipeline_layout,
 		0u,
-		1u, &descriptor_set_,
-		0u, nullptr);
+		{descriptor_set_},
+		{});
 
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *draw_pipeline_.pipeline);
 
@@ -500,8 +499,8 @@ void WorldRenderer::BuildDrawIndirectBuffer(const vk::CommandBuffer command_buff
 		vk::PipelineBindPoint::eCompute,
 		*draw_indirect_buffer_build_pipeline_.pipeline_layout,
 		0u,
-		1u, &draw_indirect_buffer_build_descriptor_set_,
-		0u, nullptr);
+		{draw_indirect_buffer_build_descriptor_set_},
+		{});
 
 	DrawIndirectBufferBuildUniforms uniforms;
 	uniforms.world_size_chunks[0]= int32_t(world_size_[0]);

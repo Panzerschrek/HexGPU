@@ -123,7 +123,6 @@ GraphicsPipeline CreateBuildPrismPipeline(
 	pipeline.shader_vert= CreateShader(vk_device, ShaderNames::build_prism_vert);
 	pipeline.shader_frag= CreateShader(vk_device, ShaderNames::build_prism_frag);
 
-	// Create descriptor set layout.
 	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
 	{
 		{
@@ -133,13 +132,13 @@ GraphicsPipeline CreateBuildPrismPipeline(
 			vk::ShaderStageFlagBits::eVertex,
 		},
 	};
+
 	pipeline.descriptor_set_layout=
 		vk_device.createDescriptorSetLayoutUnique(
 			vk::DescriptorSetLayoutCreateInfo(
 				vk::DescriptorSetLayoutCreateFlags(),
 				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
 
-	// Create pipeline layout
 	pipeline.pipeline_layout=
 		vk_device.createPipelineLayoutUnique(
 			vk::PipelineLayoutCreateInfo(
@@ -147,7 +146,6 @@ GraphicsPipeline CreateBuildPrismPipeline(
 				1u, &*pipeline.descriptor_set_layout,
 				0u, nullptr));
 
-	// Create pipeline.
 	const vk::PipelineShaderStageCreateInfo shader_stage_create_info[2]
 	{
 		{
@@ -364,30 +362,28 @@ BuildPrismRenderer::~BuildPrismRenderer()
 void BuildPrismRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
 {
 	// Get build position from player state.
-	{
-		const vk::BufferCopy copy_region(
-			offsetof(WorldProcessor::PlayerState, build_pos),
-			offsetof(DrawUniforms, build_pos),
-			sizeof(int32_t) * 4);
-
-		command_buffer.copyBuffer(
-			world_processor_.GetPlayerStateBuffer(),
-			*uniform_buffer_,
-			1u, &copy_region);
-	}
+	command_buffer.copyBuffer(
+		world_processor_.GetPlayerStateBuffer(),
+		*uniform_buffer_,
+		{
+			{
+				offsetof(WorldProcessor::PlayerState, build_pos),
+				offsetof(DrawUniforms, build_pos),
+				sizeof(int32_t) * 4
+			}
+		});
 
 	// Copy view matrix.
-	{
-		const vk::BufferCopy copy_region(
-			offsetof(WorldProcessor::PlayerState, blocks_matrix),
-			offsetof(DrawUniforms, view_matrix),
-			sizeof(float) * 16);
-
-		command_buffer.copyBuffer(
-			world_processor_.GetPlayerStateBuffer(),
-			*uniform_buffer_,
-			1u, &copy_region);
-	}
+	command_buffer.copyBuffer(
+		world_processor_.GetPlayerStateBuffer(),
+		*uniform_buffer_,
+		{
+			{
+				offsetof(WorldProcessor::PlayerState, blocks_matrix),
+				offsetof(DrawUniforms, view_matrix),
+				sizeof(float) * 16
+			},
+		});
 
 	// Add barrier between uniform buffer memory copy and result usage in shader.
 	{
@@ -416,8 +412,8 @@ void BuildPrismRenderer::Draw(const vk::CommandBuffer command_buffer)
 		vk::PipelineBindPoint::eGraphics,
 		*pipeline_.pipeline_layout,
 		0u,
-		1u, &descriptor_set_,
-		0u, nullptr);
+		{descriptor_set_},
+		{});
 
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline_.pipeline);
 

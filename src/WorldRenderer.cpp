@@ -1,6 +1,7 @@
 #include "WorldRenderer.hpp"
 #include "Assert.hpp"
 #include "Constants.hpp"
+#include "GlobalDescriptorPool.hpp"
 #include "ShaderList.hpp"
 #include "VulkanUtils.hpp"
 #include <cmath>
@@ -130,8 +131,14 @@ WorldRenderer::WorldRenderer(
 	, geometry_generator_(window_vulkan, world_processor, global_descriptor_pool)
 	, world_textures_manager_(window_vulkan)
 	, draw_indirect_buffer_build_pipeline_(CreateDrawIndirectBufferBuildPipeline(vk_device_))
+	, draw_indirect_buffer_build_descriptor_set_(
+		CreateDescriptorSet(
+			vk_device_,
+			global_descriptor_pool,
+			*draw_indirect_buffer_build_pipeline_.descriptor_set_layout))
 	, draw_pipeline_(
 		CreateWorldDrawPipeline(vk_device_, window_vulkan.GetViewportSize(), window_vulkan.GetRenderPass()))
+	, descriptor_set_(CreateDescriptorSet(vk_device_, global_descriptor_pool, *draw_pipeline_.descriptor_set_layout))
 {
 	// Create draw indirect buffer.
 	{
@@ -191,12 +198,6 @@ WorldRenderer::WorldRenderer(
 		uniform_buffer_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);
 		vk_device_.bindBufferMemory(*uniform_buffer_, *uniform_buffer_memory_, 0u);
 	}
-
-	// Create descriptor set.
-	draw_indirect_buffer_build_descriptor_set_= vk_device_.allocateDescriptorSets(
-		vk::DescriptorSetAllocateInfo(
-			global_descriptor_pool,
-			1u, &*draw_indirect_buffer_build_pipeline_.descriptor_set_layout)).front();
 
 	// Update descriptor set.
 	{
@@ -274,12 +275,6 @@ WorldRenderer::WorldRenderer(
 		std::memcpy(index_data_gpu_size, world_indeces.data(), indices_size);
 		vk_device_.unmapMemory(*index_buffer_memory_);
 	}
-
-	// Create descriptor set.
-	descriptor_set_= vk_device_.allocateDescriptorSets(
-		vk::DescriptorSetAllocateInfo(
-			global_descriptor_pool,
-			1u, &*draw_pipeline_.descriptor_set_layout)).front();
 
 	// Update descriptor set.
 	{

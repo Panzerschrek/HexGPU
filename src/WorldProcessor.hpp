@@ -142,7 +142,7 @@ private:
 	vk::DescriptorSet player_world_window_build_descriptor_sets_[2];
 
 	const ComputePipeline player_update_pipeline_;
-	vk::DescriptorSet player_update_descriptor_set_;
+	const vk::DescriptorSet player_update_descriptor_set_;
 
 	const ComputePipeline world_blocks_external_update_queue_flush_pipeline_;
 	vk::DescriptorSet world_blocks_external_update_queue_flush_descriptor_sets_[2];

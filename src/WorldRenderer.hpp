@@ -50,10 +50,10 @@ private:
 	vk::UniqueDeviceMemory uniform_buffer_memory_;
 
 	const ComputePipeline draw_indirect_buffer_build_pipeline_;
-	vk::DescriptorSet draw_indirect_buffer_build_descriptor_set_;
+	const vk::DescriptorSet draw_indirect_buffer_build_descriptor_set_;
 
 	const WorldDrawPipeline draw_pipeline_;
-	vk::DescriptorSet descriptor_set_;
+	const vk::DescriptorSet descriptor_set_;
 
 	vk::UniqueBuffer index_buffer_;
 	vk::UniqueDeviceMemory index_buffer_memory_;

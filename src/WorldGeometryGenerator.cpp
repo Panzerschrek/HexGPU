@@ -1,6 +1,7 @@
 #include "WorldGeometryGenerator.hpp"
 #include "Assert.hpp"
 #include "Constants.hpp"
+#include "GlobalDescriptorPool.hpp"
 #include "ShaderList.hpp"
 #include "VulkanUtils.hpp"
 
@@ -326,8 +327,15 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 	, world_size_(world_processor.GetWorldSize())
 	, vertex_memory_allocator_(window_vulkan, GetTotalVertexBufferUnits(world_size_))
 	, geometry_size_calculate_prepare_pipeline_(CreateGeometrySizeCalculatePreparePipeline(vk_device_))
+	, geometry_size_calculate_prepare_descriptor_set_(
+		CreateDescriptorSet(
+			vk_device_,
+			global_descriptor_pool,
+			*geometry_size_calculate_prepare_pipeline_.descriptor_set_layout))
 	, geometry_size_calculate_pipeline_(CreateGeometrySizeCalculatePipeline(vk_device_))
 	, geometry_allocate_pipeline_(CreateGeometryAllocatePipeline(vk_device_))
+	, geometry_allocate_descriptor_set_(
+		CreateDescriptorSet(vk_device_, global_descriptor_pool, *geometry_allocate_pipeline_.descriptor_set_layout))
 	, geometry_gen_pipeline_(CreateGeometryGenPipeline(vk_device_))
 {
 	// Create chunk draw info buffer.
@@ -391,12 +399,6 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 		vk_device_.bindBufferMemory(*vertex_buffer_, *vertex_buffer_memory_, 0u);
 	}
 
-	// Create descriptor set.
-	geometry_size_calculate_prepare_descriptor_set_= vk_device_.allocateDescriptorSets(
-		vk::DescriptorSetAllocateInfo(
-			global_descriptor_pool,
-			1u, &*geometry_size_calculate_prepare_pipeline_.descriptor_set_layout)).front();
-
 	// Update descriptor set.
 	{
 		const vk::DescriptorBufferInfo descriptor_chunk_draw_info_buffer_info(
@@ -423,10 +425,11 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 	// Create and update descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
 	{
-		geometry_size_calculate_descriptor_sets_[i]= vk_device_.allocateDescriptorSets(
-			vk::DescriptorSetAllocateInfo(
+		geometry_size_calculate_descriptor_sets_[i]=
+			CreateDescriptorSet(
+				vk_device_,
 				global_descriptor_pool,
-				1u, &*geometry_size_calculate_pipeline_.descriptor_set_layout)).front();
+				*geometry_size_calculate_pipeline_.descriptor_set_layout);
 
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
 			world_processor_.GetChunkDataBuffer(i),
@@ -463,12 +466,6 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 			},
 			{});
 	}
-
-	// Create descriptor set.
-	geometry_allocate_descriptor_set_= vk_device_.allocateDescriptorSets(
-		vk::DescriptorSetAllocateInfo(
-			global_descriptor_pool,
-			1u, &*geometry_allocate_pipeline_.descriptor_set_layout)).front();
 
 	// Update descriptor set.
 	{
@@ -511,10 +508,8 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 	// Create and update descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
 	{
-		geometry_gen_descriptor_sets_[i]= vk_device_.allocateDescriptorSets(
-			vk::DescriptorSetAllocateInfo(
-				global_descriptor_pool,
-				1u, &*geometry_gen_pipeline_.descriptor_set_layout)).front();
+		geometry_gen_descriptor_sets_[i]=
+			CreateDescriptorSet(vk_device_, global_descriptor_pool, *geometry_gen_pipeline_.descriptor_set_layout);
 
 		const vk::DescriptorBufferInfo descriptor_vertex_buffer_info(
 			*vertex_buffer_,

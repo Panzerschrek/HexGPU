@@ -1,5 +1,6 @@
 #include "BuildPrismRenderer.hpp"
 #include "Assert.hpp"
+#include "GlobalDescriptorPool.hpp"
 #include "ShaderList.hpp"
 #include "VulkanUtils.hpp"
 
@@ -259,6 +260,8 @@ BuildPrismRenderer::BuildPrismRenderer(
 	: vk_device_(window_vulkan.GetVulkanDevice())
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, world_processor_(world_processor)
+	, pipeline_(CreateBuildPrismPipeline(vk_device_, window_vulkan.GetViewportSize(), window_vulkan.GetRenderPass()))
+	, descriptor_set_(CreateDescriptorSet(vk_device_, global_descriptor_pool, *pipeline_.descriptor_set_layout))
 {
 	// Create uniform buffer.
 	{
@@ -327,14 +330,6 @@ BuildPrismRenderer::BuildPrismRenderer(
 		std::memcpy(vertex_data_gpu_size, build_prism_mesh.data(), vertex_data_size);
 		vk_device_.unmapMemory(*vertex_buffer_memory_);
 	}
-
-	pipeline_= CreateBuildPrismPipeline(vk_device_, window_vulkan.GetViewportSize(), window_vulkan.GetRenderPass());
-
-	// Create descriptor set.
-	descriptor_set_= vk_device_.allocateDescriptorSets(
-		vk::DescriptorSetAllocateInfo(
-			global_descriptor_pool,
-			1u, &*pipeline_.descriptor_set_layout)).front();
 
 	// Update descriptor set.
 	{

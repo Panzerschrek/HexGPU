@@ -1,6 +1,7 @@
 #include "WorldProcessor.hpp"
 #include "Assert.hpp"
 #include "Constants.hpp"
+#include "GlobalDescriptorPool.hpp"
 #include "Log.hpp"
 #include "ShaderList.hpp"
 #include "VulkanUtils.hpp"
@@ -524,6 +525,11 @@ WorldProcessor::WorldProcessor(
 	, light_update_pipeline_(CreateLightUpdatePipeline(vk_device_))
 	, player_world_window_build_pipeline_(CreatePlayerWorldWindowBuildPipeline(vk_device_))
 	, player_update_pipeline_(CreatePlayerUpdatePipeline(vk_device_))
+	, player_update_descriptor_set_(
+		CreateDescriptorSet(
+			vk_device_,
+			global_descriptor_pool,
+			*player_update_pipeline_.descriptor_set_layout))
 	, world_blocks_external_update_queue_flush_pipeline_(CreateWorldBlocksExternalUpdateQueueFlushPipeline(vk_device_))
 {
 	// Create chunk data buffers.
@@ -673,10 +679,11 @@ WorldProcessor::WorldProcessor(
 	// Create and update world generation descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
 	{
-		world_gen_descriptor_sets_[i]= vk_device_.allocateDescriptorSets(
-			vk::DescriptorSetAllocateInfo(
+		world_gen_descriptor_sets_[i]=
+			CreateDescriptorSet(
+				vk_device_,
 				global_descriptor_pool,
-				1u, &*world_gen_pipeline_.descriptor_set_layout)).front();
+				*world_gen_pipeline_.descriptor_set_layout);
 
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
 			chunk_data_buffers_[i].buffer.get(),
@@ -702,10 +709,11 @@ WorldProcessor::WorldProcessor(
 	// Create and update initial light fill descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
 	{
-		initial_light_fill_descriptor_sets_[i]= vk_device_.allocateDescriptorSets(
-			vk::DescriptorSetAllocateInfo(
+		initial_light_fill_descriptor_sets_[i]=
+			CreateDescriptorSet(
+				vk_device_,
 				global_descriptor_pool,
-				1u, &*initial_light_fill_pipeline_.descriptor_set_layout)).front();
+				*initial_light_fill_pipeline_.descriptor_set_layout);
 
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
 			chunk_data_buffers_[i].buffer.get(),
@@ -746,10 +754,11 @@ WorldProcessor::WorldProcessor(
 	// Create and update world blocks update descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
 	{
-		world_blocks_update_descriptor_sets_[i]= vk_device_.allocateDescriptorSets(
-			vk::DescriptorSetAllocateInfo(
+		world_blocks_update_descriptor_sets_[i]=
+			CreateDescriptorSet(
+				vk_device_,
 				global_descriptor_pool,
-				1u, &*world_blocks_update_pipeline_.descriptor_set_layout)).front();
+				*world_blocks_update_pipeline_.descriptor_set_layout);
 
 		const vk::DescriptorBufferInfo descriptor_chunk_data_input_buffer_info(
 			chunk_data_buffers_[i].buffer.get(),
@@ -790,10 +799,11 @@ WorldProcessor::WorldProcessor(
 	// Create and update light update descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
 	{
-		light_update_descriptor_sets_[i]= vk_device_.allocateDescriptorSets(
-			vk::DescriptorSetAllocateInfo(
+		light_update_descriptor_sets_[i]=
+			CreateDescriptorSet(
+				vk_device_,
 				global_descriptor_pool,
-				1u, &*light_update_pipeline_.descriptor_set_layout)).front();
+				*light_update_pipeline_.descriptor_set_layout);
 
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
 			chunk_data_buffers_[i].buffer.get(),
@@ -849,10 +859,11 @@ WorldProcessor::WorldProcessor(
 	// Create and update player world window build descriptor set.
 	for(uint32_t i= 0; i < 2; ++i)
 	{
-		player_world_window_build_descriptor_sets_[i]= vk_device_.allocateDescriptorSets(
-			vk::DescriptorSetAllocateInfo(
+		player_world_window_build_descriptor_sets_[i]=
+			CreateDescriptorSet(
+				vk_device_,
 				global_descriptor_pool,
-				1u, &*player_world_window_build_pipeline_.descriptor_set_layout)).front();
+				*player_world_window_build_pipeline_.descriptor_set_layout);
 
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
 			chunk_data_buffers_[i].buffer.get(),
@@ -904,12 +915,6 @@ WorldProcessor::WorldProcessor(
 			},
 			{});
 	}
-
-	// Create player update descriptor set.
-	player_update_descriptor_set_= vk_device_.allocateDescriptorSets(
-		vk::DescriptorSetAllocateInfo(
-			global_descriptor_pool,
-			1u, &*player_update_pipeline_.descriptor_set_layout)).front();
 
 	// Update player update descriptor set.
 	{
@@ -967,10 +972,11 @@ WorldProcessor::WorldProcessor(
 	// Create and update world blocks external update queue flush descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
 	{
-		world_blocks_external_update_queue_flush_descriptor_sets_[i]= vk_device_.allocateDescriptorSets(
-			vk::DescriptorSetAllocateInfo(
+		world_blocks_external_update_queue_flush_descriptor_sets_[i]=
+			CreateDescriptorSet(
+				vk_device_,
 				global_descriptor_pool,
-				1u, &*world_blocks_external_update_queue_flush_pipeline_.descriptor_set_layout)).front();
+				*world_blocks_external_update_queue_flush_pipeline_.descriptor_set_layout);
 
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
 			chunk_data_buffers_[i].buffer.get(),

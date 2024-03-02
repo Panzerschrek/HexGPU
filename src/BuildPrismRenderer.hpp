@@ -30,8 +30,8 @@ private:
 	vk::UniqueBuffer vertex_buffer_;
 	vk::UniqueDeviceMemory vertex_buffer_memory_;
 
-	GraphicsPipeline pipeline_;
-	vk::DescriptorSet descriptor_set_;
+	const GraphicsPipeline pipeline_;
+	const vk::DescriptorSet descriptor_set_;
 };
 
 } // namespace HexGPU

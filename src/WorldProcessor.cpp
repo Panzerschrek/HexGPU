@@ -1015,7 +1015,8 @@ void WorldProcessor::Update(
 	InitialFillBuffers(command_buffer);
 	GenerateWorld(command_buffer);
 
-	const float c_update_frequency= 4.0f; // TODO - tune this.
+	// This frequency allows relatively fast world updates and still doesn't overload GPU too much.
+	const float c_update_frequency= 8.0f;
 
 	// Do not allow updating slightly less than whole world in a frame.
 	const float tick_delta_clamped= std::min(time_delta_s * c_update_frequency, 0.75f);

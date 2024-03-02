@@ -13,6 +13,15 @@
 #include "inc/player_world_window.glsl"
 #include "inc/world_blocks_external_update_queue.glsl"
 
+layout(push_constant) uniform uniforms_block
+{
+	ivec2 world_size_chunks;
+	float aspect;
+	float time_delta_s;
+	uint keyboard_state;
+	uint mouse_state;
+};
+
 layout(binding= 1, std430) buffer player_state_buffer
 {
 	PlayerState player_state;
@@ -26,16 +35,6 @@ layout(binding= 2, std430) buffer world_blocks_external_update_queue_buffer
 layout(binding= 3, std430) buffer player_world_window_buffer
 {
 	PlayerWorldWindow player_world_window;
-};
-
-layout(push_constant) uniform uniforms_block
-{
-	// Use vec4 for proper padding
-	ivec2 world_size_chunks;
-	float aspect;
-	float time_delta_s;
-	uint keyboard_state;
-	uint mouse_state;
 };
 
 void MovePlayer()
@@ -117,36 +116,24 @@ void UpdateBuildBlockType()
 uint8_t GetBuildDirection(ivec3 last_grid_pos, ivec3 grid_pos)
 {
 	if(last_grid_pos.z < grid_pos.z)
-	{
 		return c_direction_up;
-	}
 	else if(last_grid_pos.z > grid_pos.z)
-	{
 		return c_direction_down;
-	}
 	else if(last_grid_pos.x < grid_pos.x)
 	{
 		if((grid_pos.x & 1) == 0)
 		{
 			if(last_grid_pos.y == grid_pos.y)
-			{
 				return c_direction_north_east;
-			}
 			else
-			{
 				return c_direction_south_east;
-			}
 		}
 		else
 		{
 			if(last_grid_pos.y == grid_pos.y)
-			{
 				return c_direction_south_east;
-			}
 			else
-			{
 				return c_direction_north_east;
-			}
 		}
 	}
 	else if(last_grid_pos.x > grid_pos.x)
@@ -154,36 +141,24 @@ uint8_t GetBuildDirection(ivec3 last_grid_pos, ivec3 grid_pos)
 		if((grid_pos.x & 1) == 0)
 		{
 			if(last_grid_pos.y == grid_pos.y)
-			{
 				return c_direction_north_west;
-			}
 			else
-			{
 				return c_direction_south_west;
-			}
 		}
 		else
 		{
 			if(last_grid_pos.y == grid_pos.y)
-			{
 				return c_direction_south_west;
-			}
 			else
-			{
 				return c_direction_north_west;
-			}
 		}
 	}
 	else
 	{
 		if(last_grid_pos.y < grid_pos.y)
-		{
 			return c_direction_north;
-		}
 		else
-		{
 			return c_direction_south;
-		}
 	}
 }
 
@@ -215,17 +190,15 @@ void UpdateBuildPos()
 			continue; // Located in the same grid cell.
 
 		ivec3 pos_in_window= grid_pos - player_world_window.offset.xyz;
-		if(IsPosInsidePlayerWorldWindow(pos_in_window))
+		if(IsPosInsidePlayerWorldWindow(pos_in_window) &&
+			player_world_window.window_data[GetAddressOfBlockInPlayerWorldWindow(pos_in_window)] != c_block_type_air)
 		{
-			if(player_world_window.window_data[GetAddressOfBlockInPlayerWorldWindow(pos_in_window)] != c_block_type_air)
-			{
-				// Reached non-air block.
-				// Destroy position is in this block, build position is in previous block.
-				player_state.destroy_pos.xyz= grid_pos;
-				player_state.build_pos.xyz= last_grid_pos;
-				player_state.build_pos.w= int(GetBuildDirection(last_grid_pos, grid_pos));
-				return;
-			}
+			// Reached non-air block.
+			// Destroy position is in this block, build position is in previous block.
+			player_state.destroy_pos.xyz= grid_pos;
+			player_state.build_pos.xyz= last_grid_pos;
+			player_state.build_pos.w= int(GetBuildDirection(last_grid_pos, grid_pos));
+			return;
 		}
 
 		last_grid_pos= grid_pos;
@@ -241,9 +214,7 @@ void PushUpdateIntoQueue(WorldBlockExternalUpdate update)
 	// Use atomic in case someone else pushes updates into this queue.
 	uint index= atomicAdd(world_blocks_external_update_queue.num_updates, 1);
 	if(index < c_max_world_blocks_external_updates)
-	{
 		world_blocks_external_update_queue.updates[index]= update;
-	}
 }
 
 void UpdateBlocksMatrix()

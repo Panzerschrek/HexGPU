@@ -40,9 +40,20 @@ layout(push_constant) uniform uniforms_block
 
 void MovePlayer()
 {
-	const float speed= 4.0;
-	const float jump_speed= 0.8 * speed;
-	const float angle_speed= 1.0;
+	const float c_walk_speed= 4.0;
+	const float c_sprint_speed= 16.0;
+	const float c_angle_speed= 1.0;
+
+	const float c_jump_speed= 0.8 * c_walk_speed;
+	const float c_sprint_jump_speed= 0.8 * c_sprint_speed;
+
+	float speed= c_walk_speed;
+	float jump_speed= c_jump_speed;
+	if((keyboard_state & c_key_mask_sprint) != 0)
+	{
+		speed= c_sprint_speed;
+		jump_speed= c_sprint_jump_speed;
+	}
 
 	vec3 forward_vector= vec3(-sin(player_state.angles.x), +cos(player_state.angles.x), 0.0);
 	vec3 left_vector= vec3(cos(player_state.angles.x), sin(player_state.angles.x), 0.0);
@@ -68,14 +79,14 @@ void MovePlayer()
 		player_state.pos.z-= time_delta_s * jump_speed;
 
 	if((keyboard_state & c_key_mask_rotate_left) != 0)
-		player_state.angles.x+= time_delta_s * angle_speed;
+		player_state.angles.x+= time_delta_s * c_angle_speed;
 	if((keyboard_state & c_key_mask_rotate_right) != 0)
-		player_state.angles.x-= time_delta_s * angle_speed;
+		player_state.angles.x-= time_delta_s * c_angle_speed;
 
 	if((keyboard_state & c_key_mask_rotate_up) != 0)
-		player_state.angles.y+= time_delta_s * angle_speed;
+		player_state.angles.y+= time_delta_s * c_angle_speed;
 	if((keyboard_state & c_key_mask_rotate_down) != 0)
-		player_state.angles.y-= time_delta_s * angle_speed;
+		player_state.angles.y-= time_delta_s * c_angle_speed;
 
 	while(player_state.angles.x > +c_pi)
 		player_state.angles.x-= 2.0 * c_pi;

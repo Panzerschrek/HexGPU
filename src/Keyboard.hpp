@@ -18,5 +18,6 @@ const KeyboardState c_key_mask_rotate_left= 64;
 const KeyboardState c_key_mask_rotate_right= 128;
 const KeyboardState c_key_mask_rotate_up= 256;
 const KeyboardState c_key_mask_rotate_down= 512;
+const KeyboardState c_key_mask_sprint= 1024;
 
 } // namespace HexGPU

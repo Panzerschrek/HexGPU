@@ -41,6 +41,8 @@ KeyboardState CreateKeyboardState(const std::vector<bool>& keys_state)
 		keyboard_state|= c_key_mask_rotate_up;
 	if(keys_state[size_t(SDL_SCANCODE_DOWN)])
 		keyboard_state|= c_key_mask_rotate_down;
+	if(keys_state[size_t(SDL_SCANCODE_LSHIFT)])
+		keyboard_state|= c_key_mask_sprint;
 
 	return keyboard_state;
 }

@@ -10,3 +10,4 @@ const uint c_key_mask_rotate_left= 64;
 const uint c_key_mask_rotate_right= 128;
 const uint c_key_mask_rotate_up= 256;
 const uint c_key_mask_rotate_down= 512;
+const uint c_key_mask_sprint= 1024;

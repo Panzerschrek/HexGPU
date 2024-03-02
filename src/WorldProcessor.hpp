@@ -40,8 +40,8 @@ public:
 	struct PlayerState
 	{
 		float blocks_matrix[16]{};
-		float player_pos[4]{};
-		float player_angles[4]{};
+		float pos[4]{};
+		float angles[4]{};
 		int32_t build_pos[4]{}; // component 3 - direction
 		int32_t destroy_pos[4]{};
 		int32_t next_player_world_window_offset[4]{};

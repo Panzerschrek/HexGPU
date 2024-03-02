@@ -1115,9 +1115,9 @@ void WorldProcessor::InitialFillBuffers(const vk::CommandBuffer command_buffer)
 	// Set initial player state.
 	{
 		PlayerState player_state;
-		player_state.player_pos[0]= 0.0f;
-		player_state.player_pos[1]= 0.0f;
-		player_state.player_pos[2]= 32.0f;
+		player_state.pos[0]= 0.0f;
+		player_state.pos[1]= 0.0f;
+		player_state.pos[2]= 40.0f;
 		player_state.build_block_type= BlockType::Stone;
 
 		command_buffer.updateBuffer(

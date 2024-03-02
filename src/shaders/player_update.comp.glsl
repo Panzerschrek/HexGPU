@@ -44,8 +44,8 @@ void MovePlayer()
 	const float jump_speed= 0.8f * speed;
 	const float angle_speed= 1.0f;
 
-	vec3 forward_vector= vec3(-sin(player_state.player_angles.x), +cos(player_state.player_angles.x), 0.0);
-	vec3 left_vector= vec3(cos(player_state.player_angles.x), sin(player_state.player_angles.x), 0.0);
+	vec3 forward_vector= vec3(-sin(player_state.angles.x), +cos(player_state.angles.x), 0.0);
+	vec3 left_vector= vec3(cos(player_state.angles.x), sin(player_state.angles.x), 0.0);
 
 	vec3 move_vector= vec3(0.0, 0.0, 0.0);
 
@@ -59,30 +59,30 @@ void MovePlayer()
 		move_vector-= left_vector;
 
 	const float move_vector_length= length(move_vector);
-	if(move_vector_length > 0.0f)
-		player_state.player_pos.xyz+= move_vector * (time_delta_s * speed / move_vector_length);
+	if(move_vector_length > 0.0)
+		player_state.pos.xyz+= move_vector * (time_delta_s * speed / move_vector_length);
 
 	if((keyboard_state & c_key_mask_fly_up) != 0)
-		player_state.player_pos.z+= time_delta_s * jump_speed;
+		player_state.pos.z+= time_delta_s * jump_speed;
 	if((keyboard_state & c_key_mask_fly_down) != 0)
-		player_state.player_pos.z-= time_delta_s * jump_speed;
+		player_state.pos.z-= time_delta_s * jump_speed;
 
 	if((keyboard_state & c_key_mask_rotate_left) != 0)
-		player_state.player_angles.x+= time_delta_s * angle_speed;
+		player_state.angles.x+= time_delta_s * angle_speed;
 	if((keyboard_state & c_key_mask_rotate_right) != 0)
-		player_state.player_angles.x-= time_delta_s * angle_speed;
+		player_state.angles.x-= time_delta_s * angle_speed;
 
 	if((keyboard_state & c_key_mask_rotate_up) != 0)
-		player_state.player_angles.y+= time_delta_s * angle_speed;
+		player_state.angles.y+= time_delta_s * angle_speed;
 	if((keyboard_state & c_key_mask_rotate_down) != 0)
-		player_state.player_angles.y-= time_delta_s * angle_speed;
+		player_state.angles.y-= time_delta_s * angle_speed;
 
-	while(player_state.player_angles.x > +c_pi)
-		player_state.player_angles.x-= 2.0 * c_pi;
-	while(player_state.player_angles.x < -c_pi)
-		player_state.player_angles.x+= 2.0 * c_pi;
+	while(player_state.angles.x > +c_pi)
+		player_state.angles.x-= 2.0 * c_pi;
+	while(player_state.angles.x < -c_pi)
+		player_state.angles.x+= 2.0 * c_pi;
 
-	player_state.player_angles.y= max(-0.5 * c_pi, min(player_state.player_angles.y, +0.5 * c_pi));
+	player_state.angles.y= max(-0.5 * c_pi, min(player_state.angles.y, +0.5 * c_pi));
 }
 
 void UpdateBuildBlockType()
@@ -192,8 +192,8 @@ void UpdateBuildPos()
 	const float c_build_radius= 5.0;
 	const int c_num_steps= 64;
 
-	vec3 player_dir_normalized= CalculateCameraDirection(player_state.player_angles.xy);
-	vec3 cur_pos= player_state.player_pos.xyz;
+	vec3 player_dir_normalized= CalculateCameraDirection(player_state.angles.xy);
+	vec3 cur_pos= player_state.pos.xyz;
 	vec3 step_vec= player_dir_normalized * (c_build_radius / float(c_num_steps));
 
 	ivec3 last_grid_pos= ivec3(-1, -1, -1);
@@ -247,9 +247,9 @@ void UpdateBlocksMatrix()
 
 	mat4 perspective= MakePerspectiveProjectionMatrix(aspect, fov, z_near, z_far);
 	mat4 basis_change= MakePerspectiveChangeBasisMatrix();
-	mat4 rotate_x= MakeRotationXMatrix(-player_state.player_angles.y);
-	mat4 rotate_z= MakeRotationZMatrix(-player_state.player_angles.x);
-	mat4 translate= MateTranslateMatrix(-player_state.player_pos.xyz);
+	mat4 rotate_x= MakeRotationXMatrix(-player_state.angles.y);
+	mat4 rotate_z= MakeRotationZMatrix(-player_state.angles.x);
+	mat4 translate= MateTranslateMatrix(-player_state.pos.xyz);
 	mat4 blocks_scale= MakeScaleMatrix(vec3(0.5 / sqrt(3.0), 0.5, 1.0));
 
 	player_state.blocks_matrix= perspective * basis_change * rotate_x * rotate_z * translate * blocks_scale;
@@ -259,8 +259,8 @@ void UpdateNextPlayerWorldWindowOffset()
 {
 	player_state.next_player_world_window_offset=
 		ivec4(
-			(GetHexogonCoord(player_state.player_pos.xy) - c_player_world_window_size.xy / 2) & 0xFFFFFFFE,
-			int(floor(player_state.player_pos.z)) - c_player_world_window_size.z / 2,
+			(GetHexogonCoord(player_state.pos.xy) - c_player_world_window_size.xy / 2) & 0xFFFFFFFE,
+			int(floor(player_state.pos.z)) - c_player_world_window_size.z / 2,
 			0);
 }
 

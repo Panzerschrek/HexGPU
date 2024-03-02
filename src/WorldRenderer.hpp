@@ -1,5 +1,6 @@
 #pragma once
 #include "Pipeline.hpp"
+#include "Buffer.hpp"
 #include "WorldGeometryGenerator.hpp"
 #include "WorldTexturesManager.hpp"
 
@@ -43,11 +44,8 @@ private:
 	WorldGeometryGenerator geometry_generator_;
 	WorldTexturesManager world_textures_manager_;
 
-	vk::UniqueBuffer draw_indirect_buffer_;
-	vk::UniqueDeviceMemory draw_indirect_buffer_memory_;
-
-	vk::UniqueBuffer uniform_buffer_;
-	vk::UniqueDeviceMemory uniform_buffer_memory_;
+	const Buffer draw_indirect_buffer_;
+	const Buffer uniform_buffer_;
 
 	const ComputePipeline draw_indirect_buffer_build_pipeline_;
 	const vk::DescriptorSet draw_indirect_buffer_build_descriptor_set_;

@@ -130,6 +130,16 @@ WorldRenderer::WorldRenderer(
 	, world_size_(world_processor.GetWorldSize())
 	, geometry_generator_(window_vulkan, world_processor, global_descriptor_pool)
 	, world_textures_manager_(window_vulkan)
+	, draw_indirect_buffer_(
+		window_vulkan,
+		world_size_[0] * world_size_[1] * uint32_t(sizeof(vk::DrawIndexedIndirectCommand)),
+		vk::BufferUsageFlagBits::eIndirectBuffer | vk::BufferUsageFlagBits::eStorageBuffer,
+		vk::MemoryPropertyFlagBits::eDeviceLocal)
+	, uniform_buffer_(
+		window_vulkan,
+		sizeof(DrawUniforms),
+		vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst,
+		vk::MemoryPropertyFlagBits::eDeviceLocal)
 	, draw_indirect_buffer_build_pipeline_(CreateDrawIndirectBufferBuildPipeline(vk_device_))
 	, draw_indirect_buffer_build_descriptor_set_(
 		CreateDescriptorSet(
@@ -140,65 +150,6 @@ WorldRenderer::WorldRenderer(
 		CreateWorldDrawPipeline(vk_device_, window_vulkan.GetViewportSize(), window_vulkan.GetRenderPass()))
 	, descriptor_set_(CreateDescriptorSet(vk_device_, global_descriptor_pool, *draw_pipeline_.descriptor_set_layout))
 {
-	// Create draw indirect buffer.
-	{
-		const uint32_t num_commands= world_size_[0] * world_size_[1];
-		const uint32_t buffer_size= uint32_t(sizeof(vk::DrawIndexedIndirectCommand)) * num_commands;
-
-		draw_indirect_buffer_=
-			vk_device_.createBufferUnique(
-				vk::BufferCreateInfo(
-					vk::BufferCreateFlags(),
-					buffer_size,
-					vk::BufferUsageFlagBits::eIndirectBuffer | vk::BufferUsageFlagBits::eStorageBuffer));
-
-		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*draw_indirect_buffer_);
-
-		const auto memory_properties= window_vulkan.GetMemoryProperties();
-
-		vk::MemoryAllocateInfo memory_allocate_info(buffer_memory_requirements.size);
-		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
-		{
-			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
-			{
-				memory_allocate_info.memoryTypeIndex= i;
-				break;
-			}
-		}
-
-		draw_indirect_buffer_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);
-		vk_device_.bindBufferMemory(*draw_indirect_buffer_, *draw_indirect_buffer_memory_, 0u);
-	}
-
-	// Create uniform buffer.
-	{
-		uniform_buffer_=
-			vk_device_.createBufferUnique(
-				vk::BufferCreateInfo(
-					vk::BufferCreateFlags(),
-					sizeof(DrawUniforms),
-					vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst));
-
-		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*uniform_buffer_);
-
-		const auto memory_properties= window_vulkan.GetMemoryProperties();
-
-		vk::MemoryAllocateInfo memory_allocate_info(buffer_memory_requirements.size);
-		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
-		{
-			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
-			{
-				memory_allocate_info.memoryTypeIndex= i;
-				break;
-			}
-		}
-
-		uniform_buffer_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);
-		vk_device_.bindBufferMemory(*uniform_buffer_, *uniform_buffer_memory_, 0u);
-	}
-
 	// Update descriptor set.
 	{
 		const vk::DescriptorBufferInfo descriptor_chunk_draw_info_buffer_info(
@@ -207,7 +158,7 @@ WorldRenderer::WorldRenderer(
 			geometry_generator_.GetChunkDrawInfoBufferSize());
 
 		const vk::DescriptorBufferInfo descriptor_draw_indirect_buffer_info(
-			*draw_indirect_buffer_,
+			draw_indirect_buffer_.GetBuffer(),
 			0u,
 			uint32_t(sizeof(vk::DrawIndexedIndirectCommand)) * world_size_[0] * world_size_[1]);
 
@@ -279,7 +230,7 @@ WorldRenderer::WorldRenderer(
 	// Update descriptor set.
 	{
 		const vk::DescriptorBufferInfo descriptor_uniform_buffer_info(
-			*uniform_buffer_,
+			uniform_buffer_.GetBuffer(),
 			0u,
 			sizeof(DrawUniforms));
 
@@ -336,7 +287,7 @@ void WorldRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
 
 		command_buffer.copyBuffer(
 			world_processor_.GetPlayerStateBuffer(),
-			*uniform_buffer_,
+			uniform_buffer_.GetBuffer(),
 			1u, &copy_region);
 	}
 
@@ -345,7 +296,7 @@ void WorldRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead,
 			queue_family_index_, queue_family_index_,
-			*uniform_buffer_,
+			uniform_buffer_.GetBuffer(),
 			0,
 			VK_WHOLE_SIZE);
 
@@ -376,7 +327,7 @@ void WorldRenderer::Draw(const vk::CommandBuffer command_buffer)
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *draw_pipeline_.pipeline);
 
 	command_buffer.drawIndexedIndirect(
-		*draw_indirect_buffer_,
+		draw_indirect_buffer_.GetBuffer(),
 		0,
 		world_size_[0] * world_size_[1],
 		sizeof(vk::DrawIndexedIndirectCommand));
@@ -583,7 +534,7 @@ void WorldRenderer::BuildDrawIndirectBuffer(const vk::CommandBuffer command_buff
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eIndirectCommandRead,
 			queue_family_index_, queue_family_index_,
-			*draw_indirect_buffer_,
+			draw_indirect_buffer_.GetBuffer(),
 			0,
 			VK_WHOLE_SIZE);
 

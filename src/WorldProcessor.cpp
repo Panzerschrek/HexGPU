@@ -515,6 +515,21 @@ WorldProcessor::WorldProcessor(
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, world_size_(ReadWorldSize(settings))
 	, world_offset_{-int32_t(world_size_[0] / 2u), -int32_t(world_size_[1] / 2u)}
+	, player_state_buffer_(
+		window_vulkan,
+		sizeof(PlayerState),
+		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst,
+		vk::MemoryPropertyFlagBits::eDeviceLocal)
+	, world_blocks_external_update_queue_buffer_(
+		window_vulkan,
+		sizeof(WorldBlocksExternalUpdateQueue),
+		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+		vk::MemoryPropertyFlagBits::eDeviceLocal)
+	, player_world_window_buffer_(
+		window_vulkan,
+		sizeof(PlayerWorldWindow),
+		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+		vk::MemoryPropertyFlagBits::eDeviceLocal)
 	, world_gen_pipeline_(CreateWorldGenPipeline(vk_device_))
 	, initial_light_fill_pipeline_(CreateInitialLightFillPipeline(vk_device_))
 	, world_blocks_update_pipeline_(CreateWorldBlocksUpdatePipeline(vk_device_))
@@ -586,91 +601,7 @@ WorldProcessor::WorldProcessor(
 
 		light_buffers_[i].memory= vk_device_.allocateMemoryUnique(memory_allocate_info);
 		vk_device_.bindBufferMemory(*light_buffers_[i].buffer, *light_buffers_[i].memory, 0u);
-	}
-
-	// Create player state buffer.
-	{
-		player_state_buffer_.buffer=
-			vk_device_.createBufferUnique(
-				vk::BufferCreateInfo(
-					vk::BufferCreateFlags(),
-					sizeof(PlayerState),
-					vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst));
-
-		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*player_state_buffer_.buffer);
-
-		const auto memory_properties= window_vulkan.GetMemoryProperties();
-
-		vk::MemoryAllocateInfo memory_allocate_info(buffer_memory_requirements.size);
-		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
-		{
-			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
-			{
-				memory_allocate_info.memoryTypeIndex= i;
-				break;
-			}
-		}
-
-		player_state_buffer_.memory= vk_device_.allocateMemoryUnique(memory_allocate_info);
-		vk_device_.bindBufferMemory(*player_state_buffer_.buffer, *player_state_buffer_.memory, 0u);
-	}
-
-	// Create world blocks external update queue buffer.
-	{
-		world_blocks_external_update_queue_buffer_.buffer=
-			vk_device_.createBufferUnique(
-				vk::BufferCreateInfo(
-					vk::BufferCreateFlags(),
-					sizeof(WorldBlocksExternalUpdateQueue),
-					vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst));
-
-		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*world_blocks_external_update_queue_buffer_.buffer);
-
-		const auto memory_properties= window_vulkan.GetMemoryProperties();
-
-		vk::MemoryAllocateInfo memory_allocate_info(buffer_memory_requirements.size);
-		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
-		{
-			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
-			{
-				memory_allocate_info.memoryTypeIndex= i;
-				break;
-			}
-		}
-
-		world_blocks_external_update_queue_buffer_.memory= vk_device_.allocateMemoryUnique(memory_allocate_info);
-		vk_device_.bindBufferMemory(*world_blocks_external_update_queue_buffer_.buffer, *world_blocks_external_update_queue_buffer_.memory, 0u);
-	}
-
-	// Create player world window buffer.
-	{
-		player_world_window_buffer_.buffer=
-			vk_device_.createBufferUnique(
-				vk::BufferCreateInfo(
-					vk::BufferCreateFlags(),
-					sizeof(PlayerWorldWindow),
-					vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst));
-
-		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*player_world_window_buffer_.buffer);
-
-		const auto memory_properties= window_vulkan.GetMemoryProperties();
-
-		vk::MemoryAllocateInfo memory_allocate_info(buffer_memory_requirements.size);
-		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
-		{
-			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
-			{
-				memory_allocate_info.memoryTypeIndex= i;
-				break;
-			}
-		}
-
-		player_world_window_buffer_.memory= vk_device_.allocateMemoryUnique(memory_allocate_info);
-		vk_device_.bindBufferMemory(*player_world_window_buffer_.buffer, *player_world_window_buffer_.memory, 0u);
-	}
+	}	
 
 	// Create and update world generation descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
@@ -867,12 +798,12 @@ WorldProcessor::WorldProcessor(
 			chunk_data_buffer_size_);
 
 		const vk::DescriptorBufferInfo player_world_window_buffer_info(
-			player_world_window_buffer_.buffer.get(),
+			player_world_window_buffer_.GetBuffer(),
 			0u,
 			sizeof(PlayerWorldWindow));
 
 		const vk::DescriptorBufferInfo player_state_buffer_info(
-			player_state_buffer_.buffer.get(),
+			player_state_buffer_.GetBuffer(),
 			0u,
 			sizeof(PlayerState));
 
@@ -915,17 +846,17 @@ WorldProcessor::WorldProcessor(
 	// Update player update descriptor set.
 	{
 		const vk::DescriptorBufferInfo descriptor_player_state_buffer_info(
-			player_state_buffer_.buffer.get(),
+			player_state_buffer_.GetBuffer(),
 			0u,
 			sizeof(PlayerState));
 
 		const vk::DescriptorBufferInfo world_blocks_external_update_queue_buffer_info(
-			world_blocks_external_update_queue_buffer_.buffer.get(),
+			world_blocks_external_update_queue_buffer_.GetBuffer(),
 			0u,
 			sizeof(WorldBlocksExternalUpdateQueue));
 
 		const vk::DescriptorBufferInfo player_world_window_buffer_info(
-			player_world_window_buffer_.buffer.get(),
+			player_world_window_buffer_.GetBuffer(),
 			0u,
 			sizeof(PlayerWorldWindow));
 
@@ -980,7 +911,7 @@ WorldProcessor::WorldProcessor(
 			chunk_data_buffer_size_);
 
 		const vk::DescriptorBufferInfo world_blocks_external_update_queue_buffer_info(
-			world_blocks_external_update_queue_buffer_.buffer.get(),
+			world_blocks_external_update_queue_buffer_.GetBuffer(),
 			0u,
 			sizeof(WorldBlocksExternalUpdateQueue));
 
@@ -1094,7 +1025,7 @@ uint32_t WorldProcessor::GetLightDataBufferSize() const
 
 vk::Buffer WorldProcessor::GetPlayerStateBuffer() const
 {
-	return player_state_buffer_.buffer.get();
+	return player_state_buffer_.GetBuffer();
 }
 
 WorldSizeChunks WorldProcessor::GetWorldSize() const
@@ -1134,15 +1065,15 @@ void WorldProcessor::InitialFillBuffers(const vk::CommandBuffer command_buffer)
 		player_state.build_block_type= BlockType::Stone;
 
 		command_buffer.updateBuffer(
-			*player_state_buffer_.buffer,
+			player_state_buffer_.GetBuffer(),
 			0,
 			sizeof(PlayerState),
 			static_cast<const void*>(&player_state));
 	}
 
-	command_buffer.fillBuffer(*world_blocks_external_update_queue_buffer_.buffer, 0, sizeof(WorldBlocksExternalUpdateQueue), 0);
+	command_buffer.fillBuffer(world_blocks_external_update_queue_buffer_.GetBuffer(), 0, sizeof(WorldBlocksExternalUpdateQueue), 0);
 
-	command_buffer.fillBuffer(*player_world_window_buffer_.buffer, 0, sizeof(PlayerWorldWindow), 0);
+	command_buffer.fillBuffer(player_world_window_buffer_.GetBuffer(), 0, sizeof(PlayerWorldWindow), 0);
 
 	const vk::BufferMemoryBarrier barriers[]
 	{
@@ -1177,21 +1108,21 @@ void WorldProcessor::InitialFillBuffers(const vk::CommandBuffer command_buffer)
 		{
 			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*player_state_buffer_.buffer,
+			player_state_buffer_.GetBuffer(),
 			0,
 			VK_WHOLE_SIZE,
 		},
 		{
 			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*world_blocks_external_update_queue_buffer_.buffer,
+			world_blocks_external_update_queue_buffer_.GetBuffer(),
 			0,
 			VK_WHOLE_SIZE,
 		},
 		{
 			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*player_world_window_buffer_.buffer,
+			player_world_window_buffer_.GetBuffer(),
 			0,
 			VK_WHOLE_SIZE,
 		},
@@ -1513,7 +1444,7 @@ void WorldProcessor::BuildPlayerWorldWindow(const vk::CommandBuffer command_buff
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*player_world_window_buffer_.buffer,
+			player_world_window_buffer_.GetBuffer(),
 			0,
 			VK_WHOLE_SIZE);
 
@@ -1566,7 +1497,7 @@ void WorldProcessor::UpdatePlayer(
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eTransferRead,
 			queue_family_index_, queue_family_index_,
-			*player_state_buffer_.buffer,
+			player_state_buffer_.GetBuffer(),
 			0,
 			VK_WHOLE_SIZE);
 
@@ -1584,7 +1515,7 @@ void WorldProcessor::UpdatePlayer(
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*world_blocks_external_update_queue_buffer_.buffer,
+			world_blocks_external_update_queue_buffer_.GetBuffer(),
 			0,
 			VK_WHOLE_SIZE);
 
@@ -1602,7 +1533,7 @@ void WorldProcessor::UpdatePlayer(
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*player_world_window_buffer_.buffer,
+			player_world_window_buffer_.GetBuffer(),
 			0,
 			VK_WHOLE_SIZE);
 
@@ -1670,7 +1601,7 @@ void WorldProcessor::FlushWorldBlocksExternalUpdateQueue(const vk::CommandBuffer
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*world_blocks_external_update_queue_buffer_.buffer,
+			world_blocks_external_update_queue_buffer_.GetBuffer(),
 			0,
 			VK_WHOLE_SIZE);
 

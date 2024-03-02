@@ -1,5 +1,6 @@
 #pragma once
 #include "BlockType.hpp"
+#include "Buffer.hpp"
 #include "Keyboard.hpp"
 #include "Mouse.hpp"
 #include "Pipeline.hpp"
@@ -122,9 +123,9 @@ private:
 	BufferWithMemory light_buffers_[2];
 	uint32_t light_buffer_size_= 0;
 
-	BufferWithMemory player_state_buffer_;
-	BufferWithMemory world_blocks_external_update_queue_buffer_;
-	BufferWithMemory player_world_window_buffer_;
+	const Buffer player_state_buffer_;
+	const Buffer world_blocks_external_update_queue_buffer_;
+	const Buffer player_world_window_buffer_;
 
 	const ComputePipeline world_gen_pipeline_;
 	vk::DescriptorSet world_gen_descriptor_sets_[2];

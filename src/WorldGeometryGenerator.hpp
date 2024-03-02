@@ -1,4 +1,5 @@
 #pragma once
+#include "Buffer.hpp"
 #include "GPUAllocator.hpp"
 #include "Pipeline.hpp"
 #include "WorldProcessor.hpp"
@@ -40,7 +41,7 @@ public:
 	vk::Buffer GetVertexBuffer() const;
 
 	vk::Buffer GetChunkDrawInfoBuffer() const;
-	uint32_t GetChunkDrawInfoBufferSize() const;
+	vk::DeviceSize GetChunkDrawInfoBufferSize() const;
 
 private:
 	void InitialFillBuffers(vk::CommandBuffer command_buffer);
@@ -58,13 +59,10 @@ private:
 
 	bool buffers_initially_filled_= false;
 
-	uint32_t chunk_draw_info_buffer_size_= 0;
-	vk::UniqueBuffer chunk_draw_info_buffer_;
-	vk::UniqueDeviceMemory chunk_draw_info_buffer_memory_;
+	const Buffer chunk_draw_info_buffer_;
 
-	size_t vertex_buffer_num_quads_= 0;
-	vk::UniqueBuffer vertex_buffer_;
-	vk::UniqueDeviceMemory vertex_buffer_memory_;
+	const uint32_t vertex_buffer_num_quads_;
+	const Buffer vertex_buffer_;
 
 	GPUAllocator vertex_memory_allocator_;
 

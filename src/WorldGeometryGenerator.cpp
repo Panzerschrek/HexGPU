@@ -326,6 +326,17 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, world_processor_(world_processor)
 	, world_size_(world_processor.GetWorldSize())
+	, chunk_draw_info_buffer_(
+		window_vulkan,
+		world_size_[0] * world_size_[1] * uint32_t(sizeof(ChunkDrawInfo)),
+		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+		vk::MemoryPropertyFlagBits::eDeviceLocal)
+	, vertex_buffer_num_quads_(GetTotalVertexBufferQuads(world_size_))
+	, vertex_buffer_(
+		window_vulkan,
+		vertex_buffer_num_quads_ * uint32_t(sizeof(QuadVertices)),
+		vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+		vk::MemoryPropertyFlagBits::eDeviceLocal)
 	, vertex_memory_allocator_(window_vulkan, GetTotalVertexBufferUnits(world_size_))
 	, geometry_size_calculate_prepare_pipeline_(CreateGeometrySizeCalculatePreparePipeline(vk_device_))
 	, geometry_size_calculate_prepare_descriptor_set_(
@@ -339,73 +350,12 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 		CreateDescriptorSet(vk_device_, global_descriptor_pool, *geometry_allocate_pipeline_.descriptor_set_layout))
 	, geometry_gen_pipeline_(CreateGeometryGenPipeline(vk_device_))
 {
-	// Create chunk draw info buffer.
-	{
-		chunk_draw_info_buffer_size_= world_size_[0] * world_size_[1] * uint32_t(sizeof(ChunkDrawInfo));
-
-		chunk_draw_info_buffer_=
-			vk_device_.createBufferUnique(
-				vk::BufferCreateInfo(
-					vk::BufferCreateFlags(),
-					chunk_draw_info_buffer_size_,
-					vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst));
-
-		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*chunk_draw_info_buffer_);
-
-		const auto memory_properties= window_vulkan.GetMemoryProperties();
-
-		vk::MemoryAllocateInfo memory_allocate_info(buffer_memory_requirements.size);
-		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
-		{
-			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
-			{
-				memory_allocate_info.memoryTypeIndex= i;
-				break;
-			}
-		}
-
-		chunk_draw_info_buffer_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);
-		vk_device_.bindBufferMemory(*chunk_draw_info_buffer_, *chunk_draw_info_buffer_memory_, 0u);
-	}
-
-	// Create vertex buffer.
-	vertex_buffer_num_quads_= GetTotalVertexBufferQuads(world_size_);
-	{
-		const size_t quads_data_size= vertex_buffer_num_quads_ * sizeof(QuadVertices);
-
-		vertex_buffer_=
-			vk_device_.createBufferUnique(
-				vk::BufferCreateInfo(
-					vk::BufferCreateFlags(),
-					quads_data_size,
-					vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst));
-
-		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*vertex_buffer_);
-
-		const auto memory_properties= window_vulkan.GetMemoryProperties();
-
-		vk::MemoryAllocateInfo memory_allocate_info(buffer_memory_requirements.size);
-		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
-		{
-			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
-			{
-				memory_allocate_info.memoryTypeIndex= i;
-				break;
-			}
-		}
-
-		vertex_buffer_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);
-		vk_device_.bindBufferMemory(*vertex_buffer_, *vertex_buffer_memory_, 0u);
-	}
-
 	// Update descriptor set.
 	{
 		const vk::DescriptorBufferInfo descriptor_chunk_draw_info_buffer_info(
-			*chunk_draw_info_buffer_,
+			chunk_draw_info_buffer_.GetBuffer(),
 			0u,
-			chunk_draw_info_buffer_size_);
+			chunk_draw_info_buffer_.GetSize());
 
 		vk_device_.updateDescriptorSets(
 			{
@@ -438,9 +388,9 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 			world_processor_.GetChunkDataBufferSize());
 
 		const vk::DescriptorBufferInfo descriptor_chunk_draw_info_buffer_info(
-			*chunk_draw_info_buffer_,
+			chunk_draw_info_buffer_.GetBuffer(),
 			0u,
-			chunk_draw_info_buffer_size_);
+			chunk_draw_info_buffer_.GetSize());
 
 		vk_device_.updateDescriptorSets(
 			{
@@ -471,9 +421,9 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 	// Update descriptor set.
 	{
 		const vk::DescriptorBufferInfo descriptor_chunk_draw_info_buffer_info(
-			*chunk_draw_info_buffer_,
+			chunk_draw_info_buffer_.GetBuffer(),
 			0u,
-			chunk_draw_info_buffer_size_);
+			chunk_draw_info_buffer_.GetSize());
 
 		const vk::DescriptorBufferInfo descriptor_allocator_data_buffer_info(
 			vertex_memory_allocator_.GetAllocatorDataBuffer(),
@@ -513,9 +463,9 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 			CreateDescriptorSet(vk_device_, global_descriptor_pool, *geometry_gen_pipeline_.descriptor_set_layout);
 
 		const vk::DescriptorBufferInfo descriptor_vertex_buffer_info(
-			*vertex_buffer_,
+			vertex_buffer_.GetBuffer(),
 			0u,
-			vertex_buffer_num_quads_ * sizeof(QuadVertices));
+			vertex_buffer_.GetSize());
 
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
 			world_processor_.GetChunkDataBuffer(i),
@@ -528,9 +478,9 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 			world_processor_.GetLightDataBufferSize());
 
 		const vk::DescriptorBufferInfo descriptor_chunk_draw_info_buffer_info(
-			*chunk_draw_info_buffer_,
+			chunk_draw_info_buffer_.GetBuffer(),
 			0u,
-			chunk_draw_info_buffer_size_);
+			chunk_draw_info_buffer_.GetSize());
 
 		vk_device_.updateDescriptorSets(
 			{
@@ -600,17 +550,17 @@ void WorldGeometryGenerator::Update(const vk::CommandBuffer command_buffer)
 
 vk::Buffer WorldGeometryGenerator::GetVertexBuffer() const
 {
-	return vertex_buffer_.get();
+	return vertex_buffer_.GetBuffer();
 }
 
 vk::Buffer WorldGeometryGenerator::GetChunkDrawInfoBuffer() const
 {
-	return chunk_draw_info_buffer_.get();
+	return chunk_draw_info_buffer_.GetBuffer();
 }
 
-uint32_t WorldGeometryGenerator::GetChunkDrawInfoBufferSize() const
+vk::DeviceSize WorldGeometryGenerator::GetChunkDrawInfoBufferSize() const
 {
-	return chunk_draw_info_buffer_size_;
+	return chunk_draw_info_buffer_.GetSize();
 }
 
 void WorldGeometryGenerator::InitialFillBuffers(const vk::CommandBuffer command_buffer)
@@ -621,24 +571,24 @@ void WorldGeometryGenerator::InitialFillBuffers(const vk::CommandBuffer command_
 
 	// Fill initially vertex buffer with zeros.
 	// Do this only to supress warnings.
-	command_buffer.fillBuffer(*vertex_buffer_, 0, vertex_buffer_num_quads_ * sizeof(QuadVertices), 0);
+	command_buffer.fillBuffer(vertex_buffer_.GetBuffer(), 0, vertex_buffer_.GetSize(), 0);
 
 	// Fill initially chunk draw info buffer with zeros.
-	command_buffer.fillBuffer(*chunk_draw_info_buffer_, 0, chunk_draw_info_buffer_size_, 0);
+	command_buffer.fillBuffer(chunk_draw_info_buffer_.GetBuffer(), 0, chunk_draw_info_buffer_.GetSize(), 0);
 
 	const vk::BufferMemoryBarrier barriers[]
 	{
 		{
 			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*vertex_buffer_,
+			vertex_buffer_.GetBuffer(),
 			0,
 			VK_WHOLE_SIZE
 		},
 		{
 			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*chunk_draw_info_buffer_,
+			chunk_draw_info_buffer_.GetBuffer(),
 			0,
 			VK_WHOLE_SIZE
 		},
@@ -729,7 +679,7 @@ void WorldGeometryGenerator::PrepareGeometrySizeCalculation(const vk::CommandBuf
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*chunk_draw_info_buffer_,
+			chunk_draw_info_buffer_.GetBuffer(),
 			0,
 			VK_WHOLE_SIZE);
 
@@ -792,7 +742,7 @@ void WorldGeometryGenerator::CalculateGeometrySize(const vk::CommandBuffer comma
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*chunk_draw_info_buffer_,
+			chunk_draw_info_buffer_.GetBuffer(),
 			0,
 			VK_WHOLE_SIZE);
 
@@ -865,7 +815,7 @@ void WorldGeometryGenerator::AllocateMemoryForGeometry(const vk::CommandBuffer c
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*chunk_draw_info_buffer_,
+			chunk_draw_info_buffer_.GetBuffer(),
 			0,
 			VK_WHOLE_SIZE);
 
@@ -930,7 +880,7 @@ void WorldGeometryGenerator::GenGeometry(const vk::CommandBuffer command_buffer)
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*vertex_buffer_,
+			vertex_buffer_.GetBuffer(),
 			0,
 			VK_WHOLE_SIZE);
 
@@ -949,7 +899,7 @@ void WorldGeometryGenerator::GenGeometry(const vk::CommandBuffer command_buffer)
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*chunk_draw_info_buffer_,
+			chunk_draw_info_buffer_.GetBuffer(),
 			0,
 			VK_WHOLE_SIZE);
 

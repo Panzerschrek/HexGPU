@@ -92,6 +92,228 @@ uint32_t GetTotalVertexBufferUnits(const WorldSizeChunks& world_size)
 	return (GetTotalVertexBufferQuads(world_size) + (c_allocation_unut_size_quads - 1)) / c_allocation_unut_size_quads;
 }
 
+ComputePipeline CreateGeometrySizeCalculatePreparePipeline(const vk::Device vk_device)
+{
+	ComputePipeline pipeline;
+
+	pipeline.shader= CreateShader(vk_device, ShaderNames::geometry_size_calculate_prepare_comp);
+
+	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
+	{
+		{
+			GeometrySizeCalculatePrepareBindings::chunk_draw_info_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+	};
+
+	pipeline.descriptor_set_layout= vk_device.createDescriptorSetLayoutUnique(
+		vk::DescriptorSetLayoutCreateInfo(
+			vk::DescriptorSetLayoutCreateFlags(),
+				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
+
+	const vk::PushConstantRange push_constant_range(
+		vk::ShaderStageFlagBits::eCompute,
+		0u,
+		sizeof(GeometrySizeCalculatePrepareUniforms));
+
+	pipeline.pipeline_layout= vk_device.createPipelineLayoutUnique(
+		vk::PipelineLayoutCreateInfo(
+			vk::PipelineLayoutCreateFlags(),
+			1u, &*pipeline.descriptor_set_layout,
+			1u, &push_constant_range));
+
+	pipeline.pipeline= UnwrapPipeline(vk_device.createComputePipelineUnique(
+		nullptr,
+		vk::ComputePipelineCreateInfo(
+			vk::PipelineCreateFlags(),
+			vk::PipelineShaderStageCreateInfo(
+				vk::PipelineShaderStageCreateFlags(),
+				vk::ShaderStageFlagBits::eCompute,
+				*pipeline.shader,
+				"main"),
+			*pipeline.pipeline_layout)));
+
+	return pipeline;
+}
+
+ComputePipeline CreateGeometrySizeCalculatePipeline(const vk::Device vk_device)
+{
+	ComputePipeline pipeline;
+
+	pipeline.shader= CreateShader(vk_device, ShaderNames::geometry_size_calculate_comp);
+
+	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
+	{
+		{
+			GeometrySizeCalculateBindings::chunk_data_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+		{
+			GeometrySizeCalculateBindings::chunk_draw_info_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+	};
+
+	pipeline.descriptor_set_layout= vk_device.createDescriptorSetLayoutUnique(
+		vk::DescriptorSetLayoutCreateInfo(
+			vk::DescriptorSetLayoutCreateFlags(),
+			uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
+
+	const vk::PushConstantRange push_constant_range(
+		vk::ShaderStageFlagBits::eCompute,
+		0u,
+		sizeof(ChunkPositionUniforms));
+
+	pipeline.pipeline_layout= vk_device.createPipelineLayoutUnique(
+		vk::PipelineLayoutCreateInfo(
+			vk::PipelineLayoutCreateFlags(),
+			1u, &*pipeline.descriptor_set_layout,
+			1u, &push_constant_range));
+
+	pipeline.pipeline= UnwrapPipeline(vk_device.createComputePipelineUnique(
+		nullptr,
+		vk::ComputePipelineCreateInfo(
+			vk::PipelineCreateFlags(),
+			vk::PipelineShaderStageCreateInfo(
+				vk::PipelineShaderStageCreateFlags(),
+				vk::ShaderStageFlagBits::eCompute,
+				*pipeline.shader,
+				"main"),
+			*pipeline.pipeline_layout)));
+
+	return pipeline;
+}
+
+ComputePipeline CreateGeometryAllocatePipeline(const vk::Device vk_device)
+{
+	ComputePipeline pipeline;
+
+	pipeline.shader= CreateShader(vk_device, ShaderNames::geometry_allocate_comp);
+
+	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
+	{
+		{
+			GeometryAllocateBindings::chunk_draw_info_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+		{
+			GeometryAllocateBindings::allocator_data_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+	};
+
+	pipeline.descriptor_set_layout= vk_device.createDescriptorSetLayoutUnique(
+		vk::DescriptorSetLayoutCreateInfo(
+			vk::DescriptorSetLayoutCreateFlags(),
+			uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
+
+	const vk::PushConstantRange push_constant_range(
+		vk::ShaderStageFlagBits::eCompute,
+		0u,
+		sizeof(GeometryAllocateUniforms));
+
+	pipeline.pipeline_layout= vk_device.createPipelineLayoutUnique(
+		vk::PipelineLayoutCreateInfo(
+			vk::PipelineLayoutCreateFlags(),
+			1u, &*pipeline.descriptor_set_layout,
+			1u, &push_constant_range));
+
+	pipeline.pipeline= UnwrapPipeline(vk_device.createComputePipelineUnique(
+		nullptr,
+		vk::ComputePipelineCreateInfo(
+			vk::PipelineCreateFlags(),
+			vk::PipelineShaderStageCreateInfo(
+				vk::PipelineShaderStageCreateFlags(),
+				vk::ShaderStageFlagBits::eCompute,
+				*pipeline.shader,
+				"main"),
+			*pipeline.pipeline_layout)));
+
+	return pipeline;
+}
+
+ComputePipeline CreateGeometryGenPipeline(const vk::Device vk_device)
+{
+	ComputePipeline pipeline;
+
+	pipeline.shader= CreateShader(vk_device, ShaderNames::geometry_gen_comp);
+
+	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
+	{
+		{
+			GeometryGenShaderBindings::vertices_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+		{
+			GeometryGenShaderBindings::chunk_data_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+		{
+			GeometryGenShaderBindings::chunk_light_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+		{
+			GeometryGenShaderBindings::chunk_draw_info_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+	};
+	pipeline.descriptor_set_layout= vk_device.createDescriptorSetLayoutUnique(
+		vk::DescriptorSetLayoutCreateInfo(
+			vk::DescriptorSetLayoutCreateFlags(),
+			uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
+
+	const vk::PushConstantRange push_constant_range(
+		vk::ShaderStageFlagBits::eCompute,
+		0u,
+		sizeof(ChunkPositionUniforms));
+
+	pipeline.pipeline_layout= vk_device.createPipelineLayoutUnique(
+		vk::PipelineLayoutCreateInfo(
+			vk::PipelineLayoutCreateFlags(),
+			1u, &*pipeline.descriptor_set_layout,
+			1u, &push_constant_range));
+
+	pipeline.pipeline= UnwrapPipeline(vk_device.createComputePipelineUnique(
+		nullptr,
+		vk::ComputePipelineCreateInfo(
+			vk::PipelineCreateFlags(),
+			vk::PipelineShaderStageCreateInfo(
+				vk::PipelineShaderStageCreateFlags(),
+				vk::ShaderStageFlagBits::eCompute,
+				*pipeline.shader,
+				"main"),
+			*pipeline.pipeline_layout)));
+
+	return pipeline;
+}
+
 } // namespace
 
 WorldGeometryGenerator::WorldGeometryGenerator(
@@ -103,6 +325,10 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 	, world_processor_(world_processor)
 	, world_size_(world_processor.GetWorldSize())
 	, vertex_memory_allocator_(window_vulkan, GetTotalVertexBufferUnits(world_size_))
+	, geometry_size_calculate_prepare_pipeline_(CreateGeometrySizeCalculatePreparePipeline(vk_device_))
+	, geometry_size_calculate_pipeline_(CreateGeometrySizeCalculatePipeline(vk_device_))
+	, geometry_allocate_pipeline_(CreateGeometryAllocatePipeline(vk_device_))
+	, geometry_gen_pipeline_(CreateGeometryGenPipeline(vk_device_))
 {
 	// Create chunk draw info buffer.
 	{
@@ -165,53 +391,6 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 		vk_device_.bindBufferMemory(*vertex_buffer_, *vertex_buffer_memory_, 0u);
 	}
 
-	// Create shaders.
-	geometry_size_calculate_prepare_pipeline_.shader= CreateShader(vk_device_, ShaderNames::geometry_size_calculate_prepare_comp);
-
-	// Create descriptor set layout.
-	{
-		const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
-		{
-			{
-				GeometrySizeCalculatePrepareBindings::chunk_draw_info_buffer,
-				vk::DescriptorType::eStorageBuffer,
-				1u,
-				vk::ShaderStageFlagBits::eCompute,
-				nullptr,
-			},
-		};
-		geometry_size_calculate_prepare_pipeline_.descriptor_set_layout= vk_device_.createDescriptorSetLayoutUnique(
-			vk::DescriptorSetLayoutCreateInfo(
-				vk::DescriptorSetLayoutCreateFlags(),
-				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
-	}
-
-	// Create pipeline layout.
-	{
-		const vk::PushConstantRange push_constant_range(
-			vk::ShaderStageFlagBits::eCompute,
-			0u,
-			sizeof(GeometrySizeCalculatePrepareUniforms));
-
-		geometry_size_calculate_prepare_pipeline_.pipeline_layout= vk_device_.createPipelineLayoutUnique(
-			vk::PipelineLayoutCreateInfo(
-				vk::PipelineLayoutCreateFlags(),
-				1u, &*geometry_size_calculate_prepare_pipeline_.descriptor_set_layout,
-				1u, &push_constant_range));
-	}
-
-	// Create pipeline.
-	geometry_size_calculate_prepare_pipeline_.pipeline= UnwrapPipeline(vk_device_.createComputePipelineUnique(
-		nullptr,
-		vk::ComputePipelineCreateInfo(
-			vk::PipelineCreateFlags(),
-			vk::PipelineShaderStageCreateInfo(
-				vk::PipelineShaderStageCreateFlags(),
-				vk::ShaderStageFlagBits::eCompute,
-				*geometry_size_calculate_prepare_pipeline_.shader,
-				"main"),
-			*geometry_size_calculate_prepare_pipeline_.pipeline_layout)));
-
 	// Create descriptor set.
 	geometry_size_calculate_prepare_descriptor_set_= vk_device_.allocateDescriptorSets(
 		vk::DescriptorSetAllocateInfo(
@@ -240,60 +419,6 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 			},
 			{});
 	}
-
-	// Create shaders.
-	geometry_size_calculate_pipeline_.shader= CreateShader(vk_device_, ShaderNames::geometry_size_calculate_comp);
-
-	// Create descriptor set layout.
-	{
-		const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
-		{
-			{
-				GeometrySizeCalculateBindings::chunk_data_buffer,
-				vk::DescriptorType::eStorageBuffer,
-				1u,
-				vk::ShaderStageFlagBits::eCompute,
-				nullptr,
-			},
-			{
-				GeometrySizeCalculateBindings::chunk_draw_info_buffer,
-				vk::DescriptorType::eStorageBuffer,
-				1u,
-				vk::ShaderStageFlagBits::eCompute,
-				nullptr,
-			},
-		};
-		geometry_size_calculate_pipeline_.descriptor_set_layout= vk_device_.createDescriptorSetLayoutUnique(
-			vk::DescriptorSetLayoutCreateInfo(
-				vk::DescriptorSetLayoutCreateFlags(),
-				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
-	}
-
-	// Create pipeline layout.
-	{
-		const vk::PushConstantRange push_constant_range(
-			vk::ShaderStageFlagBits::eCompute,
-			0u,
-			sizeof(ChunkPositionUniforms));
-
-		geometry_size_calculate_pipeline_.pipeline_layout= vk_device_.createPipelineLayoutUnique(
-			vk::PipelineLayoutCreateInfo(
-				vk::PipelineLayoutCreateFlags(),
-				1u, &*geometry_size_calculate_pipeline_.descriptor_set_layout,
-				1u, &push_constant_range));
-	}
-
-	// Create pipeline.
-	geometry_size_calculate_pipeline_.pipeline= UnwrapPipeline(vk_device_.createComputePipelineUnique(
-		nullptr,
-		vk::ComputePipelineCreateInfo(
-			vk::PipelineCreateFlags(),
-			vk::PipelineShaderStageCreateInfo(
-				vk::PipelineShaderStageCreateFlags(),
-				vk::ShaderStageFlagBits::eCompute,
-				*geometry_size_calculate_pipeline_.shader,
-				"main"),
-			*geometry_size_calculate_pipeline_.pipeline_layout)));
 
 	// Create and update descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
@@ -339,60 +464,6 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 			{});
 	}
 
-	// Create shaders.
-	geometry_allocate_pipeline_.shader= CreateShader(vk_device_, ShaderNames::geometry_allocate_comp);
-
-	// Create descriptor set layout.
-	{
-		const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
-		{
-			{
-				GeometryAllocateBindings::chunk_draw_info_buffer,
-				vk::DescriptorType::eStorageBuffer,
-				1u,
-				vk::ShaderStageFlagBits::eCompute,
-				nullptr,
-			},
-			{
-				GeometryAllocateBindings::allocator_data_buffer,
-				vk::DescriptorType::eStorageBuffer,
-				1u,
-				vk::ShaderStageFlagBits::eCompute,
-				nullptr,
-			},
-		};
-		geometry_allocate_pipeline_.descriptor_set_layout= vk_device_.createDescriptorSetLayoutUnique(
-			vk::DescriptorSetLayoutCreateInfo(
-				vk::DescriptorSetLayoutCreateFlags(),
-				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
-	}
-
-	// Create pipeline layout.
-	{
-		const vk::PushConstantRange push_constant_range(
-			vk::ShaderStageFlagBits::eCompute,
-			0u,
-			sizeof(GeometryAllocateUniforms));
-
-		geometry_allocate_pipeline_.pipeline_layout= vk_device_.createPipelineLayoutUnique(
-			vk::PipelineLayoutCreateInfo(
-				vk::PipelineLayoutCreateFlags(),
-				1u, &*geometry_allocate_pipeline_.descriptor_set_layout,
-				1u, &push_constant_range));
-	}
-
-	// Create pipeline.
-	geometry_allocate_pipeline_.pipeline= UnwrapPipeline(vk_device_.createComputePipelineUnique(
-		nullptr,
-		vk::ComputePipelineCreateInfo(
-			vk::PipelineCreateFlags(),
-			vk::PipelineShaderStageCreateInfo(
-				vk::PipelineShaderStageCreateFlags(),
-				vk::ShaderStageFlagBits::eCompute,
-				*geometry_allocate_pipeline_.shader,
-				"main"),
-			*geometry_allocate_pipeline_.pipeline_layout)));
-
 	// Create descriptor set.
 	geometry_allocate_descriptor_set_= vk_device_.allocateDescriptorSets(
 		vk::DescriptorSetAllocateInfo(
@@ -436,74 +507,6 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 			},
 			{});
 	}
-
-	// Create shaders.
-	geometry_gen_pipeline_.shader= CreateShader(vk_device_, ShaderNames::geometry_gen_comp);
-
-	// Create descriptor set layout.
-	{
-		const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
-		{
-			{
-				GeometryGenShaderBindings::vertices_buffer,
-				vk::DescriptorType::eStorageBuffer,
-				1u,
-				vk::ShaderStageFlagBits::eCompute,
-				nullptr,
-			},
-			{
-				GeometryGenShaderBindings::chunk_data_buffer,
-				vk::DescriptorType::eStorageBuffer,
-				1u,
-				vk::ShaderStageFlagBits::eCompute,
-				nullptr,
-			},
-			{
-				GeometryGenShaderBindings::chunk_light_buffer,
-				vk::DescriptorType::eStorageBuffer,
-				1u,
-				vk::ShaderStageFlagBits::eCompute,
-				nullptr,
-			},
-			{
-				GeometryGenShaderBindings::chunk_draw_info_buffer,
-				vk::DescriptorType::eStorageBuffer,
-				1u,
-				vk::ShaderStageFlagBits::eCompute,
-				nullptr,
-			},
-		};
-		geometry_gen_pipeline_.descriptor_set_layout= vk_device_.createDescriptorSetLayoutUnique(
-			vk::DescriptorSetLayoutCreateInfo(
-				vk::DescriptorSetLayoutCreateFlags(),
-				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
-	}
-
-	// Create pipeline layout.
-	{
-		const vk::PushConstantRange push_constant_range(
-			vk::ShaderStageFlagBits::eCompute,
-			0u,
-			sizeof(ChunkPositionUniforms));
-
-		geometry_gen_pipeline_.pipeline_layout= vk_device_.createPipelineLayoutUnique(
-			vk::PipelineLayoutCreateInfo(
-				vk::PipelineLayoutCreateFlags(),
-				1u, &*geometry_gen_pipeline_.descriptor_set_layout,
-				1u, &push_constant_range));
-	}
-
-	// Create pipeline.
-	geometry_gen_pipeline_.pipeline= UnwrapPipeline(vk_device_.createComputePipelineUnique(
-		nullptr,
-		vk::ComputePipelineCreateInfo(
-			vk::PipelineCreateFlags(),
-			vk::PipelineShaderStageCreateInfo(
-				vk::PipelineShaderStageCreateFlags(),
-				vk::ShaderStageFlagBits::eCompute,
-				*geometry_gen_pipeline_.shader,
-				"main"),
-			*geometry_gen_pipeline_.pipeline_layout)));
 
 	// Create and update descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)

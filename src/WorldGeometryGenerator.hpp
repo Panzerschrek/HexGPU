@@ -68,16 +68,16 @@ private:
 
 	GPUAllocator vertex_memory_allocator_;
 
-	ComputePipeline geometry_size_calculate_prepare_pipeline_;
+	const ComputePipeline geometry_size_calculate_prepare_pipeline_;
 	vk::DescriptorSet geometry_size_calculate_prepare_descriptor_set_;
 
-	ComputePipeline geometry_size_calculate_pipeline_;
+	const ComputePipeline geometry_size_calculate_pipeline_;
 	vk::DescriptorSet geometry_size_calculate_descriptor_sets_[2];
 
-	ComputePipeline geometry_allocate_pipeline_;
+	const ComputePipeline geometry_allocate_pipeline_;
 	vk::DescriptorSet geometry_allocate_descriptor_set_;
 
-	ComputePipeline geometry_gen_pipeline_;
+	const ComputePipeline geometry_gen_pipeline_;
 	vk::DescriptorSet geometry_gen_descriptor_sets_[2];
 
 	uint32_t frame_counter_= 0;

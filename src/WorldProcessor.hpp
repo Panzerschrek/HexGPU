@@ -126,25 +126,25 @@ private:
 	BufferWithMemory world_blocks_external_update_queue_buffer_;
 	BufferWithMemory player_world_window_buffer_;
 
-	ComputePipeline world_gen_pipeline_;
+	const ComputePipeline world_gen_pipeline_;
 	vk::DescriptorSet world_gen_descriptor_sets_[2];
 
-	ComputePipeline initial_light_fill_pipeline_;
+	const ComputePipeline initial_light_fill_pipeline_;
 	vk::DescriptorSet initial_light_fill_descriptor_sets_[2];
 
-	ComputePipeline world_blocks_update_pipeline_;
+	const ComputePipeline world_blocks_update_pipeline_;
 	vk::DescriptorSet world_blocks_update_descriptor_sets_[2];
 
-	ComputePipeline light_update_pipeline_;
+	const ComputePipeline light_update_pipeline_;
 	vk::DescriptorSet light_update_descriptor_sets_[2];
 
-	ComputePipeline player_world_window_build_pipeline_;
+	const ComputePipeline player_world_window_build_pipeline_;
 	vk::DescriptorSet player_world_window_build_descriptor_sets_[2];
 
-	ComputePipeline player_update_pipeline_;
+	const ComputePipeline player_update_pipeline_;
 	vk::DescriptorSet player_update_descriptor_set_;
 
-	ComputePipeline world_blocks_external_update_queue_flush_pipeline_;
+	const ComputePipeline world_blocks_external_update_queue_flush_pipeline_;
 	vk::DescriptorSet world_blocks_external_update_queue_flush_descriptor_sets_[2];
 
 	bool initial_buffers_filled_= false;

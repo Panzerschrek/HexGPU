@@ -20,6 +20,17 @@ public:
 	void Draw(vk::CommandBuffer command_buffer);
 
 private:
+	struct WorldDrawPipeline : public GraphicsPipeline
+	{
+		vk::UniqueSampler texture_sampler;
+	};
+
+private:
+	static WorldDrawPipeline CreateWorldDrawPipeline(
+		vk::Device vk_device,
+		vk::Extent2D viewport_size,
+		vk::RenderPass render_pass);
+
 	void BuildDrawIndirectBuffer(vk::CommandBuffer command_buffer);
 
 private:
@@ -41,8 +52,7 @@ private:
 	ComputePipeline draw_indirect_buffer_build_pipeline_;
 	vk::DescriptorSet draw_indirect_buffer_build_descriptor_set_;
 
-	vk::UniqueSampler texture_sampler_;
-	GraphicsPipeline draw_pipeline_;
+	WorldDrawPipeline draw_pipeline_;
 	vk::DescriptorSet descriptor_set_;
 
 	vk::UniqueBuffer index_buffer_;

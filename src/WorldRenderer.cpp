@@ -104,16 +104,7 @@ ComputePipeline CreateDrawIndirectBufferBuildPipeline(const vk::Device vk_device
 			1u, &*pipeline.descriptor_set_layout,
 			1u, &push_constant_range));
 
-	pipeline.pipeline= UnwrapPipeline(vk_device.createComputePipelineUnique(
-		nullptr,
-		vk::ComputePipelineCreateInfo(
-			vk::PipelineCreateFlags(),
-			vk::PipelineShaderStageCreateInfo(
-				vk::PipelineShaderStageCreateFlags(),
-				vk::ShaderStageFlagBits::eCompute,
-				*pipeline.shader,
-				"main"),
-			*pipeline.pipeline_layout)));
+	pipeline.pipeline= CreateComputePipeline(vk_device, *pipeline.shader, *pipeline.pipeline_layout);
 
 	return pipeline;
 }

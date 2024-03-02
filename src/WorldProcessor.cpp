@@ -146,16 +146,7 @@ ComputePipeline CreateWorldGenPipeline(const vk::Device vk_device)
 			1u, &*pipeline.descriptor_set_layout,
 			1u, &push_constant_range));
 
-	pipeline.pipeline= UnwrapPipeline(vk_device.createComputePipelineUnique(
-		nullptr,
-		vk::ComputePipelineCreateInfo(
-			vk::PipelineCreateFlags(),
-			vk::PipelineShaderStageCreateInfo(
-				vk::PipelineShaderStageCreateFlags(),
-				vk::ShaderStageFlagBits::eCompute,
-				*pipeline.shader,
-				"main"),
-			*pipeline.pipeline_layout)));
+	pipeline.pipeline= CreateComputePipeline(vk_device, *pipeline.shader, *pipeline.pipeline_layout);
 
 	return pipeline;
 }
@@ -200,16 +191,7 @@ ComputePipeline CreateInitialLightFillPipeline(const vk::Device vk_device)
 			1u, &*pipeline.descriptor_set_layout,
 			1u, &push_constant_range));
 
-	pipeline.pipeline= UnwrapPipeline(vk_device.createComputePipelineUnique(
-		nullptr,
-		vk::ComputePipelineCreateInfo(
-			vk::PipelineCreateFlags(),
-			vk::PipelineShaderStageCreateInfo(
-				vk::PipelineShaderStageCreateFlags(),
-				vk::ShaderStageFlagBits::eCompute,
-				*pipeline.shader,
-				"main"),
-			*pipeline.pipeline_layout)));
+	pipeline.pipeline= CreateComputePipeline(vk_device, *pipeline.shader, *pipeline.pipeline_layout);
 
 	return pipeline;
 }
@@ -254,16 +236,7 @@ ComputePipeline CreateWorldBlocksUpdatePipeline(const vk::Device vk_device)
 			1u, &*pipeline.descriptor_set_layout,
 			1u, &push_constant_range));
 
-	pipeline.pipeline= UnwrapPipeline(vk_device.createComputePipelineUnique(
-		nullptr,
-		vk::ComputePipelineCreateInfo(
-			vk::PipelineCreateFlags(),
-			vk::PipelineShaderStageCreateInfo(
-				vk::PipelineShaderStageCreateFlags(),
-				vk::ShaderStageFlagBits::eCompute,
-				*pipeline.shader,
-				"main"),
-			*pipeline.pipeline_layout)));
+	pipeline.pipeline= CreateComputePipeline(vk_device, *pipeline.shader, *pipeline.pipeline_layout);
 
 	return pipeline;
 }
@@ -315,16 +288,7 @@ ComputePipeline CreateLightUpdatePipeline(const vk::Device vk_device)
 			1u, &*pipeline.descriptor_set_layout,
 			1u, &push_constant_range));
 
-	pipeline.pipeline= UnwrapPipeline(vk_device.createComputePipelineUnique(
-		nullptr,
-		vk::ComputePipelineCreateInfo(
-			vk::PipelineCreateFlags(),
-			vk::PipelineShaderStageCreateInfo(
-				vk::PipelineShaderStageCreateFlags(),
-				vk::ShaderStageFlagBits::eCompute,
-				*pipeline.shader,
-				"main"),
-			*pipeline.pipeline_layout)));
+	pipeline.pipeline= CreateComputePipeline(vk_device, *pipeline.shader, *pipeline.pipeline_layout);
 
 	return pipeline;
 }
@@ -376,25 +340,16 @@ ComputePipeline CreatePlayerWorldWindowBuildPipeline(const vk::Device vk_device)
 			1u, &*pipeline.descriptor_set_layout,
 			1u, &push_constant_range));
 
-	pipeline.pipeline= UnwrapPipeline(vk_device.createComputePipelineUnique(
-		nullptr,
-		vk::ComputePipelineCreateInfo(
-			vk::PipelineCreateFlags(),
-			vk::PipelineShaderStageCreateInfo(
-				vk::PipelineShaderStageCreateFlags(),
-				vk::ShaderStageFlagBits::eCompute,
-				*pipeline.shader,
-				"main"),
-			*pipeline.pipeline_layout)));
+	pipeline.pipeline= CreateComputePipeline(vk_device, *pipeline.shader, *pipeline.pipeline_layout);
 
 	return pipeline;
 }
 
-ComputePipeline CreatePlayerUpdatePipeline(const vk::Device vk_device_)
+ComputePipeline CreatePlayerUpdatePipeline(const vk::Device vk_device)
 {
 	ComputePipeline pipeline;
 
-	pipeline.shader= CreateShader(vk_device_, ShaderNames::player_update_comp);
+	pipeline.shader= CreateShader(vk_device, ShaderNames::player_update_comp);
 
 	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
 	{
@@ -421,7 +376,7 @@ ComputePipeline CreatePlayerUpdatePipeline(const vk::Device vk_device_)
 		},
 	};
 
-	pipeline.descriptor_set_layout= vk_device_.createDescriptorSetLayoutUnique(
+	pipeline.descriptor_set_layout= vk_device.createDescriptorSetLayoutUnique(
 		vk::DescriptorSetLayoutCreateInfo(
 			vk::DescriptorSetLayoutCreateFlags(),
 			uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
@@ -431,22 +386,13 @@ ComputePipeline CreatePlayerUpdatePipeline(const vk::Device vk_device_)
 		0u,
 		sizeof(PlayerUpdateUniforms));
 
-	pipeline.pipeline_layout= vk_device_.createPipelineLayoutUnique(
+	pipeline.pipeline_layout= vk_device.createPipelineLayoutUnique(
 		vk::PipelineLayoutCreateInfo(
 			vk::PipelineLayoutCreateFlags(),
 			1u, &*pipeline.descriptor_set_layout,
 			1u, &push_constant_range));
 
-	pipeline.pipeline= UnwrapPipeline(vk_device_.createComputePipelineUnique(
-		nullptr,
-		vk::ComputePipelineCreateInfo(
-			vk::PipelineCreateFlags(),
-			vk::PipelineShaderStageCreateInfo(
-				vk::PipelineShaderStageCreateFlags(),
-				vk::ShaderStageFlagBits::eCompute,
-				*pipeline.shader,
-				"main"),
-			*pipeline.pipeline_layout)));
+	pipeline.pipeline= CreateComputePipeline(vk_device, *pipeline.shader, *pipeline.pipeline_layout);
 
 	return pipeline;
 }
@@ -491,16 +437,7 @@ ComputePipeline CreateWorldBlocksExternalUpdateQueueFlushPipeline(const vk::Devi
 			1u, &*pipeline.descriptor_set_layout,
 			1u, &push_constant_range));
 
-	pipeline.pipeline= UnwrapPipeline(vk_device.createComputePipelineUnique(
-		nullptr,
-		vk::ComputePipelineCreateInfo(
-			vk::PipelineCreateFlags(),
-			vk::PipelineShaderStageCreateInfo(
-				vk::PipelineShaderStageCreateFlags(),
-				vk::ShaderStageFlagBits::eCompute,
-				*pipeline.shader,
-				"main"),
-			*pipeline.pipeline_layout)));
+	pipeline.pipeline= CreateComputePipeline(vk_device, *pipeline.shader, *pipeline.pipeline_layout);
 
 	return pipeline;
 }

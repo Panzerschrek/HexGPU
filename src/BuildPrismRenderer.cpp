@@ -112,6 +112,144 @@ std::vector<BuildPrismVertex> GenBuildPrismMesh()
 	return res;
 }
 
+GraphicsPipeline CreateBuildPrismPipeline(
+	const vk::Device vk_device,
+	const vk::Extent2D viewport_size,
+	const vk::RenderPass render_pass)
+{
+	GraphicsPipeline pipeline;
+
+	pipeline.shader_vert= CreateShader(vk_device, ShaderNames::build_prism_vert);
+	pipeline.shader_frag= CreateShader(vk_device, ShaderNames::build_prism_frag);
+
+	// Create descriptor set layout.
+	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
+	{
+		{
+			0u,
+			vk::DescriptorType::eUniformBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eVertex,
+		},
+	};
+	pipeline.descriptor_set_layout=
+		vk_device.createDescriptorSetLayoutUnique(
+			vk::DescriptorSetLayoutCreateInfo(
+				vk::DescriptorSetLayoutCreateFlags(),
+				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
+
+	// Create pipeline layout
+	pipeline.pipeline_layout=
+		vk_device.createPipelineLayoutUnique(
+			vk::PipelineLayoutCreateInfo(
+				vk::PipelineLayoutCreateFlags(),
+				1u, &*pipeline.descriptor_set_layout,
+				0u, nullptr));
+
+	// Create pipeline.
+	const vk::PipelineShaderStageCreateInfo shader_stage_create_info[2]
+	{
+		{
+			vk::PipelineShaderStageCreateFlags(),
+			vk::ShaderStageFlagBits::eVertex,
+			*pipeline.shader_vert,
+			"main"
+		},
+		{
+			vk::PipelineShaderStageCreateFlags(),
+			vk::ShaderStageFlagBits::eFragment,
+			*pipeline.shader_frag,
+			"main"
+		},
+	};
+
+	const vk::VertexInputBindingDescription vertex_input_binding_description(
+		0u,
+		sizeof(BuildPrismVertex),
+		vk::VertexInputRate::eVertex);
+
+	const vk::VertexInputAttributeDescription vertex_input_attribute_description[]
+	{
+		{0u, 0u, vk::Format::eR32G32B32A32Sfloat, 0u},
+	};
+
+	const vk::PipelineVertexInputStateCreateInfo pipiline_vertex_input_state_create_info(
+		vk::PipelineVertexInputStateCreateFlags(),
+		1u, &vertex_input_binding_description,
+		uint32_t(std::size(vertex_input_attribute_description)), vertex_input_attribute_description);
+
+	const vk::PipelineInputAssemblyStateCreateInfo pipeline_input_assembly_state_create_info(
+		vk::PipelineInputAssemblyStateCreateFlags(),
+		vk::PrimitiveTopology::eTriangleList);
+
+	const vk::Viewport viewport(0.0f, 0.0f, float(viewport_size.width), float(viewport_size.height), 0.0f, 1.0f);
+	const vk::Rect2D scissor(vk::Offset2D(0, 0), viewport_size);
+
+	const vk::PipelineViewportStateCreateInfo pipieline_viewport_state_create_info(
+		vk::PipelineViewportStateCreateFlags(),
+		1u, &viewport,
+		1u, &scissor);
+
+	const vk::PipelineRasterizationStateCreateInfo pipilane_rasterization_state_create_info(
+		vk::PipelineRasterizationStateCreateFlags(),
+		VK_FALSE,
+		VK_FALSE,
+		vk::PolygonMode::eFill,
+		vk::CullModeFlagBits::eBack, // Use back-face culling.
+		vk::FrontFace::eCounterClockwise,
+		VK_TRUE, -1.0f, 0.0f, -1.0f, // Depth bias
+		1.0f);
+
+	const vk::PipelineMultisampleStateCreateInfo pipeline_multisample_state_create_info;
+
+	const vk::PipelineDepthStencilStateCreateInfo pipeline_depth_state_create_info(
+		vk::PipelineDepthStencilStateCreateFlags(),
+		VK_TRUE,
+		VK_TRUE,
+		vk::CompareOp::eLess,
+		VK_FALSE,
+		VK_FALSE,
+		vk::StencilOpState(),
+		vk::StencilOpState(),
+		0.0f,
+		1.0f);
+
+	// Use simple alpha-blending.
+	const vk::PipelineColorBlendAttachmentState pipeline_color_blend_attachment_state(
+		VK_TRUE,
+		vk::BlendFactor::eSrcAlpha, vk::BlendFactor::eOneMinusSrcAlpha, vk::BlendOp::eAdd,
+		vk::BlendFactor::eSrcAlpha, vk::BlendFactor::eOneMinusSrcAlpha, vk::BlendOp::eAdd,
+		vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
+
+	const vk::PipelineColorBlendStateCreateInfo pipeline_color_blend_state_create_info(
+		vk::PipelineColorBlendStateCreateFlags(),
+		VK_FALSE,
+		vk::LogicOp::eCopy,
+		1u, &pipeline_color_blend_attachment_state);
+
+	pipeline.pipeline=
+		UnwrapPipeline(vk_device.createGraphicsPipelineUnique(
+			nullptr,
+			vk::GraphicsPipelineCreateInfo(
+				vk::PipelineCreateFlags(),
+				uint32_t(std::size(shader_stage_create_info)),
+				shader_stage_create_info,
+				&pipiline_vertex_input_state_create_info,
+				&pipeline_input_assembly_state_create_info,
+				nullptr,
+				&pipieline_viewport_state_create_info,
+				&pipilane_rasterization_state_create_info,
+				&pipeline_multisample_state_create_info,
+				&pipeline_depth_state_create_info,
+				&pipeline_color_blend_state_create_info,
+				nullptr,
+				*pipeline.pipeline_layout,
+				render_pass,
+				0u)));
+
+	return pipeline;
+}
+
 } // namespace
 
 BuildPrismRenderer::BuildPrismRenderer(
@@ -190,139 +328,7 @@ BuildPrismRenderer::BuildPrismRenderer(
 		vk_device_.unmapMemory(*vertex_buffer_memory_);
 	}
 
-	// Create shaders
-	pipeline_.shader_vert= CreateShader(vk_device_, ShaderNames::build_prism_vert);
-	pipeline_.shader_frag= CreateShader(vk_device_, ShaderNames::build_prism_frag);
-
-	// Create descriptor set layout.
-	{
-		const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
-		{
-			{
-				0u,
-				vk::DescriptorType::eUniformBuffer,
-				1u,
-				vk::ShaderStageFlagBits::eVertex,
-			},
-		};
-		pipeline_.descriptor_set_layout=
-			vk_device_.createDescriptorSetLayoutUnique(
-				vk::DescriptorSetLayoutCreateInfo(
-					vk::DescriptorSetLayoutCreateFlags(),
-					uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
-	}
-
-	// Create pipeline layout
-	pipeline_.pipeline_layout=
-		vk_device_.createPipelineLayoutUnique(
-			vk::PipelineLayoutCreateInfo(
-				vk::PipelineLayoutCreateFlags(),
-				1u, &*pipeline_.descriptor_set_layout,
-				0u, nullptr));
-
-	// Create pipeline.
-	{
-		const vk::PipelineShaderStageCreateInfo shader_stage_create_info[2]
-		{
-			{
-				vk::PipelineShaderStageCreateFlags(),
-				vk::ShaderStageFlagBits::eVertex,
-				*pipeline_.shader_vert,
-				"main"
-			},
-			{
-				vk::PipelineShaderStageCreateFlags(),
-				vk::ShaderStageFlagBits::eFragment,
-				*pipeline_.shader_frag,
-				"main"
-			},
-		};
-
-		const vk::VertexInputBindingDescription vertex_input_binding_description(
-			0u,
-			sizeof(BuildPrismVertex),
-			vk::VertexInputRate::eVertex);
-
-		const vk::VertexInputAttributeDescription vertex_input_attribute_description[]
-		{
-			{0u, 0u, vk::Format::eR32G32B32A32Sfloat, 0u},
-		};
-
-		const vk::PipelineVertexInputStateCreateInfo pipiline_vertex_input_state_create_info(
-			vk::PipelineVertexInputStateCreateFlags(),
-			1u, &vertex_input_binding_description,
-			uint32_t(std::size(vertex_input_attribute_description)), vertex_input_attribute_description);
-
-		const vk::PipelineInputAssemblyStateCreateInfo pipeline_input_assembly_state_create_info(
-			vk::PipelineInputAssemblyStateCreateFlags(),
-			vk::PrimitiveTopology::eTriangleList);
-
-		const vk::Extent2D viewport_size= window_vulkan.GetViewportSize();
-		const vk::Viewport viewport(0.0f, 0.0f, float(viewport_size.width), float(viewport_size.height), 0.0f, 1.0f);
-		const vk::Rect2D scissor(vk::Offset2D(0, 0), viewport_size);
-
-		const vk::PipelineViewportStateCreateInfo pipieline_viewport_state_create_info(
-			vk::PipelineViewportStateCreateFlags(),
-			1u, &viewport,
-			1u, &scissor);
-
-		const vk::PipelineRasterizationStateCreateInfo pipilane_rasterization_state_create_info(
-			vk::PipelineRasterizationStateCreateFlags(),
-			VK_FALSE,
-			VK_FALSE,
-			vk::PolygonMode::eFill,
-			vk::CullModeFlagBits::eBack, // Use back-face culling.
-			vk::FrontFace::eCounterClockwise,
-			VK_TRUE, -1.0f, 0.0f, -1.0f, // Depth bias
-			1.0f);
-
-		const vk::PipelineMultisampleStateCreateInfo pipeline_multisample_state_create_info;
-
-		const vk::PipelineDepthStencilStateCreateInfo pipeline_depth_state_create_info(
-			vk::PipelineDepthStencilStateCreateFlags(),
-			VK_TRUE,
-			VK_TRUE,
-			vk::CompareOp::eLess,
-			VK_FALSE,
-			VK_FALSE,
-			vk::StencilOpState(),
-			vk::StencilOpState(),
-			0.0f,
-			1.0f);
-
-		// Use simple alpha-blending.
-		const vk::PipelineColorBlendAttachmentState pipeline_color_blend_attachment_state(
-			VK_TRUE,
-			vk::BlendFactor::eSrcAlpha, vk::BlendFactor::eOneMinusSrcAlpha, vk::BlendOp::eAdd,
-			vk::BlendFactor::eSrcAlpha, vk::BlendFactor::eOneMinusSrcAlpha, vk::BlendOp::eAdd,
-			vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
-
-		const vk::PipelineColorBlendStateCreateInfo pipeline_color_blend_state_create_info(
-			vk::PipelineColorBlendStateCreateFlags(),
-			VK_FALSE,
-			vk::LogicOp::eCopy,
-			1u, &pipeline_color_blend_attachment_state);
-
-		pipeline_.pipeline=
-			UnwrapPipeline(vk_device_.createGraphicsPipelineUnique(
-				nullptr,
-				vk::GraphicsPipelineCreateInfo(
-					vk::PipelineCreateFlags(),
-					uint32_t(std::size(shader_stage_create_info)),
-					shader_stage_create_info,
-					&pipiline_vertex_input_state_create_info,
-					&pipeline_input_assembly_state_create_info,
-					nullptr,
-					&pipieline_viewport_state_create_info,
-					&pipilane_rasterization_state_create_info,
-					&pipeline_multisample_state_create_info,
-					&pipeline_depth_state_create_info,
-					&pipeline_color_blend_state_create_info,
-					nullptr,
-					*pipeline_.pipeline_layout,
-					window_vulkan.GetRenderPass(),
-					0u)));
-	}
+	pipeline_= CreateBuildPrismPipeline(vk_device_, window_vulkan.GetViewportSize(), window_vulkan.GetRenderPass());
 
 	// Create descriptor set.
 	descriptor_set_= vk_device_.allocateDescriptorSets(

@@ -93,6 +93,7 @@ private:
 	void BuildCurrentFrameChunksToUpdateList(float prev_offset_within_tick, float cur_offset_within_tick);
 	void UpdateWorldBlocks(vk::CommandBuffer command_buffer, RelativeWorldShiftChunks relative_world_shift);
 	void UpdateLight(vk::CommandBuffer command_buffer, RelativeWorldShiftChunks relative_world_shift);
+	void GenerateWorld(vk::CommandBuffer command_buffer, RelativeWorldShiftChunks relative_world_shift);
 	void CreateWorldBlocksAndLightUpdateBarrier(vk::CommandBuffer command_buffer);
 	void BuildPlayerWorldWindow(vk::CommandBuffer command_buffer);
 	void UpdatePlayer(

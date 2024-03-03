@@ -72,13 +72,15 @@ struct InitialLightFillUniforms
 struct WorldBlocksUpdateUniforms
 {
 	int32_t world_size_chunks[2]{};
-	int32_t chunk_position[2]{};
+	int32_t in_chunk_position[2]{};
+	int32_t out_chunk_position[2]{};
 };
 
 struct LightUpdateUniforms
 {
 	int32_t world_size_chunks[2]{};
-	int32_t chunk_position[2]{};
+	int32_t in_chunk_position[2]{};
+	int32_t out_chunk_position[2]{};
 };
 
 struct PlayerWorldWindowBuildUniforms
@@ -1207,8 +1209,10 @@ void WorldProcessor::UpdateWorldBlocks(const vk::CommandBuffer command_buffer)
 		WorldBlocksUpdateUniforms uniforms;
 		uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
 		uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-		uniforms.chunk_position[0]= int32_t(chunk_to_update[0]);
-		uniforms.chunk_position[1]= int32_t(chunk_to_update[1]);
+		uniforms.in_chunk_position[0]= int32_t(chunk_to_update[0]);
+		uniforms.in_chunk_position[1]= int32_t(chunk_to_update[1]);
+		uniforms.out_chunk_position[0]= int32_t(chunk_to_update[0]);
+		uniforms.out_chunk_position[1]= int32_t(chunk_to_update[1]);
 
 		command_buffer.pushConstants(
 			*world_blocks_update_pipeline_.pipeline_layout,
@@ -1247,8 +1251,10 @@ void WorldProcessor::UpdateLight(const vk::CommandBuffer command_buffer)
 		LightUpdateUniforms uniforms;
 		uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
 		uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-		uniforms.chunk_position[0]= int32_t(chunk_to_update[0]);
-		uniforms.chunk_position[1]= int32_t(chunk_to_update[1]);
+		uniforms.in_chunk_position[0]= int32_t(chunk_to_update[0]);
+		uniforms.in_chunk_position[1]= int32_t(chunk_to_update[1]);
+		uniforms.out_chunk_position[0]= int32_t(chunk_to_update[0]);
+		uniforms.out_chunk_position[1]= int32_t(chunk_to_update[1]);
 
 		command_buffer.pushConstants(
 			*light_update_pipeline_.pipeline_layout,

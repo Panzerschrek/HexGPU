@@ -14,7 +14,8 @@ layout(local_size_x= 4, local_size_y = 4, local_size_z= 8) in;
 layout(push_constant) uniform uniforms_block
 {
 	ivec2 world_size_chunks;
-	ivec2 chunk_position;
+	ivec2 in_chunk_position;
+	ivec2 out_chunk_position;
 };
 
 layout(binding= 0, std430) buffer chunks_data_input_buffer
@@ -143,14 +144,14 @@ void main()
 
 	ivec3 invocation= ivec3(gl_GlobalInvocationID);
 
-	int block_x= (chunk_position.x << c_chunk_width_log2) + invocation.x;
-	int block_y= (chunk_position.y << c_chunk_width_log2) + invocation.y;
+	int block_x= (in_chunk_position.x << c_chunk_width_log2) + invocation.x;
+	int block_y= (in_chunk_position.y << c_chunk_width_log2) + invocation.y;
 	int z= invocation.z;
 
 	uint8_t new_block_type= TransformBlock(block_x, block_y, z);
 
 	// Write updated block.
-	int chunk_index= chunk_position.x + chunk_position.y * world_size_chunks.x;
+	int chunk_index= out_chunk_position.x + out_chunk_position.y * world_size_chunks.x;
 	int chunk_data_offset= chunk_index * c_chunk_volume;
 	chunks_output_data[chunk_data_offset + ChunkBlockAddress(invocation)]= new_block_type;
 }

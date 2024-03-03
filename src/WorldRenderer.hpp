@@ -12,7 +12,7 @@ class WorldRenderer
 public:
 	WorldRenderer(
 		WindowVulkan& window_vulkan,
-		WorldProcessor& world_processor,
+		const WorldProcessor& world_processor,
 		vk::DescriptorPool global_descriptor_pool);
 
 	~WorldRenderer();

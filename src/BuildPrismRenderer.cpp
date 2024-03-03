@@ -253,7 +253,7 @@ GraphicsPipeline CreateBuildPrismPipeline(
 
 BuildPrismRenderer::BuildPrismRenderer(
 	WindowVulkan& window_vulkan,
-	WorldProcessor& world_processor,
+	const WorldProcessor& world_processor,
 	const vk::DescriptorPool global_descriptor_pool)
 	: vk_device_(window_vulkan.GetVulkanDevice())
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())

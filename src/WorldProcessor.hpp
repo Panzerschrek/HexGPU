@@ -105,8 +105,6 @@ private:
 
 	const WorldSizeChunks world_size_;
 
-	WorldOffsetChunks world_offset_;
-
 	// Use double buffering for world update.
 	// On each step data is read from one of them and written into another.
 	const std::array<Buffer, 2> chunk_data_buffers_;
@@ -139,6 +137,8 @@ private:
 
 	const ComputePipeline world_blocks_external_update_queue_flush_pipeline_;
 	const std::array<vk::DescriptorSet, 2> world_blocks_external_update_queue_flush_descriptor_sets_;
+
+	WorldOffsetChunks world_offset_;
 
 	bool initial_buffers_filled_= false;
 	bool world_generated_= false;

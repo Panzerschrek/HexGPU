@@ -467,7 +467,6 @@ WorldProcessor::WorldProcessor(
 	: vk_device_(window_vulkan.GetVulkanDevice())
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, world_size_(ReadWorldSize(settings))
-	, world_offset_{-int32_t(world_size_[0] / 2u), -int32_t(world_size_[1] / 2u)}
 	, chunk_data_buffers_{
 		CreateChunkDataBuffer(window_vulkan, world_size_),
 		CreateChunkDataBuffer(window_vulkan, world_size_)}
@@ -525,6 +524,7 @@ WorldProcessor::WorldProcessor(
 			vk_device_,
 			global_descriptor_pool,
 			*world_blocks_external_update_queue_flush_pipeline_.descriptor_set_layout)}
+	, world_offset_{-int32_t(world_size_[0] / 2u), -int32_t(world_size_[1] / 2u)}
 {
 	// Update world generation descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)

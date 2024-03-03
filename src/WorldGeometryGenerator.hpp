@@ -32,7 +32,7 @@ public:
 public:
 	WorldGeometryGenerator(
 		WindowVulkan& window_vulkan,
-		WorldProcessor& world_processor,
+		const WorldProcessor& world_processor,
 		vk::DescriptorPool global_descriptor_pool);
 	~WorldGeometryGenerator();
 
@@ -54,7 +54,7 @@ private:
 private:
 	const vk::Device vk_device_;
 	const uint32_t queue_family_index_;
-	WorldProcessor& world_processor_;
+	const WorldProcessor& world_processor_;
 	const WorldSizeChunks world_size_;
 
 	bool buffers_initially_filled_= false;

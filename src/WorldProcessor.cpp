@@ -56,13 +56,29 @@ namespace WorldBlocksExternalUpdateQueueFlushShaderBindigns
 	const ShaderBindingIndex world_blocks_external_update_queue_buffer= 1;
 }
 
-// Size limit of this struct is 128 bytes.
-// 128 bytes is guaranted maximum size of push constants uniform block.
-struct ChunkPositionUniforms
+struct WorldGenUniforms
 {
 	int32_t world_size_chunks[2]{};
-	int32_t chunk_position[2]{}; // Position relative current loaded region.
-	int32_t chunk_global_position[2]{}; // Global position.
+	int32_t chunk_position[2]{};
+	int32_t chunk_global_position[2]{};
+};
+
+struct InitialLightFillUniforms
+{
+	int32_t world_size_chunks[2]{};
+	int32_t chunk_position[2]{};
+};
+
+struct WorldBlocksUpdateUniforms
+{
+	int32_t world_size_chunks[2]{};
+	int32_t chunk_position[2]{};
+};
+
+struct LightUpdateUniforms
+{
+	int32_t world_size_chunks[2]{};
+	int32_t chunk_position[2]{};
 };
 
 struct PlayerWorldWindowBuildUniforms
@@ -124,7 +140,7 @@ ComputePipeline CreateWorldGenPipeline(const vk::Device vk_device)
 	const vk::PushConstantRange push_constant_range(
 		vk::ShaderStageFlagBits::eCompute,
 		0u,
-		sizeof(ChunkPositionUniforms));
+		sizeof(WorldGenUniforms));
 
 	pipeline.pipeline_layout= vk_device.createPipelineLayoutUnique(
 		vk::PipelineLayoutCreateInfo(
@@ -169,7 +185,7 @@ ComputePipeline CreateInitialLightFillPipeline(const vk::Device vk_device)
 	const vk::PushConstantRange push_constant_range(
 		vk::ShaderStageFlagBits::eCompute,
 		0u,
-		sizeof(ChunkPositionUniforms));
+		sizeof(InitialLightFillUniforms));
 
 	pipeline.pipeline_layout= vk_device.createPipelineLayoutUnique(
 		vk::PipelineLayoutCreateInfo(
@@ -214,7 +230,7 @@ ComputePipeline CreateWorldBlocksUpdatePipeline(const vk::Device vk_device)
 	const vk::PushConstantRange push_constant_range(
 		vk::ShaderStageFlagBits::eCompute,
 		0u,
-		sizeof(ChunkPositionUniforms));
+		sizeof(WorldBlocksUpdateUniforms));
 
 	pipeline.pipeline_layout= vk_device.createPipelineLayoutUnique(
 		vk::PipelineLayoutCreateInfo(
@@ -266,7 +282,7 @@ ComputePipeline CreateLightUpdatePipeline(const vk::Device vk_device)
 	const vk::PushConstantRange push_constant_range(
 		vk::ShaderStageFlagBits::eCompute,
 		0u,
-		sizeof(ChunkPositionUniforms));
+		sizeof(LightUpdateUniforms));
 
 	pipeline.pipeline_layout= vk_device.createPipelineLayoutUnique(
 		vk::PipelineLayoutCreateInfo(
@@ -1027,19 +1043,19 @@ void WorldProcessor::InitialGenerateWorld(const vk::CommandBuffer command_buffer
 	for(uint32_t x= 0; x < world_size_[0]; ++x)
 	for(uint32_t y= 0; y < world_size_[1]; ++y)
 	{
-		ChunkPositionUniforms chunk_position_uniforms;
-		chunk_position_uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
-		chunk_position_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-		chunk_position_uniforms.chunk_position[0]= int32_t(x);
-		chunk_position_uniforms.chunk_position[1]= int32_t(y);
-		chunk_position_uniforms.chunk_global_position[0]= world_offset_[0] + int32_t(x);
-		chunk_position_uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(y);
+		WorldGenUniforms uniforms;
+		uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+		uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+		uniforms.chunk_position[0]= int32_t(x);
+		uniforms.chunk_position[1]= int32_t(y);
+		uniforms.chunk_global_position[0]= world_offset_[0] + int32_t(x);
+		uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(y);
 
 		command_buffer.pushConstants(
 			*world_gen_pipeline_.pipeline_layout,
 			vk::ShaderStageFlagBits::eCompute,
 			0,
-			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
+			sizeof(WorldGenUniforms), static_cast<const void*>(&uniforms));
 
 		// This constant should match workgroup size in shader!
 		constexpr uint32_t c_workgroup_size[]{8, 8, 1};
@@ -1087,19 +1103,17 @@ void WorldProcessor::InitialGenerateWorld(const vk::CommandBuffer command_buffer
 	for(uint32_t x= 0; x < world_size_[0]; ++x)
 	for(uint32_t y= 0; y < world_size_[1]; ++y)
 	{
-		ChunkPositionUniforms chunk_position_uniforms;
-		chunk_position_uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
-		chunk_position_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-		chunk_position_uniforms.chunk_position[0]= int32_t(x);
-		chunk_position_uniforms.chunk_position[1]= int32_t(y);
-		chunk_position_uniforms.chunk_global_position[0]= world_offset_[0] + int32_t(x);
-		chunk_position_uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(y);
+		InitialLightFillUniforms uniforms;
+		uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+		uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+		uniforms.chunk_position[0]= int32_t(x);
+		uniforms.chunk_position[1]= int32_t(y);
 
 		command_buffer.pushConstants(
 			*initial_light_fill_pipeline_.pipeline_layout,
 			vk::ShaderStageFlagBits::eCompute,
 			0,
-			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
+			sizeof(InitialLightFillUniforms), static_cast<const void*>(&uniforms));
 
 		// This constant should match workgroup size in shader!
 		constexpr uint32_t c_workgroup_size[]{8, 8, 1};
@@ -1169,19 +1183,17 @@ void WorldProcessor::UpdateWorldBlocks(const vk::CommandBuffer command_buffer)
 
 	for(const auto& chunk_to_update : current_frame_chunks_to_update_list_)
 	{
-		ChunkPositionUniforms chunk_position_uniforms;
-		chunk_position_uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
-		chunk_position_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-		chunk_position_uniforms.chunk_position[0]= int32_t(chunk_to_update[0]);
-		chunk_position_uniforms.chunk_position[1]= int32_t(chunk_to_update[1]);
-		chunk_position_uniforms.chunk_global_position[0]= world_offset_[0] + int32_t(chunk_to_update[0]);
-		chunk_position_uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(chunk_to_update[1]);
+		WorldBlocksUpdateUniforms uniforms;
+		uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+		uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+		uniforms.chunk_position[0]= int32_t(chunk_to_update[0]);
+		uniforms.chunk_position[1]= int32_t(chunk_to_update[1]);
 
 		command_buffer.pushConstants(
 			*world_blocks_update_pipeline_.pipeline_layout,
 			vk::ShaderStageFlagBits::eCompute,
 			0,
-			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
+			sizeof(WorldBlocksUpdateUniforms), static_cast<const void*>(&uniforms));
 
 		// This constant should match workgroup size in shader!
 		constexpr uint32_t c_workgroup_size[]{4, 4, 8};
@@ -1211,19 +1223,17 @@ void WorldProcessor::UpdateLight(const vk::CommandBuffer command_buffer)
 
 	for(const auto& chunk_to_update : current_frame_chunks_to_update_list_)
 	{
-		ChunkPositionUniforms chunk_position_uniforms;
-		chunk_position_uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
-		chunk_position_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-		chunk_position_uniforms.chunk_position[0]= int32_t(chunk_to_update[0]);
-		chunk_position_uniforms.chunk_position[1]= int32_t(chunk_to_update[1]);
-		chunk_position_uniforms.chunk_global_position[0]= world_offset_[0] + int32_t(chunk_to_update[0]);
-		chunk_position_uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(chunk_to_update[1]);
+		LightUpdateUniforms uniforms;
+		uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+		uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+		uniforms.chunk_position[0]= int32_t(chunk_to_update[0]);
+		uniforms.chunk_position[1]= int32_t(chunk_to_update[1]);
 
 		command_buffer.pushConstants(
 			*light_update_pipeline_.pipeline_layout,
 			vk::ShaderStageFlagBits::eCompute,
 			0,
-			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
+			sizeof(LightUpdateUniforms), static_cast<const void*>(&uniforms));
 
 		// This constant should match workgroup size in shader!
 		constexpr uint32_t c_workgroup_size[]{4, 4, 8};

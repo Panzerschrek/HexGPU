@@ -15,7 +15,6 @@ layout(push_constant) uniform uniforms_block
 {
 	ivec2 world_size_chunks;
 	ivec2 chunk_position;
-	ivec2 chunk_global_position;
 };
 
 layout(binding= 0, std430) buffer chunks_data_input_buffer

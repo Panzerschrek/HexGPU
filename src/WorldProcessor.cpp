@@ -868,6 +868,8 @@ void WorldProcessor::Update(
 		next_world_offset_[1] - world_offset_[1],
 	};
 
+	DetermineChunksUpdateKind(relative_shift);
+
 	// This frequency allows relatively fast world updates and still doesn't overload GPU too much.
 	const float c_update_frequency= 8.0f;
 
@@ -1182,6 +1184,29 @@ void WorldProcessor::InitialGenerateWorld(const vk::CommandBuffer command_buffer
 	}
 }
 
+void WorldProcessor::DetermineChunksUpdateKind(const RelativeWorldShiftChunks relative_world_shift)
+{
+	chunks_upate_kind_.resize(world_size_[0] * world_size_[1], ChunkUpdateKind::Update);
+
+	for(uint32_t y= 0; y < world_size_[1]; ++y)
+	for(uint32_t x= 0; x < world_size_[0]; ++x)
+	{
+		const uint32_t chunk_index= x + y * world_size_[0];
+
+		const int32_t in_position[]
+		{
+			int32_t(x) + relative_world_shift[0],
+			int32_t(y) + relative_world_shift[1],
+		};
+
+		if( in_position[0] >= 0 && in_position[0] < int32_t(world_size_[0]) &&
+			in_position[1] >= 0 && in_position[1] < int32_t(world_size_[1]))
+			chunks_upate_kind_[chunk_index]= ChunkUpdateKind::Update;
+		else
+			chunks_upate_kind_[chunk_index]= ChunkUpdateKind::Generate;
+	}
+}
+
 void WorldProcessor::BuildCurrentFrameChunksToUpdateList(
 	const float prev_offset_within_tick,
 	const float cur_offset_within_tick)
@@ -1219,17 +1244,22 @@ void WorldProcessor::UpdateWorldBlocks(
 
 	for(const auto& chunk_to_update : current_frame_chunks_to_update_list_)
 	{
+		const uint32_t chunk_index= chunk_to_update[0] + chunk_to_update[1] * world_size_[0];
+		if(chunks_upate_kind_[chunk_index] != ChunkUpdateKind::Update)
+			continue;
+
 		WorldBlocksUpdateUniforms uniforms;
 		uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
 		uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-		uniforms.in_chunk_position[0]= int32_t(chunk_to_update[0]);
-		uniforms.in_chunk_position[1]= int32_t(chunk_to_update[1]);
-		uniforms.out_chunk_position[0]= int32_t(chunk_to_update[0]) - relative_world_shift[0];
-		uniforms.out_chunk_position[1]= int32_t(chunk_to_update[1]) - relative_world_shift[1];
+		uniforms.in_chunk_position[0]= int32_t(chunk_to_update[0]) + relative_world_shift[0];
+		uniforms.in_chunk_position[1]= int32_t(chunk_to_update[1]) + relative_world_shift[1];
+		uniforms.out_chunk_position[0]= int32_t(chunk_to_update[0]);
+		uniforms.out_chunk_position[1]= int32_t(chunk_to_update[1]);
 
-		if( uniforms.out_chunk_position[0] < 0 || uniforms.out_chunk_position[0] >= int32_t(world_size_[0]) ||
-			uniforms.out_chunk_position[1] < 0 || uniforms.out_chunk_position[1] >= int32_t(world_size_[1]))
-			continue;
+		HEX_ASSERT(uniforms.in_chunk_position[0] >= 0 && uniforms.in_chunk_position[0] < int32_t(world_size_[0]));
+		HEX_ASSERT(uniforms.in_chunk_position[1] >= 0 && uniforms.in_chunk_position[1] < int32_t(world_size_[1]));
+		HEX_ASSERT(uniforms.out_chunk_position[0] >= 0 && uniforms.out_chunk_position[0] < int32_t(world_size_[0]));
+		HEX_ASSERT(uniforms.out_chunk_position[1] >= 0 && uniforms.out_chunk_position[1] < int32_t(world_size_[1]));
 
 		command_buffer.pushConstants(
 			*world_blocks_update_pipeline_.pipeline_layout,
@@ -1267,17 +1297,22 @@ void WorldProcessor::UpdateLight(
 
 	for(const auto& chunk_to_update : current_frame_chunks_to_update_list_)
 	{
+		const uint32_t chunk_index= chunk_to_update[0] + chunk_to_update[1] * world_size_[0];
+		if(chunks_upate_kind_[chunk_index] != ChunkUpdateKind::Update)
+			continue;
+
 		LightUpdateUniforms uniforms;
 		uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
 		uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-		uniforms.in_chunk_position[0]= int32_t(chunk_to_update[0]);
-		uniforms.in_chunk_position[1]= int32_t(chunk_to_update[1]);
-		uniforms.out_chunk_position[0]= int32_t(chunk_to_update[0]) - relative_world_shift[0];
-		uniforms.out_chunk_position[1]= int32_t(chunk_to_update[1]) - relative_world_shift[1];
+		uniforms.in_chunk_position[0]= int32_t(chunk_to_update[0]) + relative_world_shift[0];
+		uniforms.in_chunk_position[1]= int32_t(chunk_to_update[1]) + relative_world_shift[1];
+		uniforms.out_chunk_position[0]= int32_t(chunk_to_update[0]);
+		uniforms.out_chunk_position[1]= int32_t(chunk_to_update[1]);
 
-		if( uniforms.out_chunk_position[0] < 0 || uniforms.out_chunk_position[0] >= int32_t(world_size_[0]) ||
-			uniforms.out_chunk_position[1] < 0 || uniforms.out_chunk_position[1] >= int32_t(world_size_[1]))
-			continue;
+		HEX_ASSERT(uniforms.in_chunk_position[0] >= 0 && uniforms.in_chunk_position[0] < int32_t(world_size_[0]));
+		HEX_ASSERT(uniforms.in_chunk_position[1] >= 0 && uniforms.in_chunk_position[1] < int32_t(world_size_[1]));
+		HEX_ASSERT(uniforms.out_chunk_position[0] >= 0 && uniforms.out_chunk_position[0] < int32_t(world_size_[0]));
+		HEX_ASSERT(uniforms.out_chunk_position[1] >= 0 && uniforms.out_chunk_position[1] < int32_t(world_size_[1]));
 
 		command_buffer.pushConstants(
 			*light_update_pipeline_.pipeline_layout,
@@ -1315,6 +1350,10 @@ void WorldProcessor::GenerateWorld(
 
 	for(const auto& chunk_to_update : current_frame_chunks_to_update_list_)
 	{
+		const uint32_t chunk_index= chunk_to_update[0] + chunk_to_update[1] * world_size_[0];
+		if(chunks_upate_kind_[chunk_index] != ChunkUpdateKind::Generate)
+			continue;
+
 		WorldGenUniforms uniforms;
 		uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
 		uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
@@ -1322,14 +1361,6 @@ void WorldProcessor::GenerateWorld(
 		uniforms.chunk_position[1]= int32_t(chunk_to_update[1]);
 		uniforms.chunk_global_position[0]= world_offset_[0] + int32_t(chunk_to_update[0]) + relative_world_shift[0];
 		uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(chunk_to_update[1]) + relative_world_shift[1];
-
-		int32_t in_position[2]{};
-		in_position[0]= int32_t(chunk_to_update[0]) + relative_world_shift[0];
-		in_position[1]= int32_t(chunk_to_update[1]) + relative_world_shift[1];
-
-		if( in_position[0] >= 0 && in_position[0] < int32_t(world_size_[0]) &&
-			in_position[1] >= 0 && in_position[1] < int32_t(world_size_[1]))
-			continue;
 
 		command_buffer.pushConstants(
 			*world_gen_pipeline_.pipeline_layout,
@@ -1376,19 +1407,15 @@ void WorldProcessor::GenerateWorld(
 
 	for(const auto& chunk_to_update : current_frame_chunks_to_update_list_)
 	{
+		const uint32_t chunk_index= chunk_to_update[0] + chunk_to_update[1] * world_size_[0];
+		if(chunks_upate_kind_[chunk_index] != ChunkUpdateKind::Generate)
+			continue;
+
 		InitialLightFillUniforms uniforms;
 		uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
 		uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
 		uniforms.chunk_position[0]= int32_t(chunk_to_update[0]);
 		uniforms.chunk_position[1]= int32_t(chunk_to_update[1]);
-
-		int32_t in_position[2]{};
-		in_position[0]= int32_t(chunk_to_update[0]) + relative_world_shift[0];
-		in_position[1]= int32_t(chunk_to_update[1]) + relative_world_shift[1];
-
-		if( in_position[0] >= 0 && in_position[0] < int32_t(world_size_[0]) &&
-			in_position[1] >= 0 && in_position[1] < int32_t(world_size_[1]))
-			continue;
 
 		command_buffer.pushConstants(
 			*initial_light_fill_pipeline_.pipeline_layout,

@@ -87,9 +87,16 @@ private:
 
 	using RelativeWorldShiftChunks= std::array<int32_t, 2>;
 
+	enum class ChunkUpdateKind : uint8_t
+	{
+		Update,
+		Generate,
+	};
+
 private:
 	void InitialFillBuffers(vk::CommandBuffer command_buffer);
 	void InitialGenerateWorld(vk::CommandBuffer command_buffer);
+	void DetermineChunksUpdateKind(RelativeWorldShiftChunks relative_world_shift);
 	void BuildCurrentFrameChunksToUpdateList(float prev_offset_within_tick, float cur_offset_within_tick);
 	void UpdateWorldBlocks(vk::CommandBuffer command_buffer, RelativeWorldShiftChunks relative_world_shift);
 	void UpdateLight(vk::CommandBuffer command_buffer, RelativeWorldShiftChunks relative_world_shift);
@@ -154,8 +161,12 @@ private:
 
 	uint32_t current_tick_= 0;
 	float current_tick_fractional_= 0.0f;
-	// Update this list each frame.
+
+	// Update this list each frame. Includes both chunks for update and generation.
 	std::vector<std::array<uint32_t, 2>> current_frame_chunks_to_update_list_;
+
+	// Update kind for each chunk in this tick.
+	std::vector<ChunkUpdateKind> chunks_upate_kind_;
 };
 
 } // namespace HexGPU

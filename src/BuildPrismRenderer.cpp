@@ -17,102 +17,6 @@ struct DrawUniforms
 	int32_t build_pos[4]{}; // component 3 - direction.
 };
 
-struct BuildPrismVertex
-{
-	float position[4]; // component 3 - side index.
-};
-
-std::vector<BuildPrismVertex> GenBuildPrismMesh()
-{
-	const BuildPrismVertex hex_vertices[12]
-	{
-		{ { 1.0f, 0.0f, 0.0f, 0.0f } },
-		{ { 3.0f, 0.0f, 0.0f, 0.0f } },
-		{ { 4.0f, 1.0f, 0.0f, 0.0f } },
-		{ { 0.0f, 1.0f, 0.0f, 0.0f } },
-		{ { 3.0f, 2.0f, 0.0f, 0.0f } },
-		{ { 1.0f, 2.0f, 0.0f, 0.0f } },
-
-		{ { 1.0f, 0.0f, 1.0f, 0.0f } },
-		{ { 3.0f, 0.0f, 1.0f, 0.0f } },
-		{ { 4.0f, 1.0f, 1.0f, 0.0f } },
-		{ { 0.0f, 1.0f, 1.0f, 0.0f } },
-		{ { 3.0f, 2.0f, 1.0f, 0.0f } },
-		{ { 1.0f, 2.0f, 1.0f, 0.0f } },
-	};
-
-	// Keep same order as in Direction enum!
-	// Sides are facing inside.
-	std::vector<BuildPrismVertex> res
-	{
-		// up
-		hex_vertices[ 8], hex_vertices[ 7], hex_vertices[ 6],
-		hex_vertices[ 9], hex_vertices[ 8], hex_vertices[ 6],
-		hex_vertices[11], hex_vertices[10], hex_vertices[ 9],
-		hex_vertices[10], hex_vertices[ 8], hex_vertices[ 9],
-		// down
-		hex_vertices[ 0], hex_vertices[ 1], hex_vertices[ 2],
-		hex_vertices[ 0], hex_vertices[ 2], hex_vertices[ 3],
-		hex_vertices[ 3], hex_vertices[ 4], hex_vertices[ 5],
-		hex_vertices[ 3], hex_vertices[ 2], hex_vertices[ 4],
-		// north
-		hex_vertices[ 5], hex_vertices[ 4], hex_vertices[10],
-		hex_vertices[ 5], hex_vertices[10], hex_vertices[11],
-		// south
-		hex_vertices[ 1], hex_vertices[ 0], hex_vertices[ 6],
-		hex_vertices[ 1], hex_vertices[ 6], hex_vertices[ 7],
-		// north-east
-		hex_vertices[ 4], hex_vertices[ 2], hex_vertices[ 8],
-		hex_vertices[ 4], hex_vertices[ 8], hex_vertices[10],
-		// south-east
-		hex_vertices[ 2], hex_vertices[ 1], hex_vertices[ 7],
-		hex_vertices[ 2], hex_vertices[ 7], hex_vertices[ 8],
-		// north-west
-		hex_vertices[ 3], hex_vertices[ 5], hex_vertices[ 9],
-		hex_vertices[ 5], hex_vertices[11], hex_vertices[ 9],
-		// south-west
-		hex_vertices[ 0], hex_vertices[ 3], hex_vertices[ 9],
-		hex_vertices[ 0], hex_vertices[ 9], hex_vertices[ 6],
-	};
-
-	size_t offset= 0;
-	for(size_t i= 0; i < 12; ++i)
-		res[i].position[3]= float(Direction::Up);
-	offset+= 12;
-
-	for(size_t i= 0; i < 12; ++i)
-		res[offset + i].position[3]= float(Direction::Down);
-	offset+= 12;
-
-	for(size_t i= 0; i < 6; ++i)
-		res[offset + i].position[3]= float(Direction::North);
-	offset+= 6;
-
-	for(size_t i= 0; i < 6; ++i)
-		res[offset + i].position[3]= float(Direction::South);
-	offset+= 6;
-
-	for(size_t i= 0; i < 6; ++i)
-		res[offset + i].position[3]= float(Direction::NorthEast);
-	offset+= 6;
-
-	for(size_t i= 0; i < 6; ++i)
-		res[offset + i].position[3]= float(Direction::SouthEast);
-	offset+= 6;
-
-	for(size_t i= 0; i < 6; ++i)
-		res[offset + i].position[3]= float(Direction::NorthWest);
-	offset+= 6;
-
-	for(size_t i= 0; i < 6; ++i)
-		res[offset + i].position[3]= float(Direction::SouthWest);
-	offset+= 6;
-
-	HEX_ASSERT(offset == res.size());
-
-	return res;
-}
-
 GraphicsPipeline CreateBuildPrismPipeline(
 	const vk::Device vk_device,
 	const vk::Extent2D viewport_size,
@@ -162,20 +66,10 @@ GraphicsPipeline CreateBuildPrismPipeline(
 		},
 	};
 
-	const vk::VertexInputBindingDescription vertex_input_binding_description(
-		0u,
-		sizeof(BuildPrismVertex),
-		vk::VertexInputRate::eVertex);
-
-	const vk::VertexInputAttributeDescription vertex_input_attribute_description[]
-	{
-		{0u, 0u, vk::Format::eR32G32B32A32Sfloat, 0u},
-	};
-
 	const vk::PipelineVertexInputStateCreateInfo pipiline_vertex_input_state_create_info(
 		vk::PipelineVertexInputStateCreateFlags(),
-		1u, &vertex_input_binding_description,
-		uint32_t(std::size(vertex_input_attribute_description)), vertex_input_attribute_description);
+		0u, nullptr,
+		0u, nullptr);
 
 	const vk::PipelineInputAssemblyStateCreateInfo pipeline_input_assembly_state_create_info(
 		vk::PipelineInputAssemblyStateCreateFlags(),
@@ -265,46 +159,6 @@ BuildPrismRenderer::BuildPrismRenderer(
 	, pipeline_(CreateBuildPrismPipeline(vk_device_, window_vulkan.GetViewportSize(), window_vulkan.GetRenderPass()))
 	, descriptor_set_(CreateDescriptorSet(vk_device_, global_descriptor_pool, *pipeline_.descriptor_set_layout))
 {
-	// Create vertex buffer.
-	{
-		const auto build_prism_mesh= GenBuildPrismMesh();
-		vertex_buffer_num_vertices_= uint32_t(build_prism_mesh.size());
-
-		const size_t vertex_data_size= vertex_buffer_num_vertices_ * sizeof(BuildPrismVertex);
-
-		vertex_buffer_=
-			vk_device_.createBufferUnique(
-				vk::BufferCreateInfo(
-					vk::BufferCreateFlags(),
-					vertex_data_size,
-					vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eStorageBuffer));
-
-		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*vertex_buffer_);
-
-		const auto memory_properties= window_vulkan.GetMemoryProperties();
-
-		vk::MemoryAllocateInfo memory_allocate_info(buffer_memory_requirements.size);
-		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
-		{
-			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags() &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible) != vk::MemoryPropertyFlags() &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent) != vk::MemoryPropertyFlags())
-			{
-				memory_allocate_info.memoryTypeIndex= i;
-				break;
-			}
-		}
-
-		vertex_buffer_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);
-		vk_device_.bindBufferMemory(*vertex_buffer_, *vertex_buffer_memory_, 0u);
-
-		void* vertex_data_gpu_size= nullptr;
-		vk_device_.mapMemory(*vertex_buffer_memory_, 0u, memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &vertex_data_gpu_size);
-		std::memcpy(vertex_data_gpu_size, build_prism_mesh.data(), vertex_data_size);
-		vk_device_.unmapMemory(*vertex_buffer_memory_);
-	}
-
 	// Update descriptor set.
 	{
 		const vk::DescriptorBufferInfo descriptor_uniform_buffer_info(
@@ -382,8 +236,6 @@ void BuildPrismRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
 
 void BuildPrismRenderer::Draw(const vk::CommandBuffer command_buffer)
 {
-	const vk::DeviceSize offsets= 0u;
-	command_buffer.bindVertexBuffers(0u, 1u, &*vertex_buffer_, &offsets);
 	command_buffer.bindDescriptorSets(
 		vk::PipelineBindPoint::eGraphics,
 		*pipeline_.pipeline_layout,
@@ -393,7 +245,9 @@ void BuildPrismRenderer::Draw(const vk::CommandBuffer command_buffer)
 
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline_.pipeline);
 
-	command_buffer.draw(vertex_buffer_num_vertices_, 1u, 0u, 0u);
+	const uint32_t c_num_vertices= 60u; // This must match the corresponding contant in GLSL code!
+
+	command_buffer.draw(c_num_vertices, 1u, 0u, 0u);
 }
 
 } // namespace HexGPU

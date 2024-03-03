@@ -25,10 +25,6 @@ private:
 
 	const Buffer uniform_buffer_;
 
-	uint32_t vertex_buffer_num_vertices_= 0;
-	vk::UniqueBuffer vertex_buffer_;
-	vk::UniqueDeviceMemory vertex_buffer_memory_;
-
 	const GraphicsPipeline pipeline_;
 	const vk::DescriptorSet descriptor_set_;
 };

@@ -25,6 +25,11 @@ public:
 		MouseState mouse_state,
 		float aspect);
 
+	void StepWorldEast();
+	void StepWorldWest();
+	void StepWorldNorth();
+	void StepWorldSouth();
+
 	vk::Buffer GetChunkDataBuffer(uint32_t index) const;
 	vk::DeviceSize GetChunkDataBufferSize() const;
 	vk::Buffer GetLightDataBuffer(uint32_t index) const;
@@ -139,6 +144,7 @@ private:
 	const std::array<vk::DescriptorSet, 2> world_blocks_external_update_queue_flush_descriptor_sets_;
 
 	WorldOffsetChunks world_offset_;
+	WorldOffsetChunks next_world_offset_;
 
 	bool initial_buffers_filled_= false;
 

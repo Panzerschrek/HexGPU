@@ -527,6 +527,7 @@ WorldProcessor::WorldProcessor(
 			global_descriptor_pool,
 			*world_blocks_external_update_queue_flush_pipeline_.descriptor_set_layout)}
 	, world_offset_{-int32_t(world_size_[0] / 2u), -int32_t(world_size_[1] / 2u)}
+	, next_world_offset_(world_offset_)
 {
 	// Update world generation descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
@@ -889,6 +890,26 @@ void WorldProcessor::Update(
 	// Run player update independent on world update - every frame.
 	// This is needed in order to make player movement and rotation smooth.
 	UpdatePlayer(command_buffer, time_delta_s, keyboard_state, mouse_state, aspect);
+}
+
+void WorldProcessor::StepWorldEast()
+{
+	++next_world_offset_[0];
+}
+
+void WorldProcessor::StepWorldWest()
+{
+	--next_world_offset_[0];
+}
+
+void WorldProcessor::StepWorldNorth()
+{
+	++next_world_offset_[1];
+}
+
+void WorldProcessor::StepWorldSouth()
+{
+	--next_world_offset_[1];
 }
 
 vk::Buffer WorldProcessor::GetChunkDataBuffer(const uint32_t index) const

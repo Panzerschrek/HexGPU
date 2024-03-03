@@ -258,37 +258,13 @@ BuildPrismRenderer::BuildPrismRenderer(
 	: vk_device_(window_vulkan.GetVulkanDevice())
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, world_processor_(world_processor)
+	, uniform_buffer_(
+		window_vulkan,
+		sizeof(DrawUniforms),
+		vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst)
 	, pipeline_(CreateBuildPrismPipeline(vk_device_, window_vulkan.GetViewportSize(), window_vulkan.GetRenderPass()))
 	, descriptor_set_(CreateDescriptorSet(vk_device_, global_descriptor_pool, *pipeline_.descriptor_set_layout))
 {
-	// Create uniform buffer.
-	{
-		uniform_buffer_=
-			vk_device_.createBufferUnique(
-				vk::BufferCreateInfo(
-					vk::BufferCreateFlags(),
-					sizeof(DrawUniforms),
-					vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst));
-
-		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*uniform_buffer_);
-
-		const auto memory_properties= window_vulkan.GetMemoryProperties();
-
-		vk::MemoryAllocateInfo memory_allocate_info(buffer_memory_requirements.size);
-		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
-		{
-			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
-			{
-				memory_allocate_info.memoryTypeIndex= i;
-				break;
-			}
-		}
-
-		uniform_buffer_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);
-		vk_device_.bindBufferMemory(*uniform_buffer_, *uniform_buffer_memory_, 0u);
-	}
-
 	// Create vertex buffer.
 	{
 		const auto build_prism_mesh= GenBuildPrismMesh();
@@ -332,7 +308,7 @@ BuildPrismRenderer::BuildPrismRenderer(
 	// Update descriptor set.
 	{
 		const vk::DescriptorBufferInfo descriptor_uniform_buffer_info(
-			*uniform_buffer_,
+			uniform_buffer_.GetBuffer(),
 			0u,
 			sizeof(DrawUniforms));
 
@@ -364,7 +340,7 @@ void BuildPrismRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
 	// Get build position from player state.
 	command_buffer.copyBuffer(
 		world_processor_.GetPlayerStateBuffer(),
-		*uniform_buffer_,
+		uniform_buffer_.GetBuffer(),
 		{
 			{
 				offsetof(WorldProcessor::PlayerState, build_pos),
@@ -376,7 +352,7 @@ void BuildPrismRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
 	// Copy view matrix.
 	command_buffer.copyBuffer(
 		world_processor_.GetPlayerStateBuffer(),
-		*uniform_buffer_,
+		uniform_buffer_.GetBuffer(),
 		{
 			{
 				offsetof(WorldProcessor::PlayerState, blocks_matrix),
@@ -390,7 +366,7 @@ void BuildPrismRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead,
 			queue_family_index_, queue_family_index_,
-			*uniform_buffer_,
+			uniform_buffer_.GetBuffer(),
 			0,
 			VK_WHOLE_SIZE);
 

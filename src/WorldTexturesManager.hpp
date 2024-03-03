@@ -17,9 +17,8 @@ public:
 private:
 	const vk::Device vk_device_;
 	const uint32_t queue_family_index_;
-	const vk::PhysicalDeviceMemoryProperties memory_properties_;
 
-	vk::UniqueImage image_;
+	const vk::UniqueImage image_;
 	vk::UniqueImageView image_view_;
 	vk::UniqueDeviceMemory image_memory_;
 

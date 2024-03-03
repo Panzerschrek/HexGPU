@@ -102,9 +102,7 @@ const uint32_t c_texture_num_texels_with_mips= c_texture_size * c_texture_size *
 WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 	: vk_device_(window_vulkan.GetVulkanDevice())
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
-	, memory_properties_(window_vulkan.GetMemoryProperties())
-{
-	image_= vk_device_.createImageUnique(
+	, image_(vk_device_.createImageUnique(
 		vk::ImageCreateInfo(
 			vk::ImageCreateFlags(),
 			vk::ImageType::e2D,
@@ -117,18 +115,23 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 			vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
 			vk::SharingMode::eExclusive,
 			0u, nullptr,
-			vk::ImageLayout::eUndefined));
+			vk::ImageLayout::eUndefined)))
+{
+	const auto memory_properties= window_vulkan.GetMemoryProperties();
 
-	// Allocate memory.
+	// Allocate image memory.
 	{
 		const vk::MemoryRequirements memory_requirements= vk_device_.getImageMemoryRequirements(*image_);
 
 		vk::MemoryAllocateInfo memory_allocate_info(memory_requirements.size);
-		for(uint32_t j= 0u; j < memory_properties_.memoryTypeCount; ++j)
+		for(uint32_t j= 0u; j < memory_properties.memoryTypeCount; ++j)
 		{
 			if((memory_requirements.memoryTypeBits & (1u << j)) != 0 &&
-				(memory_properties_.memoryTypes[j].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
+				(memory_properties.memoryTypes[j].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
+			{
 				memory_allocate_info.memoryTypeIndex= j;
+				break;
+			}
 		}
 
 		image_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);
@@ -159,12 +162,15 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 		const vk::MemoryRequirements memory_requirements= vk_device_.getBufferMemoryRequirements(*staging_buffer_);
 
 		vk::MemoryAllocateInfo memory_allocate_info(memory_requirements.size);
-		for(uint32_t i= 0u; i < memory_properties_.memoryTypeCount; ++i)
+		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
 		{
 			if((memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
-				(memory_properties_.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible ) != vk::MemoryPropertyFlags() &&
-				(memory_properties_.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent) != vk::MemoryPropertyFlags())
+				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible ) != vk::MemoryPropertyFlags() &&
+				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent) != vk::MemoryPropertyFlags())
+			{
 				memory_allocate_info.memoryTypeIndex= i;
+				break;
+			}
 		}
 
 		staging_buffer_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);

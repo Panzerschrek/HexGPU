@@ -8,6 +8,7 @@ The order represents importance and/or dependency.
 * Improved textures loading - use smaller staging buffer and free it at the end of the loading process
 * Biome-based world generation
 * Trees generation
+* Update light only after blocks update - in order to avoid black spots in places of removed blocks
 * Growing grass improvements - grow randomly
 * Grass logic improvements - disappers slower, become yellow, require water or sunlight to grow, etc.
 * Frustum-culling for chunks

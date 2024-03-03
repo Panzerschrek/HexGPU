@@ -1,4 +1,6 @@
 #pragma once
+#include "Pipeline.hpp"
+#include "Buffer.hpp"
 #include "WorldGeometryGenerator.hpp"
 #include "WorldTexturesManager.hpp"
 
@@ -19,6 +21,17 @@ public:
 	void Draw(vk::CommandBuffer command_buffer);
 
 private:
+	struct WorldDrawPipeline : public GraphicsPipeline
+	{
+		vk::UniqueSampler texture_sampler;
+	};
+
+private:
+	static WorldDrawPipeline CreateWorldDrawPipeline(
+		vk::Device vk_device,
+		vk::Extent2D viewport_size,
+		vk::RenderPass render_pass);
+
 	void BuildDrawIndirectBuffer(vk::CommandBuffer command_buffer);
 
 private:
@@ -31,25 +44,14 @@ private:
 	WorldGeometryGenerator geometry_generator_;
 	WorldTexturesManager world_textures_manager_;
 
-	vk::UniqueBuffer draw_indirect_buffer_;
-	vk::UniqueDeviceMemory draw_indirect_buffer_memory_;
+	const Buffer draw_indirect_buffer_;
+	const Buffer uniform_buffer_;
 
-	vk::UniqueBuffer uniform_buffer_;
-	vk::UniqueDeviceMemory uniform_buffer_memory_;
+	const ComputePipeline draw_indirect_buffer_build_pipeline_;
+	const vk::DescriptorSet draw_indirect_buffer_build_descriptor_set_;
 
-	vk::UniqueShaderModule draw_indirect_buffer_build_shader_;
-	vk::UniqueDescriptorSetLayout draw_indirect_buffer_build_decriptor_set_layout_;
-	vk::UniquePipelineLayout draw_indirect_buffer_build_pipeline_layout_;
-	vk::UniquePipeline draw_indirect_buffer_build_pipeline_;
-	vk::DescriptorSet draw_indirect_buffer_build_descriptor_set_;
-
-	vk::UniqueShaderModule shader_vert_;
-	vk::UniqueShaderModule shader_frag_;
-	vk::UniqueSampler texture_sampler_;
-	vk::UniqueDescriptorSetLayout decriptor_set_layout_;
-	vk::UniquePipelineLayout pipeline_layout_;
-	vk::UniquePipeline pipeline_;
-	vk::DescriptorSet descriptor_set_;
+	const WorldDrawPipeline draw_pipeline_;
+	const vk::DescriptorSet descriptor_set_;
 
 	vk::UniqueBuffer index_buffer_;
 	vk::UniqueDeviceMemory index_buffer_memory_;

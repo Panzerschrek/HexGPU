@@ -24,4 +24,15 @@ vk::UniqueDescriptorPool CreateGlobalDescriptorPool(const vk::Device vk_device)
 				uint32_t(std::size(descriptor_pool_sizes)), descriptor_pool_sizes));
 }
 
+vk::DescriptorSet CreateDescriptorSet(
+	const vk::Device vk_device,
+	const vk::DescriptorPool descriptor_pool,
+	const vk::DescriptorSetLayout descriptor_set_layout)
+{
+	return vk_device.allocateDescriptorSets(
+		vk::DescriptorSetAllocateInfo(
+			descriptor_pool,
+			1u, &descriptor_set_layout)).front();
+}
+
 } // namespace HexGPU

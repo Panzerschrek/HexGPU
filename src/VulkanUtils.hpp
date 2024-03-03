@@ -15,4 +15,10 @@ vk::UniquePipeline UnwrapPipeline(T pipeline_create_result)
 #endif
 }
 
+// Create compute pipeline with default "main" entry point.
+vk::UniquePipeline CreateComputePipeline(
+	vk::Device vk_device,
+	vk::ShaderModule shader,
+	vk::PipelineLayout pipeline_layout);
+
 } // namespace HexGPU

@@ -1,4 +1,5 @@
 #pragma once
+#include "Pipeline.hpp"
 #include "WorldProcessor.hpp"
 
 namespace HexGPU
@@ -22,21 +23,14 @@ private:
 	const uint32_t queue_family_index_;
 	WorldProcessor& world_processor_;
 
-	vk::UniqueBuffer uniform_buffer_;
-	vk::UniqueDeviceMemory uniform_buffer_memory_;
+	const Buffer uniform_buffer_;
 
 	uint32_t vertex_buffer_num_vertices_= 0;
 	vk::UniqueBuffer vertex_buffer_;
 	vk::UniqueDeviceMemory vertex_buffer_memory_;
 
-	vk::UniqueShaderModule shader_vert_;
-	vk::UniqueShaderModule shader_frag_;
-
-	vk::UniqueDescriptorSetLayout decriptor_set_layout_;
-	vk::UniquePipelineLayout pipeline_layout_;
-	vk::UniquePipeline pipeline_;
-
-	vk::DescriptorSet descriptor_set_;
+	const GraphicsPipeline pipeline_;
+	const vk::DescriptorSet descriptor_set_;
 };
 
 } // namespace HexGPU

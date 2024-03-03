@@ -1,6 +1,7 @@
 #include "WorldProcessor.hpp"
 #include "Assert.hpp"
 #include "Constants.hpp"
+#include "GlobalDescriptorPool.hpp"
 #include "Log.hpp"
 #include "ShaderList.hpp"
 #include "VulkanUtils.hpp"
@@ -112,6 +113,351 @@ WorldSizeChunks ReadWorldSize(Settings& settings)
 	return WorldSizeChunks{uint32_t(world_size_x), uint32_t(world_size_y)};
 }
 
+ComputePipeline CreateWorldGenPipeline(const vk::Device vk_device)
+{
+	ComputePipeline pipeline;
+
+	pipeline.shader= CreateShader(vk_device, ShaderNames::world_gen_comp);
+
+	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
+	{
+		{
+			WorldGenShaderBindings::chunk_data_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+	};
+
+	pipeline.descriptor_set_layout= vk_device.createDescriptorSetLayoutUnique(
+		vk::DescriptorSetLayoutCreateInfo(
+			vk::DescriptorSetLayoutCreateFlags(),
+			uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
+
+	const vk::PushConstantRange push_constant_range(
+		vk::ShaderStageFlagBits::eCompute,
+		0u,
+		sizeof(ChunkPositionUniforms));
+
+	pipeline.pipeline_layout= vk_device.createPipelineLayoutUnique(
+		vk::PipelineLayoutCreateInfo(
+			vk::PipelineLayoutCreateFlags(),
+			1u, &*pipeline.descriptor_set_layout,
+			1u, &push_constant_range));
+
+	pipeline.pipeline= CreateComputePipeline(vk_device, *pipeline.shader, *pipeline.pipeline_layout);
+
+	return pipeline;
+}
+
+ComputePipeline CreateInitialLightFillPipeline(const vk::Device vk_device)
+{
+	ComputePipeline pipeline;
+
+	pipeline.shader= CreateShader(vk_device, ShaderNames::initial_light_fill_comp);
+
+	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
+	{
+		{
+			InitialLightFillShaderBindings::chunk_data_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+		{
+			InitialLightFillShaderBindings::light_data_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+	};
+
+	pipeline.descriptor_set_layout= vk_device.createDescriptorSetLayoutUnique(
+		vk::DescriptorSetLayoutCreateInfo(
+			vk::DescriptorSetLayoutCreateFlags(),
+			uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
+
+	const vk::PushConstantRange push_constant_range(
+		vk::ShaderStageFlagBits::eCompute,
+		0u,
+		sizeof(ChunkPositionUniforms));
+
+	pipeline.pipeline_layout= vk_device.createPipelineLayoutUnique(
+		vk::PipelineLayoutCreateInfo(
+			vk::PipelineLayoutCreateFlags(),
+			1u, &*pipeline.descriptor_set_layout,
+			1u, &push_constant_range));
+
+	pipeline.pipeline= CreateComputePipeline(vk_device, *pipeline.shader, *pipeline.pipeline_layout);
+
+	return pipeline;
+}
+
+ComputePipeline CreateWorldBlocksUpdatePipeline(const vk::Device vk_device)
+{
+	ComputePipeline pipeline;
+
+	pipeline.shader= CreateShader(vk_device, ShaderNames::world_blocks_update_comp);
+
+	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
+	{
+		{
+			WorldBlocksUpdateShaderBindings::chunk_data_input_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+		{
+			WorldBlocksUpdateShaderBindings::chunk_data_output_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+	};
+
+	pipeline.descriptor_set_layout= vk_device.createDescriptorSetLayoutUnique(
+		vk::DescriptorSetLayoutCreateInfo(
+			vk::DescriptorSetLayoutCreateFlags(),
+			uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
+
+	const vk::PushConstantRange push_constant_range(
+		vk::ShaderStageFlagBits::eCompute,
+		0u,
+		sizeof(ChunkPositionUniforms));
+
+	pipeline.pipeline_layout= vk_device.createPipelineLayoutUnique(
+		vk::PipelineLayoutCreateInfo(
+			vk::PipelineLayoutCreateFlags(),
+			1u, &*pipeline.descriptor_set_layout,
+			1u, &push_constant_range));
+
+	pipeline.pipeline= CreateComputePipeline(vk_device, *pipeline.shader, *pipeline.pipeline_layout);
+
+	return pipeline;
+}
+
+ComputePipeline CreateLightUpdatePipeline(const vk::Device vk_device)
+{
+	ComputePipeline pipeline;
+
+	pipeline.shader= CreateShader(vk_device, ShaderNames::light_update_comp);
+
+	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
+	{
+		{
+			LightUpdateShaderBindings::chunk_data_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+		{
+			LightUpdateShaderBindings::chunk_input_light_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+		{
+			LightUpdateShaderBindings::chunk_output_light_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+	};
+
+	pipeline.descriptor_set_layout= vk_device.createDescriptorSetLayoutUnique(
+		vk::DescriptorSetLayoutCreateInfo(
+			vk::DescriptorSetLayoutCreateFlags(),
+			uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
+
+	const vk::PushConstantRange push_constant_range(
+		vk::ShaderStageFlagBits::eCompute,
+		0u,
+		sizeof(ChunkPositionUniforms));
+
+	pipeline.pipeline_layout= vk_device.createPipelineLayoutUnique(
+		vk::PipelineLayoutCreateInfo(
+			vk::PipelineLayoutCreateFlags(),
+			1u, &*pipeline.descriptor_set_layout,
+			1u, &push_constant_range));
+
+	pipeline.pipeline= CreateComputePipeline(vk_device, *pipeline.shader, *pipeline.pipeline_layout);
+
+	return pipeline;
+}
+
+ComputePipeline CreatePlayerWorldWindowBuildPipeline(const vk::Device vk_device)
+{
+	ComputePipeline pipeline;
+
+	pipeline.shader= CreateShader(vk_device, ShaderNames::player_world_window_build_comp);
+
+	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
+	{
+		{
+			PlayerWorldWindowBuildShaderBindings::chunk_data_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+		{
+			PlayerWorldWindowBuildShaderBindings::player_world_window_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+		{
+			PlayerWorldWindowBuildShaderBindings::player_state_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+	};
+
+	pipeline.descriptor_set_layout= vk_device.createDescriptorSetLayoutUnique(
+		vk::DescriptorSetLayoutCreateInfo(
+			vk::DescriptorSetLayoutCreateFlags(),
+			uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
+
+	const vk::PushConstantRange push_constant_range(
+		vk::ShaderStageFlagBits::eCompute,
+		0u,
+		sizeof(PlayerWorldWindowBuildUniforms));
+
+	pipeline.pipeline_layout= vk_device.createPipelineLayoutUnique(
+		vk::PipelineLayoutCreateInfo(
+			vk::PipelineLayoutCreateFlags(),
+			1u, &*pipeline.descriptor_set_layout,
+			1u, &push_constant_range));
+
+	pipeline.pipeline= CreateComputePipeline(vk_device, *pipeline.shader, *pipeline.pipeline_layout);
+
+	return pipeline;
+}
+
+ComputePipeline CreatePlayerUpdatePipeline(const vk::Device vk_device)
+{
+	ComputePipeline pipeline;
+
+	pipeline.shader= CreateShader(vk_device, ShaderNames::player_update_comp);
+
+	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
+	{
+		{
+			PlayerUpdateShaderBindings::player_state_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+		{
+			PlayerUpdateShaderBindings::world_blocks_external_update_queue_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+		{
+			PlayerUpdateShaderBindings::player_world_window_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+	};
+
+	pipeline.descriptor_set_layout= vk_device.createDescriptorSetLayoutUnique(
+		vk::DescriptorSetLayoutCreateInfo(
+			vk::DescriptorSetLayoutCreateFlags(),
+			uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
+
+	const vk::PushConstantRange push_constant_range(
+		vk::ShaderStageFlagBits::eCompute,
+		0u,
+		sizeof(PlayerUpdateUniforms));
+
+	pipeline.pipeline_layout= vk_device.createPipelineLayoutUnique(
+		vk::PipelineLayoutCreateInfo(
+			vk::PipelineLayoutCreateFlags(),
+			1u, &*pipeline.descriptor_set_layout,
+			1u, &push_constant_range));
+
+	pipeline.pipeline= CreateComputePipeline(vk_device, *pipeline.shader, *pipeline.pipeline_layout);
+
+	return pipeline;
+}
+
+ComputePipeline CreateWorldBlocksExternalUpdateQueueFlushPipeline(const vk::Device vk_device)
+{
+	ComputePipeline pipeline;
+
+	pipeline.shader= CreateShader(vk_device, ShaderNames::world_blocks_external_queue_flush_comp);
+
+	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
+	{
+		{
+			WorldBlocksExternalUpdateQueueFlushBindigns::chunk_data_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+		{
+			WorldBlocksExternalUpdateQueueFlushBindigns::world_blocks_external_update_queue_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+	};
+
+	pipeline.descriptor_set_layout= vk_device.createDescriptorSetLayoutUnique(
+		vk::DescriptorSetLayoutCreateInfo(
+			vk::DescriptorSetLayoutCreateFlags(),
+			uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
+
+	const vk::PushConstantRange push_constant_range(
+		vk::ShaderStageFlagBits::eCompute,
+		0u,
+		sizeof(WorldBlocksExternalUpdateQueueFlushUniforms));
+
+	pipeline.pipeline_layout= vk_device.createPipelineLayoutUnique(
+		vk::PipelineLayoutCreateInfo(
+			vk::PipelineLayoutCreateFlags(),
+			1u, &*pipeline.descriptor_set_layout,
+			1u, &push_constant_range));
+
+	pipeline.pipeline= CreateComputePipeline(vk_device, *pipeline.shader, *pipeline.pipeline_layout);
+
+	return pipeline;
+}
+
+Buffer CreateChunkDataBuffer(WindowVulkan& window_vulkan, const WorldSizeChunks& world_size)
+{
+	return Buffer(
+		window_vulkan,
+		c_chunk_volume * world_size[0] * world_size[1],
+		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
+}
+
+Buffer CreateLightBuffer(WindowVulkan& window_vulkan, const WorldSizeChunks& world_size)
+{
+	return Buffer(
+		window_vulkan,
+		c_chunk_volume * world_size[0] * world_size[1],
+		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
+}
+
 } // namespace
 
 WorldProcessor::WorldProcessor(
@@ -122,211 +468,71 @@ WorldProcessor::WorldProcessor(
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, world_size_(ReadWorldSize(settings))
 	, world_offset_{-int32_t(world_size_[0] / 2u), -int32_t(world_size_[1] / 2u)}
+	, chunk_data_buffers_{
+		CreateChunkDataBuffer(window_vulkan, world_size_),
+		CreateChunkDataBuffer(window_vulkan, world_size_)}
+	, light_buffers_{
+		CreateLightBuffer(window_vulkan, world_size_),
+		CreateLightBuffer(window_vulkan, world_size_)}
+	, player_state_buffer_(
+		window_vulkan,
+		sizeof(PlayerState),
+		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst)
+	, world_blocks_external_update_queue_buffer_(
+		window_vulkan,
+		sizeof(WorldBlocksExternalUpdateQueue),
+		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst)
+	, player_world_window_buffer_(
+		window_vulkan,
+		sizeof(PlayerWorldWindow),
+		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst)
+	, world_gen_pipeline_(CreateWorldGenPipeline(vk_device_))
+	, world_gen_descriptor_sets_{
+		CreateDescriptorSet(vk_device_, global_descriptor_pool, *world_gen_pipeline_.descriptor_set_layout),
+		CreateDescriptorSet(vk_device_, global_descriptor_pool, *world_gen_pipeline_.descriptor_set_layout)}
+	, initial_light_fill_pipeline_(CreateInitialLightFillPipeline(vk_device_))
+	, initial_light_fill_descriptor_sets_{
+		CreateDescriptorSet(vk_device_, global_descriptor_pool, *initial_light_fill_pipeline_.descriptor_set_layout),
+		CreateDescriptorSet(vk_device_, global_descriptor_pool, *initial_light_fill_pipeline_.descriptor_set_layout)}
+	, world_blocks_update_pipeline_(CreateWorldBlocksUpdatePipeline(vk_device_))
+	, world_blocks_update_descriptor_sets_{
+		CreateDescriptorSet(vk_device_, global_descriptor_pool, *world_blocks_update_pipeline_.descriptor_set_layout),
+		CreateDescriptorSet(vk_device_, global_descriptor_pool, *world_blocks_update_pipeline_.descriptor_set_layout)}
+	, light_update_pipeline_(CreateLightUpdatePipeline(vk_device_))
+	, light_update_descriptor_sets_{
+		CreateDescriptorSet(vk_device_, global_descriptor_pool, *light_update_pipeline_.descriptor_set_layout),
+		CreateDescriptorSet(vk_device_, global_descriptor_pool, *light_update_pipeline_.descriptor_set_layout)}
+	, player_world_window_build_pipeline_(CreatePlayerWorldWindowBuildPipeline(vk_device_))
+	, player_world_window_build_descriptor_sets_{
+		CreateDescriptorSet(
+			vk_device_,
+			global_descriptor_pool,
+			*player_world_window_build_pipeline_.descriptor_set_layout),
+		CreateDescriptorSet(
+			vk_device_,
+			global_descriptor_pool,
+			*player_world_window_build_pipeline_.descriptor_set_layout)}
+	, player_update_pipeline_(CreatePlayerUpdatePipeline(vk_device_))
+	, player_update_descriptor_set_(
+		CreateDescriptorSet(vk_device_, global_descriptor_pool, *player_update_pipeline_.descriptor_set_layout))
+	, world_blocks_external_update_queue_flush_pipeline_(CreateWorldBlocksExternalUpdateQueueFlushPipeline(vk_device_))
+	, world_blocks_external_update_queue_flush_descriptor_sets_{
+		CreateDescriptorSet(
+			vk_device_,
+			global_descriptor_pool,
+			*world_blocks_external_update_queue_flush_pipeline_.descriptor_set_layout),
+		CreateDescriptorSet(
+			vk_device_,
+			global_descriptor_pool,
+			*world_blocks_external_update_queue_flush_pipeline_.descriptor_set_layout)}
 {
-	// Create chunk data buffers.
-	chunk_data_buffer_size_= c_chunk_volume * world_size_[0] * world_size_[1];
+	// Update world generation descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
 	{
-		chunk_data_buffers_[i].buffer=
-			vk_device_.createBufferUnique(
-				vk::BufferCreateInfo(
-					vk::BufferCreateFlags(),
-					chunk_data_buffer_size_,
-					vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst));
-
-		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*chunk_data_buffers_[i].buffer);
-
-		const auto memory_properties= window_vulkan.GetMemoryProperties();
-
-		vk::MemoryAllocateInfo memory_allocate_info(buffer_memory_requirements.size);
-		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
-		{
-			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
-			{
-				memory_allocate_info.memoryTypeIndex= i;
-				break;
-			}
-		}
-
-		chunk_data_buffers_[i].memory= vk_device_.allocateMemoryUnique(memory_allocate_info);
-		vk_device_.bindBufferMemory(*chunk_data_buffers_[i].buffer, *chunk_data_buffers_[i].memory, 0u);
-	}
-
-	// Create light buffers.
-	light_buffer_size_= c_chunk_volume * world_size_[0] * world_size_[1];
-	for(uint32_t i= 0; i < 2; ++i)
-	{
-		light_buffers_[i].buffer=
-			vk_device_.createBufferUnique(
-				vk::BufferCreateInfo(
-					vk::BufferCreateFlags(),
-					light_buffer_size_,
-					vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst));
-
-		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*light_buffers_[i].buffer);
-
-		const auto memory_properties= window_vulkan.GetMemoryProperties();
-
-		vk::MemoryAllocateInfo memory_allocate_info(buffer_memory_requirements.size);
-		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
-		{
-			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
-			{
-				memory_allocate_info.memoryTypeIndex= i;
-				break;
-			}
-		}
-
-		light_buffers_[i].memory= vk_device_.allocateMemoryUnique(memory_allocate_info);
-		vk_device_.bindBufferMemory(*light_buffers_[i].buffer, *light_buffers_[i].memory, 0u);
-	}
-
-	// Create player state buffer.
-	{
-		player_state_buffer_.buffer=
-			vk_device_.createBufferUnique(
-				vk::BufferCreateInfo(
-					vk::BufferCreateFlags(),
-					sizeof(PlayerState),
-					vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst));
-
-		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*player_state_buffer_.buffer);
-
-		const auto memory_properties= window_vulkan.GetMemoryProperties();
-
-		vk::MemoryAllocateInfo memory_allocate_info(buffer_memory_requirements.size);
-		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
-		{
-			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
-			{
-				memory_allocate_info.memoryTypeIndex= i;
-				break;
-			}
-		}
-
-		player_state_buffer_.memory= vk_device_.allocateMemoryUnique(memory_allocate_info);
-		vk_device_.bindBufferMemory(*player_state_buffer_.buffer, *player_state_buffer_.memory, 0u);
-	}
-
-	// Create world blocks external update queue buffer.
-	{
-		world_blocks_external_update_queue_buffer_.buffer=
-			vk_device_.createBufferUnique(
-				vk::BufferCreateInfo(
-					vk::BufferCreateFlags(),
-					sizeof(WorldBlocksExternalUpdateQueue),
-					vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst));
-
-		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*world_blocks_external_update_queue_buffer_.buffer);
-
-		const auto memory_properties= window_vulkan.GetMemoryProperties();
-
-		vk::MemoryAllocateInfo memory_allocate_info(buffer_memory_requirements.size);
-		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
-		{
-			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
-			{
-				memory_allocate_info.memoryTypeIndex= i;
-				break;
-			}
-		}
-
-		world_blocks_external_update_queue_buffer_.memory= vk_device_.allocateMemoryUnique(memory_allocate_info);
-		vk_device_.bindBufferMemory(*world_blocks_external_update_queue_buffer_.buffer, *world_blocks_external_update_queue_buffer_.memory, 0u);
-	}
-
-	// Create player world window buffer.
-	{
-		player_world_window_buffer_.buffer=
-			vk_device_.createBufferUnique(
-				vk::BufferCreateInfo(
-					vk::BufferCreateFlags(),
-					sizeof(PlayerWorldWindow),
-					vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst));
-
-		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*player_world_window_buffer_.buffer);
-
-		const auto memory_properties= window_vulkan.GetMemoryProperties();
-
-		vk::MemoryAllocateInfo memory_allocate_info(buffer_memory_requirements.size);
-		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
-		{
-			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
-			{
-				memory_allocate_info.memoryTypeIndex= i;
-				break;
-			}
-		}
-
-		player_world_window_buffer_.memory= vk_device_.allocateMemoryUnique(memory_allocate_info);
-		vk_device_.bindBufferMemory(*player_world_window_buffer_.buffer, *player_world_window_buffer_.memory, 0u);
-	}
-
-	// Create world generation shader.
-	world_gen_shader_= CreateShader(vk_device_, ShaderNames::world_gen_comp);
-
-	// Create world generation descriptor set layout.
-	{
-		const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
-		{
-			{
-				WorldGenShaderBindings::chunk_data_buffer,
-				vk::DescriptorType::eStorageBuffer,
-				1u,
-				vk::ShaderStageFlagBits::eCompute,
-				nullptr,
-			},
-		};
-		world_gen_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
-			vk::DescriptorSetLayoutCreateInfo(
-				vk::DescriptorSetLayoutCreateFlags(),
-				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
-	}
-
-	// Create world generation pipeline layout.
-	{
-		const vk::PushConstantRange push_constant_range(
-			vk::ShaderStageFlagBits::eCompute,
-			0u,
-			sizeof(ChunkPositionUniforms));
-
-		world_gen_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
-			vk::PipelineLayoutCreateInfo(
-				vk::PipelineLayoutCreateFlags(),
-				1u, &*world_gen_decriptor_set_layout_,
-				1u, &push_constant_range));
-	}
-
-	// Create world generation pipeline.
-	world_gen_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
-		nullptr,
-		vk::ComputePipelineCreateInfo(
-			vk::PipelineCreateFlags(),
-			vk::PipelineShaderStageCreateInfo(
-				vk::PipelineShaderStageCreateFlags(),
-				vk::ShaderStageFlagBits::eCompute,
-				*world_gen_shader_,
-				"main"),
-			*world_gen_pipeline_layout_)));
-
-
-	// Create and update world generation descriptor sets.
-	for(uint32_t i= 0; i < 2; ++i)
-	{
-		world_gen_descriptor_sets_[i]= vk_device_.allocateDescriptorSets(
-			vk::DescriptorSetAllocateInfo(
-				global_descriptor_pool,
-				1u, &*world_gen_decriptor_set_layout_)).front();
-
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
-			chunk_data_buffers_[i].buffer.get(),
+			chunk_data_buffers_[i].GetBuffer(),
 			0u,
-			chunk_data_buffer_size_);
+			chunk_data_buffers_[i].GetSize());
 
 		vk_device_.updateDescriptorSets(
 			{
@@ -344,77 +550,18 @@ WorldProcessor::WorldProcessor(
 			{});
 	}
 
-	// Create initial light fill shader.
-	initial_light_fill_shader_= CreateShader(vk_device_, ShaderNames::initial_light_fill_comp);
-
-	// Create initial light fill descriptor set layout.
-	{
-		const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
-		{
-			{
-				InitialLightFillShaderBindings::chunk_data_buffer,
-				vk::DescriptorType::eStorageBuffer,
-				1u,
-				vk::ShaderStageFlagBits::eCompute,
-				nullptr,
-			},
-			{
-				InitialLightFillShaderBindings::light_data_buffer,
-				vk::DescriptorType::eStorageBuffer,
-				1u,
-				vk::ShaderStageFlagBits::eCompute,
-				nullptr,
-			},
-		};
-		initial_light_fill_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
-			vk::DescriptorSetLayoutCreateInfo(
-				vk::DescriptorSetLayoutCreateFlags(),
-				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
-	}
-
-	// Create initial light fill pipeline layout.
-	{
-		const vk::PushConstantRange push_constant_range(
-			vk::ShaderStageFlagBits::eCompute,
-			0u,
-			sizeof(ChunkPositionUniforms));
-
-		initial_light_fill_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
-			vk::PipelineLayoutCreateInfo(
-				vk::PipelineLayoutCreateFlags(),
-				1u, &*initial_light_fill_decriptor_set_layout_,
-				1u, &push_constant_range));
-	}
-
-	// Create initial light fill pipeline.
-	initial_light_fill_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
-		nullptr,
-		vk::ComputePipelineCreateInfo(
-			vk::PipelineCreateFlags(),
-			vk::PipelineShaderStageCreateInfo(
-				vk::PipelineShaderStageCreateFlags(),
-				vk::ShaderStageFlagBits::eCompute,
-				*initial_light_fill_shader_,
-				"main"),
-			*initial_light_fill_pipeline_layout_)));
-
-	// Create and update initial light fill descriptor sets.
+	// Update initial light fill descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
 	{
-		initial_light_fill_descriptor_sets_[i]= vk_device_.allocateDescriptorSets(
-			vk::DescriptorSetAllocateInfo(
-				global_descriptor_pool,
-				1u, &*initial_light_fill_decriptor_set_layout_)).front();
-
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
-			chunk_data_buffers_[i].buffer.get(),
+			chunk_data_buffers_[i].GetBuffer(),
 			0u,
-			chunk_data_buffer_size_);
+			chunk_data_buffers_[i].GetSize());
 
 		const vk::DescriptorBufferInfo descriptor_light_data_buffer_info(
-			light_buffers_[i].buffer.get(),
+			light_buffers_[i].GetBuffer(),
 			0u,
-			light_buffer_size_);
+			light_buffers_[i].GetSize());
 
 		vk_device_.updateDescriptorSets(
 			{
@@ -442,77 +589,18 @@ WorldProcessor::WorldProcessor(
 			{});
 	}
 
-	// Create world blocks update shader.
-	world_blocks_update_shader_= CreateShader(vk_device_, ShaderNames::world_blocks_update_comp);
-
-	// Create world blocks update descriptor set layout.
-	{
-		const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
-		{
-			{
-				WorldBlocksUpdateShaderBindings::chunk_data_input_buffer,
-				vk::DescriptorType::eStorageBuffer,
-				1u,
-				vk::ShaderStageFlagBits::eCompute,
-				nullptr,
-			},
-			{
-				WorldBlocksUpdateShaderBindings::chunk_data_output_buffer,
-				vk::DescriptorType::eStorageBuffer,
-				1u,
-				vk::ShaderStageFlagBits::eCompute,
-				nullptr,
-			},
-		};
-		world_blocks_update_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
-			vk::DescriptorSetLayoutCreateInfo(
-				vk::DescriptorSetLayoutCreateFlags(),
-				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
-	}
-
-	// Create world blocks update pipeline layout.
-	{
-		const vk::PushConstantRange push_constant_range(
-			vk::ShaderStageFlagBits::eCompute,
-			0u,
-			sizeof(ChunkPositionUniforms));
-
-		world_blocks_update_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
-			vk::PipelineLayoutCreateInfo(
-				vk::PipelineLayoutCreateFlags(),
-				1u, &*world_blocks_update_decriptor_set_layout_,
-				1u, &push_constant_range));
-	}
-
-	// Create world blocks update pipeline.
-	world_blocks_update_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
-		nullptr,
-		vk::ComputePipelineCreateInfo(
-			vk::PipelineCreateFlags(),
-			vk::PipelineShaderStageCreateInfo(
-				vk::PipelineShaderStageCreateFlags(),
-				vk::ShaderStageFlagBits::eCompute,
-				*world_blocks_update_shader_,
-				"main"),
-			*world_blocks_update_pipeline_layout_)));
-
-	// Create and update world blocks update descriptor sets.
+	// Update world blocks update descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
 	{
-		world_blocks_update_descriptor_sets_[i]= vk_device_.allocateDescriptorSets(
-			vk::DescriptorSetAllocateInfo(
-				global_descriptor_pool,
-				1u, &*world_blocks_update_decriptor_set_layout_)).front();
-
 		const vk::DescriptorBufferInfo descriptor_chunk_data_input_buffer_info(
-			chunk_data_buffers_[i].buffer.get(),
+			chunk_data_buffers_[i].GetBuffer(),
 			0u,
-			chunk_data_buffer_size_);
+			chunk_data_buffers_[i].GetSize());
 
 		const vk::DescriptorBufferInfo descriptor_chunk_data_output_buffer_info(
-			chunk_data_buffers_[i ^ 1].buffer.get(),
+			chunk_data_buffers_[i ^ 1].GetBuffer(),
 			0u,
-			chunk_data_buffer_size_);
+			chunk_data_buffers_[i ^ 1].GetSize());
 
 		vk_device_.updateDescriptorSets(
 			{
@@ -540,89 +628,23 @@ WorldProcessor::WorldProcessor(
 			{});
 	}
 
-	// Create light update shader.
-	light_update_shader_= CreateShader(vk_device_, ShaderNames::light_update_comp);
-
-	// Create light update descriptor set layout.
-	{
-		const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
-		{
-			{
-				LightUpdateShaderBindings::chunk_data_buffer,
-				vk::DescriptorType::eStorageBuffer,
-				1u,
-				vk::ShaderStageFlagBits::eCompute,
-				nullptr,
-			},
-			{
-				LightUpdateShaderBindings::chunk_input_light_buffer,
-				vk::DescriptorType::eStorageBuffer,
-				1u,
-				vk::ShaderStageFlagBits::eCompute,
-				nullptr,
-			},
-			{
-				LightUpdateShaderBindings::chunk_output_light_buffer,
-				vk::DescriptorType::eStorageBuffer,
-				1u,
-				vk::ShaderStageFlagBits::eCompute,
-				nullptr,
-			},
-		};
-		light_update_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
-			vk::DescriptorSetLayoutCreateInfo(
-				vk::DescriptorSetLayoutCreateFlags(),
-				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
-	}
-
-	// Create light update pipeline layout.
-	{
-		const vk::PushConstantRange push_constant_range(
-			vk::ShaderStageFlagBits::eCompute,
-			0u,
-			sizeof(ChunkPositionUniforms));
-
-		light_update_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
-			vk::PipelineLayoutCreateInfo(
-				vk::PipelineLayoutCreateFlags(),
-				1u, &*light_update_decriptor_set_layout_,
-				1u, &push_constant_range));
-	}
-
-	// Create light update pipeline.
-	light_update_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
-		nullptr,
-		vk::ComputePipelineCreateInfo(
-			vk::PipelineCreateFlags(),
-			vk::PipelineShaderStageCreateInfo(
-				vk::PipelineShaderStageCreateFlags(),
-				vk::ShaderStageFlagBits::eCompute,
-				*light_update_shader_,
-				"main"),
-			*light_update_pipeline_layout_)));
-
-	// Create and update light update descriptor sets.
+	// Update light update descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
 	{
-		light_update_descriptor_sets_[i]= vk_device_.allocateDescriptorSets(
-			vk::DescriptorSetAllocateInfo(
-				global_descriptor_pool,
-				1u, &*light_update_decriptor_set_layout_)).front();
-
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
-			chunk_data_buffers_[i].buffer.get(),
+			chunk_data_buffers_[i].GetBuffer(),
 			0u,
-			chunk_data_buffer_size_);
+			chunk_data_buffers_[i].GetSize());
 
 		const vk::DescriptorBufferInfo descriptor_input_light_data_buffer_info(
-			light_buffers_[i].buffer.get(),
+			light_buffers_[i].GetBuffer(),
 			0u,
-			light_buffer_size_);
+			light_buffers_[i].GetSize());
 
 		const vk::DescriptorBufferInfo descriptor_output_light_data_buffer_info(
-			light_buffers_[i ^ 1].buffer.get(),
+			light_buffers_[i ^ 1].GetBuffer(),
 			0u,
-			light_buffer_size_);
+			light_buffers_[i ^ 1].GetSize());
 
 		vk_device_.updateDescriptorSets(
 			{
@@ -660,87 +682,21 @@ WorldProcessor::WorldProcessor(
 			{});
 	}
 
-	// Create player world window build shader.
-	player_world_window_build_shader_= CreateShader(vk_device_, ShaderNames::player_world_window_build_comp);
-
-	// Create player world window build descriptor set layout.
-	{
-		const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
-		{
-			{
-				PlayerWorldWindowBuildShaderBindings::chunk_data_buffer,
-				vk::DescriptorType::eStorageBuffer,
-				1u,
-				vk::ShaderStageFlagBits::eCompute,
-				nullptr,
-			},
-			{
-				PlayerWorldWindowBuildShaderBindings::player_world_window_buffer,
-				vk::DescriptorType::eStorageBuffer,
-				1u,
-				vk::ShaderStageFlagBits::eCompute,
-				nullptr,
-			},
-			{
-				PlayerWorldWindowBuildShaderBindings::player_state_buffer,
-				vk::DescriptorType::eStorageBuffer,
-				1u,
-				vk::ShaderStageFlagBits::eCompute,
-				nullptr,
-			},
-		};
-		player_world_window_build_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
-			vk::DescriptorSetLayoutCreateInfo(
-				vk::DescriptorSetLayoutCreateFlags(),
-				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
-	}
-
-	// Create player world window build pipeline layout.
-	{
-		const vk::PushConstantRange push_constant_range(
-			vk::ShaderStageFlagBits::eCompute,
-			0u,
-			sizeof(PlayerWorldWindowBuildUniforms));
-
-		player_world_window_build_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
-			vk::PipelineLayoutCreateInfo(
-				vk::PipelineLayoutCreateFlags(),
-				1u, &*player_world_window_build_decriptor_set_layout_,
-				1u, &push_constant_range));
-	}
-
-	// Create player world window build pipeline.
-	player_world_window_build_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
-		nullptr,
-		vk::ComputePipelineCreateInfo(
-			vk::PipelineCreateFlags(),
-			vk::PipelineShaderStageCreateInfo(
-				vk::PipelineShaderStageCreateFlags(),
-				vk::ShaderStageFlagBits::eCompute,
-				*player_world_window_build_shader_,
-				"main"),
-			*player_world_window_build_pipeline_layout_)));
-
-	// Create and update player world window build descriptor set.
+	// Update player world window build descriptor set.
 	for(uint32_t i= 0; i < 2; ++i)
 	{
-		player_world_window_build_descriptor_sets_[i]= vk_device_.allocateDescriptorSets(
-			vk::DescriptorSetAllocateInfo(
-				global_descriptor_pool,
-				1u, &*player_world_window_build_decriptor_set_layout_)).front();
-
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
-			chunk_data_buffers_[i].buffer.get(),
+			chunk_data_buffers_[i].GetBuffer(),
 			0u,
-			chunk_data_buffer_size_);
+			chunk_data_buffers_[i].GetSize());
 
 		const vk::DescriptorBufferInfo player_world_window_buffer_info(
-			player_world_window_buffer_.buffer.get(),
+			player_world_window_buffer_.GetBuffer(),
 			0u,
 			sizeof(PlayerWorldWindow));
 
 		const vk::DescriptorBufferInfo player_state_buffer_info(
-			player_state_buffer_.buffer.get(),
+			player_state_buffer_.GetBuffer(),
 			0u,
 			sizeof(PlayerState));
 
@@ -780,87 +736,20 @@ WorldProcessor::WorldProcessor(
 			{});
 	}
 
-	// Create player update shader.
-	player_update_shader_= CreateShader(vk_device_, ShaderNames::player_update_comp);
-
-	// Create player update descriptor set layout.
-	{
-		const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
-		{
-			{
-				PlayerUpdateShaderBindings::player_state_buffer,
-				vk::DescriptorType::eStorageBuffer,
-				1u,
-				vk::ShaderStageFlagBits::eCompute,
-				nullptr,
-			},
-			{
-				PlayerUpdateShaderBindings::world_blocks_external_update_queue_buffer,
-				vk::DescriptorType::eStorageBuffer,
-				1u,
-				vk::ShaderStageFlagBits::eCompute,
-				nullptr,
-			},
-			{
-				PlayerUpdateShaderBindings::player_world_window_buffer,
-				vk::DescriptorType::eStorageBuffer,
-				1u,
-				vk::ShaderStageFlagBits::eCompute,
-				nullptr,
-			},
-		};
-		player_update_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
-			vk::DescriptorSetLayoutCreateInfo(
-				vk::DescriptorSetLayoutCreateFlags(),
-				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
-	}
-
-	// Create player update pipeline layout.
-	{
-		const vk::PushConstantRange push_constant_range(
-			vk::ShaderStageFlagBits::eCompute,
-			0u,
-			sizeof(PlayerUpdateUniforms));
-
-		player_update_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
-			vk::PipelineLayoutCreateInfo(
-				vk::PipelineLayoutCreateFlags(),
-				1u, &*player_update_decriptor_set_layout_,
-				1u, &push_constant_range));
-	}
-
-	// Create player update pipeline.
-	player_update_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
-		nullptr,
-		vk::ComputePipelineCreateInfo(
-			vk::PipelineCreateFlags(),
-			vk::PipelineShaderStageCreateInfo(
-				vk::PipelineShaderStageCreateFlags(),
-				vk::ShaderStageFlagBits::eCompute,
-				*player_update_shader_,
-				"main"),
-			*player_update_pipeline_layout_)));
-
-	// Create player update descriptor set.
-	player_update_descriptor_set_= vk_device_.allocateDescriptorSets(
-		vk::DescriptorSetAllocateInfo(
-			global_descriptor_pool,
-			1u, &*player_update_decriptor_set_layout_)).front();
-
 	// Update player update descriptor set.
 	{
 		const vk::DescriptorBufferInfo descriptor_player_state_buffer_info(
-			player_state_buffer_.buffer.get(),
+			player_state_buffer_.GetBuffer(),
 			0u,
 			sizeof(PlayerState));
 
 		const vk::DescriptorBufferInfo world_blocks_external_update_queue_buffer_info(
-			world_blocks_external_update_queue_buffer_.buffer.get(),
+			world_blocks_external_update_queue_buffer_.GetBuffer(),
 			0u,
 			sizeof(WorldBlocksExternalUpdateQueue));
 
 		const vk::DescriptorBufferInfo player_world_window_buffer_info(
-			player_world_window_buffer_.buffer.get(),
+			player_world_window_buffer_.GetBuffer(),
 			0u,
 			sizeof(PlayerWorldWindow));
 
@@ -900,75 +789,16 @@ WorldProcessor::WorldProcessor(
 			{});
 	}
 
-	// Create world blocks external update queue flush shader.
-	world_blocks_external_update_queue_flush_shader_= CreateShader(vk_device_, ShaderNames::world_blocks_external_queue_flush_comp);
-
-	// Create world blocks external update queue flush descriptor set layout.
-	{
-		const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
-		{
-			{
-				WorldBlocksExternalUpdateQueueFlushBindigns::chunk_data_buffer,
-				vk::DescriptorType::eStorageBuffer,
-				1u,
-				vk::ShaderStageFlagBits::eCompute,
-				nullptr,
-			},
-			{
-				WorldBlocksExternalUpdateQueueFlushBindigns::world_blocks_external_update_queue_buffer,
-				vk::DescriptorType::eStorageBuffer,
-				1u,
-				vk::ShaderStageFlagBits::eCompute,
-				nullptr,
-			},
-		};
-		world_blocks_external_update_queue_flush_decriptor_set_layout_= vk_device_.createDescriptorSetLayoutUnique(
-			vk::DescriptorSetLayoutCreateInfo(
-				vk::DescriptorSetLayoutCreateFlags(),
-				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
-	}
-
-	// Create world blocks external update queue flush pipeline layout.
-	{
-		const vk::PushConstantRange push_constant_range(
-			vk::ShaderStageFlagBits::eCompute,
-			0u,
-			sizeof(WorldBlocksExternalUpdateQueueFlushUniforms));
-
-		world_blocks_external_update_queue_flush_pipeline_layout_= vk_device_.createPipelineLayoutUnique(
-			vk::PipelineLayoutCreateInfo(
-				vk::PipelineLayoutCreateFlags(),
-				1u, &*world_blocks_external_update_queue_flush_decriptor_set_layout_,
-				1u, &push_constant_range));
-	}
-
-	// Create world blocks external update queue flush pipeline.
-	world_blocks_external_update_queue_flush_pipeline_= UnwrapPipeline(vk_device_.createComputePipelineUnique(
-		nullptr,
-		vk::ComputePipelineCreateInfo(
-			vk::PipelineCreateFlags(),
-			vk::PipelineShaderStageCreateInfo(
-				vk::PipelineShaderStageCreateFlags(),
-				vk::ShaderStageFlagBits::eCompute,
-				*world_blocks_external_update_queue_flush_shader_,
-				"main"),
-			*world_blocks_external_update_queue_flush_pipeline_layout_)));
-
-	// Create and update world blocks external update queue flush descriptor sets.
+	// Update world blocks external update queue flush descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
 	{
-		world_blocks_external_update_queue_flush_descriptor_sets_[i]= vk_device_.allocateDescriptorSets(
-			vk::DescriptorSetAllocateInfo(
-				global_descriptor_pool,
-				1u, &*world_blocks_external_update_queue_flush_decriptor_set_layout_)).front();
-
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
-			chunk_data_buffers_[i].buffer.get(),
+			chunk_data_buffers_[i].GetBuffer(),
 			0u,
-			chunk_data_buffer_size_);
+			chunk_data_buffers_[i].GetSize());
 
 		const vk::DescriptorBufferInfo world_blocks_external_update_queue_buffer_info(
-			world_blocks_external_update_queue_buffer_.buffer.get(),
+			world_blocks_external_update_queue_buffer_.GetBuffer(),
 			0u,
 			sizeof(WorldBlocksExternalUpdateQueue));
 
@@ -1061,28 +891,28 @@ void WorldProcessor::Update(
 vk::Buffer WorldProcessor::GetChunkDataBuffer(const uint32_t index) const
 {
 	HEX_ASSERT(index < 2);
-	return chunk_data_buffers_[index].buffer.get();
+	return chunk_data_buffers_[index].GetBuffer();
 }
 
-uint32_t WorldProcessor::GetChunkDataBufferSize() const
+vk::DeviceSize WorldProcessor::GetChunkDataBufferSize() const
 {
-	return chunk_data_buffer_size_;
+	return chunk_data_buffers_[0].GetSize();
 }
 
 vk::Buffer WorldProcessor::GetLightDataBuffer(const uint32_t index) const
 {
 	HEX_ASSERT(index < 2);
-	return light_buffers_[index].buffer.get();
+	return light_buffers_[index].GetBuffer();
 }
 
-uint32_t WorldProcessor::GetLightDataBufferSize() const
+vk::DeviceSize WorldProcessor::GetLightDataBufferSize() const
 {
-	return light_buffer_size_;
+	return light_buffers_[0].GetSize();
 }
 
 vk::Buffer WorldProcessor::GetPlayerStateBuffer() const
 {
-	return player_state_buffer_.buffer.get();
+	return player_state_buffer_.GetBuffer();
 }
 
 WorldSizeChunks WorldProcessor::GetWorldSize() const
@@ -1108,10 +938,10 @@ void WorldProcessor::InitialFillBuffers(const vk::CommandBuffer command_buffer)
 
 	// Zero chunk data buffers in order to prevent bugs with uninitialized memory.
 	for(uint32_t i= 0; i < 2; ++i)
-		command_buffer.fillBuffer(*chunk_data_buffers_[i].buffer, 0, chunk_data_buffer_size_, 0);
+		command_buffer.fillBuffer(chunk_data_buffers_[i].GetBuffer(), 0, chunk_data_buffers_[i].GetSize(), 0);
 
 	for(uint32_t i= 0; i < 2; ++i)
-		command_buffer.fillBuffer(*light_buffers_[i].buffer, 0, light_buffer_size_, 0);
+		command_buffer.fillBuffer(light_buffers_[i].GetBuffer(), 0, light_buffers_[i].GetSize(), 0);
 
 	// Set initial player state.
 	{
@@ -1122,64 +952,64 @@ void WorldProcessor::InitialFillBuffers(const vk::CommandBuffer command_buffer)
 		player_state.build_block_type= BlockType::Stone;
 
 		command_buffer.updateBuffer(
-			*player_state_buffer_.buffer,
+			player_state_buffer_.GetBuffer(),
 			0,
 			sizeof(PlayerState),
 			static_cast<const void*>(&player_state));
 	}
 
-	command_buffer.fillBuffer(*world_blocks_external_update_queue_buffer_.buffer, 0, sizeof(WorldBlocksExternalUpdateQueue), 0);
+	command_buffer.fillBuffer(world_blocks_external_update_queue_buffer_.GetBuffer(), 0, sizeof(WorldBlocksExternalUpdateQueue), 0);
 
-	command_buffer.fillBuffer(*player_world_window_buffer_.buffer, 0, sizeof(PlayerWorldWindow), 0);
+	command_buffer.fillBuffer(player_world_window_buffer_.GetBuffer(), 0, sizeof(PlayerWorldWindow), 0);
 
 	const vk::BufferMemoryBarrier barriers[]
 	{
 		{
 			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*chunk_data_buffers_[0].buffer,
+			chunk_data_buffers_[0].GetBuffer(),
 			0,
 			VK_WHOLE_SIZE,
 		},
 		{
 			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*chunk_data_buffers_[1].buffer,
+			chunk_data_buffers_[1].GetBuffer(),
 			0,
 			VK_WHOLE_SIZE,
 		},
 		{
 			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*light_buffers_[0].buffer,
+			light_buffers_[0].GetBuffer(),
 			0,
 			VK_WHOLE_SIZE,
 		},
 		{
 			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*light_buffers_[1].buffer,
+			light_buffers_[1].GetBuffer(),
 			0,
 			VK_WHOLE_SIZE,
 		},
 		{
 			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*player_state_buffer_.buffer,
+			player_state_buffer_.GetBuffer(),
 			0,
 			VK_WHOLE_SIZE,
 		},
 		{
 			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*world_blocks_external_update_queue_buffer_.buffer,
+			world_blocks_external_update_queue_buffer_.GetBuffer(),
 			0,
 			VK_WHOLE_SIZE,
 		},
 		{
 			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*player_world_window_buffer_.buffer,
+			player_world_window_buffer_.GetBuffer(),
 			0,
 			VK_WHOLE_SIZE,
 		},
@@ -1202,14 +1032,14 @@ void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
 
 	const uint32_t dst_buffer_index= GetDstBufferIndex();
 
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_gen_pipeline_);
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_gen_pipeline_.pipeline);
 
 	command_buffer.bindDescriptorSets(
 		vk::PipelineBindPoint::eCompute,
-		*world_gen_pipeline_layout_,
+		*world_gen_pipeline_.pipeline_layout,
 		0u,
-		1u, &world_gen_descriptor_sets_[dst_buffer_index],
-		0u, nullptr);
+		{world_gen_descriptor_sets_[dst_buffer_index]},
+		{});
 
 	for(uint32_t x= 0; x < world_size_[0]; ++x)
 	for(uint32_t y= 0; y < world_size_[1]; ++y)
@@ -1223,7 +1053,7 @@ void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
 		chunk_position_uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(y);
 
 		command_buffer.pushConstants(
-			*world_gen_pipeline_layout_,
+			*world_gen_pipeline_.pipeline_layout,
 			vk::ShaderStageFlagBits::eCompute,
 			0,
 			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
@@ -1247,7 +1077,7 @@ void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*chunk_data_buffers_[dst_buffer_index].buffer,
+			chunk_data_buffers_[dst_buffer_index].GetBuffer(),
 			0,
 			VK_WHOLE_SIZE);
 
@@ -1262,14 +1092,14 @@ void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
 
 	// Perform initial light fill.
 
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *initial_light_fill_pipeline_);
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *initial_light_fill_pipeline_.pipeline);
 
 	command_buffer.bindDescriptorSets(
 		vk::PipelineBindPoint::eCompute,
-		*initial_light_fill_pipeline_layout_,
+		*initial_light_fill_pipeline_.pipeline_layout,
 		0u,
-		1u, &initial_light_fill_descriptor_sets_[dst_buffer_index],
-		0u, nullptr);
+		{initial_light_fill_descriptor_sets_[dst_buffer_index]},
+		{});
 
 	for(uint32_t x= 0; x < world_size_[0]; ++x)
 	for(uint32_t y= 0; y < world_size_[1]; ++y)
@@ -1283,7 +1113,7 @@ void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
 		chunk_position_uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(y);
 
 		command_buffer.pushConstants(
-			*initial_light_fill_pipeline_layout_,
+			*initial_light_fill_pipeline_.pipeline_layout,
 			vk::ShaderStageFlagBits::eCompute,
 			0,
 			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
@@ -1307,7 +1137,7 @@ void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*light_buffers_[dst_buffer_index].buffer,
+			light_buffers_[dst_buffer_index].GetBuffer(),
 			0,
 			VK_WHOLE_SIZE);
 
@@ -1345,14 +1175,14 @@ void WorldProcessor::UpdateWorldBlocks(const vk::CommandBuffer command_buffer)
 {
 	const uint32_t src_buffer_index= GetSrcBufferIndex();
 
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_blocks_update_pipeline_);
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_blocks_update_pipeline_.pipeline);
 
 	command_buffer.bindDescriptorSets(
 		vk::PipelineBindPoint::eCompute,
-		*world_blocks_update_pipeline_layout_,
+		*world_blocks_update_pipeline_.pipeline_layout,
 		0u,
-		1u, &world_blocks_update_descriptor_sets_[src_buffer_index],
-		0u, nullptr);
+		{world_blocks_update_descriptor_sets_[src_buffer_index]},
+		{});
 
 	for(const auto& chunk_to_update : current_frame_chunks_to_update_list_)
 	{
@@ -1365,7 +1195,7 @@ void WorldProcessor::UpdateWorldBlocks(const vk::CommandBuffer command_buffer)
 		chunk_position_uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(chunk_to_update[1]);
 
 		command_buffer.pushConstants(
-			*world_blocks_update_pipeline_layout_,
+			*world_blocks_update_pipeline_.pipeline_layout,
 			vk::ShaderStageFlagBits::eCompute,
 			0,
 			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
@@ -1387,14 +1217,14 @@ void WorldProcessor::UpdateLight(const vk::CommandBuffer command_buffer)
 {
 	const uint32_t src_buffer_index= GetSrcBufferIndex();
 
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *light_update_pipeline_);
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *light_update_pipeline_.pipeline);
 
 	command_buffer.bindDescriptorSets(
 		vk::PipelineBindPoint::eCompute,
-		*light_update_pipeline_layout_,
+		*light_update_pipeline_.pipeline_layout,
 		0u,
-		1u, &light_update_descriptor_sets_[src_buffer_index],
-		0u, nullptr);
+		{light_update_descriptor_sets_[src_buffer_index]},
+		{});
 
 	for(const auto& chunk_to_update : current_frame_chunks_to_update_list_)
 	{
@@ -1407,7 +1237,7 @@ void WorldProcessor::UpdateLight(const vk::CommandBuffer command_buffer)
 		chunk_position_uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(chunk_to_update[1]);
 
 		command_buffer.pushConstants(
-			*light_update_pipeline_layout_,
+			*light_update_pipeline_.pipeline_layout,
 			vk::ShaderStageFlagBits::eCompute,
 			0,
 			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
@@ -1436,14 +1266,14 @@ void WorldProcessor::CreateWorldBlocksAndLightUpdateBarrier(const vk::CommandBuf
 		{
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*chunk_data_buffers_[dst_buffer_index].buffer,
+			chunk_data_buffers_[dst_buffer_index].GetBuffer(),
 			0,
 			VK_WHOLE_SIZE
 		},
 		{
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*light_buffers_[dst_buffer_index].buffer,
+			light_buffers_[dst_buffer_index].GetBuffer(),
 			0,
 			VK_WHOLE_SIZE
 		},
@@ -1460,17 +1290,17 @@ void WorldProcessor::CreateWorldBlocksAndLightUpdateBarrier(const vk::CommandBuf
 
 void WorldProcessor::BuildPlayerWorldWindow(const vk::CommandBuffer command_buffer)
 {
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *player_world_window_build_pipeline_);
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *player_world_window_build_pipeline_.pipeline);
 
 	// Build player world window based on src world state.
 	const auto descriptor_set= player_world_window_build_descriptor_sets_[GetSrcBufferIndex()];
 
 	command_buffer.bindDescriptorSets(
 		vk::PipelineBindPoint::eCompute,
-		*player_world_window_build_pipeline_layout_,
+		*player_world_window_build_pipeline_.pipeline_layout,
 		0u,
-		1u, &descriptor_set,
-		0u, nullptr);
+		{descriptor_set},
+		{});
 
 	PlayerWorldWindowBuildUniforms uniforms;
 	uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
@@ -1479,7 +1309,7 @@ void WorldProcessor::BuildPlayerWorldWindow(const vk::CommandBuffer command_buff
 	uniforms.world_offset_chunks[1]= world_offset_[1];
 
 	command_buffer.pushConstants(
-		*player_world_window_build_pipeline_layout_,
+		*player_world_window_build_pipeline_.pipeline_layout,
 		vk::ShaderStageFlagBits::eCompute,
 		0,
 		sizeof(PlayerWorldWindowBuildUniforms), static_cast<const void*>(&uniforms));
@@ -1501,7 +1331,7 @@ void WorldProcessor::BuildPlayerWorldWindow(const vk::CommandBuffer command_buff
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*player_world_window_buffer_.buffer,
+			player_world_window_buffer_.GetBuffer(),
 			0,
 			VK_WHOLE_SIZE);
 
@@ -1522,14 +1352,14 @@ void WorldProcessor::UpdatePlayer(
 	const MouseState mouse_state,
 	const float aspect)
 {
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *player_update_pipeline_);
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *player_update_pipeline_.pipeline);
 
 	command_buffer.bindDescriptorSets(
 		vk::PipelineBindPoint::eCompute,
-		*player_update_pipeline_layout_,
+		*player_update_pipeline_.pipeline_layout,
 		0u,
-		1u, &player_update_descriptor_set_,
-		0u, nullptr);
+		{player_update_descriptor_set_},
+		{});
 
 	PlayerUpdateUniforms player_update_uniforms;
 	player_update_uniforms.aspect= aspect;
@@ -1540,7 +1370,7 @@ void WorldProcessor::UpdatePlayer(
 	player_update_uniforms.mouse_state= mouse_state;
 
 	command_buffer.pushConstants(
-		*player_update_pipeline_layout_,
+		*player_update_pipeline_.pipeline_layout,
 		vk::ShaderStageFlagBits::eCompute,
 		0,
 		sizeof(PlayerUpdateUniforms), static_cast<const void*>(&player_update_uniforms));
@@ -1554,7 +1384,7 @@ void WorldProcessor::UpdatePlayer(
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eTransferRead,
 			queue_family_index_, queue_family_index_,
-			*player_state_buffer_.buffer,
+			player_state_buffer_.GetBuffer(),
 			0,
 			VK_WHOLE_SIZE);
 
@@ -1572,7 +1402,7 @@ void WorldProcessor::UpdatePlayer(
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*world_blocks_external_update_queue_buffer_.buffer,
+			world_blocks_external_update_queue_buffer_.GetBuffer(),
 			0,
 			VK_WHOLE_SIZE);
 
@@ -1590,7 +1420,7 @@ void WorldProcessor::UpdatePlayer(
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*player_world_window_buffer_.buffer,
+			player_world_window_buffer_.GetBuffer(),
 			0,
 			VK_WHOLE_SIZE);
 
@@ -1606,7 +1436,7 @@ void WorldProcessor::UpdatePlayer(
 
 void WorldProcessor::FlushWorldBlocksExternalUpdateQueue(const vk::CommandBuffer command_buffer)
 {
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_blocks_external_update_queue_flush_pipeline_);
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_blocks_external_update_queue_flush_pipeline_.pipeline);
 
 	// Flush the queue into the destination world buffer.
 	const uint32_t dst_buffer_index= GetDstBufferIndex();
@@ -1614,10 +1444,10 @@ void WorldProcessor::FlushWorldBlocksExternalUpdateQueue(const vk::CommandBuffer
 
 	command_buffer.bindDescriptorSets(
 		vk::PipelineBindPoint::eCompute,
-		*world_blocks_external_update_queue_flush_pipeline_layout_,
+		*world_blocks_external_update_queue_flush_pipeline_.pipeline_layout,
 		0u,
-		1u, &descriptor_set,
-		0u, nullptr);
+		{descriptor_set},
+		{});
 
 	WorldBlocksExternalUpdateQueueFlushUniforms uniforms;
 	uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
@@ -1626,7 +1456,7 @@ void WorldProcessor::FlushWorldBlocksExternalUpdateQueue(const vk::CommandBuffer
 	uniforms.world_offset_chunks[1]= world_offset_[1];
 
 	command_buffer.pushConstants(
-		*player_update_pipeline_layout_,
+		*world_blocks_external_update_queue_flush_pipeline_.pipeline_layout,
 		vk::ShaderStageFlagBits::eCompute,
 		0,
 		sizeof(WorldBlocksExternalUpdateQueueFlushUniforms), static_cast<const void*>(&uniforms));
@@ -1640,7 +1470,7 @@ void WorldProcessor::FlushWorldBlocksExternalUpdateQueue(const vk::CommandBuffer
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*chunk_data_buffers_[dst_buffer_index].buffer,
+			chunk_data_buffers_[dst_buffer_index].GetBuffer(),
 			0,
 			VK_WHOLE_SIZE);
 
@@ -1658,7 +1488,7 @@ void WorldProcessor::FlushWorldBlocksExternalUpdateQueue(const vk::CommandBuffer
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*world_blocks_external_update_queue_buffer_.buffer,
+			world_blocks_external_update_queue_buffer_.GetBuffer(),
 			0,
 			VK_WHOLE_SIZE);
 

@@ -1,5 +1,7 @@
 #pragma once
+#include "Buffer.hpp"
 #include "GPUAllocator.hpp"
+#include "Pipeline.hpp"
 #include "WorldProcessor.hpp"
 
 namespace HexGPU
@@ -39,7 +41,7 @@ public:
 	vk::Buffer GetVertexBuffer() const;
 
 	vk::Buffer GetChunkDrawInfoBuffer() const;
-	uint32_t GetChunkDrawInfoBufferSize() const;
+	vk::DeviceSize GetChunkDrawInfoBufferSize() const;
 
 private:
 	void InitialFillBuffers(vk::CommandBuffer command_buffer);
@@ -57,39 +59,24 @@ private:
 
 	bool buffers_initially_filled_= false;
 
-	uint32_t chunk_draw_info_buffer_size_= 0;
-	vk::UniqueBuffer chunk_draw_info_buffer_;
-	vk::UniqueDeviceMemory chunk_draw_info_buffer_memory_;
+	const Buffer chunk_draw_info_buffer_;
 
-	size_t vertex_buffer_num_quads_= 0;
-	vk::UniqueBuffer vertex_buffer_;
-	vk::UniqueDeviceMemory vertex_buffer_memory_;
+	const uint32_t vertex_buffer_num_quads_;
+	const Buffer vertex_buffer_;
 
 	GPUAllocator vertex_memory_allocator_;
 
-	vk::UniqueShaderModule geometry_size_calculate_prepare_shader_;
-	vk::UniqueDescriptorSetLayout geometry_size_calculate_prepare_decriptor_set_layout_;
-	vk::UniquePipelineLayout geometry_size_calculate_prepare_pipeline_layout_;
-	vk::UniquePipeline geometry_size_calculate_prepare_pipeline_;
-	vk::DescriptorSet geometry_size_calculate_prepare_descriptor_set_;
+	const ComputePipeline geometry_size_calculate_prepare_pipeline_;
+	const vk::DescriptorSet geometry_size_calculate_prepare_descriptor_set_;
 
-	vk::UniqueShaderModule geometry_size_calculate_shader_;
-	vk::UniqueDescriptorSetLayout geometry_size_calculate_decriptor_set_layout_;
-	vk::UniquePipelineLayout geometry_size_calculate_pipeline_layout_;
-	vk::UniquePipeline geometry_size_calculate_pipeline_;
-	vk::DescriptorSet geometry_size_calculate_descriptor_sets_[2];
+	const ComputePipeline geometry_size_calculate_pipeline_;
+	const std::array<vk::DescriptorSet, 2> geometry_size_calculate_descriptor_sets_;
 
-	vk::UniqueShaderModule geometry_allocate_shader_;
-	vk::UniqueDescriptorSetLayout geometry_allocate_decriptor_set_layout_;
-	vk::UniquePipelineLayout geometry_allocate_pipeline_layout_;
-	vk::UniquePipeline geometry_allocate_pipeline_;
-	vk::DescriptorSet geometry_allocate_descriptor_set_;
+	const ComputePipeline geometry_allocate_pipeline_;
+	const vk::DescriptorSet geometry_allocate_descriptor_set_;
 
-	vk::UniqueShaderModule geometry_gen_shader_;
-	vk::UniqueDescriptorSetLayout geometry_gen_decriptor_set_layout_;
-	vk::UniquePipelineLayout geometry_gen_pipeline_layout_;
-	vk::UniquePipeline geometry_gen_pipeline_;
-	vk::DescriptorSet geometry_gen_descriptor_sets_[2];
+	const ComputePipeline geometry_gen_pipeline_;
+	const std::array<vk::DescriptorSet, 2> geometry_gen_descriptor_sets_;
 
 	uint32_t frame_counter_= 0;
 	std::vector<std::array<uint32_t, 2>> chunks_to_update_;

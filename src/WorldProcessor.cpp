@@ -843,7 +843,6 @@ void WorldProcessor::Update(
 	const float aspect)
 {
 	InitialFillBuffers(command_buffer);
-	GenerateWorld(command_buffer);
 
 	// This frequency allows relatively fast world updates and still doesn't overload GPU too much.
 	const float c_update_frequency= 8.0f;
@@ -854,9 +853,11 @@ void WorldProcessor::Update(
 	const float prev_tick_fractional= current_tick_fractional_;
 	const float cur_tick_fractional= current_tick_fractional_ + tick_delta_clamped;
 
-	// Continue updates of blocks and lighting.
-	if(current_tick_ != 0)
+	if(current_tick_ == 0)
+		InitialGenerateWorld(command_buffer);
+	else
 	{
+		// Continue updates of blocks and lighting.
 		const float prev_offset_within_tick= prev_tick_fractional - float(current_tick_);
 		HEX_ASSERT(prev_offset_within_tick <= 1.0f);
 		const float cur_offset_within_tick= std::min(1.0f, cur_tick_fractional - float(current_tick_));
@@ -1024,12 +1025,8 @@ void WorldProcessor::InitialFillBuffers(const vk::CommandBuffer command_buffer)
 		0, nullptr);
 }
 
-void WorldProcessor::GenerateWorld(const vk::CommandBuffer command_buffer)
+void WorldProcessor::InitialGenerateWorld(const vk::CommandBuffer command_buffer)
 {
-	if(world_generated_)
-		return;
-	world_generated_= true;
-
 	const uint32_t dst_buffer_index= GetDstBufferIndex();
 
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_gen_pipeline_.pipeline);

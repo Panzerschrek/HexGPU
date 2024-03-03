@@ -82,7 +82,7 @@ private:
 
 private:
 	void InitialFillBuffers(vk::CommandBuffer command_buffer);
-	void GenerateWorld(vk::CommandBuffer command_buffer);
+	void InitialGenerateWorld(vk::CommandBuffer command_buffer);
 	void BuildCurrentFrameChunksToUpdateList(float prev_offset_within_tick, float cur_offset_within_tick);
 	void UpdateWorldBlocks(vk::CommandBuffer command_buffer);
 	void UpdateLight(vk::CommandBuffer command_buffer);
@@ -141,7 +141,6 @@ private:
 	WorldOffsetChunks world_offset_;
 
 	bool initial_buffers_filled_= false;
-	bool world_generated_= false;
 
 	uint32_t current_tick_= 0;
 	float current_tick_fractional_= 0.0f;

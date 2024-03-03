@@ -85,12 +85,14 @@ private:
 		WorldBlockExternalUpdate updates[c_max_world_blocks_external_updates];
 	};
 
+	using RelativeWorldShiftChunks= std::array<int32_t, 2>;
+
 private:
 	void InitialFillBuffers(vk::CommandBuffer command_buffer);
 	void InitialGenerateWorld(vk::CommandBuffer command_buffer);
 	void BuildCurrentFrameChunksToUpdateList(float prev_offset_within_tick, float cur_offset_within_tick);
-	void UpdateWorldBlocks(vk::CommandBuffer command_buffer);
-	void UpdateLight(vk::CommandBuffer command_buffer);
+	void UpdateWorldBlocks(vk::CommandBuffer command_buffer, RelativeWorldShiftChunks relative_world_shift);
+	void UpdateLight(vk::CommandBuffer command_buffer, RelativeWorldShiftChunks relative_world_shift);
 	void CreateWorldBlocksAndLightUpdateBarrier(vk::CommandBuffer command_buffer);
 	void BuildPlayerWorldWindow(vk::CommandBuffer command_buffer);
 	void UpdatePlayer(
@@ -145,6 +147,7 @@ private:
 
 	WorldOffsetChunks world_offset_;
 	WorldOffsetChunks next_world_offset_;
+	WorldOffsetChunks next_next_world_offset_;
 
 	bool initial_buffers_filled_= false;
 

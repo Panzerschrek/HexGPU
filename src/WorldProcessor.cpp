@@ -530,6 +530,7 @@ WorldProcessor::WorldProcessor(
 			*world_blocks_external_update_queue_flush_pipeline_.descriptor_set_layout)}
 	, world_offset_{-int32_t(world_size_[0] / 2u), -int32_t(world_size_[1] / 2u)}
 	, next_world_offset_(world_offset_)
+	, next_next_world_offset_(next_world_offset_)
 {
 	// Update world generation descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
@@ -849,6 +850,12 @@ void WorldProcessor::Update(
 {
 	InitialFillBuffers(command_buffer);
 
+	const RelativeWorldShiftChunks relative_shift
+	{
+		next_world_offset_[0] - world_offset_[0],
+		next_world_offset_[1] - world_offset_[1],
+	};
+
 	// This frequency allows relatively fast world updates and still doesn't overload GPU too much.
 	const float c_update_frequency= 8.0f;
 
@@ -868,8 +875,8 @@ void WorldProcessor::Update(
 		const float cur_offset_within_tick= std::min(1.0f, cur_tick_fractional - float(current_tick_));
 		BuildCurrentFrameChunksToUpdateList(prev_offset_within_tick, cur_offset_within_tick);
 
-		UpdateWorldBlocks(command_buffer);
-		UpdateLight(command_buffer);
+		UpdateWorldBlocks(command_buffer, relative_shift);
+		UpdateLight(command_buffer, relative_shift);
 		// No need to synchronize world blocks and lighting update here.
 		// Add a barier only at the beginning of next tick.
 	}
@@ -877,6 +884,9 @@ void WorldProcessor::Update(
 	// Switch to the next tick (if necessary).
 	if(current_tick_ == 0 || uint32_t(prev_tick_fractional) < uint32_t(cur_tick_fractional))
 	{
+		world_offset_= next_world_offset_;
+		next_world_offset_= next_next_world_offset_;
+
 		CreateWorldBlocksAndLightUpdateBarrier(command_buffer); // Wait until all block and light updates are finished.
 
 		FlushWorldBlocksExternalUpdateQueue(command_buffer);
@@ -896,22 +906,22 @@ void WorldProcessor::Update(
 
 void WorldProcessor::StepWorldEast()
 {
-	++next_world_offset_[0];
+	++next_next_world_offset_[0];
 }
 
 void WorldProcessor::StepWorldWest()
 {
-	--next_world_offset_[0];
+	--next_next_world_offset_[0];
 }
 
 void WorldProcessor::StepWorldNorth()
 {
-	++next_world_offset_[1];
+	++next_next_world_offset_[1];
 }
 
 void WorldProcessor::StepWorldSouth()
 {
-	--next_world_offset_[1];
+	--next_next_world_offset_[1];
 }
 
 vk::Buffer WorldProcessor::GetChunkDataBuffer(const uint32_t index) const
@@ -1191,7 +1201,9 @@ void WorldProcessor::BuildCurrentFrameChunksToUpdateList(
 		current_frame_chunks_to_update_list_.push_back({chunk_index % world_size_[0], chunk_index / world_size_[0]});
 }
 
-void WorldProcessor::UpdateWorldBlocks(const vk::CommandBuffer command_buffer)
+void WorldProcessor::UpdateWorldBlocks(
+	const vk::CommandBuffer command_buffer,
+	const RelativeWorldShiftChunks relative_world_shift)
 {
 	const uint32_t src_buffer_index= GetSrcBufferIndex();
 
@@ -1211,8 +1223,12 @@ void WorldProcessor::UpdateWorldBlocks(const vk::CommandBuffer command_buffer)
 		uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
 		uniforms.in_chunk_position[0]= int32_t(chunk_to_update[0]);
 		uniforms.in_chunk_position[1]= int32_t(chunk_to_update[1]);
-		uniforms.out_chunk_position[0]= int32_t(chunk_to_update[0]);
-		uniforms.out_chunk_position[1]= int32_t(chunk_to_update[1]);
+		uniforms.out_chunk_position[0]= int32_t(chunk_to_update[0]) - relative_world_shift[0];
+		uniforms.out_chunk_position[1]= int32_t(chunk_to_update[1]) - relative_world_shift[1];
+
+		if( uniforms.out_chunk_position[0] < 0 || uniforms.out_chunk_position[0] >= int32_t(world_size_[0]) ||
+			uniforms.out_chunk_position[1] < 0 || uniforms.out_chunk_position[1] >= int32_t(world_size_[1]))
+			continue;
 
 		command_buffer.pushConstants(
 			*world_blocks_update_pipeline_.pipeline_layout,
@@ -1233,7 +1249,9 @@ void WorldProcessor::UpdateWorldBlocks(const vk::CommandBuffer command_buffer)
 	}
 }
 
-void WorldProcessor::UpdateLight(const vk::CommandBuffer command_buffer)
+void WorldProcessor::UpdateLight(
+	const vk::CommandBuffer command_buffer,
+	const RelativeWorldShiftChunks relative_world_shift)
 {
 	const uint32_t src_buffer_index= GetSrcBufferIndex();
 
@@ -1253,8 +1271,12 @@ void WorldProcessor::UpdateLight(const vk::CommandBuffer command_buffer)
 		uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
 		uniforms.in_chunk_position[0]= int32_t(chunk_to_update[0]);
 		uniforms.in_chunk_position[1]= int32_t(chunk_to_update[1]);
-		uniforms.out_chunk_position[0]= int32_t(chunk_to_update[0]);
-		uniforms.out_chunk_position[1]= int32_t(chunk_to_update[1]);
+		uniforms.out_chunk_position[0]= int32_t(chunk_to_update[0]) - relative_world_shift[0];
+		uniforms.out_chunk_position[1]= int32_t(chunk_to_update[1]) - relative_world_shift[1];
+
+		if( uniforms.out_chunk_position[0] < 0 || uniforms.out_chunk_position[0] >= int32_t(world_size_[0]) ||
+			uniforms.out_chunk_position[1] < 0 || uniforms.out_chunk_position[1] >= int32_t(world_size_[1]))
+			continue;
 
 		command_buffer.pushConstants(
 			*light_update_pipeline_.pipeline_layout,

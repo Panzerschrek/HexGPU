@@ -120,25 +120,25 @@ private:
 	const Buffer player_world_window_buffer_;
 
 	const ComputePipeline world_gen_pipeline_;
-	vk::DescriptorSet world_gen_descriptor_sets_[2];
+	const std::array<vk::DescriptorSet, 2> world_gen_descriptor_sets_;
 
 	const ComputePipeline initial_light_fill_pipeline_;
-	vk::DescriptorSet initial_light_fill_descriptor_sets_[2];
+	const std::array<vk::DescriptorSet, 2> initial_light_fill_descriptor_sets_;
 
 	const ComputePipeline world_blocks_update_pipeline_;
-	vk::DescriptorSet world_blocks_update_descriptor_sets_[2];
+	const std::array<vk::DescriptorSet, 2> world_blocks_update_descriptor_sets_;
 
 	const ComputePipeline light_update_pipeline_;
-	vk::DescriptorSet light_update_descriptor_sets_[2];
+	const std::array<vk::DescriptorSet, 2> light_update_descriptor_sets_;
 
 	const ComputePipeline player_world_window_build_pipeline_;
-	vk::DescriptorSet player_world_window_build_descriptor_sets_[2];
+	const std::array<vk::DescriptorSet, 2> player_world_window_build_descriptor_sets_;
 
 	const ComputePipeline player_update_pipeline_;
 	const vk::DescriptorSet player_update_descriptor_set_;
 
 	const ComputePipeline world_blocks_external_update_queue_flush_pipeline_;
-	vk::DescriptorSet world_blocks_external_update_queue_flush_descriptor_sets_[2];
+	const std::array<vk::DescriptorSet, 2> world_blocks_external_update_queue_flush_descriptor_sets_;
 
 	bool initial_buffers_filled_= false;
 	bool world_generated_= false;

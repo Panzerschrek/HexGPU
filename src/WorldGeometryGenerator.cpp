@@ -307,10 +307,22 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 			global_descriptor_pool,
 			*geometry_size_calculate_prepare_pipeline_.descriptor_set_layout))
 	, geometry_size_calculate_pipeline_(CreateGeometrySizeCalculatePipeline(vk_device_))
+	, geometry_size_calculate_descriptor_sets_{
+		CreateDescriptorSet(
+			vk_device_,
+			global_descriptor_pool,
+			*geometry_size_calculate_pipeline_.descriptor_set_layout),
+		CreateDescriptorSet(
+			vk_device_,
+			global_descriptor_pool,
+			*geometry_size_calculate_pipeline_.descriptor_set_layout)}
 	, geometry_allocate_pipeline_(CreateGeometryAllocatePipeline(vk_device_))
 	, geometry_allocate_descriptor_set_(
 		CreateDescriptorSet(vk_device_, global_descriptor_pool, *geometry_allocate_pipeline_.descriptor_set_layout))
 	, geometry_gen_pipeline_(CreateGeometryGenPipeline(vk_device_))
+	, geometry_gen_descriptor_sets_{
+		CreateDescriptorSet(vk_device_, global_descriptor_pool, *geometry_gen_pipeline_.descriptor_set_layout),
+		CreateDescriptorSet(vk_device_, global_descriptor_pool, *geometry_gen_pipeline_.descriptor_set_layout)}
 {
 	// Update descriptor set.
 	{
@@ -335,15 +347,9 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 			{});
 	}
 
-	// Create and update descriptor sets.
+	// Update descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
 	{
-		geometry_size_calculate_descriptor_sets_[i]=
-			CreateDescriptorSet(
-				vk_device_,
-				global_descriptor_pool,
-				*geometry_size_calculate_pipeline_.descriptor_set_layout);
-
 		const vk::DescriptorBufferInfo descriptor_chunk_data_buffer_info(
 			world_processor_.GetChunkDataBuffer(i),
 			0u,
@@ -418,12 +424,9 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 			{});
 	}
 
-	// Create and update descriptor sets.
+	// Update descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
 	{
-		geometry_gen_descriptor_sets_[i]=
-			CreateDescriptorSet(vk_device_, global_descriptor_pool, *geometry_gen_pipeline_.descriptor_set_layout);
-
 		const vk::DescriptorBufferInfo descriptor_vertex_buffer_info(
 			vertex_buffer_.GetBuffer(),
 			0u,

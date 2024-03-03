@@ -70,13 +70,13 @@ private:
 	const vk::DescriptorSet geometry_size_calculate_prepare_descriptor_set_;
 
 	const ComputePipeline geometry_size_calculate_pipeline_;
-	vk::DescriptorSet geometry_size_calculate_descriptor_sets_[2];
+	const std::array<vk::DescriptorSet, 2> geometry_size_calculate_descriptor_sets_;
 
 	const ComputePipeline geometry_allocate_pipeline_;
 	const vk::DescriptorSet geometry_allocate_descriptor_set_;
 
 	const ComputePipeline geometry_gen_pipeline_;
-	vk::DescriptorSet geometry_gen_descriptor_sets_[2];
+	const std::array<vk::DescriptorSet, 2> geometry_gen_descriptor_sets_;
 
 	uint32_t frame_counter_= 0;
 	std::vector<std::array<uint32_t, 2>> chunks_to_update_;

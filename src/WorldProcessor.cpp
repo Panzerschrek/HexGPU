@@ -14,60 +14,46 @@ namespace
 
 namespace WorldGenShaderBindings
 {
-
-uint32_t chunk_data_buffer= 0;
-
+	const ShaderBindingIndex chunk_data_buffer= 0;
 }
 
 namespace InitialLightFillShaderBindings
 {
-
-uint32_t chunk_data_buffer= 0;
-uint32_t light_data_buffer= 1;
-
+	const ShaderBindingIndex chunk_data_buffer= 0;
+	const ShaderBindingIndex light_data_buffer= 1;
 }
 
 namespace WorldBlocksUpdateShaderBindings
 {
-
-uint32_t chunk_data_input_buffer= 0;
-uint32_t chunk_data_output_buffer= 1;
-
+	const ShaderBindingIndex chunk_data_input_buffer= 0;
+	const ShaderBindingIndex chunk_data_output_buffer= 1;
 }
 
 namespace LightUpdateShaderBindings
 {
-
-uint32_t chunk_data_buffer= 0;
-uint32_t chunk_input_light_buffer= 1;
-uint32_t chunk_output_light_buffer= 2;
-
+	const ShaderBindingIndex chunk_data_buffer= 0;
+	const ShaderBindingIndex chunk_input_light_buffer= 1;
+	const ShaderBindingIndex chunk_output_light_buffer= 2;
 }
 
 namespace PlayerWorldWindowBuildShaderBindings
 {
-
-uint32_t chunk_data_buffer= 0;
-uint32_t player_world_window_buffer= 1;
-uint32_t player_state_buffer= 2;
-
+	const ShaderBindingIndex chunk_data_buffer= 0;
+	const ShaderBindingIndex player_world_window_buffer= 1;
+	const ShaderBindingIndex player_state_buffer= 2;
 }
 
 namespace PlayerUpdateShaderBindings
 {
-
-uint32_t player_state_buffer= 1;
-uint32_t world_blocks_external_update_queue_buffer= 2;
-uint32_t player_world_window_buffer= 3;
-
+	const ShaderBindingIndex player_state_buffer= 1;
+	const ShaderBindingIndex world_blocks_external_update_queue_buffer= 2;
+	const ShaderBindingIndex player_world_window_buffer= 3;
 }
 
-namespace WorldBlocksExternalUpdateQueueFlushBindigns
+namespace WorldBlocksExternalUpdateQueueFlushShaderBindigns
 {
-
-uint32_t chunk_data_buffer= 0;
-uint32_t world_blocks_external_update_queue_buffer= 1;
-
+	const ShaderBindingIndex chunk_data_buffer= 0;
+	const ShaderBindingIndex world_blocks_external_update_queue_buffer= 1;
 }
 
 // Size limit of this struct is 128 bytes.
@@ -406,14 +392,14 @@ ComputePipeline CreateWorldBlocksExternalUpdateQueueFlushPipeline(const vk::Devi
 	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
 	{
 		{
-			WorldBlocksExternalUpdateQueueFlushBindigns::chunk_data_buffer,
+			WorldBlocksExternalUpdateQueueFlushShaderBindigns::chunk_data_buffer,
 			vk::DescriptorType::eStorageBuffer,
 			1u,
 			vk::ShaderStageFlagBits::eCompute,
 			nullptr,
 		},
 		{
-			WorldBlocksExternalUpdateQueueFlushBindigns::world_blocks_external_update_queue_buffer,
+			WorldBlocksExternalUpdateQueueFlushShaderBindigns::world_blocks_external_update_queue_buffer,
 			vk::DescriptorType::eStorageBuffer,
 			1u,
 			vk::ShaderStageFlagBits::eCompute,
@@ -806,7 +792,7 @@ WorldProcessor::WorldProcessor(
 			{
 				{
 					world_blocks_external_update_queue_flush_descriptor_sets_[i],
-					WorldBlocksExternalUpdateQueueFlushBindigns::chunk_data_buffer,
+					WorldBlocksExternalUpdateQueueFlushShaderBindigns::chunk_data_buffer,
 					0u,
 					1u,
 					vk::DescriptorType::eStorageBuffer,
@@ -816,7 +802,7 @@ WorldProcessor::WorldProcessor(
 				},
 				{
 					world_blocks_external_update_queue_flush_descriptor_sets_[i],
-					WorldBlocksExternalUpdateQueueFlushBindigns::world_blocks_external_update_queue_buffer,
+					WorldBlocksExternalUpdateQueueFlushShaderBindigns::world_blocks_external_update_queue_buffer,
 					0u,
 					1u,
 					vk::DescriptorType::eStorageBuffer,

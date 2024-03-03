@@ -15,19 +15,14 @@ namespace
 
 namespace DrawIndirectBufferBuildShaderBindings
 {
-
-// This should match bindings in the shader itself!
-const uint32_t chunk_draw_info_buffer= 0;
-const uint32_t draw_indirect_buffer= 1;
-
+	const ShaderBindingIndex chunk_draw_info_buffer= 0;
+	const ShaderBindingIndex draw_indirect_buffer= 1;
 }
 
 namespace DrawShaderBindings
 {
-
-const uint32_t uniform_buffer= 0;
-const uint32_t sampler= 1;
-
+	const ShaderBindingIndex uniform_buffer= 0;
+	const ShaderBindingIndex sampler= 1;
 }
 
 struct DrawIndirectBufferBuildUniforms

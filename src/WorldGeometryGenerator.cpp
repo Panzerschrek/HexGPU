@@ -11,41 +11,29 @@ namespace HexGPU
 namespace
 {
 
-namespace GeometrySizeCalculatePrepareBindings
+namespace GeometrySizeCalculatePrepareShaderBindings
 {
-
-// This should match bindings in the shader itself!
-const uint32_t chunk_draw_info_buffer= 0;
-
+	const ShaderBindingIndex chunk_draw_info_buffer= 0;
 }
 
-namespace GeometrySizeCalculateBindings
+namespace GeometrySizeCalculateShaderBindings
 {
-
-// This should match bindings in the shader itself!
-const uint32_t chunk_data_buffer= 0;
-const uint32_t chunk_draw_info_buffer= 1;
-
+	const ShaderBindingIndex chunk_data_buffer= 0;
+	const ShaderBindingIndex chunk_draw_info_buffer= 1;
 }
 
-namespace GeometryAllocateBindings
+namespace GeometryAllocateShaderBindings
 {
-
-// This should match bindings in the shader itself!
-const uint32_t chunk_draw_info_buffer= 0;
-const uint32_t allocator_data_buffer= GPUAllocator::c_allocator_buffer_binding;
-
+	const ShaderBindingIndex chunk_draw_info_buffer= 0;
+	const ShaderBindingIndex allocator_data_buffer= GPUAllocator::c_allocator_buffer_binding;
 }
 
 namespace GeometryGenShaderBindings
 {
-
-// This should match bindings in the shader itself!
-const uint32_t vertices_buffer= 0;
-const uint32_t chunk_data_buffer= 1;
-const uint32_t chunk_light_buffer= 2;
-const uint32_t chunk_draw_info_buffer= 3;
-
+	const ShaderBindingIndex vertices_buffer= 0;
+	const ShaderBindingIndex chunk_data_buffer= 1;
+	const ShaderBindingIndex chunk_light_buffer= 2;
+	const ShaderBindingIndex chunk_draw_info_buffer= 3;
 }
 
 // Size limit of this struct is 128 bytes.
@@ -102,7 +90,7 @@ ComputePipeline CreateGeometrySizeCalculatePreparePipeline(const vk::Device vk_d
 	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
 	{
 		{
-			GeometrySizeCalculatePrepareBindings::chunk_draw_info_buffer,
+			GeometrySizeCalculatePrepareShaderBindings::chunk_draw_info_buffer,
 			vk::DescriptorType::eStorageBuffer,
 			1u,
 			vk::ShaderStageFlagBits::eCompute,
@@ -140,14 +128,14 @@ ComputePipeline CreateGeometrySizeCalculatePipeline(const vk::Device vk_device)
 	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
 	{
 		{
-			GeometrySizeCalculateBindings::chunk_data_buffer,
+			GeometrySizeCalculateShaderBindings::chunk_data_buffer,
 			vk::DescriptorType::eStorageBuffer,
 			1u,
 			vk::ShaderStageFlagBits::eCompute,
 			nullptr,
 		},
 		{
-			GeometrySizeCalculateBindings::chunk_draw_info_buffer,
+			GeometrySizeCalculateShaderBindings::chunk_draw_info_buffer,
 			vk::DescriptorType::eStorageBuffer,
 			1u,
 			vk::ShaderStageFlagBits::eCompute,
@@ -185,14 +173,14 @@ ComputePipeline CreateGeometryAllocatePipeline(const vk::Device vk_device)
 	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
 	{
 		{
-			GeometryAllocateBindings::chunk_draw_info_buffer,
+			GeometryAllocateShaderBindings::chunk_draw_info_buffer,
 			vk::DescriptorType::eStorageBuffer,
 			1u,
 			vk::ShaderStageFlagBits::eCompute,
 			nullptr,
 		},
 		{
-			GeometryAllocateBindings::allocator_data_buffer,
+			GeometryAllocateShaderBindings::allocator_data_buffer,
 			vk::DescriptorType::eStorageBuffer,
 			1u,
 			vk::ShaderStageFlagBits::eCompute,
@@ -335,7 +323,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 			{
 				{
 					geometry_size_calculate_prepare_descriptor_set_,
-					GeometrySizeCalculatePrepareBindings::chunk_draw_info_buffer,
+					GeometrySizeCalculatePrepareShaderBindings::chunk_draw_info_buffer,
 					0u,
 					1u,
 					vk::DescriptorType::eStorageBuffer,
@@ -364,7 +352,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 			{
 				{
 					geometry_size_calculate_descriptor_sets_[i],
-					GeometrySizeCalculateBindings::chunk_data_buffer,
+					GeometrySizeCalculateShaderBindings::chunk_data_buffer,
 					0u,
 					1u,
 					vk::DescriptorType::eStorageBuffer,
@@ -374,7 +362,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 				},
 				{
 					geometry_size_calculate_descriptor_sets_[i],
-					GeometrySizeCalculateBindings::chunk_draw_info_buffer,
+					GeometrySizeCalculateShaderBindings::chunk_draw_info_buffer,
 					0u,
 					1u,
 					vk::DescriptorType::eStorageBuffer,
@@ -402,7 +390,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 			{
 				{
 					geometry_allocate_descriptor_set_,
-					GeometryAllocateBindings::chunk_draw_info_buffer,
+					GeometryAllocateShaderBindings::chunk_draw_info_buffer,
 					0u,
 					1u,
 					vk::DescriptorType::eStorageBuffer,
@@ -412,7 +400,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 				},
 				{
 					geometry_allocate_descriptor_set_,
-					GeometryAllocateBindings::allocator_data_buffer,
+					GeometryAllocateShaderBindings::allocator_data_buffer,
 					0u,
 					1u,
 					vk::DescriptorType::eStorageBuffer,

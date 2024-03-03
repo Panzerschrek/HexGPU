@@ -1375,60 +1375,40 @@ void WorldProcessor::UpdatePlayer(
 	// Player update is single-threaded.
 	command_buffer.dispatch(1, 1, 1);
 
-	// Create barrier between player update and later player state usage.
-	// TODO - check this is correct.
+	// Create barrier between player update and later player structs usage.
+
+	const vk::BufferMemoryBarrier barriers[]
 	{
-		const vk::BufferMemoryBarrier barrier(
+		{
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eTransferRead,
 			queue_family_index_, queue_family_index_,
 			player_state_buffer_.GetBuffer(),
 			0,
-			VK_WHOLE_SIZE);
-
-		command_buffer.pipelineBarrier(
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::PipelineStageFlagBits::eComputeShader | vk::PipelineStageFlagBits::eTransfer,
-			vk::DependencyFlags(),
-			0, nullptr,
-			1, &barrier,
-			0, nullptr);
-	}
-	// Create barrier after usage of world blocks external update queue.
-	// TODO - check this is correct.
-	{
-		const vk::BufferMemoryBarrier barrier(
+			VK_WHOLE_SIZE
+		},
+		{
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
 			world_blocks_external_update_queue_buffer_.GetBuffer(),
 			0,
-			VK_WHOLE_SIZE);
-
-		command_buffer.pipelineBarrier(
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::DependencyFlags(),
-			0, nullptr,
-			1, &barrier,
-			0, nullptr);
-	}
-	// Create barrier between player world window buffer update and its later usage.
-	// TODO - check this is correct.
-	{
-		const vk::BufferMemoryBarrier barrier(
+			VK_WHOLE_SIZE
+		},
+		{
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
 			player_world_window_buffer_.GetBuffer(),
 			0,
-			VK_WHOLE_SIZE);
+			VK_WHOLE_SIZE
+		},
+	};
 
-		command_buffer.pipelineBarrier(
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::DependencyFlags(),
-			0, nullptr,
-			1, &barrier,
-			0, nullptr);
-	}
+	command_buffer.pipelineBarrier(
+		vk::PipelineStageFlagBits::eComputeShader,
+		vk::PipelineStageFlagBits::eComputeShader | vk::PipelineStageFlagBits::eTransfer,
+		vk::DependencyFlags(),
+		0, nullptr,
+		uint32_t(std::size(barriers)), barriers,
+		0, nullptr);
 }
 
 void WorldProcessor::FlushWorldBlocksExternalUpdateQueue(const vk::CommandBuffer command_buffer)
@@ -1461,42 +1441,34 @@ void WorldProcessor::FlushWorldBlocksExternalUpdateQueue(const vk::CommandBuffer
 	// Queue flushing is single-threaded.
 	command_buffer.dispatch(1, 1, 1);
 
-	// Create barrier between world changes in queue flush and world later usage.
+	// Create barrier between world changes in queue flush and world and queue later usage.
 	// TODO - check this is correct.
+
+	const vk::BufferMemoryBarrier barriers[]
 	{
-		const vk::BufferMemoryBarrier barrier(
+		{
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
 			chunk_data_buffers_[dst_buffer_index].GetBuffer(),
 			0,
-			VK_WHOLE_SIZE);
-
-		command_buffer.pipelineBarrier(
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::DependencyFlags(),
-			0, nullptr,
-			1, &barrier,
-			0, nullptr);
-	}
-	// Create barrier after usage of world blocks external update queue.
-	// TODO - check this is correct.
-	{
-		const vk::BufferMemoryBarrier barrier(
+			VK_WHOLE_SIZE
+		},
+		{
 			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
 			world_blocks_external_update_queue_buffer_.GetBuffer(),
 			0,
-			VK_WHOLE_SIZE);
+			VK_WHOLE_SIZE
+		},
+	};
 
-		command_buffer.pipelineBarrier(
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::DependencyFlags(),
-			0, nullptr,
-			1, &barrier,
-			0, nullptr);
-	}
+	command_buffer.pipelineBarrier(
+		vk::PipelineStageFlagBits::eComputeShader,
+		vk::PipelineStageFlagBits::eComputeShader,
+		vk::DependencyFlags(),
+		0, nullptr,
+		uint32_t(std::size(barriers)), barriers,
+		0, nullptr);
 }
 
 uint32_t WorldProcessor::GetSrcBufferIndex() const

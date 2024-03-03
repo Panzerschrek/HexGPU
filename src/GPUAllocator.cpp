@@ -19,32 +19,11 @@ GPUAllocator::GPUAllocator(WindowVulkan& window_vulkan, const uint32_t total_mem
 	: vk_device_(window_vulkan.GetVulkanDevice())
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, total_memory_units_(total_memory_units)
-	, allocator_data_buffer_size_(CalculateAllocatorDataSize(total_memory_units))
+	, allocator_data_buffer_(
+		window_vulkan,
+		CalculateAllocatorDataSize(total_memory_units),
+		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst)
 {
-	allocator_data_buffer_=
-		vk_device_.createBufferUnique(
-			vk::BufferCreateInfo(
-				vk::BufferCreateFlags(),
-				allocator_data_buffer_size_,
-				vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst));
-
-	const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*allocator_data_buffer_);
-
-	const auto memory_properties= window_vulkan.GetMemoryProperties();
-
-	vk::MemoryAllocateInfo memory_allocate_info(buffer_memory_requirements.size);
-	for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
-	{
-		if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
-			(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
-		{
-			memory_allocate_info.memoryTypeIndex= i;
-			break;
-		}
-	}
-
-	allocator_data_buffer_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);
-	vk_device_.bindBufferMemory(*allocator_data_buffer_, *allocator_data_buffer_memory_, 0u);
 }
 
 GPUAllocator::~GPUAllocator()
@@ -54,12 +33,12 @@ GPUAllocator::~GPUAllocator()
 
 vk::Buffer GPUAllocator::GetAllocatorDataBuffer() const
 {
-	return allocator_data_buffer_.get();
+	return allocator_data_buffer_.GetBuffer();
 }
 
-uint32_t GPUAllocator::GetAllocatorDataBufferSize() const
+vk::DeviceSize GPUAllocator::GetAllocatorDataBufferSize() const
 {
-	return allocator_data_buffer_size_;
+	return allocator_data_buffer_.GetSize();
 }
 
 void GPUAllocator::EnsureInitialized(const vk::CommandBuffer command_buffer)
@@ -69,10 +48,10 @@ void GPUAllocator::EnsureInitialized(const vk::CommandBuffer command_buffer)
 	initialized_= true;
 
 	std::vector<uint32_t> data;
-	data.resize(allocator_data_buffer_size_ / sizeof(uint32_t), uint32_t(0)); // Fill with zeros - indicating free memory.
+	data.resize(allocator_data_buffer_.GetSize() / sizeof(uint32_t), uint32_t(0)); // Fill with zeros - indicating free memory.
 	data[0]= total_memory_units_; // Set size.
 
-	command_buffer.updateBuffer(*allocator_data_buffer_, 0u, allocator_data_buffer_size_, data.data());
+	command_buffer.updateBuffer(allocator_data_buffer_.GetBuffer(), 0u, allocator_data_buffer_.GetSize(), data.data());
 
 	// Create barrier between update allocator data buffer and its later usage.
 	// TODO - check this is correct.
@@ -80,7 +59,7 @@ void GPUAllocator::EnsureInitialized(const vk::CommandBuffer command_buffer)
 		const vk::BufferMemoryBarrier barrier(
 			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
-			*allocator_data_buffer_,
+			allocator_data_buffer_.GetBuffer(),
 			0,
 			VK_WHOLE_SIZE);
 

@@ -1,4 +1,4 @@
-#include "WindowVulkan.hpp"
+#include "Buffer.hpp"
 
 namespace HexGPU
 {
@@ -15,7 +15,7 @@ public:
 	~GPUAllocator();
 
 	vk::Buffer GetAllocatorDataBuffer() const;
-	uint32_t GetAllocatorDataBufferSize() const;
+	vk::DeviceSize GetAllocatorDataBufferSize() const;
 
 	void EnsureInitialized(vk::CommandBuffer command_buffer);
 
@@ -24,9 +24,7 @@ private:
 	const uint32_t queue_family_index_;
 
 	const uint32_t total_memory_units_;
-	const uint32_t allocator_data_buffer_size_;
-	vk::UniqueBuffer allocator_data_buffer_;
-	vk::UniqueDeviceMemory allocator_data_buffer_memory_;
+	const Buffer allocator_data_buffer_;
 
 	bool initialized_= false;
 };

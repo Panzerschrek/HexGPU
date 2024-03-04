@@ -1,6 +1,6 @@
 Here is the list of futures that needs to be implemented.
 The order represents importance and/or dependency.
-* World movement
+* Player position-based world movement
 * Chunks save/load
 * Textures with scale based on block type/side
 * Textures without cross-block repetition (with zeroing at each block)

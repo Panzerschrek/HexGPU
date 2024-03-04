@@ -428,7 +428,9 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 			queue_family_index));
 
 	// Create command buffers and it's synchronization primitives.
-	command_buffers_.resize(3u); // Use tripple buffering for command buffers.
+	// Use double buffering for command buffers.
+	// 2 is enough - one is executing on the GPU now, the other is prepared by the CPU.
+	command_buffers_.resize(2u);
 	for(CommandBufferData& frame_data : command_buffers_)
 	{
 		frame_data.command_buffer=

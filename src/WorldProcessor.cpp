@@ -118,8 +118,8 @@ struct WorldBlocksExternalUpdateQueueFlushUniforms
 WorldSizeChunks ReadWorldSize(Settings& settings)
 {
 	// Round world size up to next even number.
-	const int32_t world_size_x= (std::max(2, std::min(int32_t(settings.GetInt("g_world_size_x", 8)), 32)) + 1) & ~1;
-	const int32_t world_size_y= (std::max(2, std::min(int32_t(settings.GetInt("g_world_size_y", 8)), 32)) + 1) & ~1;
+	const int32_t world_size_x= (std::max(6, std::min(int32_t(settings.GetInt("g_world_size_x", 8)), 32)) + 1) & ~1;
+	const int32_t world_size_y= (std::max(6, std::min(int32_t(settings.GetInt("g_world_size_y", 8)), 32)) + 1) & ~1;
 
 	settings.SetInt("g_world_size_x", world_size_x);
 	settings.SetInt("g_world_size_y", world_size_y);
@@ -873,7 +873,7 @@ void WorldProcessor::Update(
 {
 	InitialFillBuffers(command_buffer);
 
-	ReadBackPlayerState();
+	ReadBackAndProcessPlayerState();
 
 	const RelativeWorldShiftChunks relative_shift
 	{
@@ -1100,7 +1100,7 @@ void WorldProcessor::InitialFillBuffers(const vk::CommandBuffer command_buffer)
 		0, nullptr);
 }
 
-void WorldProcessor::ReadBackPlayerState()
+void WorldProcessor::ReadBackAndProcessPlayerState()
 {
 	// Assuming that writes into this buffer are finished in "player_state_read_back_buffer_num_frames_" frames.
 
@@ -1128,8 +1128,9 @@ void WorldProcessor::ReadBackPlayerState()
 	{
 		const int32_t chunk_relative_coord= chunk_coord[i] - next_next_world_offset_[i];
 
-		const int32_t max_dist_to_border= int32_t(world_size_[i]) / 2 - 2;
+		const int32_t max_dist_to_border= std::max(0, int32_t(world_size_[i]) / 2 - 2);
 
+		// Shift the world in single step in order to avoid mowing the world too much at once.
 		if(chunk_relative_coord < max_dist_to_border)
 			--next_next_world_offset_[i];
 		else if(chunk_relative_coord >= int32_t(world_size_[i]) - max_dist_to_border)

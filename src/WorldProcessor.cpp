@@ -870,6 +870,8 @@ void WorldProcessor::Update(
 {
 	InitialFillBuffers(command_buffer);
 
+	ReadBackPlayerState();
+
 	const RelativeWorldShiftChunks relative_shift
 	{
 		next_world_offset_[0] - world_offset_[0],
@@ -1093,6 +1095,22 @@ void WorldProcessor::InitialFillBuffers(const vk::CommandBuffer command_buffer)
 		0, nullptr,
 		uint32_t(std::size(barriers)), barriers,
 		0, nullptr);
+}
+
+void WorldProcessor::ReadBackPlayerState()
+{
+	// Assuming that writes into this buffer are finished in "player_state_read_back_buffer_num_frames_" frames.
+
+	if(current_frame_ < player_state_read_back_buffer_num_frames_)
+		return;
+
+	const uint32_t current_slot= (current_frame_ - player_state_read_back_buffer_num_frames_) % player_state_read_back_buffer_num_frames_;
+
+	PlayerState player_state{};
+	std::memcpy(
+		&player_state,
+		static_cast<const uint8_t*>(player_state_read_back_buffer_mapped_) + current_slot * sizeof(PlayerState),
+		sizeof(PlayerState));
 }
 
 void WorldProcessor::InitialGenerateWorld(const vk::CommandBuffer command_buffer)

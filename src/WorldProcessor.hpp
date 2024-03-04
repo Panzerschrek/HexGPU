@@ -95,6 +95,7 @@ private:
 
 private:
 	void InitialFillBuffers(vk::CommandBuffer command_buffer);
+	void ReadBackPlayerState();
 	void InitialGenerateWorld(vk::CommandBuffer command_buffer);
 	void DetermineChunksUpdateKind(RelativeWorldShiftChunks relative_world_shift);
 	void BuildCurrentFrameChunksToUpdateList(float prev_offset_within_tick, float cur_offset_within_tick);

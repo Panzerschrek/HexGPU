@@ -15,7 +15,6 @@
 
 layout(push_constant) uniform uniforms_block
 {
-	ivec2 world_size_chunks;
 	float aspect;
 	float time_delta_s;
 	uint keyboard_state;

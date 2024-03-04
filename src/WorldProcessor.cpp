@@ -103,7 +103,6 @@ struct PlayerWorldWindowBuildUniforms
 
 struct PlayerUpdateUniforms
 {
-	int32_t world_size_chunks[2]{0, 0};
 	float aspect= 0.0f;
 	float time_delta_s= 0.0f;
 	KeyboardState keyboard_state= 0;
@@ -1558,8 +1557,6 @@ void WorldProcessor::UpdatePlayer(
 
 	PlayerUpdateUniforms player_update_uniforms;
 	player_update_uniforms.aspect= aspect;
-	player_update_uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
-	player_update_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
 	player_update_uniforms.time_delta_s= time_delta_s;
 	player_update_uniforms.keyboard_state= keyboard_state;
 	player_update_uniforms.mouse_state= mouse_state;

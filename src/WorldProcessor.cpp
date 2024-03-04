@@ -506,6 +506,7 @@ WorldProcessor::WorldProcessor(
 		sizeof(PlayerState) * player_state_read_back_buffer_num_frames_,
 		vk::BufferUsageFlagBits::eTransferDst,
 		vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
+	, player_state_read_back_buffer_mapped_(player_state_read_back_buffer_.Map(window_vulkan.GetVulkanDevice()))
 	, world_gen_pipeline_(CreateWorldGenPipeline(vk_device_))
 	, world_gen_descriptor_sets_{
 		CreateDescriptorSet(vk_device_, global_descriptor_pool, *world_gen_pipeline_.descriptor_set_layout),
@@ -854,6 +855,8 @@ WorldProcessor::WorldProcessor(
 
 WorldProcessor::~WorldProcessor()
 {
+	player_state_read_back_buffer_.Unmap(vk_device_);
+
 	// Sync before destruction.
 	vk_device_.waitIdle();
 }

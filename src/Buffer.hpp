@@ -18,6 +18,9 @@ public:
 
 	vk::Buffer GetBuffer() const;
 
+	void* Map(vk::Device vk_device) const;
+	void Unmap(vk::Device vk_device) const;
+
 private:
 	const vk::DeviceSize size_;
 	vk::UniqueBuffer buffer_;

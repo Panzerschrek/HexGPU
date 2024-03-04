@@ -6,7 +6,6 @@
 
 #include "inc/allocator.glsl"
 #include "inc/chunk_draw_info.glsl"
-#include "inc/constants.glsl"
 
 layout(push_constant) uniform uniforms_block
 {

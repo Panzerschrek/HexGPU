@@ -5,7 +5,6 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 
 #include "inc/chunk_draw_info.glsl"
-#include "inc/constants.glsl"
 #include "inc/vulkan_structs.glsl"
 
 layout(push_constant) uniform uniforms_block

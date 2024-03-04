@@ -25,6 +25,11 @@ public:
 		MouseState mouse_state,
 		float aspect);
 
+	void StepWorldEast();
+	void StepWorldWest();
+	void StepWorldNorth();
+	void StepWorldSouth();
+
 	vk::Buffer GetChunkDataBuffer(uint32_t index) const;
 	vk::DeviceSize GetChunkDataBufferSize() const;
 	vk::Buffer GetLightDataBuffer(uint32_t index) const;
@@ -80,12 +85,22 @@ private:
 		WorldBlockExternalUpdate updates[c_max_world_blocks_external_updates];
 	};
 
+	using RelativeWorldShiftChunks= std::array<int32_t, 2>;
+
+	enum class ChunkUpdateKind : uint8_t
+	{
+		Update,
+		Generate,
+	};
+
 private:
 	void InitialFillBuffers(vk::CommandBuffer command_buffer);
 	void InitialGenerateWorld(vk::CommandBuffer command_buffer);
+	void DetermineChunksUpdateKind(RelativeWorldShiftChunks relative_world_shift);
 	void BuildCurrentFrameChunksToUpdateList(float prev_offset_within_tick, float cur_offset_within_tick);
-	void UpdateWorldBlocks(vk::CommandBuffer command_buffer);
-	void UpdateLight(vk::CommandBuffer command_buffer);
+	void UpdateWorldBlocks(vk::CommandBuffer command_buffer, RelativeWorldShiftChunks relative_world_shift);
+	void UpdateLight(vk::CommandBuffer command_buffer, RelativeWorldShiftChunks relative_world_shift);
+	void GenerateWorld(vk::CommandBuffer command_buffer, RelativeWorldShiftChunks relative_world_shift);
 	void CreateWorldBlocksAndLightUpdateBarrier(vk::CommandBuffer command_buffer);
 	void BuildPlayerWorldWindow(vk::CommandBuffer command_buffer);
 	void UpdatePlayer(
@@ -138,14 +153,20 @@ private:
 	const ComputePipeline world_blocks_external_update_queue_flush_pipeline_;
 	const std::array<vk::DescriptorSet, 2> world_blocks_external_update_queue_flush_descriptor_sets_;
 
-	WorldOffsetChunks world_offset_;
+	WorldOffsetChunks world_offset_; // Current offset
+	WorldOffsetChunks next_world_offset_; // Offset which will be current at the start of the next tick
+	WorldOffsetChunks next_next_world_offset_; // Offset whic will be next at the start of the next tick
 
 	bool initial_buffers_filled_= false;
 
 	uint32_t current_tick_= 0;
 	float current_tick_fractional_= 0.0f;
-	// Update this list each frame.
+
+	// Update this list each frame. Includes both chunks for update and generation.
 	std::vector<std::array<uint32_t, 2>> current_frame_chunks_to_update_list_;
+
+	// Update kind for each chunk in this tick.
+	std::vector<ChunkUpdateKind> chunks_upate_kind_;
 };
 
 } // namespace HexGPU

@@ -12,16 +12,16 @@
 // If this is changed, corresponding C++ code must be changed too!
 layout(local_size_x= 8, local_size_y = 8, local_size_z= 1) in;
 
-layout(binding= 0, std430) buffer chunks_data_buffer
-{
-	uint8_t chunks_data[];
-};
-
 layout(push_constant) uniform uniforms_block
 {
 	ivec2 world_size_chunks;
 	ivec2 chunk_position;
 	ivec2 chunk_global_position;
+};
+
+layout(binding= 0, std430) buffer chunks_data_buffer
+{
+	uint8_t chunks_data[];
 };
 
 int GetGroundLevel(int global_x, int global_y)

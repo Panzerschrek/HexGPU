@@ -14,8 +14,8 @@ layout(local_size_x= 4, local_size_y = 4, local_size_z= 8) in;
 layout(push_constant) uniform uniforms_block
 {
 	ivec2 world_size_chunks;
-	ivec2 chunk_position;
-	ivec2 chunk_global_position;
+	ivec2 in_chunk_position;
+	ivec2 out_chunk_position;
 };
 
 layout(binding= 0, std430) buffer chunks_data_buffer
@@ -41,8 +41,8 @@ void main()
 
 	ivec3 invocation= ivec3(gl_GlobalInvocationID);
 
-	int block_x= (chunk_position.x << c_chunk_width_log2) + invocation.x;
-	int block_y= (chunk_position.y << c_chunk_width_log2) + invocation.y;
+	int block_x= (in_chunk_position.x << c_chunk_width_log2) + invocation.x;
+	int block_y= (in_chunk_position.y << c_chunk_width_log2) + invocation.y;
 	int z= invocation.z;
 
 	ivec2 max_world_coord= GetMaxWorldCoord(world_size_chunks);
@@ -130,7 +130,7 @@ void main()
 		result_light= uint8_t(result_fire_light | result_sky_light);
 	}
 
-	int chunk_index= chunk_position.x + chunk_position.y * world_size_chunks.x;
+	int chunk_index= out_chunk_position.x + out_chunk_position.y * world_size_chunks.x;
 	int chunk_data_offset= chunk_index * c_chunk_volume;
 	output_light[chunk_data_offset + ChunkBlockAddress(invocation)]= result_light;
 }

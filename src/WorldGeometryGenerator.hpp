@@ -45,6 +45,7 @@ public:
 
 private:
 	void InitialFillBuffers(vk::CommandBuffer command_buffer);
+	void ShiftChunkDrawInfo(vk::CommandBuffer command_buffer, std::array<int32_t, 2> shift);
 	void BuildChunksToUpdateList();
 	void PrepareGeometrySizeCalculation(vk::CommandBuffer command_buffer);
 	void CalculateGeometrySize(vk::CommandBuffer command_buffer);
@@ -60,11 +61,15 @@ private:
 	bool buffers_initially_filled_= false;
 
 	const Buffer chunk_draw_info_buffer_;
+	const Buffer chunk_draw_info_buffer_temp_;
 
 	const uint32_t vertex_buffer_num_quads_;
 	const Buffer vertex_buffer_;
 
 	GPUAllocator vertex_memory_allocator_;
+
+	const ComputePipeline chunk_draw_info_shift_pipeline_;
+	const vk::DescriptorSet chunk_draw_info_shift_descriptor_set_;
 
 	const ComputePipeline geometry_size_calculate_prepare_pipeline_;
 	const vk::DescriptorSet geometry_size_calculate_prepare_descriptor_set_;
@@ -77,6 +82,8 @@ private:
 
 	const ComputePipeline geometry_gen_pipeline_;
 	const std::array<vk::DescriptorSet, 2> geometry_gen_descriptor_sets_;
+
+	WorldOffsetChunks world_offset_;
 
 	uint32_t frame_counter_= 0;
 	std::vector<std::array<uint32_t, 2>> chunks_to_update_;

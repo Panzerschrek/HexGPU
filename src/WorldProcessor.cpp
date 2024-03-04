@@ -56,13 +56,43 @@ namespace WorldBlocksExternalUpdateQueueFlushShaderBindigns
 	const ShaderBindingIndex world_blocks_external_update_queue_buffer= 1;
 }
 
-// Size limit of this struct is 128 bytes.
-// 128 bytes is guaranted maximum size of push constants uniform block.
-struct ChunkPositionUniforms
+// This constant should match workgroup size in shader!
+constexpr uint32_t c_world_gen_workgroup_size[]{8, 8, 1};
+static_assert(c_chunk_width % c_world_gen_workgroup_size[0] == 0, "Wrong workgroup size!");
+static_assert(c_chunk_width % c_world_gen_workgroup_size[1] == 0, "Wrong workgroup size!");
+static_assert(c_world_gen_workgroup_size[2] == 1, "Wrong workgroup size!");
+
+struct WorldGenUniforms
 {
 	int32_t world_size_chunks[2]{};
-	int32_t chunk_position[2]{}; // Position relative current loaded region.
-	int32_t chunk_global_position[2]{}; // Global position.
+	int32_t chunk_position[2]{};
+	int32_t chunk_global_position[2]{};
+};
+
+// This constant should match workgroup size in shader!
+constexpr uint32_t c_initial_light_fill_workgroup_size[]{8, 8, 1};
+static_assert(c_chunk_width % c_initial_light_fill_workgroup_size[0] == 0, "Wrong workgroup size!");
+static_assert(c_chunk_width % c_initial_light_fill_workgroup_size[1] == 0, "Wrong workgroup size!");
+static_assert(c_initial_light_fill_workgroup_size[2] == 1, "Wrong workgroup size!");
+
+struct InitialLightFillUniforms
+{
+	int32_t world_size_chunks[2]{};
+	int32_t chunk_position[2]{};
+};
+
+struct WorldBlocksUpdateUniforms
+{
+	int32_t world_size_chunks[2]{};
+	int32_t in_chunk_position[2]{};
+	int32_t out_chunk_position[2]{};
+};
+
+struct LightUpdateUniforms
+{
+	int32_t world_size_chunks[2]{};
+	int32_t in_chunk_position[2]{};
+	int32_t out_chunk_position[2]{};
 };
 
 struct PlayerWorldWindowBuildUniforms
@@ -124,7 +154,7 @@ ComputePipeline CreateWorldGenPipeline(const vk::Device vk_device)
 	const vk::PushConstantRange push_constant_range(
 		vk::ShaderStageFlagBits::eCompute,
 		0u,
-		sizeof(ChunkPositionUniforms));
+		sizeof(WorldGenUniforms));
 
 	pipeline.pipeline_layout= vk_device.createPipelineLayoutUnique(
 		vk::PipelineLayoutCreateInfo(
@@ -169,7 +199,7 @@ ComputePipeline CreateInitialLightFillPipeline(const vk::Device vk_device)
 	const vk::PushConstantRange push_constant_range(
 		vk::ShaderStageFlagBits::eCompute,
 		0u,
-		sizeof(ChunkPositionUniforms));
+		sizeof(InitialLightFillUniforms));
 
 	pipeline.pipeline_layout= vk_device.createPipelineLayoutUnique(
 		vk::PipelineLayoutCreateInfo(
@@ -214,7 +244,7 @@ ComputePipeline CreateWorldBlocksUpdatePipeline(const vk::Device vk_device)
 	const vk::PushConstantRange push_constant_range(
 		vk::ShaderStageFlagBits::eCompute,
 		0u,
-		sizeof(ChunkPositionUniforms));
+		sizeof(WorldBlocksUpdateUniforms));
 
 	pipeline.pipeline_layout= vk_device.createPipelineLayoutUnique(
 		vk::PipelineLayoutCreateInfo(
@@ -266,7 +296,7 @@ ComputePipeline CreateLightUpdatePipeline(const vk::Device vk_device)
 	const vk::PushConstantRange push_constant_range(
 		vk::ShaderStageFlagBits::eCompute,
 		0u,
-		sizeof(ChunkPositionUniforms));
+		sizeof(LightUpdateUniforms));
 
 	pipeline.pipeline_layout= vk_device.createPipelineLayoutUnique(
 		vk::PipelineLayoutCreateInfo(
@@ -511,6 +541,8 @@ WorldProcessor::WorldProcessor(
 			global_descriptor_pool,
 			*world_blocks_external_update_queue_flush_pipeline_.descriptor_set_layout)}
 	, world_offset_{-int32_t(world_size_[0] / 2u), -int32_t(world_size_[1] / 2u)}
+	, next_world_offset_(world_offset_)
+	, next_next_world_offset_(next_world_offset_)
 {
 	// Update world generation descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
@@ -830,6 +862,14 @@ void WorldProcessor::Update(
 {
 	InitialFillBuffers(command_buffer);
 
+	const RelativeWorldShiftChunks relative_shift
+	{
+		next_world_offset_[0] - world_offset_[0],
+		next_world_offset_[1] - world_offset_[1],
+	};
+
+	DetermineChunksUpdateKind(relative_shift);
+
 	// This frequency allows relatively fast world updates and still doesn't overload GPU too much.
 	const float c_update_frequency= 8.0f;
 
@@ -849,8 +889,9 @@ void WorldProcessor::Update(
 		const float cur_offset_within_tick= std::min(1.0f, cur_tick_fractional - float(current_tick_));
 		BuildCurrentFrameChunksToUpdateList(prev_offset_within_tick, cur_offset_within_tick);
 
-		UpdateWorldBlocks(command_buffer);
-		UpdateLight(command_buffer);
+		UpdateWorldBlocks(command_buffer, relative_shift);
+		UpdateLight(command_buffer, relative_shift);
+		GenerateWorld(command_buffer, relative_shift);
 		// No need to synchronize world blocks and lighting update here.
 		// Add a barier only at the beginning of next tick.
 	}
@@ -858,6 +899,9 @@ void WorldProcessor::Update(
 	// Switch to the next tick (if necessary).
 	if(current_tick_ == 0 || uint32_t(prev_tick_fractional) < uint32_t(cur_tick_fractional))
 	{
+		world_offset_= next_world_offset_;
+		next_world_offset_= next_next_world_offset_;
+
 		CreateWorldBlocksAndLightUpdateBarrier(command_buffer); // Wait until all block and light updates are finished.
 
 		FlushWorldBlocksExternalUpdateQueue(command_buffer);
@@ -873,6 +917,26 @@ void WorldProcessor::Update(
 	// Run player update independent on world update - every frame.
 	// This is needed in order to make player movement and rotation smooth.
 	UpdatePlayer(command_buffer, time_delta_s, keyboard_state, mouse_state, aspect);
+}
+
+void WorldProcessor::StepWorldEast()
+{
+	++next_next_world_offset_[0];
+}
+
+void WorldProcessor::StepWorldWest()
+{
+	--next_next_world_offset_[0];
+}
+
+void WorldProcessor::StepWorldNorth()
+{
+	++next_next_world_offset_[1];
+}
+
+void WorldProcessor::StepWorldSouth()
+{
+	--next_next_world_offset_[1];
 }
 
 vk::Buffer WorldProcessor::GetChunkDataBuffer(const uint32_t index) const
@@ -1027,31 +1091,25 @@ void WorldProcessor::InitialGenerateWorld(const vk::CommandBuffer command_buffer
 	for(uint32_t x= 0; x < world_size_[0]; ++x)
 	for(uint32_t y= 0; y < world_size_[1]; ++y)
 	{
-		ChunkPositionUniforms chunk_position_uniforms;
-		chunk_position_uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
-		chunk_position_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-		chunk_position_uniforms.chunk_position[0]= int32_t(x);
-		chunk_position_uniforms.chunk_position[1]= int32_t(y);
-		chunk_position_uniforms.chunk_global_position[0]= world_offset_[0] + int32_t(x);
-		chunk_position_uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(y);
+		WorldGenUniforms uniforms;
+		uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+		uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+		uniforms.chunk_position[0]= int32_t(x);
+		uniforms.chunk_position[1]= int32_t(y);
+		uniforms.chunk_global_position[0]= world_offset_[0] + int32_t(x);
+		uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(y);
 
 		command_buffer.pushConstants(
 			*world_gen_pipeline_.pipeline_layout,
 			vk::ShaderStageFlagBits::eCompute,
 			0,
-			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
-
-		// This constant should match workgroup size in shader!
-		constexpr uint32_t c_workgroup_size[]{8, 8, 1};
-		static_assert(c_chunk_width % c_workgroup_size[0] == 0, "Wrong workgroup size!");
-		static_assert(c_chunk_width % c_workgroup_size[1] == 0, "Wrong workgroup size!");
-		static_assert(c_chunk_height % c_workgroup_size[2] == 0, "Wrong workgroup size!");
+			sizeof(WorldGenUniforms), static_cast<const void*>(&uniforms));
 
 		// Dispatch only 2D group - perform generation for columns.
 		command_buffer.dispatch(
-			c_chunk_width / c_workgroup_size[0],
-			c_chunk_width / c_workgroup_size[1],
-			1 / c_workgroup_size[2]);
+			c_chunk_width / c_world_gen_workgroup_size[0],
+			c_chunk_width / c_world_gen_workgroup_size[1],
+			1);
 	}
 
 	// Create barrier between world generation and its later usage.
@@ -1087,31 +1145,23 @@ void WorldProcessor::InitialGenerateWorld(const vk::CommandBuffer command_buffer
 	for(uint32_t x= 0; x < world_size_[0]; ++x)
 	for(uint32_t y= 0; y < world_size_[1]; ++y)
 	{
-		ChunkPositionUniforms chunk_position_uniforms;
-		chunk_position_uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
-		chunk_position_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-		chunk_position_uniforms.chunk_position[0]= int32_t(x);
-		chunk_position_uniforms.chunk_position[1]= int32_t(y);
-		chunk_position_uniforms.chunk_global_position[0]= world_offset_[0] + int32_t(x);
-		chunk_position_uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(y);
+		InitialLightFillUniforms uniforms;
+		uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+		uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+		uniforms.chunk_position[0]= int32_t(x);
+		uniforms.chunk_position[1]= int32_t(y);
 
 		command_buffer.pushConstants(
 			*initial_light_fill_pipeline_.pipeline_layout,
 			vk::ShaderStageFlagBits::eCompute,
 			0,
-			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
-
-		// This constant should match workgroup size in shader!
-		constexpr uint32_t c_workgroup_size[]{8, 8, 1};
-		static_assert(c_chunk_width % c_workgroup_size[0] == 0, "Wrong workgroup size!");
-		static_assert(c_chunk_width % c_workgroup_size[1] == 0, "Wrong workgroup size!");
-		static_assert(c_chunk_height % c_workgroup_size[2] == 0, "Wrong workgroup size!");
+			sizeof(InitialLightFillUniforms), static_cast<const void*>(&uniforms));
 
 		// Dispatch only 2D group - perform light fill for columns.
 		command_buffer.dispatch(
-			c_chunk_width / c_workgroup_size[0],
-			c_chunk_width / c_workgroup_size[1],
-			1 / c_workgroup_size[2]);
+			c_chunk_width / c_initial_light_fill_workgroup_size[0],
+			c_chunk_width / c_initial_light_fill_workgroup_size[1],
+			1);
 	}
 
 	// Create barrier between light buffer fill and its later usage.
@@ -1131,6 +1181,29 @@ void WorldProcessor::InitialGenerateWorld(const vk::CommandBuffer command_buffer
 			0, nullptr,
 			1, &barrier,
 			0, nullptr);
+	}
+}
+
+void WorldProcessor::DetermineChunksUpdateKind(const RelativeWorldShiftChunks relative_world_shift)
+{
+	chunks_upate_kind_.resize(world_size_[0] * world_size_[1], ChunkUpdateKind::Update);
+
+	for(uint32_t y= 0; y < world_size_[1]; ++y)
+	for(uint32_t x= 0; x < world_size_[0]; ++x)
+	{
+		const uint32_t chunk_index= x + y * world_size_[0];
+
+		const int32_t in_position[]
+		{
+			int32_t(x) + relative_world_shift[0],
+			int32_t(y) + relative_world_shift[1],
+		};
+
+		if( in_position[0] >= 0 && in_position[0] < int32_t(world_size_[0]) &&
+			in_position[1] >= 0 && in_position[1] < int32_t(world_size_[1]))
+			chunks_upate_kind_[chunk_index]= ChunkUpdateKind::Update;
+		else
+			chunks_upate_kind_[chunk_index]= ChunkUpdateKind::Generate;
 	}
 }
 
@@ -1154,7 +1227,9 @@ void WorldProcessor::BuildCurrentFrameChunksToUpdateList(
 		current_frame_chunks_to_update_list_.push_back({chunk_index % world_size_[0], chunk_index / world_size_[0]});
 }
 
-void WorldProcessor::UpdateWorldBlocks(const vk::CommandBuffer command_buffer)
+void WorldProcessor::UpdateWorldBlocks(
+	const vk::CommandBuffer command_buffer,
+	const RelativeWorldShiftChunks relative_world_shift)
 {
 	const uint32_t src_buffer_index= GetSrcBufferIndex();
 
@@ -1169,19 +1244,28 @@ void WorldProcessor::UpdateWorldBlocks(const vk::CommandBuffer command_buffer)
 
 	for(const auto& chunk_to_update : current_frame_chunks_to_update_list_)
 	{
-		ChunkPositionUniforms chunk_position_uniforms;
-		chunk_position_uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
-		chunk_position_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-		chunk_position_uniforms.chunk_position[0]= int32_t(chunk_to_update[0]);
-		chunk_position_uniforms.chunk_position[1]= int32_t(chunk_to_update[1]);
-		chunk_position_uniforms.chunk_global_position[0]= world_offset_[0] + int32_t(chunk_to_update[0]);
-		chunk_position_uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(chunk_to_update[1]);
+		const uint32_t chunk_index= chunk_to_update[0] + chunk_to_update[1] * world_size_[0];
+		if(chunks_upate_kind_[chunk_index] != ChunkUpdateKind::Update)
+			continue;
+
+		WorldBlocksUpdateUniforms uniforms;
+		uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+		uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+		uniforms.in_chunk_position[0]= int32_t(chunk_to_update[0]) + relative_world_shift[0];
+		uniforms.in_chunk_position[1]= int32_t(chunk_to_update[1]) + relative_world_shift[1];
+		uniforms.out_chunk_position[0]= int32_t(chunk_to_update[0]);
+		uniforms.out_chunk_position[1]= int32_t(chunk_to_update[1]);
+
+		HEX_ASSERT(uniforms.in_chunk_position[0] >= 0 && uniforms.in_chunk_position[0] < int32_t(world_size_[0]));
+		HEX_ASSERT(uniforms.in_chunk_position[1] >= 0 && uniforms.in_chunk_position[1] < int32_t(world_size_[1]));
+		HEX_ASSERT(uniforms.out_chunk_position[0] >= 0 && uniforms.out_chunk_position[0] < int32_t(world_size_[0]));
+		HEX_ASSERT(uniforms.out_chunk_position[1] >= 0 && uniforms.out_chunk_position[1] < int32_t(world_size_[1]));
 
 		command_buffer.pushConstants(
 			*world_blocks_update_pipeline_.pipeline_layout,
 			vk::ShaderStageFlagBits::eCompute,
 			0,
-			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
+			sizeof(WorldBlocksUpdateUniforms), static_cast<const void*>(&uniforms));
 
 		// This constant should match workgroup size in shader!
 		constexpr uint32_t c_workgroup_size[]{4, 4, 8};
@@ -1196,7 +1280,9 @@ void WorldProcessor::UpdateWorldBlocks(const vk::CommandBuffer command_buffer)
 	}
 }
 
-void WorldProcessor::UpdateLight(const vk::CommandBuffer command_buffer)
+void WorldProcessor::UpdateLight(
+	const vk::CommandBuffer command_buffer,
+	const RelativeWorldShiftChunks relative_world_shift)
 {
 	const uint32_t src_buffer_index= GetSrcBufferIndex();
 
@@ -1211,19 +1297,28 @@ void WorldProcessor::UpdateLight(const vk::CommandBuffer command_buffer)
 
 	for(const auto& chunk_to_update : current_frame_chunks_to_update_list_)
 	{
-		ChunkPositionUniforms chunk_position_uniforms;
-		chunk_position_uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
-		chunk_position_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-		chunk_position_uniforms.chunk_position[0]= int32_t(chunk_to_update[0]);
-		chunk_position_uniforms.chunk_position[1]= int32_t(chunk_to_update[1]);
-		chunk_position_uniforms.chunk_global_position[0]= world_offset_[0] + int32_t(chunk_to_update[0]);
-		chunk_position_uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(chunk_to_update[1]);
+		const uint32_t chunk_index= chunk_to_update[0] + chunk_to_update[1] * world_size_[0];
+		if(chunks_upate_kind_[chunk_index] != ChunkUpdateKind::Update)
+			continue;
+
+		LightUpdateUniforms uniforms;
+		uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+		uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+		uniforms.in_chunk_position[0]= int32_t(chunk_to_update[0]) + relative_world_shift[0];
+		uniforms.in_chunk_position[1]= int32_t(chunk_to_update[1]) + relative_world_shift[1];
+		uniforms.out_chunk_position[0]= int32_t(chunk_to_update[0]);
+		uniforms.out_chunk_position[1]= int32_t(chunk_to_update[1]);
+
+		HEX_ASSERT(uniforms.in_chunk_position[0] >= 0 && uniforms.in_chunk_position[0] < int32_t(world_size_[0]));
+		HEX_ASSERT(uniforms.in_chunk_position[1] >= 0 && uniforms.in_chunk_position[1] < int32_t(world_size_[1]));
+		HEX_ASSERT(uniforms.out_chunk_position[0] >= 0 && uniforms.out_chunk_position[0] < int32_t(world_size_[0]));
+		HEX_ASSERT(uniforms.out_chunk_position[1] >= 0 && uniforms.out_chunk_position[1] < int32_t(world_size_[1]));
 
 		command_buffer.pushConstants(
 			*light_update_pipeline_.pipeline_layout,
 			vk::ShaderStageFlagBits::eCompute,
 			0,
-			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
+			sizeof(LightUpdateUniforms), static_cast<const void*>(&uniforms));
 
 		// This constant should match workgroup size in shader!
 		constexpr uint32_t c_workgroup_size[]{4, 4, 8};
@@ -1235,6 +1330,123 @@ void WorldProcessor::UpdateLight(const vk::CommandBuffer command_buffer)
 			c_chunk_width / c_workgroup_size[0],
 			c_chunk_width / c_workgroup_size[1],
 			c_chunk_height / c_workgroup_size[2]);
+	}
+}
+
+void WorldProcessor::GenerateWorld(
+	const vk::CommandBuffer command_buffer,
+	const RelativeWorldShiftChunks relative_world_shift)
+{
+	const uint32_t dst_buffer_index= GetDstBufferIndex();
+
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_gen_pipeline_.pipeline);
+
+	command_buffer.bindDescriptorSets(
+		vk::PipelineBindPoint::eCompute,
+		*world_gen_pipeline_.pipeline_layout,
+		0u,
+		{world_gen_descriptor_sets_[dst_buffer_index]},
+		{});
+
+	for(const auto& chunk_to_update : current_frame_chunks_to_update_list_)
+	{
+		const uint32_t chunk_index= chunk_to_update[0] + chunk_to_update[1] * world_size_[0];
+		if(chunks_upate_kind_[chunk_index] != ChunkUpdateKind::Generate)
+			continue;
+
+		WorldGenUniforms uniforms;
+		uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+		uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+		uniforms.chunk_position[0]= int32_t(chunk_to_update[0]);
+		uniforms.chunk_position[1]= int32_t(chunk_to_update[1]);
+		uniforms.chunk_global_position[0]= world_offset_[0] + int32_t(chunk_to_update[0]) + relative_world_shift[0];
+		uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(chunk_to_update[1]) + relative_world_shift[1];
+
+		command_buffer.pushConstants(
+			*world_gen_pipeline_.pipeline_layout,
+			vk::ShaderStageFlagBits::eCompute,
+			0,
+			sizeof(WorldGenUniforms), static_cast<const void*>(&uniforms));
+
+		// Dispatch only 2D group - perform generation for columns.
+		command_buffer.dispatch(
+			c_chunk_width / c_world_gen_workgroup_size[0],
+			c_chunk_width / c_world_gen_workgroup_size[1],
+			1);
+	}
+
+	// Create barrier between world generation and its later usage.
+	// TODO - check this is correct.
+	{
+		const vk::BufferMemoryBarrier barrier(
+			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			chunk_data_buffers_[dst_buffer_index].GetBuffer(),
+			0,
+			VK_WHOLE_SIZE);
+
+		command_buffer.pipelineBarrier(
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::DependencyFlags(),
+			0, nullptr,
+			1, &barrier,
+			0, nullptr);
+	}
+
+	// Perform initial light fill.
+
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *initial_light_fill_pipeline_.pipeline);
+
+	command_buffer.bindDescriptorSets(
+		vk::PipelineBindPoint::eCompute,
+		*initial_light_fill_pipeline_.pipeline_layout,
+		0u,
+		{initial_light_fill_descriptor_sets_[dst_buffer_index]},
+		{});
+
+	for(const auto& chunk_to_update : current_frame_chunks_to_update_list_)
+	{
+		const uint32_t chunk_index= chunk_to_update[0] + chunk_to_update[1] * world_size_[0];
+		if(chunks_upate_kind_[chunk_index] != ChunkUpdateKind::Generate)
+			continue;
+
+		InitialLightFillUniforms uniforms;
+		uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+		uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+		uniforms.chunk_position[0]= int32_t(chunk_to_update[0]);
+		uniforms.chunk_position[1]= int32_t(chunk_to_update[1]);
+
+		command_buffer.pushConstants(
+			*initial_light_fill_pipeline_.pipeline_layout,
+			vk::ShaderStageFlagBits::eCompute,
+			0,
+			sizeof(InitialLightFillUniforms), static_cast<const void*>(&uniforms));
+
+		// Dispatch only 2D group - perform light fill for columns.
+		command_buffer.dispatch(
+			c_chunk_width / c_initial_light_fill_workgroup_size[0],
+			c_chunk_width / c_initial_light_fill_workgroup_size[1],
+			1);
+	}
+
+	// Create barrier between light buffer fill and its later usage.
+	// TODO - check this is correct.
+	{
+		const vk::BufferMemoryBarrier barrier(
+			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			light_buffers_[dst_buffer_index].GetBuffer(),
+			0,
+			VK_WHOLE_SIZE);
+
+		command_buffer.pipelineBarrier(
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::DependencyFlags(),
+			0, nullptr,
+			1, &barrier,
+			0, nullptr);
 	}
 }
 

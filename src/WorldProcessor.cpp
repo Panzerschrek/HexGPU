@@ -500,6 +500,12 @@ WorldProcessor::WorldProcessor(
 		window_vulkan,
 		sizeof(PlayerWorldWindow),
 		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst)
+	, player_state_read_back_buffer_num_frames_(window_vulkan.GetNumCommandBuffers() + 1)
+	, player_state_read_back_buffer_(
+		window_vulkan,
+		sizeof(PlayerState) * player_state_read_back_buffer_num_frames_,
+		vk::BufferUsageFlagBits::eTransferDst,
+		vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
 	, world_gen_pipeline_(CreateWorldGenPipeline(vk_device_))
 	, world_gen_descriptor_sets_{
 		CreateDescriptorSet(vk_device_, global_descriptor_pool, *world_gen_pipeline_.descriptor_set_layout),
@@ -1012,6 +1018,9 @@ void WorldProcessor::InitialFillBuffers(const vk::CommandBuffer command_buffer)
 
 	command_buffer.fillBuffer(player_world_window_buffer_.GetBuffer(), 0, sizeof(PlayerWorldWindow), 0);
 
+	// Fill this buffer just to prevent some mistakes.
+	command_buffer.fillBuffer(player_state_read_back_buffer_.GetBuffer(), 0, player_state_read_back_buffer_.GetSize(), 0);
+
 	const vk::BufferMemoryBarrier barriers[]
 	{
 		{
@@ -1060,6 +1069,13 @@ void WorldProcessor::InitialFillBuffers(const vk::CommandBuffer command_buffer)
 			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
 			queue_family_index_, queue_family_index_,
 			player_world_window_buffer_.GetBuffer(),
+			0,
+			VK_WHOLE_SIZE,
+		},
+		{
+			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			player_state_read_back_buffer_.GetBuffer(),
 			0,
 			VK_WHOLE_SIZE,
 		},

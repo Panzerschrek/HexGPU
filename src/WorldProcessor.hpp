@@ -132,6 +132,9 @@ private:
 	const Buffer world_blocks_external_update_queue_buffer_;
 	const Buffer player_world_window_buffer_;
 
+	const size_t player_state_read_back_buffer_num_frames_;
+	const Buffer player_state_read_back_buffer_;
+
 	const ComputePipeline world_gen_pipeline_;
 	const std::array<vk::DescriptorSet, 2> world_gen_descriptor_sets_;
 

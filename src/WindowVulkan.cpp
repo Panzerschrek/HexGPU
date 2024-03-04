@@ -558,4 +558,9 @@ vk::PhysicalDeviceMemoryProperties WindowVulkan::GetMemoryProperties() const
 	return memory_properties_;
 }
 
+size_t WindowVulkan::GetNumCommandBuffers() const
+{
+	return command_buffers_.size();
+}
+
 } // namespace HexGPU

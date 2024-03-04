@@ -500,7 +500,7 @@ WorldProcessor::WorldProcessor(
 		window_vulkan,
 		sizeof(PlayerWorldWindow),
 		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst)
-	, player_state_read_back_buffer_num_frames_(uint32_t(window_vulkan.GetNumCommandBuffers()) + 1)
+	, player_state_read_back_buffer_num_frames_(uint32_t(window_vulkan.GetNumCommandBuffers()))
 	, player_state_read_back_buffer_(
 		window_vulkan,
 		sizeof(PlayerState) * player_state_read_back_buffer_num_frames_,
@@ -550,6 +550,8 @@ WorldProcessor::WorldProcessor(
 	, next_world_offset_(world_offset_)
 	, next_next_world_offset_(next_world_offset_)
 {
+	HEX_ASSERT(player_state_read_back_buffer_num_frames_ > 0);
+
 	// Update world generation descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
 	{
@@ -1111,6 +1113,27 @@ void WorldProcessor::ReadBackPlayerState()
 		&player_state,
 		static_cast<const uint8_t*>(player_state_read_back_buffer_mapped_) + current_slot * sizeof(PlayerState),
 		sizeof(PlayerState));
+
+	// Log::Info("player pos: ", player_state.pos[0], ", ", player_state.pos[1], ", ", player_state.pos[2]);
+
+	// Determine world position based on player position.
+
+	const int32_t chunk_coord[]
+	{
+		int32_t(std::floor(player_state.pos[0] / c_space_scale_x)) >> int32_t(c_chunk_width_log2),
+		int32_t(std::floor(player_state.pos[1])) >> int32_t(c_chunk_width_log2),
+	};
+	for(uint32_t i= 0; i < 2; ++i)
+	{
+		const int32_t chunk_relative_coord= chunk_coord[i] - next_next_world_offset_[i];
+
+		const int32_t max_dist_to_border= int32_t(world_size_[i]) / 2 - 2;
+
+		if(chunk_relative_coord < max_dist_to_border)
+			--next_next_world_offset_[i];
+		else if(chunk_relative_coord >= int32_t(world_size_[i]) - max_dist_to_border)
+			++next_next_world_offset_[i];
+	}
 }
 
 void WorldProcessor::InitialGenerateWorld(const vk::CommandBuffer command_buffer)

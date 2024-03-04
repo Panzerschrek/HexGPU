@@ -20,6 +20,13 @@ layout(binding= 1, std430) buffer chunk_draw_info_output_buffer
 	ChunkDrawInfo chunk_draw_info_output[];
 };
 
+// Assume "b" is positibe.
+int EuclidianReminder(int a, int b)
+{
+	int r = a % b;
+	return r >= 0 ? r : r + b;
+}
+
 void main()
 {
 	// Perform shift of chunk info from old position to new.
@@ -29,9 +36,8 @@ void main()
 	uint chunk_y= gl_GlobalInvocationID.y;
 	uint dst_chunk_index= chunk_x + chunk_y * uint(world_size_chunks.x);
 
-	// TODO - handle case when result shift is negative and % result is wrong because of that.
-	int src_chunk_x= (int(chunk_x) + chunks_shift.x + world_size_chunks.x) % world_size_chunks.x;
-	int src_chunk_y= (int(chunk_y) + chunks_shift.y + world_size_chunks.y) % world_size_chunks.y;
+	int src_chunk_x= EuclidianReminder(int(chunk_x) + chunks_shift.x, world_size_chunks.x);
+	int src_chunk_y= EuclidianReminder(int(chunk_y) + chunks_shift.y, world_size_chunks.y);
 	int src_chunk_index= src_chunk_x + src_chunk_y * world_size_chunks.x;
 
 	chunk_draw_info_output[dst_chunk_index]= chunk_draw_info_input[src_chunk_index];

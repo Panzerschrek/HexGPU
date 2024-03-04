@@ -132,7 +132,7 @@ private:
 	const Buffer world_blocks_external_update_queue_buffer_;
 	const Buffer player_world_window_buffer_;
 
-	const size_t player_state_read_back_buffer_num_frames_;
+	const uint32_t player_state_read_back_buffer_num_frames_;
 	const Buffer player_state_read_back_buffer_;
 
 	const ComputePipeline world_gen_pipeline_;
@@ -161,6 +161,8 @@ private:
 	WorldOffsetChunks next_next_world_offset_; // Offset whic will be next at the start of the next tick
 
 	bool initial_buffers_filled_= false;
+
+	uint32_t current_frame_= 0;
 
 	uint32_t current_tick_= 0;
 	float current_tick_fractional_= 0.0f;

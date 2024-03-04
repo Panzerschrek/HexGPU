@@ -500,7 +500,7 @@ WorldProcessor::WorldProcessor(
 		window_vulkan,
 		sizeof(PlayerWorldWindow),
 		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst)
-	, player_state_read_back_buffer_num_frames_(window_vulkan.GetNumCommandBuffers() + 1)
+	, player_state_read_back_buffer_num_frames_(uint32_t(window_vulkan.GetNumCommandBuffers()) + 1)
 	, player_state_read_back_buffer_(
 		window_vulkan,
 		sizeof(PlayerState) * player_state_read_back_buffer_num_frames_,
@@ -922,6 +922,8 @@ void WorldProcessor::Update(
 	// Run player update independent on world update - every frame.
 	// This is needed in order to make player movement and rotation smooth.
 	UpdatePlayer(command_buffer, time_delta_s, keyboard_state, mouse_state, aspect);
+
+	++current_frame_;
 }
 
 void WorldProcessor::StepWorldEast()
@@ -1620,6 +1622,19 @@ void WorldProcessor::UpdatePlayer(
 		0, nullptr,
 		uint32_t(std::size(barriers)), barriers,
 		0, nullptr);
+
+	// Copy player state into readback buffer.
+	// Use slot in the destination buffer for this frame.
+	command_buffer.copyBuffer(
+		player_state_buffer_.GetBuffer(),
+		player_state_read_back_buffer_.GetBuffer(),
+		{
+			{
+				0,
+				sizeof(PlayerState) * (current_frame_ % player_state_read_back_buffer_num_frames_),
+				sizeof(PlayerState)
+			}
+		});
 }
 
 void WorldProcessor::FlushWorldBlocksExternalUpdateQueue(const vk::CommandBuffer command_buffer)

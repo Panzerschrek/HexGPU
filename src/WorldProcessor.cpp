@@ -117,8 +117,9 @@ struct WorldBlocksExternalUpdateQueueFlushUniforms
 
 WorldSizeChunks ReadWorldSize(Settings& settings)
 {
-	const int32_t world_size_x= std::max(2, std::min(int32_t(settings.GetInt("g_world_size_x", 8)), 32));
-	const int32_t world_size_y= std::max(2, std::min(int32_t(settings.GetInt("g_world_size_y", 8)), 32));
+	// Round world size up to next even number.
+	const int32_t world_size_x= (std::max(6, std::min(int32_t(settings.GetInt("g_world_size_x", 8)), 32)) + 1) & ~1;
+	const int32_t world_size_y= (std::max(6, std::min(int32_t(settings.GetInt("g_world_size_y", 8)), 32)) + 1) & ~1;
 
 	settings.SetInt("g_world_size_x", world_size_x);
 	settings.SetInt("g_world_size_y", world_size_y);
@@ -500,6 +501,13 @@ WorldProcessor::WorldProcessor(
 		window_vulkan,
 		sizeof(PlayerWorldWindow),
 		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst)
+	, player_state_read_back_buffer_num_frames_(uint32_t(window_vulkan.GetNumCommandBuffers()))
+	, player_state_read_back_buffer_(
+		window_vulkan,
+		sizeof(PlayerState) * player_state_read_back_buffer_num_frames_,
+		vk::BufferUsageFlagBits::eTransferDst,
+		vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
+	, player_state_read_back_buffer_mapped_(player_state_read_back_buffer_.Map(window_vulkan.GetVulkanDevice()))
 	, world_gen_pipeline_(CreateWorldGenPipeline(vk_device_))
 	, world_gen_descriptor_sets_{
 		CreateDescriptorSet(vk_device_, global_descriptor_pool, *world_gen_pipeline_.descriptor_set_layout),
@@ -543,6 +551,8 @@ WorldProcessor::WorldProcessor(
 	, next_world_offset_(world_offset_)
 	, next_next_world_offset_(next_world_offset_)
 {
+	HEX_ASSERT(player_state_read_back_buffer_num_frames_ > 0);
+
 	// Update world generation descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
 	{
@@ -848,6 +858,8 @@ WorldProcessor::WorldProcessor(
 
 WorldProcessor::~WorldProcessor()
 {
+	player_state_read_back_buffer_.Unmap(vk_device_);
+
 	// Sync before destruction.
 	vk_device_.waitIdle();
 }
@@ -860,6 +872,8 @@ void WorldProcessor::Update(
 	const float aspect)
 {
 	InitialFillBuffers(command_buffer);
+
+	ReadBackAndProcessPlayerState();
 
 	const RelativeWorldShiftChunks relative_shift
 	{
@@ -916,26 +930,8 @@ void WorldProcessor::Update(
 	// Run player update independent on world update - every frame.
 	// This is needed in order to make player movement and rotation smooth.
 	UpdatePlayer(command_buffer, time_delta_s, keyboard_state, mouse_state, aspect);
-}
 
-void WorldProcessor::StepWorldEast()
-{
-	++next_next_world_offset_[0];
-}
-
-void WorldProcessor::StepWorldWest()
-{
-	--next_next_world_offset_[0];
-}
-
-void WorldProcessor::StepWorldNorth()
-{
-	++next_next_world_offset_[1];
-}
-
-void WorldProcessor::StepWorldSouth()
-{
-	--next_next_world_offset_[1];
+	++current_frame_;
 }
 
 vk::Buffer WorldProcessor::GetChunkDataBuffer(const uint32_t index) const
@@ -1012,6 +1008,9 @@ void WorldProcessor::InitialFillBuffers(const vk::CommandBuffer command_buffer)
 
 	command_buffer.fillBuffer(player_world_window_buffer_.GetBuffer(), 0, sizeof(PlayerWorldWindow), 0);
 
+	// Fill this buffer just to prevent some mistakes.
+	command_buffer.fillBuffer(player_state_read_back_buffer_.GetBuffer(), 0, player_state_read_back_buffer_.GetSize(), 0);
+
 	const vk::BufferMemoryBarrier barriers[]
 	{
 		{
@@ -1063,6 +1062,13 @@ void WorldProcessor::InitialFillBuffers(const vk::CommandBuffer command_buffer)
 			0,
 			VK_WHOLE_SIZE,
 		},
+		{
+			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			player_state_read_back_buffer_.GetBuffer(),
+			0,
+			VK_WHOLE_SIZE,
+		},
 	};
 
 	command_buffer.pipelineBarrier(
@@ -1072,6 +1078,46 @@ void WorldProcessor::InitialFillBuffers(const vk::CommandBuffer command_buffer)
 		0, nullptr,
 		uint32_t(std::size(barriers)), barriers,
 		0, nullptr);
+}
+
+void WorldProcessor::ReadBackAndProcessPlayerState()
+{
+	// Assuming that writes into this buffer are finished in "player_state_read_back_buffer_num_frames_" frames.
+
+	if(current_frame_ < player_state_read_back_buffer_num_frames_)
+		return;
+
+	const uint32_t current_slot= (current_frame_ - player_state_read_back_buffer_num_frames_) % player_state_read_back_buffer_num_frames_;
+
+	PlayerState player_state{};
+	std::memcpy(
+		&player_state,
+		static_cast<const uint8_t*>(player_state_read_back_buffer_mapped_) + current_slot * sizeof(PlayerState),
+		sizeof(PlayerState));
+
+	// Log::Info("player pos: ", player_state.pos[0], ", ", player_state.pos[1], ", ", player_state.pos[2]);
+
+	// Determine world position based on player position.
+
+	// TODO - handle cases where player position changes a lot (like teleportation).
+
+	const int32_t chunk_coord[]
+	{
+		int32_t(std::floor(player_state.pos[0] / c_space_scale_x)) >> int32_t(c_chunk_width_log2),
+		int32_t(std::floor(player_state.pos[1])) >> int32_t(c_chunk_width_log2),
+	};
+	for(uint32_t i= 0; i < 2; ++i)
+	{
+		const int32_t chunk_relative_coord= chunk_coord[i] - next_next_world_offset_[i];
+
+		const int32_t max_dist_to_border= std::max(0, int32_t(world_size_[i]) / 2 - 2);
+
+		// Shift the world in single step in order to avoid mowing the world too much at once.
+		if(chunk_relative_coord < max_dist_to_border)
+			--next_next_world_offset_[i];
+		else if(chunk_relative_coord >= int32_t(world_size_[i]) - max_dist_to_border)
+			++next_next_world_offset_[i];
+	}
 }
 
 void WorldProcessor::InitialGenerateWorld(const vk::CommandBuffer command_buffer)
@@ -1604,6 +1650,19 @@ void WorldProcessor::UpdatePlayer(
 		0, nullptr,
 		uint32_t(std::size(barriers)), barriers,
 		0, nullptr);
+
+	// Copy player state into readback buffer.
+	// Use slot in the destination buffer for this frame.
+	command_buffer.copyBuffer(
+		player_state_buffer_.GetBuffer(),
+		player_state_read_back_buffer_.GetBuffer(),
+		{
+			{
+				0,
+				sizeof(PlayerState) * (current_frame_ % player_state_read_back_buffer_num_frames_),
+				sizeof(PlayerState)
+			}
+		});
 }
 
 void WorldProcessor::FlushWorldBlocksExternalUpdateQueue(const vk::CommandBuffer command_buffer)

@@ -25,11 +25,6 @@ public:
 		MouseState mouse_state,
 		float aspect);
 
-	void StepWorldEast();
-	void StepWorldWest();
-	void StepWorldNorth();
-	void StepWorldSouth();
-
 	vk::Buffer GetChunkDataBuffer(uint32_t index) const;
 	vk::DeviceSize GetChunkDataBufferSize() const;
 	vk::Buffer GetLightDataBuffer(uint32_t index) const;
@@ -95,6 +90,7 @@ private:
 
 private:
 	void InitialFillBuffers(vk::CommandBuffer command_buffer);
+	void ReadBackAndProcessPlayerState();
 	void InitialGenerateWorld(vk::CommandBuffer command_buffer);
 	void DetermineChunksUpdateKind(RelativeWorldShiftChunks relative_world_shift);
 	void BuildCurrentFrameChunksToUpdateList(float prev_offset_within_tick, float cur_offset_within_tick);
@@ -132,6 +128,10 @@ private:
 	const Buffer world_blocks_external_update_queue_buffer_;
 	const Buffer player_world_window_buffer_;
 
+	const uint32_t player_state_read_back_buffer_num_frames_;
+	const Buffer player_state_read_back_buffer_;
+	const void* const player_state_read_back_buffer_mapped_;
+
 	const ComputePipeline world_gen_pipeline_;
 	const std::array<vk::DescriptorSet, 2> world_gen_descriptor_sets_;
 
@@ -159,6 +159,10 @@ private:
 
 	bool initial_buffers_filled_= false;
 
+	// Update frame. Incremented on each "update" call.
+	uint32_t current_frame_= 0;
+
+	// Tick number. Incrementing at new tick start only (not each frame).
 	uint32_t current_tick_= 0;
 	float current_tick_fractional_= 0.0f;
 

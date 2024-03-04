@@ -24,6 +24,11 @@ public:
 	vk::RenderPass GetRenderPass() const; // Render pass for rendering directly into screen.
 	vk::PhysicalDeviceMemoryProperties GetMemoryProperties() const;
 
+	// Command buffers are circulary reused.
+	// When a new command buffer is started, its previous contents is guaranteed to be flushed.
+	// So, it's safe to read on CPU data in frame #N, written in frame #N - #NumCommandBuffers.
+	size_t GetNumCommandBuffers() const;
+
 private:
 	struct CommandBufferData
 	{

@@ -22,7 +22,7 @@ Buffer::Buffer(
 	for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
 	{
 		if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
-			(memory_properties.memoryTypes[i].propertyFlags & memory_visibility) != memory_visibility)
+			(memory_properties.memoryTypes[i].propertyFlags & memory_visibility) == memory_visibility)
 		{
 			memory_allocate_info.memoryTypeIndex= i;
 			break;
@@ -41,6 +41,18 @@ vk::DeviceSize Buffer::GetSize() const
 vk::Buffer Buffer::GetBuffer() const
 {
 	return *buffer_;
+}
+
+void* Buffer::Map(const vk::Device vk_device) const
+{
+	void* ptr_mapped= nullptr;
+	vk_device.mapMemory(*buffer_memory_, 0u, size_, vk::MemoryMapFlags(), &ptr_mapped);
+	return ptr_mapped;
+}
+
+void Buffer::Unmap(const vk::Device vk_device) const
+{
+	vk_device.unmapMemory(*buffer_memory_);
 }
 
 } // namespace HexGPU

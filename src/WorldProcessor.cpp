@@ -117,8 +117,9 @@ struct WorldBlocksExternalUpdateQueueFlushUniforms
 
 WorldSizeChunks ReadWorldSize(Settings& settings)
 {
-	const int32_t world_size_x= std::max(2, std::min(int32_t(settings.GetInt("g_world_size_x", 8)), 32));
-	const int32_t world_size_y= std::max(2, std::min(int32_t(settings.GetInt("g_world_size_y", 8)), 32));
+	// Round world size up to next even number.
+	const int32_t world_size_x= (std::max(2, std::min(int32_t(settings.GetInt("g_world_size_x", 8)), 32)) + 1) & ~1;
+	const int32_t world_size_y= (std::max(2, std::min(int32_t(settings.GetInt("g_world_size_y", 8)), 32)) + 1) & ~1;
 
 	settings.SetInt("g_world_size_x", world_size_x);
 	settings.SetInt("g_world_size_y", world_size_y);

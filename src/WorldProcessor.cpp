@@ -57,7 +57,7 @@ namespace WorldBlocksExternalUpdateQueueFlushShaderBindigns
 }
 
 // This constant should match workgroup size in shader!
-constexpr uint32_t c_world_gen_workgroup_size[]{8, 8, 1};
+constexpr uint32_t c_world_gen_workgroup_size[]{8, 16, 1};
 static_assert(c_chunk_width % c_world_gen_workgroup_size[0] == 0, "Wrong workgroup size!");
 static_assert(c_chunk_width % c_world_gen_workgroup_size[1] == 0, "Wrong workgroup size!");
 static_assert(c_world_gen_workgroup_size[2] == 1, "Wrong workgroup size!");
@@ -70,7 +70,7 @@ struct WorldGenUniforms
 };
 
 // This constant should match workgroup size in shader!
-constexpr uint32_t c_initial_light_fill_workgroup_size[]{8, 8, 1};
+constexpr uint32_t c_initial_light_fill_workgroup_size[]{8, 16, 1};
 static_assert(c_chunk_width % c_initial_light_fill_workgroup_size[0] == 0, "Wrong workgroup size!");
 static_assert(c_chunk_width % c_initial_light_fill_workgroup_size[1] == 0, "Wrong workgroup size!");
 static_assert(c_initial_light_fill_workgroup_size[2] == 1, "Wrong workgroup size!");

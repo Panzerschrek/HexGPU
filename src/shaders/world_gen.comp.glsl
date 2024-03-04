@@ -10,7 +10,7 @@
 
 // maxComputeWorkGroupInvocations is at least 128.
 // If this is changed, corresponding C++ code must be changed too!
-layout(local_size_x= 8, local_size_y = 8, local_size_z= 1) in;
+layout(local_size_x= 8, local_size_y = 16, local_size_z= 1) in;
 
 layout(push_constant) uniform uniforms_block
 {

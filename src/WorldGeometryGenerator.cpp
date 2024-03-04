@@ -11,6 +11,12 @@ namespace HexGPU
 namespace
 {
 
+namespace ChunkDrawInfoShiftShaderBindings
+{
+	const ShaderBindingIndex chunk_draw_info_input_buffer= 0;
+	const ShaderBindingIndex chunk_draw_info_output_buffer= 1;
+}
+
 namespace GeometrySizeCalculatePrepareShaderBindings
 {
 	const ShaderBindingIndex chunk_draw_info_buffer= 0;
@@ -35,6 +41,12 @@ namespace GeometryGenShaderBindings
 	const ShaderBindingIndex chunk_light_buffer= 2;
 	const ShaderBindingIndex chunk_draw_info_buffer= 3;
 }
+
+struct ChunkDrawInfoShiftUniforms
+{
+	int32_t world_size_chunks[2]{};
+	int32_t chunks_shift[2]{};
+};
 
 // Size limit of this struct is 128 bytes.
 // 128 bytes is guaranted maximum size of push constants uniform block.
@@ -79,6 +91,51 @@ uint32_t GetTotalVertexBufferUnits(const WorldSizeChunks& world_size)
 {
 	// Number of allocation units is based on number of quads with rounding upwards.
 	return (GetTotalVertexBufferQuads(world_size) + (c_allocation_unut_size_quads - 1)) / c_allocation_unut_size_quads;
+}
+
+ComputePipeline CreateChunkDrawInfoShiftPipeline(const vk::Device vk_device)
+{
+	ComputePipeline pipeline;
+
+	pipeline.shader= CreateShader(vk_device, ShaderNames::chunk_draw_info_shift_comp);
+
+	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
+	{
+		{
+			ChunkDrawInfoShiftShaderBindings::chunk_draw_info_input_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+		{
+			ChunkDrawInfoShiftShaderBindings::chunk_draw_info_output_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+	};
+
+	pipeline.descriptor_set_layout= vk_device.createDescriptorSetLayoutUnique(
+		vk::DescriptorSetLayoutCreateInfo(
+			vk::DescriptorSetLayoutCreateFlags(),
+				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
+
+	const vk::PushConstantRange push_constant_range(
+		vk::ShaderStageFlagBits::eCompute,
+		0u,
+		sizeof(ChunkDrawInfoShiftUniforms));
+
+	pipeline.pipeline_layout= vk_device.createPipelineLayoutUnique(
+		vk::PipelineLayoutCreateInfo(
+			vk::PipelineLayoutCreateFlags(),
+			1u, &*pipeline.descriptor_set_layout,
+			1u, &push_constant_range));
+
+	pipeline.pipeline= CreateComputePipeline(vk_device, *pipeline.shader, *pipeline.pipeline_layout);
+
+	return pipeline;
 }
 
 ComputePipeline CreateGeometrySizeCalculatePreparePipeline(const vk::Device vk_device)
@@ -282,12 +339,19 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 		window_vulkan,
 		world_size_[0] * world_size_[1] * uint32_t(sizeof(ChunkDrawInfo)),
 		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst)
+	, chunk_draw_info_buffer_temp_(
+		window_vulkan,
+		chunk_draw_info_buffer_.GetSize(),
+		vk::BufferUsageFlagBits::eStorageBuffer)
 	, vertex_buffer_num_quads_(GetTotalVertexBufferQuads(world_size_))
 	, vertex_buffer_(
 		window_vulkan,
 		vertex_buffer_num_quads_ * uint32_t(sizeof(QuadVertices)),
 		vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst)
 	, vertex_memory_allocator_(window_vulkan, GetTotalVertexBufferUnits(world_size_))
+	, chunk_draw_info_shift_pipeline_(CreateChunkDrawInfoShiftPipeline(vk_device_))
+	, chunk_draw_info_shift_descriptor_set_(
+		CreateDescriptorSet(vk_device_, global_descriptor_pool, *chunk_draw_info_shift_pipeline_.descriptor_set_layout))
 	, geometry_size_calculate_prepare_pipeline_(CreateGeometrySizeCalculatePreparePipeline(vk_device_))
 	, geometry_size_calculate_prepare_descriptor_set_(
 		CreateDescriptorSet(
@@ -311,7 +375,46 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 	, geometry_gen_descriptor_sets_{
 		CreateDescriptorSet(vk_device_, global_descriptor_pool, *geometry_gen_pipeline_.descriptor_set_layout),
 		CreateDescriptorSet(vk_device_, global_descriptor_pool, *geometry_gen_pipeline_.descriptor_set_layout)}
+	, world_offset_(world_processor.GetWorldOffset())
 {
+	// Update descriptor set.
+	{
+		const vk::DescriptorBufferInfo descriptor_chunk_draw_info_input_buffer_info(
+			chunk_draw_info_buffer_.GetBuffer(),
+			0u,
+			chunk_draw_info_buffer_.GetSize());
+
+		const vk::DescriptorBufferInfo descriptor_chunk_draw_info_output_buffer_info(
+			chunk_draw_info_buffer_temp_.GetBuffer(),
+			0u,
+			chunk_draw_info_buffer_temp_.GetSize());
+
+		vk_device_.updateDescriptorSets(
+			{
+				{
+					chunk_draw_info_shift_descriptor_set_,
+					ChunkDrawInfoShiftShaderBindings::chunk_draw_info_input_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_chunk_draw_info_input_buffer_info,
+					nullptr
+				},
+				{
+					chunk_draw_info_shift_descriptor_set_,
+					ChunkDrawInfoShiftShaderBindings::chunk_draw_info_output_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_chunk_draw_info_output_buffer_info,
+					nullptr
+				},
+			},
+			{});
+	}
+
 	// Update descriptor set.
 	{
 		const vk::DescriptorBufferInfo descriptor_chunk_draw_info_buffer_info(
@@ -492,6 +595,21 @@ void WorldGeometryGenerator::Update(const vk::CommandBuffer command_buffer)
 {
 	vertex_memory_allocator_.EnsureInitialized(command_buffer);
 	InitialFillBuffers(command_buffer);
+
+	const WorldOffsetChunks new_world_offset= world_processor_.GetWorldOffset();
+	if(new_world_offset != world_offset_)
+	{
+		// World was shifted. Shift out draw info matrix.
+
+		const std::array<int32_t, 2> shift{
+			new_world_offset[0] - int32_t(world_offset_[0]),
+			new_world_offset[1] - int32_t(world_offset_[1]),
+		};
+
+		ShiftChunkDrawInfo(command_buffer, shift);
+		world_offset_= new_world_offset;
+	}
+
 	BuildChunksToUpdateList();
 	PrepareGeometrySizeCalculation(command_buffer);
 	CalculateGeometrySize(command_buffer);
@@ -554,6 +672,83 @@ void WorldGeometryGenerator::InitialFillBuffers(const vk::CommandBuffer command_
 		0, nullptr,
 		uint32_t(std::size(barriers)), barriers,
 		0, nullptr);
+}
+
+void WorldGeometryGenerator::ShiftChunkDrawInfo(
+	const vk::CommandBuffer command_buffer,
+	const std::array<int32_t, 2> shift)
+{
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *chunk_draw_info_shift_pipeline_.pipeline);
+
+	command_buffer.bindDescriptorSets(
+		vk::PipelineBindPoint::eCompute,
+		*chunk_draw_info_shift_pipeline_.pipeline_layout,
+		0u,
+		{chunk_draw_info_shift_descriptor_set_},
+		{});
+
+	ChunkDrawInfoShiftUniforms uniforms;
+	uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+	uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+	uniforms.chunks_shift[0]= shift[0];
+	uniforms.chunks_shift[1]= shift[1];
+
+	command_buffer.pushConstants(
+		*chunk_draw_info_shift_pipeline_.pipeline_layout,
+		vk::ShaderStageFlagBits::eCompute,
+		0,
+		sizeof(ChunkDrawInfoShiftUniforms), static_cast<const void*>(&uniforms));
+
+	// Dispatch a thread for each chunk.
+	command_buffer.dispatch(world_size_[0], world_size_[1], 1);
+
+	// Create barrier between update chunk draw info temp buffer and its later usage.
+	// TODO - check this is correct.
+	{
+		const vk::BufferMemoryBarrier barrier(
+			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eTransferRead,
+			queue_family_index_, queue_family_index_,
+			chunk_draw_info_buffer_temp_.GetBuffer(),
+			0,
+			VK_WHOLE_SIZE);
+
+		command_buffer.pipelineBarrier(
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::PipelineStageFlagBits::eTransfer,
+			vk::DependencyFlags(),
+			0, nullptr,
+			1, &barrier,
+			0, nullptr);
+	}
+
+	// Copy temp buffer back to chunk draw info buffer.
+	HEX_ASSERT(chunk_draw_info_buffer_temp_.GetSize() == chunk_draw_info_buffer_.GetSize());
+
+	command_buffer.copyBuffer(
+		chunk_draw_info_buffer_temp_.GetBuffer(),
+		chunk_draw_info_buffer_.GetBuffer(),
+		{
+			{ 0, 0, chunk_draw_info_buffer_.GetSize() }
+		});
+
+	// Create barrier between update chunk draw info buffer copy and its later usage.
+	// TODO - check this is correct.
+	{
+		const vk::BufferMemoryBarrier barrier(
+			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
+			queue_family_index_, queue_family_index_,
+			chunk_draw_info_buffer_temp_.GetBuffer(),
+			0,
+			VK_WHOLE_SIZE);
+
+		command_buffer.pipelineBarrier(
+			vk::PipelineStageFlagBits::eTransfer,
+			vk::PipelineStageFlagBits::eComputeShader,
+			vk::DependencyFlags(),
+			0, nullptr,
+			1, &barrier,
+			0, nullptr);
+	}
 }
 
 void WorldGeometryGenerator::BuildChunksToUpdateList()
@@ -657,8 +852,6 @@ void WorldGeometryGenerator::CalculateGeometrySize(const vk::CommandBuffer comma
 		{geometry_size_calculate_descriptor_sets_[world_processor_.GetActualBuffersIndex()]},
 		{});
 
-	const WorldOffsetChunks world_offset= world_processor_.GetWorldOffset();
-
 	// Execute geometry size calculation for all chunks.
 	// TODO - do this no each frame and not for each chunk.
 	for(const auto& chunk_to_update : chunks_to_update_)
@@ -668,8 +861,8 @@ void WorldGeometryGenerator::CalculateGeometrySize(const vk::CommandBuffer comma
 		chunk_position_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
 		chunk_position_uniforms.chunk_position[0]= int32_t(chunk_to_update[0]);
 		chunk_position_uniforms.chunk_position[1]= int32_t(chunk_to_update[1]);
-		chunk_position_uniforms.chunk_global_position[0]= world_offset[0] + int32_t(chunk_to_update[0]);
-		chunk_position_uniforms.chunk_global_position[1]= world_offset[1] + int32_t(chunk_to_update[1]);
+		chunk_position_uniforms.chunk_global_position[0]= world_offset_[0] + int32_t(chunk_to_update[0]);
+		chunk_position_uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(chunk_to_update[1]);
 
 		command_buffer.pushConstants(
 			*geometry_size_calculate_pipeline_.pipeline_layout,
@@ -795,8 +988,6 @@ void WorldGeometryGenerator::GenGeometry(const vk::CommandBuffer command_buffer)
 		{geometry_gen_descriptor_sets_[world_processor_.GetActualBuffersIndex()]},
 		{});
 
-	const WorldOffsetChunks world_offset= world_processor_.GetWorldOffset();
-
 	// Execute geometry generation for all chunks.
 	// TODO - do this no each frame and not for each chunk.
 	for(const auto& chunk_to_update : chunks_to_update_)
@@ -806,8 +997,8 @@ void WorldGeometryGenerator::GenGeometry(const vk::CommandBuffer command_buffer)
 		chunk_position_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
 		chunk_position_uniforms.chunk_position[0]= int32_t(chunk_to_update[0]);
 		chunk_position_uniforms.chunk_position[1]= int32_t(chunk_to_update[1]);
-		chunk_position_uniforms.chunk_global_position[0]= world_offset[0] + int32_t(chunk_to_update[0]);
-		chunk_position_uniforms.chunk_global_position[1]= world_offset[1] + int32_t(chunk_to_update[1]);
+		chunk_position_uniforms.chunk_global_position[0]= world_offset_[0] + int32_t(chunk_to_update[0]);
+		chunk_position_uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(chunk_to_update[1]);
 
 		command_buffer.pushConstants(
 			*geometry_gen_pipeline_.pipeline_layout,

@@ -342,7 +342,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 	, chunk_draw_info_buffer_temp_(
 		window_vulkan,
 		chunk_draw_info_buffer_.GetSize(),
-		vk::BufferUsageFlagBits::eStorageBuffer)
+		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferSrc)
 	, vertex_buffer_num_quads_(GetTotalVertexBufferQuads(world_size_))
 	, vertex_buffer_(
 		window_vulkan,
@@ -599,9 +599,10 @@ void WorldGeometryGenerator::Update(const vk::CommandBuffer command_buffer)
 	const WorldOffsetChunks new_world_offset= world_processor_.GetWorldOffset();
 	if(new_world_offset != world_offset_)
 	{
-		// World was shifted. Shift out draw info matrix.
+		// World was shifted. Shift our chunk draw info matrix.
 
-		const std::array<int32_t, 2> shift{
+		const std::array<int32_t, 2> shift
+		{
 			new_world_offset[0] - int32_t(world_offset_[0]),
 			new_world_offset[1] - int32_t(world_offset_[1]),
 		};

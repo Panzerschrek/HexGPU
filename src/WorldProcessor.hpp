@@ -153,9 +153,9 @@ private:
 	const ComputePipeline world_blocks_external_update_queue_flush_pipeline_;
 	const std::array<vk::DescriptorSet, 2> world_blocks_external_update_queue_flush_descriptor_sets_;
 
-	WorldOffsetChunks world_offset_;
-	WorldOffsetChunks next_world_offset_;
-	WorldOffsetChunks next_next_world_offset_;
+	WorldOffsetChunks world_offset_; // Current offset
+	WorldOffsetChunks next_world_offset_; // Offset which will be current at the start of the next tick
+	WorldOffsetChunks next_next_world_offset_; // Offset whic will be next at the start of the next tick
 
 	bool initial_buffers_filled_= false;
 

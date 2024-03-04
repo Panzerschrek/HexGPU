@@ -1099,6 +1099,8 @@ void WorldProcessor::ReadBackAndProcessPlayerState()
 
 	// Determine world position based on player position.
 
+	// TODO - handle cases where player position changes a lot (like teleportation).
+
 	const int32_t chunk_coord[]
 	{
 		int32_t(std::floor(player_state.pos[0] / c_space_scale_x)) >> int32_t(c_chunk_width_log2),

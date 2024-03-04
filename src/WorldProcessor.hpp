@@ -159,8 +159,10 @@ private:
 
 	bool initial_buffers_filled_= false;
 
+	// Update frame. Incremented on each "update" call.
 	uint32_t current_frame_= 0;
 
+	// Tick number. Incrementing at new tick start only (not each frame).
 	uint32_t current_tick_= 0;
 	float current_tick_fractional_= 0.0f;
 

@@ -104,17 +104,6 @@ bool Host::Loop()
 			quit_requested_= true;
 		if(event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)
 			quit_requested_= true;
-		if(event.type == SDL_KEYDOWN)
-		{
-			if(event.key.keysym.scancode == SDL_SCANCODE_L)
-				world_processor_.StepWorldEast();
-			if(event.key.keysym.scancode == SDL_SCANCODE_J)
-				world_processor_.StepWorldWest();
-			if(event.key.keysym.scancode == SDL_SCANCODE_I)
-				world_processor_.StepWorldNorth();
-			if(event.key.keysym.scancode == SDL_SCANCODE_K)
-				world_processor_.StepWorldSouth();
-		}
 	}
 
 	const vk::CommandBuffer command_buffer= window_vulkan_.BeginFrame();

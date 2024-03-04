@@ -25,11 +25,6 @@ public:
 		MouseState mouse_state,
 		float aspect);
 
-	void StepWorldEast();
-	void StepWorldWest();
-	void StepWorldNorth();
-	void StepWorldSouth();
-
 	vk::Buffer GetChunkDataBuffer(uint32_t index) const;
 	vk::DeviceSize GetChunkDataBufferSize() const;
 	vk::Buffer GetLightDataBuffer(uint32_t index) const;

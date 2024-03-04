@@ -934,26 +934,6 @@ void WorldProcessor::Update(
 	++current_frame_;
 }
 
-void WorldProcessor::StepWorldEast()
-{
-	++next_next_world_offset_[0];
-}
-
-void WorldProcessor::StepWorldWest()
-{
-	--next_next_world_offset_[0];
-}
-
-void WorldProcessor::StepWorldNorth()
-{
-	++next_next_world_offset_[1];
-}
-
-void WorldProcessor::StepWorldSouth()
-{
-	--next_next_world_offset_[1];
-}
-
 vk::Buffer WorldProcessor::GetChunkDataBuffer(const uint32_t index) const
 {
 	HEX_ASSERT(index < 2);

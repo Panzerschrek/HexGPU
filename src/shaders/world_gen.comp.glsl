@@ -17,6 +17,7 @@ layout(push_constant) uniform uniforms_block
 	ivec2 world_size_chunks;
 	ivec2 chunk_position;
 	ivec2 chunk_global_position;
+	int seed;
 };
 
 layout(binding= 0, std430) buffer chunks_data_buffer
@@ -28,8 +29,6 @@ int GetGroundLevel(int global_x, int global_y)
 {
 	// HACK. If not doing this, borders parallel to world X axis are to sharply.
 	int global_y_corrected= global_y - (global_x & 1);
-
-	int seed= 0; // TODO - provide seed value via an uniform.
 
 	// Add several octaves of triangle-interpolated noise.
 	int noise=

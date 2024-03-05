@@ -67,6 +67,7 @@ struct WorldGenUniforms
 	int32_t world_size_chunks[2]{};
 	int32_t chunk_position[2]{};
 	int32_t chunk_global_position[2]{};
+	int32_t seed= 0;
 };
 
 // This constant should match workgroup size in shader!
@@ -483,6 +484,7 @@ WorldProcessor::WorldProcessor(
 	: vk_device_(window_vulkan.GetVulkanDevice())
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, world_size_(ReadWorldSize(settings))
+	, world_seed_(int32_t(settings.GetOrSetInt("g_world_seed")))
 	, chunk_data_buffers_{
 		CreateChunkDataBuffer(window_vulkan, world_size_),
 		CreateChunkDataBuffer(window_vulkan, world_size_)}
@@ -552,6 +554,8 @@ WorldProcessor::WorldProcessor(
 	, next_next_world_offset_(next_world_offset_)
 {
 	HEX_ASSERT(player_state_read_back_buffer_num_frames_ > 0);
+
+	Log::Info("World seed: ", world_seed_);
 
 	// Update world generation descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
@@ -1143,6 +1147,7 @@ void WorldProcessor::InitialGenerateWorld(const vk::CommandBuffer command_buffer
 		uniforms.chunk_position[1]= int32_t(y);
 		uniforms.chunk_global_position[0]= world_offset_[0] + int32_t(x);
 		uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(y);
+		uniforms.seed= world_seed_;
 
 		command_buffer.pushConstants(
 			*world_gen_pipeline_.pipeline_layout,

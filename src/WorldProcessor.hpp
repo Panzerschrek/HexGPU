@@ -115,6 +115,7 @@ private:
 	const uint32_t queue_family_index_;
 
 	const WorldSizeChunks world_size_;
+	const int32_t world_seed_;
 
 	// Use double buffering for world update.
 	// On each step data is read from one of them and written into another.

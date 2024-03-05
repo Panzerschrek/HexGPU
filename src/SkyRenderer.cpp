@@ -96,7 +96,7 @@ GraphicsPipeline CreateSkyPipeline(
 	const vk::PipelineDepthStencilStateCreateInfo pipeline_depth_state_create_info(
 		vk::PipelineDepthStencilStateCreateFlags(),
 		VK_TRUE,
-		VK_TRUE,
+		VK_FALSE, // Do not bother writing depth.
 		vk::CompareOp::eLess,
 		VK_FALSE,
 		VK_FALSE,

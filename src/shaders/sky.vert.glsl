@@ -20,7 +20,9 @@ const vec3 c_sky_vertices[8]= vec3[8]
 	vec3(-c_skybox_half_size, -c_skybox_half_size, -c_skybox_half_size)
 );
 
-const int c_sky_indeces[12 * 3]= int[12 * 3]
+const int c_num_indices= 6 * 2 * 3;
+
+const int c_sky_indeces[c_num_indices]= int[c_num_indices]
 (
 	0, 1, 5,  0, 5, 4,
 	0, 4, 6,  0, 6, 2,
@@ -35,8 +37,11 @@ layout(binding= 0) uniform uniforms_block_variable
 	mat4 view_matrix;
 };
 
+layout(location = 0) out vec3 f_view_vec;
+
 void main()
 {
 	vec3 pos= c_sky_vertices[c_sky_indeces[gl_VertexIndex]];
+	f_view_vec= pos;
 	gl_Position= view_matrix * vec4(pos, 1.0);
 }

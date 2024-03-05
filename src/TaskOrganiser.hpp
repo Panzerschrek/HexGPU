@@ -20,9 +20,10 @@ public:
 
 	struct ComputeTask : public TaskBase
 	{
-		// If a buffer is both input and output, put it into both containers.
 		std::vector<vk::Buffer> input_storage_buffers;
 		std::vector<vk::Buffer> output_storage_buffers;
+		// Buffers which are both input and output. Do not list them in input and/or output lists.
+		std::vector<vk::Buffer> input_output_storage_buffers;
 		// TODO - add also images.
 	};
 

@@ -25,9 +25,9 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 
 	task.func(command_buffer);
 
-	// Process input buffers, than output buffers to handle in-out buffers properly. Last usage in such case should be write.
 	UpdateLastBuffersUsage(task.input_storage_buffers, BufferUsage::ComputeShaderSrc);
 	UpdateLastBuffersUsage(task.output_storage_buffers, BufferUsage::ComputeShaderDst);
+	UpdateLastBuffersUsage(task.input_output_storage_buffers, BufferUsage::ComputeShaderDst);
 }
 
 void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, const GraphicsTask& task)

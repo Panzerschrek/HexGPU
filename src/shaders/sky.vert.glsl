@@ -1,11 +1,5 @@
 #version 450
 
-#extension GL_GOOGLE_include_directive : require
-#extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
-#extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
-
-#include "inc/block_type.glsl"
-
 // Use for sky mesh a pyramid with square base.
 
 const float c_skybox_half_size= 512.0;
@@ -40,7 +34,7 @@ layout(binding= 0) uniform uniforms_block_variable
 	mat4 view_matrix;
 };
 
-layout(location = 0) out vec3 f_view_vec;
+layout(location= 0) out vec3 f_view_vec;
 
 void main()
 {

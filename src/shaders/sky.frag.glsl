@@ -1,8 +1,8 @@
 #version 450
 
-layout(location = 0) in vec3 f_view_vec;
+layout(location= 0) in vec3 f_view_vec;
 
-layout(location = 0) out vec4 out_color;
+layout(location=  0) out vec4 out_color;
 
 const vec3 c_sun_color= vec3(0.1, 0.1, 0.04);
 const vec3 c_sun_direction= normalize(vec3(0.5, -0.3, 1.0)); // TODO - make daytime dependent.

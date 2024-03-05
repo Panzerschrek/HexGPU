@@ -237,6 +237,7 @@ void UpdatePlayerMatrices()
 		MateTranslateMatrix(-player_state.pos.xyz) *
 		MakeScaleMatrix(vec3(0.5 / sqrt(3.0), 0.5, 1.0));
 
+	// Do not upply translation to sky matrix - always keep player in the center of the sky mesh.
 	player_state.sky_matrix= rotation_and_perspective;
 }
 

@@ -14,7 +14,6 @@ struct DrawUniforms
 	float view_matrix[16]{};
 };
 
-
 GraphicsPipeline CreateSkyPipeline(
 	const vk::Device vk_device,
 	const vk::Extent2D viewport_size,
@@ -48,7 +47,7 @@ GraphicsPipeline CreateSkyPipeline(
 				1u, &*pipeline.descriptor_set_layout,
 				0u, nullptr));
 
-	const vk::PipelineShaderStageCreateInfo shader_stage_create_info[2]
+	const vk::PipelineShaderStageCreateInfo shader_stage_create_info[]
 	{
 		{
 			vk::PipelineShaderStageCreateFlags(),
@@ -64,6 +63,7 @@ GraphicsPipeline CreateSkyPipeline(
 		},
 	};
 
+	// No input vertices - generate coordinates in vertex shader.
 	const vk::PipelineVertexInputStateCreateInfo pipiline_vertex_input_state_create_info(
 		vk::PipelineVertexInputStateCreateFlags(),
 		0u, nullptr,
@@ -88,7 +88,7 @@ GraphicsPipeline CreateSkyPipeline(
 		vk::PolygonMode::eFill,
 		vk::CullModeFlagBits::eBack, // Use back-face culling.
 		vk::FrontFace::eCounterClockwise,
-		VK_FALSE, 0.0f, 0.0f, 0.0f, // Depth bias
+		VK_FALSE, 0.0f, 0.0f, 0.0f,
 		1.0f);
 
 	const vk::PipelineMultisampleStateCreateInfo pipeline_multisample_state_create_info;

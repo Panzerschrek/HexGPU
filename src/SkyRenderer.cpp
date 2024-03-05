@@ -198,7 +198,7 @@ void SkyRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
 		uniform_buffer_.GetBuffer(),
 		{
 			{
-				offsetof(WorldProcessor::PlayerState, blocks_matrix),
+				offsetof(WorldProcessor::PlayerState, sky_matrix),
 				offsetof(DrawUniforms, view_matrix),
 				sizeof(float) * 16
 			},

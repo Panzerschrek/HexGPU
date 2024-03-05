@@ -42,6 +42,7 @@ public:
 	struct PlayerState
 	{
 		float blocks_matrix[16]{};
+		float sky_matrix[16]{};
 		float pos[4]{};
 		float angles[4]{};
 		int32_t build_pos[4]{}; // component 3 - direction

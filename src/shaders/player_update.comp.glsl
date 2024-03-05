@@ -216,7 +216,7 @@ void PushUpdateIntoQueue(WorldBlockExternalUpdate update)
 		world_blocks_external_update_queue.updates[index]= update;
 }
 
-void UpdateBlocksMatrix()
+void UpdatePlayerMatrices()
 {
 	const float z_near= 0.125;
 	const float z_far= 1024.0;
@@ -226,14 +226,18 @@ void UpdateBlocksMatrix()
 
 	float fov_y= fov;
 
-	mat4 perspective= MakePerspectiveProjectionMatrix(aspect, fov, z_near, z_far);
-	mat4 basis_change= MakePerspectiveChangeBasisMatrix();
-	mat4 rotate_x= MakeRotationXMatrix(-player_state.angles.y);
-	mat4 rotate_z= MakeRotationZMatrix(-player_state.angles.x);
-	mat4 translate= MateTranslateMatrix(-player_state.pos.xyz);
-	mat4 blocks_scale= MakeScaleMatrix(vec3(0.5 / sqrt(3.0), 0.5, 1.0));
+	mat4 rotation_and_perspective=
+		MakePerspectiveProjectionMatrix(aspect, fov, z_near, z_far) *
+		MakePerspectiveChangeBasisMatrix() *
+		MakeRotationXMatrix(-player_state.angles.y) *
+		MakeRotationZMatrix(-player_state.angles.x);
 
-	player_state.blocks_matrix= perspective * basis_change * rotate_x * rotate_z * translate * blocks_scale;
+	player_state.blocks_matrix=
+		rotation_and_perspective *
+		MateTranslateMatrix(-player_state.pos.xyz) *
+		MakeScaleMatrix(vec3(0.5 / sqrt(3.0), 0.5, 1.0));
+
+	player_state.sky_matrix= rotation_and_perspective;
 }
 
 void UpdateNextPlayerWorldWindowOffset()
@@ -289,6 +293,6 @@ void main()
 		}
 	}
 
-	UpdateBlocksMatrix();
+	UpdatePlayerMatrices();
 	UpdateNextPlayerWorldWindowOffset();
 }

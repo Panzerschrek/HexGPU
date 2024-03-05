@@ -6,7 +6,7 @@
 
 #include "inc/block_type.glsl"
 
-const float c_skybox_half_size= 16.0;
+const float c_skybox_half_size= 512.0;
 
 const vec3 c_sky_vertices[8]= vec3[8]
 (

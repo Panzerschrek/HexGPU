@@ -6,67 +6,28 @@
 
 #include "inc/block_type.glsl"
 
-// Vertices of a hexogonal prism.
-const vec3 c_vertices[12]= vec3[12]
-(
-	vec3(1.0, 0.0, 0.0),
-	vec3(3.0, 0.0, 0.0),
-	vec3(4.0, 1.0, 0.0),
-	vec3(0.0, 1.0, 0.0),
-	vec3(3.0, 2.0, 0.0),
-	vec3(1.0, 2.0, 0.0),
+const float c_skybox_half_size= 16.0;
 
-	vec3(1.0, 0.0, 1.0),
-	vec3(3.0, 0.0, 1.0),
-	vec3(4.0, 1.0, 1.0),
-	vec3(0.0, 1.0, 1.0),
-	vec3(3.0, 2.0, 1.0),
-	vec3(1.0, 2.0, 1.0)
+const vec3 c_sky_vertices[8]= vec3[8]
+(
+	vec3( c_skybox_half_size,  c_skybox_half_size,  c_skybox_half_size),
+	vec3(-c_skybox_half_size,  c_skybox_half_size,  c_skybox_half_size),
+	vec3( c_skybox_half_size, -c_skybox_half_size,  c_skybox_half_size),
+	vec3(-c_skybox_half_size, -c_skybox_half_size,  c_skybox_half_size),
+	vec3( c_skybox_half_size,  c_skybox_half_size, -c_skybox_half_size),
+	vec3(-c_skybox_half_size,  c_skybox_half_size, -c_skybox_half_size),
+	vec3( c_skybox_half_size, -c_skybox_half_size, -c_skybox_half_size),
+	vec3(-c_skybox_half_size, -c_skybox_half_size, -c_skybox_half_size)
 );
 
-// Indices of a hexogonal prism triangles.
-const int c_indices[60]= int[60]
+const int c_sky_indeces[12 * 3]= int[12 * 3]
 (
-	// up
-	 8,  7,  6,
-	 9,  8,  6,
-	11, 10,  9,
-	10,  8,  9,
-	// down
-	 0,  1,  2,
-	 0,  2,  3,
-	 3,  4,  5,
-	 3,  2,  4,
-	// north
-	 5,  4, 10,
-	 5, 10, 11,
-	// south
-	 1,  0,  6,
-	 1,  6,  7,
-	// north-east
-	 4,  2,  8,
-	 4,  8, 10,
-	// south-east
-	 2,  1,  7,
-	 2,  7,  8,
-	// north-west
-	 3,  5,  9,
-	 5, 11,  9,
-	// south-west
-	 0,  3,  9,
-	 0,  9,  6
-);
-
-const uint8_t c_triangle_index_to_side[20]= uint8_t[20]
-(
-	c_direction_up, c_direction_up, c_direction_up, c_direction_up,
-	c_direction_down, c_direction_down, c_direction_down, c_direction_down,
-	c_direction_north, c_direction_north,
-	c_direction_south, c_direction_south,
-	c_direction_north_east, c_direction_north_east,
-	c_direction_south_east, c_direction_south_east,
-	c_direction_north_west, c_direction_north_west,
-	c_direction_south_west, c_direction_south_west
+	0, 1, 5,  0, 5, 4,
+	0, 4, 6,  0, 6, 2,
+	4, 5, 7,  4, 7, 6, // bottom
+	0, 3, 1,  0, 2, 3, // top
+	2, 7, 3,  2, 6, 7,
+	1, 3, 7,  1, 7, 5
 );
 
 layout(binding= 0) uniform uniforms_block_variable
@@ -76,6 +37,6 @@ layout(binding= 0) uniform uniforms_block_variable
 
 void main()
 {
-	vec3 pos_corrected= 32.0 * c_vertices[c_indices[gl_VertexIndex]] ;
-	gl_Position= view_matrix * vec4(pos_corrected, 1.0);
+	vec3 pos= c_sky_vertices[c_sky_indeces[gl_VertexIndex]];
+	gl_Position= view_matrix * vec4(pos, 1.0);
 }

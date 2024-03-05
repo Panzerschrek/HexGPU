@@ -82,6 +82,15 @@ const uint32_t c_allocation_unut_size_quads= 512;
 // we need to have enough space for so much vertices.
 const uint32_t c_max_average_quads_per_chunk= 6144;
 
+int32_t EuclidianReminder(const int32_t x, const int32_t y)
+{
+	HEX_ASSERT(y > 0);
+	const int32_t r = x % y;
+	const int32_t r_corrected= r >= 0 ? r : r + y;
+	HEX_ASSERT(r_corrected >= 0 && r_corrected < y);
+	return r_corrected;
+}
+
 uint32_t GetTotalVertexBufferQuads(const WorldSizeChunks& world_size)
 {
 	return c_max_average_quads_per_chunk * world_size[0] * world_size[1];
@@ -691,8 +700,11 @@ void WorldGeometryGenerator::ShiftChunkDrawInfo(
 	ChunkDrawInfoShiftUniforms uniforms;
 	uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
 	uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-	uniforms.chunks_shift[0]= shift[0];
-	uniforms.chunks_shift[1]= shift[1];
+	uniforms.chunks_shift[0]= EuclidianReminder(shift[0], int32_t(world_size_[0]));
+	uniforms.chunks_shift[1]= EuclidianReminder(shift[1], int32_t(world_size_[1]));
+
+	HEX_ASSERT(uniforms.chunks_shift[0] >= 0 && uniforms.chunks_shift[0] < int32_t(world_size_[0]));
+	HEX_ASSERT(uniforms.chunks_shift[1] >= 0 && uniforms.chunks_shift[1] < int32_t(world_size_[1]));
 
 	command_buffer.pushConstants(
 		*chunk_draw_info_shift_pipeline_.pipeline_layout,

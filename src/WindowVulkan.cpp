@@ -312,7 +312,7 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 			vk::AttachmentDescriptionFlags(),
 			surface_format.format,
 			vk::SampleCountFlagBits::e1,
-			vk::AttachmentLoadOp::eClear, // TODO - eDontCare if we do not clear the result
+			vk::AttachmentLoadOp::eDontCare,
 			vk::AttachmentStoreOp::eStore,
 			vk::AttachmentLoadOp::eDontCare,
 			vk::AttachmentStoreOp::eDontCare,
@@ -493,10 +493,9 @@ void WindowVulkan::EndFrame(const DrawFunction& draw_function)
 
 	// Begin render pass.
 
-	// TODO - avoid clearing result buffer.
 	const vk::ClearValue clear_values[]
 	{
-		vk::ClearColorValue(std::array<float,4>{0.2f, 0.1f, 0.1f, 0.5f}),
+		vk::ClearColorValue(std::array<float,4>{1.0f, 0.0f, 1.0f, 1.0f}), // Clear with pink to catch some mistakes.
 		vk::ClearDepthStencilValue(1.0f, 0u),
 	};
 

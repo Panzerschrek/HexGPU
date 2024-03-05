@@ -2,6 +2,7 @@
 #include "BuildPrismRenderer.hpp"
 #include "SystemWindow.hpp"
 #include "WorldRenderer.hpp"
+#include "SkyRenderer.hpp"
 #include <chrono>
 
 namespace HexGPU
@@ -24,6 +25,7 @@ private:
 	const vk::UniqueDescriptorPool global_descriptor_pool_;
 	WorldProcessor world_processor_;
 	WorldRenderer world_renderer_;
+	SkyRenderer sky_renderer_;
 	BuildPrismRenderer build_prism_renderer_;
 
 	const Clock::time_point init_time_;

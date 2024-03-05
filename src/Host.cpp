@@ -81,6 +81,7 @@ Host::Host()
 	, global_descriptor_pool_(CreateGlobalDescriptorPool(window_vulkan_.GetVulkanDevice()))
 	, world_processor_(window_vulkan_, *global_descriptor_pool_, settings_)
 	, world_renderer_(window_vulkan_, world_processor_, *global_descriptor_pool_)
+	, sky_renderer_(window_vulkan_, world_processor_, *global_descriptor_pool_)
 	, build_prism_renderer_(window_vulkan_, world_processor_, *global_descriptor_pool_)
 	, init_time_(Clock::now())
 	, prev_tick_time_(init_time_)
@@ -116,12 +117,14 @@ bool Host::Loop()
 		CalculateAspect(window_vulkan_.GetViewportSize()));
 
 	world_renderer_.PrepareFrame(command_buffer);
+	sky_renderer_.PrepareFrame(command_buffer);
 	build_prism_renderer_.PrepareFrame(command_buffer);
 
 	window_vulkan_.EndFrame(
 		[&](const vk::CommandBuffer command_buffer)
 		{
 			world_renderer_.Draw(command_buffer);
+			sky_renderer_.Draw(command_buffer);
 			build_prism_renderer_.Draw(command_buffer);
 		});
 

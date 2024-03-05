@@ -6,30 +6,33 @@
 
 #include "inc/block_type.glsl"
 
-const float c_skybox_half_size= 512.0;
+// Use for sky mesh a pyramid with square base.
 
-const vec3 c_sky_vertices[8]= vec3[8]
+const float c_skybox_half_size= 512.0;
+const float c_pyramid_height= 1024.0;
+const float c_pyramid_depth= -512.0;
+
+const vec3 c_sky_vertices[5]= vec3[5]
 (
-	vec3( c_skybox_half_size,  c_skybox_half_size,  c_skybox_half_size),
-	vec3(-c_skybox_half_size,  c_skybox_half_size,  c_skybox_half_size),
-	vec3( c_skybox_half_size, -c_skybox_half_size,  c_skybox_half_size),
-	vec3(-c_skybox_half_size, -c_skybox_half_size,  c_skybox_half_size),
-	vec3( c_skybox_half_size,  c_skybox_half_size, -c_skybox_half_size),
-	vec3(-c_skybox_half_size,  c_skybox_half_size, -c_skybox_half_size),
-	vec3( c_skybox_half_size, -c_skybox_half_size, -c_skybox_half_size),
-	vec3(-c_skybox_half_size, -c_skybox_half_size, -c_skybox_half_size)
+	vec3( c_skybox_half_size,  c_skybox_half_size, c_pyramid_depth),
+	vec3(-c_skybox_half_size,  c_skybox_half_size, c_pyramid_depth),
+	vec3( c_skybox_half_size, -c_skybox_half_size, c_pyramid_depth),
+	vec3(-c_skybox_half_size, -c_skybox_half_size, c_pyramid_depth),
+	vec3(0, 0, c_pyramid_height)
 );
 
-const int c_num_indices= 6 * 2 * 3;
+const int c_num_indices= 6 * 3;
 
 const int c_sky_indeces[c_num_indices]= int[c_num_indices]
 (
-	0, 1, 5,  0, 5, 4,
-	0, 4, 6,  0, 6, 2,
-	4, 5, 7,  4, 7, 6, // bottom
-	0, 3, 1,  0, 2, 3, // top
-	2, 7, 3,  2, 6, 7,
-	1, 3, 7,  1, 7, 5
+	// Pyramid sides
+	4, 1, 0,
+	4, 3, 1,
+	4, 2, 3,
+	4, 0, 2,
+	// Pyramid base
+	0, 1, 2,
+	2, 1, 3
 );
 
 layout(binding= 0) uniform uniforms_block_variable

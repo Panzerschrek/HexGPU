@@ -234,7 +234,7 @@ void SkyRenderer::Draw(const vk::CommandBuffer command_buffer)
 
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline_.pipeline);
 
-	const uint32_t c_num_vertices= 6u * 2u * 3u; // This must match the corresponding contant in GLSL code!
+	const uint32_t c_num_vertices= 6u * 3u; // This must match the corresponding contant in GLSL code!
 
 	command_buffer.draw(c_num_vertices, 1u, 0u, 0u);
 }

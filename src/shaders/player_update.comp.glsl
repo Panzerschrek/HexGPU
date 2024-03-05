@@ -219,7 +219,7 @@ void PushUpdateIntoQueue(WorldBlockExternalUpdate update)
 void UpdatePlayerMatrices()
 {
 	const float z_near= 0.125;
-	const float z_far= 1024.0;
+	const float z_far= 2048.0;
 	const float fov_deg= 75.0;
 
 	const float fov= radians(fov_deg);

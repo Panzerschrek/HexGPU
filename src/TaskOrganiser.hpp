@@ -1,6 +1,7 @@
 #pragma once
 #include "HexGPUVulkan.hpp"
 #include <functional>
+#include <unordered_map>
 #include <variant>
 
 namespace HexGPU
@@ -19,6 +20,7 @@ public:
 
 	struct ComputeTask : public TaskBase
 	{
+		// If a buffer is both input and output, put it into both containers.
 		std::vector<vk::Buffer> input_storage_buffers;
 		std::vector<vk::Buffer> output_storage_buffers;
 	};
@@ -30,6 +32,7 @@ public:
 
 	struct TransferTask : public TaskBase
 	{
+		// If a buffer is both input and output, put it into both containers.
 		std::vector<vk::Buffer> input_buffers;
 		std::vector<vk::Buffer> output_buffers;
 	};
@@ -49,13 +52,28 @@ public:
 	void ExecuteTasks(vk::CommandBuffer command_buffer);
 
 private:
+
+	enum struct BufferUsage : uint8_t
+	{
+		VertexBuffer,
+		ComputeShaderReadWrite,
+		TransferDst,
+		TransferSrc,
+	};
+
+private:
 	void ExecuteTaskImpl(vk::CommandBuffer command_buffer, const ComputeTask& task);
 	void ExecuteTaskImpl(vk::CommandBuffer command_buffer, const GraphicsTask& task);
 	void ExecuteTaskImpl(vk::CommandBuffer command_buffer, const TransferTask& task);
 	void ExecuteTaskImpl(vk::CommandBuffer command_buffer, const PresentTask& task);
 
+	void UpdateLastBufferUsage(vk::Buffer buffer, BufferUsage usage);
+
 private:
 	std::vector<Task> tasks_;
+
+	// Remember buffer usages in order to setup barriers properly.
+	std::unordered_map<VkBuffer, BufferUsage> last_buffer_usage_;
 };
 
 } // namespace HexGPU

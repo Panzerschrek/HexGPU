@@ -20,22 +20,41 @@ void TaskOrganiser::ExecuteTasks(const vk::CommandBuffer command_buffer)
 
 void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, const ComputeTask& task)
 {
+	// TODO - add barriers.
+
 	task.func(command_buffer);
+
+	for(const vk::Buffer output_buffer : task.output_storage_buffers)
+		UpdateLastBufferUsage(output_buffer, BufferUsage::ComputeShaderReadWrite);
 }
 
 void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, const GraphicsTask& task)
 {
+	// TODO - add barriers.
+
 	task.func(command_buffer);
 }
 
 void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, const TransferTask& task)
 {
+	// TODO - add barriers.
+
 	task.func(command_buffer);
+
+	for(const vk::Buffer output_buffer : task.output_buffers)
+		UpdateLastBufferUsage(output_buffer, BufferUsage::TransferDst);
 }
 
 void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, const PresentTask& task)
 {
+	// TODO - add barriers.
+
 	task.func(command_buffer);
+}
+
+void TaskOrganiser::UpdateLastBufferUsage(const vk::Buffer buffer, const BufferUsage usage)
+{
+	last_buffer_usage_[buffer]= usage;
 }
 
 } // namespace HexGPU

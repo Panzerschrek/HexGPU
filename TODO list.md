@@ -23,8 +23,10 @@ The order represents importance and/or dependency.
 * Chunk vertices allocator - make it faster (remove linear complexity)
 * Plates (half-blocks)
 * Vertically-splitted half-blocks
-* Sky drawing (sky, sun, moon, clouds)
+* Day-night cycle affecting sky brightness and sun direction
+* Day-night cycle affecting sky light brightness
+* Clouds
+* Stars (at night)
 * Rain/snow
-* Time of day change
 * GUI
 * Sparse chunk geometry update improvements - update area around player frequently, use direction of view, etc.

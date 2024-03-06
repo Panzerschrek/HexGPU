@@ -9,20 +9,14 @@ TaskOrganiser::TaskOrganiser(WindowVulkan& window_vulkan)
 {
 }
 
-void TaskOrganiser::AddTask(Task task)
+void TaskOrganiser::ExecuteTask(const Task& task)
 {
-	tasks_.push_back(std::move(task));
+	std::visit([&](const auto& t){ ExecuteTaskImpl(command_buffer_, t); }, task);
 }
 
-void TaskOrganiser::ExecuteTasks(const vk::CommandBuffer command_buffer)
+void TaskOrganiser::SetCommandBuffer(vk::CommandBuffer command_buffer)
 {
-	for(const Task& task : tasks_)
-		std::visit([&](const auto& t){ ExecuteTaskImpl(command_buffer, t); }, task);
-
-	tasks_.clear();
-
-	// Preserve last buffer usages in order to insert proper barriers,
-	// if these buffers are used in next frame when this frame is in-fly.
+	command_buffer_= command_buffer;
 }
 
 void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, const ComputeTask& task)

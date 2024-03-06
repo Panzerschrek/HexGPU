@@ -60,7 +60,7 @@ void GPUAllocator::EnsureInitialized(TaskOrganiser& task_organiser)
 			command_buffer.updateBuffer(allocator_data_buffer_.GetBuffer(), 0u, allocator_data_buffer_.GetSize(), data.data());
 		};
 
-	task_organiser.AddTask(std::move(task));
+	task_organiser.ExecuteTask(task);
 }
 
 } // namespace HexGPU

@@ -108,6 +108,9 @@ bool Host::Loop()
 			quit_requested_= true;
 	}
 
+	const vk::CommandBuffer command_buffer= window_vulkan_.BeginFrame();
+	task_organiser_.SetCommandBuffer(command_buffer);
+
 	world_processor_.Update(
 		task_organiser_,
 		dt_s,
@@ -116,10 +119,6 @@ bool Host::Loop()
 		CalculateAspect(window_vulkan_.GetViewportSize()));
 
 	world_renderer_.PrepareFrame(task_organiser_);
-
-	const vk::CommandBuffer command_buffer= window_vulkan_.BeginFrame();
-
-	task_organiser_.ExecuteTasks(command_buffer);
 
 	// TODO - add other tasks into the task organizer.
 	sky_renderer_.PrepareFrame(command_buffer);

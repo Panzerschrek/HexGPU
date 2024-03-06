@@ -293,7 +293,7 @@ void WorldTexturesManager::PrepareFrame(TaskOrganiser& task_organiser)
 			}
 		};
 
-	task_organiser.AddTask(std::move(task));
+	task_organiser.ExecuteTask(task);
 }
 
 vk::ImageView WorldTexturesManager::GetImageView() const

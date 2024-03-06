@@ -479,7 +479,7 @@ void WorldRenderer::CopyViewMatrix(TaskOrganiser& task_organiser)
 				});
 		};
 
-	task_organiser.AddTask(std::move(task));
+	task_organiser.ExecuteTask(task);
 }
 
 void WorldRenderer::BuildDrawIndirectBuffer(TaskOrganiser& task_organiser)
@@ -515,7 +515,7 @@ void WorldRenderer::BuildDrawIndirectBuffer(TaskOrganiser& task_organiser)
 			command_buffer.dispatch(world_size_[0], world_size_[1], 1);
 		};
 
-	task_organiser.AddTask(std::move(task));
+	task_organiser.ExecuteTask(task);
 }
 
 } // namespace HexGPU

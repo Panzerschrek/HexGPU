@@ -1027,7 +1027,7 @@ void WorldProcessor::InitialFillBuffers(TaskOrganiser& task_organiser)
 			command_buffer.fillBuffer(player_state_read_back_buffer_.GetBuffer(), 0, player_state_read_back_buffer_.GetSize(), 0);
 		};
 
-	task_organiser.AddTask(std::move(task));
+	task_organiser.ExecuteTask(task);
 }
 
 void WorldProcessor::ReadBackAndProcessPlayerState()
@@ -1115,7 +1115,7 @@ void WorldProcessor::InitialGenerateWorld(TaskOrganiser& task_organiser)
 			}
 		};
 
-	task_organiser.AddTask(std::move(world_gen_task));
+	task_organiser.ExecuteTask(world_gen_task);
 
 	TaskOrganiser::ComputeTask initial_light_fill_task;
 	initial_light_fill_task.input_storage_buffers.push_back(chunk_data_buffers_[dst_buffer_index].GetBuffer());
@@ -1156,7 +1156,7 @@ void WorldProcessor::InitialGenerateWorld(TaskOrganiser& task_organiser)
 			}
 		};
 
-	task_organiser.AddTask(std::move(initial_light_fill_task));
+	task_organiser.ExecuteTask(initial_light_fill_task);
 }
 
 void WorldProcessor::DetermineChunksUpdateKind(const RelativeWorldShiftChunks relative_world_shift)
@@ -1263,7 +1263,7 @@ void WorldProcessor::UpdateWorldBlocks(
 			}
 		};
 
-	task_organiser.AddTask(std::move(task));
+	task_organiser.ExecuteTask(task);
 }
 
 void WorldProcessor::UpdateLight(
@@ -1327,7 +1327,7 @@ void WorldProcessor::UpdateLight(
 			}
 		};
 
-	task_organiser.AddTask(std::move(task));
+	task_organiser.ExecuteTask(task);
 }
 
 void WorldProcessor::GenerateWorld(
@@ -1379,7 +1379,7 @@ void WorldProcessor::GenerateWorld(
 			}
 		};
 
-	task_organiser.AddTask(std::move(world_gen_task));
+	task_organiser.ExecuteTask(world_gen_task);
 
 	TaskOrganiser::ComputeTask initial_light_fill_task;
 	initial_light_fill_task.input_storage_buffers.push_back(chunk_data_buffers_[dst_buffer_index].GetBuffer());
@@ -1423,7 +1423,7 @@ void WorldProcessor::GenerateWorld(
 			}
 		};
 
-	task_organiser.AddTask(std::move(initial_light_fill_task));
+	task_organiser.ExecuteTask(initial_light_fill_task);
 }
 
 void WorldProcessor::BuildPlayerWorldWindow(TaskOrganiser& task_organiser)
@@ -1474,7 +1474,7 @@ void WorldProcessor::BuildPlayerWorldWindow(TaskOrganiser& task_organiser)
 				c_player_world_window_size[2] / c_workgroup_size[2]);
 		};
 
-	task_organiser.AddTask(std::move(task));
+	task_organiser.ExecuteTask(task);
 }
 
 void WorldProcessor::UpdatePlayer(
@@ -1517,7 +1517,7 @@ void WorldProcessor::UpdatePlayer(
 			command_buffer.dispatch(1, 1, 1);
 		};
 
-	task_organiser.AddTask(std::move(player_update_task));
+	task_organiser.ExecuteTask(player_update_task);
 
 	TaskOrganiser::TransferTask player_state_read_back_task;
 	player_state_read_back_task.input_buffers.push_back(player_state_buffer_.GetBuffer());
@@ -1540,11 +1540,12 @@ void WorldProcessor::UpdatePlayer(
 				});
 		};
 
-	task_organiser.AddTask(std::move(player_state_read_back_task));
+	task_organiser.ExecuteTask(player_state_read_back_task);
 }
 
 void WorldProcessor::FlushWorldBlocksExternalUpdateQueue(TaskOrganiser& task_organiser)
 {
+	// Flush the queue into the destination world buffer.
 	const uint32_t dst_buffer_index= GetDstBufferIndex();
 
 	TaskOrganiser::ComputeTask task;
@@ -1583,7 +1584,7 @@ void WorldProcessor::FlushWorldBlocksExternalUpdateQueue(TaskOrganiser& task_org
 			command_buffer.dispatch(1, 1, 1);
 		};
 
-	task_organiser.AddTask(std::move(task));
+	task_organiser.ExecuteTask(task);
 }
 
 uint32_t WorldProcessor::GetSrcBufferIndex() const

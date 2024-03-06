@@ -10,7 +10,6 @@ namespace HexGPU
 class TaskOrganiser
 {
 public:
-	// Avoid capturing non-persistent data into this function (stack variables, args, etc) by reference.
 	using TaksFunc= std::function<void(vk::CommandBuffer command_buffer)>;
 
 	struct TaskBase
@@ -55,11 +54,11 @@ public:
 public:
 	explicit TaskOrganiser(WindowVulkan& window_vulkan);
 
-	// Add a task. All tasks are executed in addition order.
-	void AddTask(Task task);
+	void SetCommandBuffer(vk::CommandBuffer command_buffer);
 
-	// Execute all tasks.
-	void ExecuteTasks(vk::CommandBuffer command_buffer);
+	// Push commands of the task into the command buffer.
+	// Passed function is executed immideately.
+	void ExecuteTask(const Task& task);
 
 private:
 	enum struct BufferUsage : uint8_t
@@ -98,7 +97,7 @@ private:
 private:
 	const uint32_t queue_family_index_;
 
-	std::vector<Task> tasks_;
+	vk::CommandBuffer command_buffer_;
 
 	// Remember buffer usages in order to setup barriers properly.
 	std::unordered_map<VkBuffer, BufferUsage> last_buffer_usage_;

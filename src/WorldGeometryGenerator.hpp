@@ -36,7 +36,7 @@ public:
 		vk::DescriptorPool global_descriptor_pool);
 	~WorldGeometryGenerator();
 
-	void Update(vk::CommandBuffer command_buffer);
+	void Update(TaskOrganiser& task_organiser);
 
 	vk::Buffer GetVertexBuffer() const;
 
@@ -44,13 +44,13 @@ public:
 	vk::DeviceSize GetChunkDrawInfoBufferSize() const;
 
 private:
-	void InitialFillBuffers(vk::CommandBuffer command_buffer);
-	void ShiftChunkDrawInfo(vk::CommandBuffer command_buffer, std::array<int32_t, 2> shift);
+	void InitialFillBuffers(TaskOrganiser& task_organiser);
+	void ShiftChunkDrawInfo(TaskOrganiser& task_organiser, std::array<int32_t, 2> shift);
 	void BuildChunksToUpdateList();
-	void PrepareGeometrySizeCalculation(vk::CommandBuffer command_buffer);
-	void CalculateGeometrySize(vk::CommandBuffer command_buffer);
-	void AllocateMemoryForGeometry(vk::CommandBuffer command_buffer);
-	void GenGeometry(vk::CommandBuffer command_buffer);
+	void PrepareGeometrySizeCalculation(TaskOrganiser& task_organiser);
+	void CalculateGeometrySize(TaskOrganiser& task_organiser);
+	void AllocateMemoryForGeometry(TaskOrganiser& task_organiser);
+	void GenGeometry(TaskOrganiser& task_organiser);
 
 private:
 	const vk::Device vk_device_;

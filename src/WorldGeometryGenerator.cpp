@@ -600,10 +600,10 @@ WorldGeometryGenerator::~WorldGeometryGenerator()
 	vk_device_.waitIdle();
 }
 
-void WorldGeometryGenerator::Update(const vk::CommandBuffer command_buffer)
+void WorldGeometryGenerator::Update(TaskOrganiser& task_organiser)
 {
-	vertex_memory_allocator_.EnsureInitialized(command_buffer);
-	InitialFillBuffers(command_buffer);
+	vertex_memory_allocator_.EnsureInitialized(task_organiser);
+	InitialFillBuffers(task_organiser);
 
 	const WorldOffsetChunks new_world_offset= world_processor_.GetWorldOffset();
 	if(new_world_offset != world_offset_)
@@ -616,15 +616,15 @@ void WorldGeometryGenerator::Update(const vk::CommandBuffer command_buffer)
 			new_world_offset[1] - int32_t(world_offset_[1]),
 		};
 
-		ShiftChunkDrawInfo(command_buffer, shift);
+		ShiftChunkDrawInfo(task_organiser, shift);
 		world_offset_= new_world_offset;
 	}
 
 	BuildChunksToUpdateList();
-	PrepareGeometrySizeCalculation(command_buffer);
-	CalculateGeometrySize(command_buffer);
-	AllocateMemoryForGeometry(command_buffer);
-	GenGeometry(command_buffer);
+	PrepareGeometrySizeCalculation(task_organiser);
+	CalculateGeometrySize(task_organiser);
+	AllocateMemoryForGeometry(task_organiser);
+	GenGeometry(task_organiser);
 
 	++frame_counter_;
 }
@@ -644,124 +644,92 @@ vk::DeviceSize WorldGeometryGenerator::GetChunkDrawInfoBufferSize() const
 	return chunk_draw_info_buffer_.GetSize();
 }
 
-void WorldGeometryGenerator::InitialFillBuffers(const vk::CommandBuffer command_buffer)
+void WorldGeometryGenerator::InitialFillBuffers(TaskOrganiser& task_organiser)
 {
 	if(buffers_initially_filled_)
 		return;
 	buffers_initially_filled_= true;
 
-	// Fill initially vertex buffer with zeros.
-	// Do this only to supress warnings.
-	command_buffer.fillBuffer(vertex_buffer_.GetBuffer(), 0, vertex_buffer_.GetSize(), 0);
+	TaskOrganiser::TransferTask task;
 
-	// Fill initially chunk draw info buffer with zeros.
-	command_buffer.fillBuffer(chunk_draw_info_buffer_.GetBuffer(), 0, chunk_draw_info_buffer_.GetSize(), 0);
+	task.output_buffers.push_back(vertex_buffer_.GetBuffer());
+	task.output_buffers.push_back(chunk_draw_info_buffer_.GetBuffer());
 
-	const vk::BufferMemoryBarrier barriers[]
-	{
+	task.func=
+		[this](const vk::CommandBuffer command_buffer)
 		{
-			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
-			queue_family_index_, queue_family_index_,
-			vertex_buffer_.GetBuffer(),
-			0,
-			VK_WHOLE_SIZE
-		},
-		{
-			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
-			queue_family_index_, queue_family_index_,
-			chunk_draw_info_buffer_.GetBuffer(),
-			0,
-			VK_WHOLE_SIZE
-		},
-	};
+			// Fill initially vertex buffer with zeros.
+			// Do this only to supress warnings.
+			command_buffer.fillBuffer(vertex_buffer_.GetBuffer(), 0, vertex_buffer_.GetSize(), 0);
 
-	command_buffer.pipelineBarrier(
-		vk::PipelineStageFlagBits::eTransfer,
-		vk::PipelineStageFlagBits::eComputeShader,
-		vk::DependencyFlags(),
-		0, nullptr,
-		uint32_t(std::size(barriers)), barriers,
-		0, nullptr);
+			// Fill initially chunk draw info buffer with zeros.
+			command_buffer.fillBuffer(chunk_draw_info_buffer_.GetBuffer(), 0, chunk_draw_info_buffer_.GetSize(), 0);
+		};
+
+	task_organiser.AddTask(std::move(task));
 }
 
 void WorldGeometryGenerator::ShiftChunkDrawInfo(
-	const vk::CommandBuffer command_buffer,
+	TaskOrganiser& task_organiser,
 	const std::array<int32_t, 2> shift)
 {
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *chunk_draw_info_shift_pipeline_.pipeline);
+	TaskOrganiser::ComputeTask shift_task;
+	shift_task.input_storage_buffers.push_back(chunk_draw_info_buffer_.GetBuffer());
+	shift_task.output_storage_buffers.push_back(chunk_draw_info_buffer_temp_.GetBuffer());
 
-	command_buffer.bindDescriptorSets(
-		vk::PipelineBindPoint::eCompute,
-		*chunk_draw_info_shift_pipeline_.pipeline_layout,
-		0u,
-		{chunk_draw_info_shift_descriptor_set_},
-		{});
+	shift_task.func=
+		[this, shift](const vk::CommandBuffer command_buffer)
+		{
+			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *chunk_draw_info_shift_pipeline_.pipeline);
 
-	ChunkDrawInfoShiftUniforms uniforms;
-	uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
-	uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-	uniforms.chunks_shift[0]= EuclidianReminder(shift[0], int32_t(world_size_[0]));
-	uniforms.chunks_shift[1]= EuclidianReminder(shift[1], int32_t(world_size_[1]));
+			command_buffer.bindDescriptorSets(
+				vk::PipelineBindPoint::eCompute,
+				*chunk_draw_info_shift_pipeline_.pipeline_layout,
+				0u,
+				{chunk_draw_info_shift_descriptor_set_},
+				{});
 
-	HEX_ASSERT(uniforms.chunks_shift[0] >= 0 && uniforms.chunks_shift[0] < int32_t(world_size_[0]));
-	HEX_ASSERT(uniforms.chunks_shift[1] >= 0 && uniforms.chunks_shift[1] < int32_t(world_size_[1]));
+			ChunkDrawInfoShiftUniforms uniforms;
+			uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+			uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+			uniforms.chunks_shift[0]= EuclidianReminder(shift[0], int32_t(world_size_[0]));
+			uniforms.chunks_shift[1]= EuclidianReminder(shift[1], int32_t(world_size_[1]));
 
-	command_buffer.pushConstants(
-		*chunk_draw_info_shift_pipeline_.pipeline_layout,
-		vk::ShaderStageFlagBits::eCompute,
-		0,
-		sizeof(ChunkDrawInfoShiftUniforms), static_cast<const void*>(&uniforms));
+			HEX_ASSERT(uniforms.chunks_shift[0] >= 0 && uniforms.chunks_shift[0] < int32_t(world_size_[0]));
+			HEX_ASSERT(uniforms.chunks_shift[1] >= 0 && uniforms.chunks_shift[1] < int32_t(world_size_[1]));
 
-	// Dispatch a thread for each chunk.
-	command_buffer.dispatch(world_size_[0], world_size_[1], 1);
+			command_buffer.pushConstants(
+				*chunk_draw_info_shift_pipeline_.pipeline_layout,
+				vk::ShaderStageFlagBits::eCompute,
+				0,
+				sizeof(ChunkDrawInfoShiftUniforms), static_cast<const void*>(&uniforms));
 
-	// Create barrier between update chunk draw info temp buffer and its later usage.
-	// TODO - check this is correct.
-	{
-		const vk::BufferMemoryBarrier barrier(
-			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eTransferRead,
-			queue_family_index_, queue_family_index_,
-			chunk_draw_info_buffer_temp_.GetBuffer(),
-			0,
-			VK_WHOLE_SIZE);
+			// Dispatch a thread for each chunk.
+			command_buffer.dispatch(world_size_[0], world_size_[1], 1);
+		};
 
-		command_buffer.pipelineBarrier(
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::PipelineStageFlagBits::eTransfer,
-			vk::DependencyFlags(),
-			0, nullptr,
-			1, &barrier,
-			0, nullptr);
-	}
+	task_organiser.AddTask(std::move(shift_task));
 
 	// Copy temp buffer back to chunk draw info buffer.
-	HEX_ASSERT(chunk_draw_info_buffer_temp_.GetSize() == chunk_draw_info_buffer_.GetSize());
 
-	command_buffer.copyBuffer(
-		chunk_draw_info_buffer_temp_.GetBuffer(),
-		chunk_draw_info_buffer_.GetBuffer(),
+	TaskOrganiser::TransferTask copy_back_task;
+	copy_back_task.input_buffers.push_back(chunk_draw_info_buffer_temp_.GetBuffer());
+	copy_back_task.output_buffers.push_back(chunk_draw_info_buffer_.GetBuffer());
+
+	copy_back_task.func=
+		[this](const vk::CommandBuffer command_buffer)
 		{
-			{ 0, 0, chunk_draw_info_buffer_.GetSize() }
-		});
+			HEX_ASSERT(chunk_draw_info_buffer_temp_.GetSize() == chunk_draw_info_buffer_.GetSize());
 
-	// Create barrier between update chunk draw info buffer copy and its later usage.
-	// TODO - check this is correct.
-	{
-		const vk::BufferMemoryBarrier barrier(
-			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
-			queue_family_index_, queue_family_index_,
-			chunk_draw_info_buffer_temp_.GetBuffer(),
-			0,
-			VK_WHOLE_SIZE);
+			command_buffer.copyBuffer(
+				chunk_draw_info_buffer_temp_.GetBuffer(),
+				chunk_draw_info_buffer_.GetBuffer(),
+				{
+					{ 0, 0, chunk_draw_info_buffer_.GetSize() }
+				});
+		};
 
-		command_buffer.pipelineBarrier(
-			vk::PipelineStageFlagBits::eTransfer,
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::DependencyFlags(),
-			0, nullptr,
-			1, &barrier,
-			0, nullptr);
-	}
+	task_organiser.AddTask(std::move(copy_back_task));
 }
 
 void WorldGeometryGenerator::BuildChunksToUpdateList()
@@ -810,264 +778,191 @@ void WorldGeometryGenerator::BuildChunksToUpdateList()
 	}
 }
 
-void WorldGeometryGenerator::PrepareGeometrySizeCalculation(const vk::CommandBuffer command_buffer)
+void WorldGeometryGenerator::PrepareGeometrySizeCalculation(TaskOrganiser& task_organiser)
 {
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *geometry_size_calculate_prepare_pipeline_.pipeline);
+	TaskOrganiser::ComputeTask task;
+	task.input_output_storage_buffers.push_back(chunk_draw_info_buffer_.GetBuffer());
 
-	command_buffer.bindDescriptorSets(
-		vk::PipelineBindPoint::eCompute,
-		*geometry_size_calculate_prepare_pipeline_.pipeline_layout,
-		0u,
-		{geometry_size_calculate_prepare_descriptor_set_},
-		{});
+	task.func=
+		[this](const vk::CommandBuffer command_buffer)
+		{
+			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *geometry_size_calculate_prepare_pipeline_.pipeline);
 
-	GeometrySizeCalculatePrepareUniforms uniforms;
-	uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
-	uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+			command_buffer.bindDescriptorSets(
+				vk::PipelineBindPoint::eCompute,
+				*geometry_size_calculate_prepare_pipeline_.pipeline_layout,
+				0u,
+				{geometry_size_calculate_prepare_descriptor_set_},
+				{});
 
-	command_buffer.pushConstants(
-		*geometry_size_calculate_prepare_pipeline_.pipeline_layout,
-		vk::ShaderStageFlagBits::eCompute,
-		0,
-		sizeof(GeometrySizeCalculatePrepareUniforms), static_cast<const void*>(&uniforms));
+			GeometrySizeCalculatePrepareUniforms uniforms;
+			uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+			uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
 
-	// Dispatch a thread for each chunk.
-	command_buffer.dispatch(world_size_[0], world_size_[1], 1);
+			command_buffer.pushConstants(
+				*geometry_size_calculate_prepare_pipeline_.pipeline_layout,
+				vk::ShaderStageFlagBits::eCompute,
+				0,
+				sizeof(GeometrySizeCalculatePrepareUniforms), static_cast<const void*>(&uniforms));
 
-	// Create barrier between update chunk draw info buffer and its later usage.
-	// TODO - check this is correct.
-	{
-		const vk::BufferMemoryBarrier barrier(
-			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
-			queue_family_index_, queue_family_index_,
-			chunk_draw_info_buffer_.GetBuffer(),
-			0,
-			VK_WHOLE_SIZE);
+			// Dispatch a thread for each chunk.
+			command_buffer.dispatch(world_size_[0], world_size_[1], 1);
+		};
 
-		command_buffer.pipelineBarrier(
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::DependencyFlags(),
-			0, nullptr,
-			1, &barrier,
-			0, nullptr);
-	}
+	task_organiser.AddTask(std::move(task));
 }
 
-void WorldGeometryGenerator::CalculateGeometrySize(const vk::CommandBuffer command_buffer)
+void WorldGeometryGenerator::CalculateGeometrySize(TaskOrganiser& task_organiser)
 {
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *geometry_size_calculate_pipeline_.pipeline);
+	const uint32_t actual_buffers_index= world_processor_.GetActualBuffersIndex();
 
-	command_buffer.bindDescriptorSets(
-		vk::PipelineBindPoint::eCompute,
-		*geometry_size_calculate_pipeline_.pipeline_layout,
-		0u,
-		{geometry_size_calculate_descriptor_sets_[world_processor_.GetActualBuffersIndex()]},
-		{});
+	TaskOrganiser::ComputeTask task;
+	task.input_storage_buffers.push_back(world_processor_.GetChunkDataBuffer(actual_buffers_index));
+	task.input_output_storage_buffers.push_back(chunk_draw_info_buffer_.GetBuffer());
 
-	// Execute geometry size calculation for all chunks.
-	// TODO - do this no each frame and not for each chunk.
-	for(const auto& chunk_to_update : chunks_to_update_)
-	{
-		ChunkPositionUniforms chunk_position_uniforms;
-		chunk_position_uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
-		chunk_position_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-		chunk_position_uniforms.chunk_position[0]= int32_t(chunk_to_update[0]);
-		chunk_position_uniforms.chunk_position[1]= int32_t(chunk_to_update[1]);
-		chunk_position_uniforms.chunk_global_position[0]= world_offset_[0] + int32_t(chunk_to_update[0]);
-		chunk_position_uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(chunk_to_update[1]);
+	task.func=
+		[this, actual_buffers_index](const vk::CommandBuffer command_buffer)
+		{
+			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *geometry_size_calculate_pipeline_.pipeline);
 
-		command_buffer.pushConstants(
-			*geometry_size_calculate_pipeline_.pipeline_layout,
-			vk::ShaderStageFlagBits::eCompute,
-			0,
-			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
+			command_buffer.bindDescriptorSets(
+				vk::PipelineBindPoint::eCompute,
+				*geometry_size_calculate_pipeline_.pipeline_layout,
+				0u,
+				{geometry_size_calculate_descriptor_sets_[actual_buffers_index]},
+				{});
 
-		// This constant should match workgroup size in shader!
-		constexpr uint32_t c_workgroup_size[]{4, 4, 8};
-		static_assert(c_chunk_width % c_workgroup_size[0] == 0, "Wrong workgroup size!");
-		static_assert(c_chunk_width % c_workgroup_size[1] == 0, "Wrong workgroup size!");
-		static_assert(c_chunk_height % c_workgroup_size[2] == 0, "Wrong workgroup size!");
+			for(const auto& chunk_to_update : chunks_to_update_)
+			{
+				ChunkPositionUniforms chunk_position_uniforms;
+				chunk_position_uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+				chunk_position_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+				chunk_position_uniforms.chunk_position[0]= int32_t(chunk_to_update[0]);
+				chunk_position_uniforms.chunk_position[1]= int32_t(chunk_to_update[1]);
+				chunk_position_uniforms.chunk_global_position[0]= world_offset_[0] + int32_t(chunk_to_update[0]);
+				chunk_position_uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(chunk_to_update[1]);
 
-		command_buffer.dispatch(
-			c_chunk_width / c_workgroup_size[0],
-			c_chunk_width / c_workgroup_size[1],
-			c_chunk_height / c_workgroup_size[2]);
-	}
+				command_buffer.pushConstants(
+					*geometry_size_calculate_pipeline_.pipeline_layout,
+					vk::ShaderStageFlagBits::eCompute,
+					0,
+					sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
 
-	// Create barrier between update chunk draw info buffer and its later usage.
-	// TODO - check this is correct.
-	{
-		const vk::BufferMemoryBarrier barrier(
-			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
-			queue_family_index_, queue_family_index_,
-			chunk_draw_info_buffer_.GetBuffer(),
-			0,
-			VK_WHOLE_SIZE);
+				// This constant should match workgroup size in shader!
+				constexpr uint32_t c_workgroup_size[]{4, 4, 8};
+				static_assert(c_chunk_width % c_workgroup_size[0] == 0, "Wrong workgroup size!");
+				static_assert(c_chunk_width % c_workgroup_size[1] == 0, "Wrong workgroup size!");
+				static_assert(c_chunk_height % c_workgroup_size[2] == 0, "Wrong workgroup size!");
 
-		command_buffer.pipelineBarrier(
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::DependencyFlags(),
-			0, nullptr,
-			1, &barrier,
-			0, nullptr);
-	}
+				command_buffer.dispatch(
+					c_chunk_width / c_workgroup_size[0],
+					c_chunk_width / c_workgroup_size[1],
+					c_chunk_height / c_workgroup_size[2]);
+			}
+		};
+
+	task_organiser.AddTask(std::move(task));
 }
 
-void WorldGeometryGenerator::AllocateMemoryForGeometry(const vk::CommandBuffer command_buffer)
+void WorldGeometryGenerator::AllocateMemoryForGeometry(TaskOrganiser& task_organiser)
 {
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *geometry_allocate_pipeline_.pipeline);
-
-	command_buffer.bindDescriptorSets(
-		vk::PipelineBindPoint::eCompute,
-		*geometry_allocate_pipeline_.pipeline_layout,
-		0u,
-		{geometry_allocate_descriptor_set_},
-		{});
-
 	// We have limited uniform size for chunks to update list.
 	// So, perform several updates if necessary.
 	for(size_t offset= 0; offset < chunks_to_update_.size(); offset+= c_max_chunks_to_allocate)
 	{
-		GeometryAllocateUniforms uniforms;
-		uniforms.num_chunks_to_allocate= uint32_t(std::min(size_t(c_max_chunks_to_allocate), chunks_to_update_.size() - offset));
-		for(uint32_t i= 0; i < uniforms.num_chunks_to_allocate; ++i)
-		{
-			const auto& chunk_to_update= chunks_to_update_[uint32_t(offset) + i];
-			const uint32_t chunk_index= chunk_to_update[0] + chunk_to_update[1] * world_size_[0];
-			uniforms.chunks_to_allocate_list[i]= uint16_t(chunk_index);
-		}
+		TaskOrganiser::ComputeTask task;
+		task.input_output_storage_buffers.push_back(chunk_draw_info_buffer_.GetBuffer());
+		task.input_output_storage_buffers.push_back(vertex_memory_allocator_.GetAllocatorDataBuffer());
 
-		command_buffer.pushConstants(
-			*geometry_allocate_pipeline_.pipeline_layout,
-			vk::ShaderStageFlagBits::eCompute,
-			0,
-			sizeof(GeometryAllocateUniforms), static_cast<const void*>(&uniforms));
+		task.func=
+			[this, offset](const vk::CommandBuffer command_buffer)
+			{
+				command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *geometry_allocate_pipeline_.pipeline);
 
-		// Use single thread for allocation.
-		command_buffer.dispatch(1, 1 , 1);
+				command_buffer.bindDescriptorSets(
+					vk::PipelineBindPoint::eCompute,
+					*geometry_allocate_pipeline_.pipeline_layout,
+					0u,
+					{geometry_allocate_descriptor_set_},
+					{});
 
-		// Create barrier between update allocation buffer and its later usage.
-		// TODO - check this is correct.
-		{
-			const vk::BufferMemoryBarrier barrier(
-				vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
-				queue_family_index_, queue_family_index_,
-				vertex_memory_allocator_.GetAllocatorDataBuffer(),
-				0,
-				vertex_memory_allocator_.GetAllocatorDataBufferSize());
+				GeometryAllocateUniforms uniforms;
+				uniforms.num_chunks_to_allocate= uint32_t(std::min(size_t(c_max_chunks_to_allocate), chunks_to_update_.size() - offset));
+				for(uint32_t i= 0; i < uniforms.num_chunks_to_allocate; ++i)
+				{
+					const auto& chunk_to_update= chunks_to_update_[uint32_t(offset) + i];
+					const uint32_t chunk_index= chunk_to_update[0] + chunk_to_update[1] * world_size_[0];
+					uniforms.chunks_to_allocate_list[i]= uint16_t(chunk_index);
+				}
 
-			command_buffer.pipelineBarrier(
-				vk::PipelineStageFlagBits::eComputeShader,
-				vk::PipelineStageFlagBits::eComputeShader,
-				vk::DependencyFlags(),
-				0, nullptr,
-				1, &barrier,
-				0, nullptr);
-		}
-	}
+				command_buffer.pushConstants(
+					*geometry_allocate_pipeline_.pipeline_layout,
+					vk::ShaderStageFlagBits::eCompute,
+					0,
+					sizeof(GeometryAllocateUniforms), static_cast<const void*>(&uniforms));
 
-	// Create barrier between update chunk draw info buffer and its later usage.
-	// TODO - check this is correct.
-	{
-		const vk::BufferMemoryBarrier barrier(
-			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
-			queue_family_index_, queue_family_index_,
-			chunk_draw_info_buffer_.GetBuffer(),
-			0,
-			VK_WHOLE_SIZE);
+				// Use single thread for allocation.
+				command_buffer.dispatch(1, 1 , 1);
+			};
 
-		command_buffer.pipelineBarrier(
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::DependencyFlags(),
-			0, nullptr,
-			1, &barrier,
-			0, nullptr);
-	}
+		task_organiser.AddTask(std::move(task));
+	};
 }
 
-void WorldGeometryGenerator::GenGeometry(const vk::CommandBuffer command_buffer)
+void WorldGeometryGenerator::GenGeometry(TaskOrganiser& task_organiser)
 {
-	// Update geometry, count number of quads.
+	const uint32_t actual_buffers_index= world_processor_.GetActualBuffersIndex();
 
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *geometry_gen_pipeline_.pipeline);
+	TaskOrganiser::ComputeTask task;
+	task.input_storage_buffers.push_back(world_processor_.GetChunkDataBuffer(actual_buffers_index));
+	task.input_storage_buffers.push_back(world_processor_.GetLightDataBuffer(actual_buffers_index));
+	task.input_output_storage_buffers.push_back(chunk_draw_info_buffer_.GetBuffer());
+	task.output_storage_buffers.push_back(vertex_buffer_.GetBuffer());
 
-	command_buffer.bindDescriptorSets(
-		vk::PipelineBindPoint::eCompute,
-		*geometry_gen_pipeline_.pipeline_layout,
-		0u,
-		{geometry_gen_descriptor_sets_[world_processor_.GetActualBuffersIndex()]},
-		{});
+	task.func=
+		[this, actual_buffers_index](const vk::CommandBuffer command_buffer)
+		{
+			// Update geometry, count number of quads.
 
-	// Execute geometry generation for all chunks.
-	// TODO - do this no each frame and not for each chunk.
-	for(const auto& chunk_to_update : chunks_to_update_)
-	{
-		ChunkPositionUniforms chunk_position_uniforms;
-		chunk_position_uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
-		chunk_position_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-		chunk_position_uniforms.chunk_position[0]= int32_t(chunk_to_update[0]);
-		chunk_position_uniforms.chunk_position[1]= int32_t(chunk_to_update[1]);
-		chunk_position_uniforms.chunk_global_position[0]= world_offset_[0] + int32_t(chunk_to_update[0]);
-		chunk_position_uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(chunk_to_update[1]);
+			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *geometry_gen_pipeline_.pipeline);
 
-		command_buffer.pushConstants(
-			*geometry_gen_pipeline_.pipeline_layout,
-			vk::ShaderStageFlagBits::eCompute,
-			0,
-			sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
+			command_buffer.bindDescriptorSets(
+				vk::PipelineBindPoint::eCompute,
+				*geometry_gen_pipeline_.pipeline_layout,
+				0u,
+				{geometry_gen_descriptor_sets_[actual_buffers_index]},
+				{});
 
-		// This constant should match workgroup size in shader!
-		constexpr uint32_t c_workgroup_size[]{4, 4, 8};
-		static_assert(c_chunk_width % c_workgroup_size[0] == 0, "Wrong workgroup size!");
-		static_assert(c_chunk_width % c_workgroup_size[1] == 0, "Wrong workgroup size!");
-		static_assert(c_chunk_height % c_workgroup_size[2] == 0, "Wrong workgroup size!");
+			for(const auto& chunk_to_update : chunks_to_update_)
+			{
+				ChunkPositionUniforms chunk_position_uniforms;
+				chunk_position_uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+				chunk_position_uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+				chunk_position_uniforms.chunk_position[0]= int32_t(chunk_to_update[0]);
+				chunk_position_uniforms.chunk_position[1]= int32_t(chunk_to_update[1]);
+				chunk_position_uniforms.chunk_global_position[0]= world_offset_[0] + int32_t(chunk_to_update[0]);
+				chunk_position_uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(chunk_to_update[1]);
 
-		command_buffer.dispatch(
-			c_chunk_width / c_workgroup_size[0],
-			c_chunk_width / c_workgroup_size[1],
-			c_chunk_height / c_workgroup_size[2]);
-	}
+				command_buffer.pushConstants(
+					*geometry_gen_pipeline_.pipeline_layout,
+					vk::ShaderStageFlagBits::eCompute,
+					0,
+					sizeof(ChunkPositionUniforms), static_cast<const void*>(&chunk_position_uniforms));
 
-	// Create barrier between update vertex buffer and its usage for rendering.
-	// TODO - check this is correct.
-	{
-		const vk::BufferMemoryBarrier barrier(
-			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
-			queue_family_index_, queue_family_index_,
-			vertex_buffer_.GetBuffer(),
-			0,
-			VK_WHOLE_SIZE);
+				// This constant should match workgroup size in shader!
+				constexpr uint32_t c_workgroup_size[]{4, 4, 8};
+				static_assert(c_chunk_width % c_workgroup_size[0] == 0, "Wrong workgroup size!");
+				static_assert(c_chunk_width % c_workgroup_size[1] == 0, "Wrong workgroup size!");
+				static_assert(c_chunk_height % c_workgroup_size[2] == 0, "Wrong workgroup size!");
 
-		command_buffer.pipelineBarrier(
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::PipelineStageFlagBits::eVertexShader,
-			vk::DependencyFlags(),
-			0, nullptr,
-			1, &barrier,
-			0, nullptr);
-	}
+				command_buffer.dispatch(
+					c_chunk_width / c_workgroup_size[0],
+					c_chunk_width / c_workgroup_size[1],
+					c_chunk_height / c_workgroup_size[2]);
+			}
+		};
 
-	// Create barrier between update chunk draw info buffer and its later usage.
-	// TODO - check this is correct.
-	{
-		const vk::BufferMemoryBarrier barrier(
-			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite,
-			queue_family_index_, queue_family_index_,
-			chunk_draw_info_buffer_.GetBuffer(),
-			0,
-			VK_WHOLE_SIZE);
-
-		command_buffer.pipelineBarrier(
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::DependencyFlags(),
-			0, nullptr,
-			1, &barrier,
-			0, nullptr);
-	}
+	task_organiser.AddTask(std::move(task));
 }
 
 } // namespace HexGPU

@@ -1,4 +1,5 @@
 #pragma once
+#include "TaskOrganiser.hpp"
 #include "WindowVulkan.hpp"
 
 namespace HexGPU
@@ -10,7 +11,7 @@ public:
 	explicit WorldTexturesManager(WindowVulkan& window_vulkan);
 	~WorldTexturesManager();
 
-	void PrepareFrame(vk::CommandBuffer command_buffer);
+	void PrepareFrame(TaskOrganiser& task_organiser);
 
 	vk::ImageView GetImageView() const;
 

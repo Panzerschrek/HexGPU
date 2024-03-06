@@ -258,7 +258,7 @@ WorldRenderer::~WorldRenderer()
 
 void WorldRenderer::PrepareFrame(TaskOrganiser& task_organiser)
 {
-	world_textures_manager_.PrepareFrame(command_buffer);
+	world_textures_manager_.PrepareFrame(task_organiser);
 	geometry_generator_.Update(task_organiser);
 	BuildDrawIndirectBuffer(task_organiser);
 	CopyViewMatrix(task_organiser);

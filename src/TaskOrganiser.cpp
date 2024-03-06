@@ -279,7 +279,7 @@ std::optional<TaskOrganiser::BufferSyncInfo> TaskOrganiser::GetBufferDstSyncInfo
 		return BufferSyncInfo{vk::AccessFlagBits::eVertexAttributeRead, vk::PipelineStageFlagBits::eVertexShader};
 
 	case BufferUsage::UniformSrc:
-		return BufferSyncInfo{vk::AccessFlagBits::eShaderRead, vk::PipelineStageFlagBits::eVertexShader};
+		return BufferSyncInfo{vk::AccessFlagBits::eUniformRead, vk::PipelineStageFlagBits::eVertexShader};
 
 	case BufferUsage::ComputeShaderSrc:
 		return BufferSyncInfo{vk::AccessFlagBits::eShaderRead, vk::PipelineStageFlagBits::eComputeShader};

@@ -4,6 +4,7 @@
 #include "Keyboard.hpp"
 #include "Mouse.hpp"
 #include "Pipeline.hpp"
+#include "TaskOrganiser.hpp"
 #include "WindowVulkan.hpp"
 
 namespace HexGPU
@@ -19,7 +20,7 @@ public:
 	~WorldProcessor();
 
 	void Update(
-		vk::CommandBuffer command_buffer,
+		TaskOrganiser& task_organiser,
 		float time_delta_s,
 		KeyboardState keyboard_state,
 		MouseState mouse_state,
@@ -90,23 +91,23 @@ private:
 	};
 
 private:
-	void InitialFillBuffers(vk::CommandBuffer command_buffer);
+	void InitialFillBuffers(TaskOrganiser& task_organiser);
+	void InitialFillBuffersImpl();
 	void ReadBackAndProcessPlayerState();
-	void InitialGenerateWorld(vk::CommandBuffer command_buffer);
+	void InitialGenerateWorld(TaskOrganiser& task_organiser);
 	void DetermineChunksUpdateKind(RelativeWorldShiftChunks relative_world_shift);
 	void BuildCurrentFrameChunksToUpdateList(float prev_offset_within_tick, float cur_offset_within_tick);
-	void UpdateWorldBlocks(vk::CommandBuffer command_buffer, RelativeWorldShiftChunks relative_world_shift);
-	void UpdateLight(vk::CommandBuffer command_buffer, RelativeWorldShiftChunks relative_world_shift);
-	void GenerateWorld(vk::CommandBuffer command_buffer, RelativeWorldShiftChunks relative_world_shift);
-	void CreateWorldBlocksAndLightUpdateBarrier(vk::CommandBuffer command_buffer);
-	void BuildPlayerWorldWindow(vk::CommandBuffer command_buffer);
+	void UpdateWorldBlocks(TaskOrganiser& task_organiser, RelativeWorldShiftChunks relative_world_shift);
+	void UpdateLight(TaskOrganiser& task_organiser, RelativeWorldShiftChunks relative_world_shift);
+	void GenerateWorld(TaskOrganiser& task_organiser, RelativeWorldShiftChunks relative_world_shift);
+	void BuildPlayerWorldWindow(TaskOrganiser& task_organiser);
 	void UpdatePlayer(
-		vk::CommandBuffer command_buffer,
+		TaskOrganiser& task_organiser,
 		float time_delta_s,
 		KeyboardState keyboard_state,
 		MouseState mouse_state,
 		float aspect);
-	void FlushWorldBlocksExternalUpdateQueue(vk::CommandBuffer command_buffer);
+	void FlushWorldBlocksExternalUpdateQueue(TaskOrganiser& task_organiser);
 
 	uint32_t GetSrcBufferIndex() const;
 	uint32_t GetDstBufferIndex() const;

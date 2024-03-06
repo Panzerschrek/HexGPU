@@ -78,6 +78,7 @@ Host::Host()
 	: settings_("HexGPU.cfg")
 	, system_window_(settings_)
 	, window_vulkan_(system_window_)
+	, task_organiser_(window_vulkan_)
 	, global_descriptor_pool_(CreateGlobalDescriptorPool(window_vulkan_.GetVulkanDevice()))
 	, world_processor_(window_vulkan_, *global_descriptor_pool_, settings_)
 	, world_renderer_(window_vulkan_, world_processor_, *global_descriptor_pool_)
@@ -107,15 +108,18 @@ bool Host::Loop()
 			quit_requested_= true;
 	}
 
-	const vk::CommandBuffer command_buffer= window_vulkan_.BeginFrame();
-
 	world_processor_.Update(
-		command_buffer,
+		task_organiser_,
 		dt_s,
 		CreateKeyboardState(keys_state),
 		CreateMouseState(events),
 		CalculateAspect(window_vulkan_.GetViewportSize()));
 
+	const vk::CommandBuffer command_buffer= window_vulkan_.BeginFrame();
+
+	task_organiser_.ExecuteTasks(command_buffer);
+
+	// TODO - add other tasks into the task organizer.
 	world_renderer_.PrepareFrame(command_buffer);
 	sky_renderer_.PrepareFrame(command_buffer);
 	build_prism_renderer_.PrepareFrame(command_buffer);

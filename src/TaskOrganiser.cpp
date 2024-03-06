@@ -27,6 +27,8 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 
 	if(const auto dst_sync_info= GetBufferDstSyncInfo(BufferUsage::ComputeShaderSrc))
 	{
+		dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
+
 		for(const vk::Buffer buffer : task.input_storage_buffers)
 		{
 			if(const auto src_sync_info= GetBufferSrcSyncInfoForLastUsage(buffer))
@@ -37,7 +39,6 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 					buffer,
 					0, VK_WHOLE_SIZE);
 				src_pipeline_stage_flags|= src_sync_info->pipeline_stage_flags;
-				dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
 			}
 		}
 
@@ -51,7 +52,6 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 					buffer,
 					0, VK_WHOLE_SIZE);
 				src_pipeline_stage_flags|= src_sync_info->pipeline_stage_flags;
-				dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
 			}
 		}
 	}
@@ -82,6 +82,8 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 
 	if(const auto dst_sync_info= GetBufferDstSyncInfo(BufferUsage::IndirectDrawSrc))
 	{
+		dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
+
 		for(const vk::Buffer buffer : task.indirect_draw_buffers)
 		{
 			if(const auto src_sync_info= GetBufferSrcSyncInfoForLastUsage(buffer))
@@ -92,13 +94,14 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 					buffer,
 					0, VK_WHOLE_SIZE);
 				src_pipeline_stage_flags|= src_sync_info->pipeline_stage_flags;
-				dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
 			}
 		}
 	}
 
 	if(const auto dst_sync_info= GetBufferDstSyncInfo(BufferUsage::IndexSrc))
 	{
+		dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
+
 		for(const vk::Buffer buffer : task.index_buffers)
 		{
 			if(const auto src_sync_info= GetBufferSrcSyncInfoForLastUsage(buffer))
@@ -109,13 +112,14 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 					buffer,
 					0, VK_WHOLE_SIZE);
 				src_pipeline_stage_flags|= src_sync_info->pipeline_stage_flags;
-				dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
 			}
 		}
 	}
 
 	if(const auto dst_sync_info= GetBufferDstSyncInfo(BufferUsage::VertexSrc))
 	{
+		dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
+
 		for(const vk::Buffer buffer : task.vertex_buffers)
 		{
 			if(const auto src_sync_info= GetBufferSrcSyncInfoForLastUsage(buffer))
@@ -126,13 +130,14 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 					buffer,
 					0, VK_WHOLE_SIZE);
 				src_pipeline_stage_flags|= src_sync_info->pipeline_stage_flags;
-				dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
 			}
 		}
 	}
 
 	if(const auto dst_sync_info= GetBufferDstSyncInfo(BufferUsage::UniformSrc))
 	{
+		dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
+
 		for(const vk::Buffer buffer : task.uniform_buffers)
 		{
 			if(const auto src_sync_info= GetBufferSrcSyncInfoForLastUsage(buffer))
@@ -143,7 +148,6 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 					buffer,
 					0, VK_WHOLE_SIZE);
 				src_pipeline_stage_flags|= src_sync_info->pipeline_stage_flags;
-				dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
 			}
 		}
 	}
@@ -175,6 +179,8 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 
 	if(const auto dst_sync_info= GetBufferDstSyncInfo(BufferUsage::TransferSrc))
 	{
+		dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
+
 		for(const vk::Buffer buffer : task.input_buffers)
 		{
 			if(const auto src_sync_info= GetBufferSrcSyncInfoForLastUsage(buffer))
@@ -185,7 +191,6 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 					buffer,
 					0, VK_WHOLE_SIZE);
 				src_pipeline_stage_flags|= src_sync_info->pipeline_stage_flags;
-				dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
 			}
 		}
 	}

@@ -24,6 +24,7 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 	std::vector<vk::BufferMemoryBarrier> buffer_barriers;
 	vk::PipelineStageFlags src_pipeline_stage_flags;
 	vk::PipelineStageFlags dst_pipeline_stage_flags;
+	bool require_barrier_for_write_after_read_sync= false;
 
 	if(const auto dst_sync_info= GetBufferDstSyncInfo(BufferUsage::ComputeShaderSrc))
 	{
@@ -53,12 +54,30 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 					0, VK_WHOLE_SIZE);
 				src_pipeline_stage_flags|= src_sync_info->pipeline_stage_flags;
 			}
+			if(const auto last_usage= GetLastBufferUsage(buffer))
+			{
+				if(IsReadBufferUsage(*last_usage))
+				{
+					require_barrier_for_write_after_read_sync= true;
+					src_pipeline_stage_flags|= GetPipelineStageForBufferUsage(*last_usage);
+				}
+			}
 		}
 	}
 
-	// TODO - add synchronization of destination buffers to ensure write only after read.
+	for(const vk::Buffer buffer : task.output_storage_buffers)
+	{
+		if(const auto last_usage= GetLastBufferUsage(buffer))
+		{
+			if(IsReadBufferUsage(*last_usage))
+			{
+				require_barrier_for_write_after_read_sync= true;
+				src_pipeline_stage_flags|= GetPipelineStageForBufferUsage(*last_usage);
+			}
+		}
+	}
 
-	if(!buffer_barriers.empty())
+	if(!buffer_barriers.empty() || require_barrier_for_write_after_read_sync)
 		command_buffer.pipelineBarrier(
 			src_pipeline_stage_flags,
 			dst_pipeline_stage_flags,
@@ -176,6 +195,7 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 	std::vector<vk::BufferMemoryBarrier> buffer_barriers;
 	vk::PipelineStageFlags src_pipeline_stage_flags;
 	vk::PipelineStageFlags dst_pipeline_stage_flags;
+	bool require_barrier_for_write_after_read_sync= false;
 
 	if(const auto dst_sync_info= GetBufferDstSyncInfo(BufferUsage::TransferSrc))
 	{
@@ -195,9 +215,19 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 		}
 	}
 
-	// TODO - add synchronization of destination buffers to ensure write only after read.
+	for(const vk::Buffer buffer : task.output_buffers)
+	{
+		if(const auto last_usage= GetLastBufferUsage(buffer))
+		{
+			if(IsReadBufferUsage(*last_usage))
+			{
+				require_barrier_for_write_after_read_sync= true;
+				src_pipeline_stage_flags|= GetPipelineStageForBufferUsage(*last_usage);
+			}
+		}
+	}
 
-	if(!buffer_barriers.empty())
+	if(!buffer_barriers.empty() || require_barrier_for_write_after_read_sync)
 		command_buffer.pipelineBarrier(
 			src_pipeline_stage_flags,
 			dst_pipeline_stage_flags,
@@ -299,6 +329,52 @@ std::optional<TaskOrganiser::BufferSyncInfo> TaskOrganiser::GetBufferDstSyncInfo
 	};
 	HEX_ASSERT(false);
 	return std::nullopt;
+}
+
+bool TaskOrganiser::IsReadBufferUsage(const BufferUsage usage)
+{
+	switch(usage)
+	{
+	case BufferUsage::IndirectDrawSrc:
+	case BufferUsage::IndexSrc:
+	case BufferUsage::VertexSrc:
+	case BufferUsage::UniformSrc:
+	case BufferUsage::ComputeShaderSrc:
+	case BufferUsage::TransferSrc:
+		return true;
+
+	case BufferUsage::ComputeShaderDst:
+	case BufferUsage::TransferDst:
+		return false;
+	};
+
+	HEX_ASSERT(false);
+	return false;
+}
+
+vk::PipelineStageFlags TaskOrganiser::GetPipelineStageForBufferUsage(const BufferUsage usage)
+{
+	// TODO - check if this is correct.
+	switch(usage)
+	{
+	case BufferUsage::IndirectDrawSrc:
+		return vk::PipelineStageFlagBits::eDrawIndirect;
+	case BufferUsage::IndexSrc:
+		return vk::PipelineStageFlagBits::eVertexInput;
+	case BufferUsage::VertexSrc:
+		return vk::PipelineStageFlagBits::eVertexShader;
+	case BufferUsage::UniformSrc:
+		return vk::PipelineStageFlagBits::eVertexShader | vk::PipelineStageFlagBits::eGeometryShader | vk::PipelineStageFlagBits::eFragmentShader;
+	case BufferUsage::ComputeShaderSrc:
+	case BufferUsage::ComputeShaderDst:
+		return vk::PipelineStageFlagBits::eComputeShader;
+	case BufferUsage::TransferSrc:
+	case BufferUsage::TransferDst:
+		return vk::PipelineStageFlagBits::eTransfer;
+	};
+
+	HEX_ASSERT(false);
+	return vk::PipelineStageFlags();
 }
 
 } // namespace HexGPU

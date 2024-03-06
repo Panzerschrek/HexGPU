@@ -93,6 +93,8 @@ private:
 
 	static std::optional<BufferSyncInfo> GetBufferSrcSyncInfo(BufferUsage usage);
 	static std::optional<BufferSyncInfo> GetBufferDstSyncInfo(BufferUsage usage);
+	static bool IsReadBufferUsage(BufferUsage usage);
+	static vk::PipelineStageFlags GetPipelineStageForBufferUsage(BufferUsage usage);
 
 private:
 	const uint32_t queue_family_index_;

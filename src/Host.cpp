@@ -115,12 +115,13 @@ bool Host::Loop()
 		CreateMouseState(events),
 		CalculateAspect(window_vulkan_.GetViewportSize()));
 
+	world_renderer_.PrepareFrame(task_organiser_);
+
 	const vk::CommandBuffer command_buffer= window_vulkan_.BeginFrame();
 
 	task_organiser_.ExecuteTasks(command_buffer);
 
 	// TODO - add other tasks into the task organizer.
-	world_renderer_.PrepareFrame(command_buffer);
 	sky_renderer_.PrepareFrame(command_buffer);
 	build_prism_renderer_.PrepareFrame(command_buffer);
 

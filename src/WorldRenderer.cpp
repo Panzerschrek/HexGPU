@@ -256,41 +256,12 @@ WorldRenderer::~WorldRenderer()
 	vk_device_.waitIdle();
 }
 
-void WorldRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
+void WorldRenderer::PrepareFrame(TaskOrganiser& task_organiser)
 {
 	world_textures_manager_.PrepareFrame(command_buffer);
-	geometry_generator_.Update(command_buffer);
-	BuildDrawIndirectBuffer(command_buffer);
-
-	// Copy view matrix.
-	command_buffer.copyBuffer(
-		world_processor_.GetPlayerStateBuffer(),
-		uniform_buffer_.GetBuffer(),
-		{
-			{
-				offsetof(WorldProcessor::PlayerState, blocks_matrix),
-				offsetof(DrawUniforms, view_matrix),
-				sizeof(float) * 16
-			}
-		});
-
-	// Add barrier between uniform buffer memory copy and result usage in shader.
-	{
-		const vk::BufferMemoryBarrier barrier(
-			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead,
-			queue_family_index_, queue_family_index_,
-			uniform_buffer_.GetBuffer(),
-			0,
-			VK_WHOLE_SIZE);
-
-		command_buffer.pipelineBarrier(
-			vk::PipelineStageFlagBits::eTransfer,
-			vk::PipelineStageFlagBits::eVertexShader,
-			vk::DependencyFlags(),
-			0, nullptr,
-			1, &barrier,
-			0, nullptr);
-	}
+	geometry_generator_.Update(task_organiser);
+	BuildDrawIndirectBuffer(task_organiser);
+	CopyViewMatrix(task_organiser);
 }
 
 void WorldRenderer::Draw(const vk::CommandBuffer command_buffer)
@@ -486,49 +457,65 @@ WorldRenderer::WorldDrawPipeline WorldRenderer::CreateWorldDrawPipeline(
 	return pipeline;
 }
 
-void WorldRenderer::BuildDrawIndirectBuffer(const vk::CommandBuffer command_buffer)
+void WorldRenderer::CopyViewMatrix(TaskOrganiser& task_organiser)
 {
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *draw_indirect_buffer_build_pipeline_.pipeline);
+	TaskOrganiser::TransferTask task;
+	task.input_buffers.push_back(world_processor_.GetPlayerStateBuffer());
+	task.output_buffers.push_back(uniform_buffer_.GetBuffer());
 
-	command_buffer.bindDescriptorSets(
-		vk::PipelineBindPoint::eCompute,
-		*draw_indirect_buffer_build_pipeline_.pipeline_layout,
-		0u,
-		{draw_indirect_buffer_build_descriptor_set_},
-		{});
+	task.func=
+		[this](const vk::CommandBuffer command_buffer)
+		{
+			// Copy view matrix.
+			command_buffer.copyBuffer(
+				world_processor_.GetPlayerStateBuffer(),
+				uniform_buffer_.GetBuffer(),
+				{
+					{
+						offsetof(WorldProcessor::PlayerState, blocks_matrix),
+						offsetof(DrawUniforms, view_matrix),
+						sizeof(float) * 16
+					}
+				});
+		};
 
-	DrawIndirectBufferBuildUniforms uniforms;
-	uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
-	uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+	task_organiser.AddTask(std::move(task));
+}
 
-	command_buffer.pushConstants(
-		*draw_indirect_buffer_build_pipeline_.pipeline_layout,
-		vk::ShaderStageFlagBits::eCompute,
-		0,
-		sizeof(DrawIndirectBufferBuildUniforms),
-		&uniforms);
+void WorldRenderer::BuildDrawIndirectBuffer(TaskOrganiser& task_organiser)
+{
+	TaskOrganiser::ComputeTask task;
+	task.input_storage_buffers.push_back(geometry_generator_.GetChunkDrawInfoBuffer());
+	task.output_storage_buffers.push_back(draw_indirect_buffer_.GetBuffer());
 
-	// Dispatch a thread for each chunk.
-	command_buffer.dispatch(world_size_[0], world_size_[1], 1);
+	task.func=
+		[this](const vk::CommandBuffer command_buffer)
+		{
+			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *draw_indirect_buffer_build_pipeline_.pipeline);
 
-	// Create barrier between update indirect draw buffer and its usage for rendering.
-	// TODO - check this is correct.
-	{
-		const vk::BufferMemoryBarrier barrier(
-			vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eIndirectCommandRead,
-			queue_family_index_, queue_family_index_,
-			draw_indirect_buffer_.GetBuffer(),
-			0,
-			VK_WHOLE_SIZE);
+			command_buffer.bindDescriptorSets(
+				vk::PipelineBindPoint::eCompute,
+				*draw_indirect_buffer_build_pipeline_.pipeline_layout,
+				0u,
+				{draw_indirect_buffer_build_descriptor_set_},
+				{});
 
-		command_buffer.pipelineBarrier(
-			vk::PipelineStageFlagBits::eComputeShader,
-			vk::PipelineStageFlagBits::eDrawIndirect,
-			vk::DependencyFlags(),
-			0, nullptr,
-			1, &barrier,
-			0, nullptr);
-	}
+			DrawIndirectBufferBuildUniforms uniforms;
+			uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+			uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+
+			command_buffer.pushConstants(
+				*draw_indirect_buffer_build_pipeline_.pipeline_layout,
+				vk::ShaderStageFlagBits::eCompute,
+				0,
+				sizeof(DrawIndirectBufferBuildUniforms),
+				&uniforms);
+
+			// Dispatch a thread for each chunk.
+			command_buffer.dispatch(world_size_[0], world_size_[1], 1);
+		};
+
+	task_organiser.AddTask(std::move(task));
 }
 
 } // namespace HexGPU

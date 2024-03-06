@@ -1,5 +1,5 @@
 #pragma once
-#include "HexGPUVulkan.hpp"
+#include "WindowVulkan.hpp"
 #include <functional>
 #include <unordered_map>
 #include <variant>
@@ -31,8 +31,8 @@ public:
 	{
 		// Input graphics buffers.
 		std::vector<vk::Buffer> indirect_draw_buffers;
-		std::vector<vk::Buffer> vertex_buffers;
 		std::vector<vk::Buffer> index_buffers;
+		std::vector<vk::Buffer> vertex_buffers;
 		std::vector<vk::Buffer> uniform_buffers;
 		// TODO - add also images.
 	};
@@ -53,6 +53,8 @@ public:
 	using Task= std::variant<ComputeTask, GraphicsTask, TransferTask, PresentTask>;
 
 public:
+	explicit TaskOrganiser(WindowVulkan& window_vulkan);
+
 	// Add a task. All tasks are executed in addition order.
 	void AddTask(Task task);
 
@@ -63,13 +65,19 @@ private:
 	enum struct BufferUsage : uint8_t
 	{
 		IndirectDrawSrc,
-		VertexSrc,
 		IndexSrc,
+		VertexSrc,
 		UniformSrc,
 		ComputeShaderSrc,
 		ComputeShaderDst,
 		TransferDst,
 		TransferSrc,
+	};
+
+	struct BufferSyncInfo
+	{
+		vk::AccessFlags access_flags;
+		vk::PipelineStageFlags pipeline_stage_flags;
 	};
 
 private:
@@ -80,8 +88,16 @@ private:
 
 	void UpdateLastBuffersUsage(const std::vector<vk::Buffer> buffers, BufferUsage usage);
 	void UpdateLastBufferUsage(vk::Buffer buffer, BufferUsage usage);
+	std::optional<BufferUsage> GetLastBufferUsage(vk::Buffer buffer) const;
+
+	std::optional<BufferSyncInfo> GetBufferSrcSyncInfoForLastUsage(vk::Buffer buffer) const;
+
+	static std::optional<BufferSyncInfo> GetBufferSrcSyncInfo(BufferUsage usage);
+	static std::optional<BufferSyncInfo> GetBufferDstSyncInfo(BufferUsage usage);
 
 private:
+	const uint32_t queue_family_index_;
+
 	std::vector<Task> tasks_;
 
 	// Remember buffer usages in order to setup barriers properly.

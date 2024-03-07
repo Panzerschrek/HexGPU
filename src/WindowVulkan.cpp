@@ -18,6 +18,7 @@ vk::PhysicalDeviceFeatures GetRequiredDeviceFeatures()
 
 	vk::PhysicalDeviceFeatures features;
 	features.multiDrawIndirect= true;
+	features.geometryShader= true;
 	return features;
 }
 

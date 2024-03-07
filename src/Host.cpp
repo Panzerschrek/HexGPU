@@ -122,12 +122,33 @@ bool Host::Loop()
 	build_prism_renderer_.PrepareFrame(task_organiser_);
 	sky_renderer_.PrepareFrame(task_organiser_);
 
-	window_vulkan_.EndFrame(
-		[&](const vk::CommandBuffer command_buffer)
+	TaskOrganiser::GraphicsTask graphics_task;
+	world_renderer_.CollectFrameInputs(graphics_task);
+	build_prism_renderer_.CollectFrameInputs(graphics_task);
+	sky_renderer_.CollectFrameInputs(graphics_task);
+
+	graphics_task.render_pass= window_vulkan_.GetRenderPass();
+	graphics_task.viewport_size= window_vulkan_.GetViewportSize();
+
+	graphics_task.func=
+		[this](const vk::CommandBuffer command_buffer)
 		{
 			world_renderer_.Draw(command_buffer);
 			sky_renderer_.Draw(command_buffer);
 			build_prism_renderer_.Draw(command_buffer);
+		};
+
+	graphics_task.clear_values=
+	{
+		vk::ClearColorValue(std::array<float,4>{1.0f, 0.0f, 1.0f, 1.0f}), // Clear with pink to catch some mistakes.
+		vk::ClearDepthStencilValue(1.0f, 0u),
+	};
+
+	window_vulkan_.EndFrame(
+		[&](const vk::Framebuffer framebuffer)
+		{
+			graphics_task.framebuffer= framebuffer;
+			task_organiser_.ExecuteTask(graphics_task);
 		});
 
 	const Clock::time_point tick_end_time= Clock::now();

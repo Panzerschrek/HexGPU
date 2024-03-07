@@ -215,6 +215,11 @@ void SkyRenderer::PrepareFrame(TaskOrganiser& task_organiser)
 	task_organiser.ExecuteTask(task);
 }
 
+void SkyRenderer::CollectFrameInputs(TaskOrganiser::GraphicsTask& out_task)
+{
+	out_task.uniform_buffers.push_back(uniform_buffer_.GetBuffer());
+}
+
 void SkyRenderer::Draw(const vk::CommandBuffer command_buffer)
 {
 	command_buffer.bindDescriptorSets(

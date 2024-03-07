@@ -226,6 +226,11 @@ void BuildPrismRenderer::PrepareFrame(TaskOrganiser& task_organiser)
 	task_organiser.ExecuteTask(task);
 }
 
+void BuildPrismRenderer::CollectFrameInputs(TaskOrganiser::GraphicsTask& out_task)
+{
+	out_task.uniform_buffers.push_back(uniform_buffer_.GetBuffer());
+}
+
 void BuildPrismRenderer::Draw(const vk::CommandBuffer command_buffer)
 {
 	command_buffer.bindDescriptorSets(

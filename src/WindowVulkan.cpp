@@ -491,27 +491,7 @@ void WindowVulkan::EndFrame(const DrawFunction& draw_function)
 			*current_frame_command_buffer_->image_available_semaphore,
 			vk::Fence()).value;
 
-	// Begin render pass.
-
-	const vk::ClearValue clear_values[]
-	{
-		vk::ClearColorValue(std::array<float,4>{1.0f, 0.0f, 1.0f, 1.0f}), // Clear with pink to catch some mistakes.
-		vk::ClearDepthStencilValue(1.0f, 0u),
-	};
-
-	command_buffer.beginRenderPass(
-		vk::RenderPassBeginInfo(
-			*render_pass_,
-			*framebuffers_[swapchain_image_index].framebuffer,
-			vk::Rect2D(vk::Offset2D(0, 0), viewport_size_),
-			uint32_t(std::size(clear_values)), clear_values),
-		vk::SubpassContents::eInline);
-
-	// Draw into framebuffer.
-	draw_function(command_buffer);
-
-	// End render pass.
-	command_buffer.endRenderPass();
+	draw_function(*framebuffers_[swapchain_image_index].framebuffer);
 
 	// End command buffer.
 	command_buffer.end();

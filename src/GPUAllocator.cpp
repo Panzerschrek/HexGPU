@@ -47,10 +47,10 @@ void GPUAllocator::EnsureInitialized(TaskOrganiser& task_organiser)
 		return;
 	initialized_= true;
 
-	TaskOrganiser::TransferTask task;
+	TaskOrganiser::TransferTaskParams task;
 	task.output_buffers.push_back(allocator_data_buffer_.GetBuffer());
 
-	task.func=
+	const auto task_func=
 		[this](const vk::CommandBuffer command_buffer)
 		{
 			std::vector<uint32_t> data;
@@ -60,7 +60,7 @@ void GPUAllocator::EnsureInitialized(TaskOrganiser& task_organiser)
 			command_buffer.updateBuffer(allocator_data_buffer_.GetBuffer(), 0u, allocator_data_buffer_.GetSize(), data.data());
 		};
 
-	task_organiser.ExecuteTask(task);
+	task_organiser.ExecuteTask(task, task_func);
 }
 
 } // namespace HexGPU

@@ -264,13 +264,13 @@ void WorldRenderer::PrepareFrame(TaskOrganiser& task_organiser)
 	CopyViewMatrix(task_organiser);
 }
 
-void WorldRenderer::CollectFrameInputs(TaskOrganiser::GraphicsTask& out_task)
+void WorldRenderer::CollectFrameInputs(TaskOrganiser::GraphicsTaskParams& out_task_params)
 {
-	out_task.indirect_draw_buffers.push_back(draw_indirect_buffer_.GetBuffer());
-	out_task.index_buffers.push_back(*index_buffer_);
-	out_task.vertex_buffers.push_back(geometry_generator_.GetVertexBuffer());
-	out_task.uniform_buffers.push_back(uniform_buffer_.GetBuffer());
-	out_task.input_images.push_back(world_textures_manager_.GetImageInfo());
+	out_task_params.indirect_draw_buffers.push_back(draw_indirect_buffer_.GetBuffer());
+	out_task_params.index_buffers.push_back(*index_buffer_);
+	out_task_params.vertex_buffers.push_back(geometry_generator_.GetVertexBuffer());
+	out_task_params.uniform_buffers.push_back(uniform_buffer_.GetBuffer());
+	out_task_params.input_images.push_back(world_textures_manager_.GetImageInfo());
 }
 
 void WorldRenderer::Draw(const vk::CommandBuffer command_buffer)
@@ -468,11 +468,11 @@ WorldRenderer::WorldDrawPipeline WorldRenderer::CreateWorldDrawPipeline(
 
 void WorldRenderer::CopyViewMatrix(TaskOrganiser& task_organiser)
 {
-	TaskOrganiser::TransferTask task;
+	TaskOrganiser::TransferTaskParams task;
 	task.input_buffers.push_back(world_processor_.GetPlayerStateBuffer());
 	task.output_buffers.push_back(uniform_buffer_.GetBuffer());
 
-	task.func=
+	const auto task_func=
 		[this](const vk::CommandBuffer command_buffer)
 		{
 			// Copy view matrix.
@@ -488,16 +488,16 @@ void WorldRenderer::CopyViewMatrix(TaskOrganiser& task_organiser)
 				});
 		};
 
-	task_organiser.ExecuteTask(task);
+	task_organiser.ExecuteTask(task, task_func);
 }
 
 void WorldRenderer::BuildDrawIndirectBuffer(TaskOrganiser& task_organiser)
 {
-	TaskOrganiser::ComputeTask task;
+	TaskOrganiser::ComputeTaskParams task;
 	task.input_storage_buffers.push_back(geometry_generator_.GetChunkDrawInfoBuffer());
 	task.output_storage_buffers.push_back(draw_indirect_buffer_.GetBuffer());
 
-	task.func=
+	const auto task_func=
 		[this](const vk::CommandBuffer command_buffer)
 		{
 			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *draw_indirect_buffer_build_pipeline_.pipeline);
@@ -524,7 +524,7 @@ void WorldRenderer::BuildDrawIndirectBuffer(TaskOrganiser& task_organiser)
 			command_buffer.dispatch(world_size_[0], world_size_[1], 1);
 		};
 
-	task_organiser.ExecuteTask(task);
+	task_organiser.ExecuteTask(task, task_func);
 }
 
 } // namespace HexGPU

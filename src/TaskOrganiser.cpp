@@ -9,17 +9,12 @@ TaskOrganiser::TaskOrganiser(WindowVulkan& window_vulkan)
 {
 }
 
-void TaskOrganiser::ExecuteTask(const Task& task)
-{
-	std::visit([&](const auto& t){ ExecuteTaskImpl(command_buffer_, t); }, task);
-}
-
 void TaskOrganiser::SetCommandBuffer(vk::CommandBuffer command_buffer)
 {
 	command_buffer_= command_buffer;
 }
 
-void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, const ComputeTask& task)
+void TaskOrganiser::ExecuteTask(const ComputeTaskParams& params, const TaskFunc& func)
 {
 	std::vector<vk::BufferMemoryBarrier> buffer_barriers;
 	vk::PipelineStageFlags src_pipeline_stage_flags;
@@ -30,7 +25,7 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 	{
 		dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
 
-		for(const vk::Buffer buffer : task.input_storage_buffers)
+		for(const vk::Buffer buffer : params.input_storage_buffers)
 		{
 			if(const auto src_sync_info= GetBufferSrcSyncInfoForLastUsage(buffer))
 			{
@@ -43,7 +38,7 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 			}
 		}
 
-		for(const vk::Buffer buffer : task.input_output_storage_buffers)
+		for(const vk::Buffer buffer : params.input_output_storage_buffers)
 		{
 			if(const auto src_sync_info= GetBufferSrcSyncInfoForLastUsage(buffer))
 			{
@@ -65,7 +60,7 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 		}
 	}
 
-	for(const vk::Buffer buffer : task.output_storage_buffers)
+	for(const vk::Buffer buffer : params.output_storage_buffers)
 	{
 		if(const auto last_usage= GetLastBufferUsage(buffer))
 		{
@@ -78,7 +73,7 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 	}
 
 	if(!buffer_barriers.empty() || require_barrier_for_write_after_read_sync)
-		command_buffer.pipelineBarrier(
+		command_buffer_.pipelineBarrier(
 			src_pipeline_stage_flags,
 			dst_pipeline_stage_flags,
 			vk::DependencyFlags(),
@@ -86,14 +81,14 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 			uint32_t(buffer_barriers.size()), buffer_barriers.data(),
 			0, nullptr);
 
-	task.func(command_buffer);
+	func(command_buffer_);
 
-	UpdateLastBuffersUsage(task.input_storage_buffers, BufferUsage::ComputeShaderSrc);
-	UpdateLastBuffersUsage(task.output_storage_buffers, BufferUsage::ComputeShaderDst);
-	UpdateLastBuffersUsage(task.input_output_storage_buffers, BufferUsage::ComputeShaderDst);
+	UpdateLastBuffersUsage(params.input_storage_buffers, BufferUsage::ComputeShaderSrc);
+	UpdateLastBuffersUsage(params.output_storage_buffers, BufferUsage::ComputeShaderDst);
+	UpdateLastBuffersUsage(params.input_output_storage_buffers, BufferUsage::ComputeShaderDst);
 }
 
-void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, const GraphicsTask& task)
+void TaskOrganiser::ExecuteTask(const GraphicsTaskParams& params, const TaskFunc& func)
 {
 	std::vector<vk::BufferMemoryBarrier> buffer_barriers;
 	std::vector<vk::ImageMemoryBarrier> image_barriers;
@@ -104,7 +99,7 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 	{
 		dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
 
-		for(const vk::Buffer buffer : task.indirect_draw_buffers)
+		for(const vk::Buffer buffer : params.indirect_draw_buffers)
 		{
 			if(const auto src_sync_info= GetBufferSrcSyncInfoForLastUsage(buffer))
 			{
@@ -122,7 +117,7 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 	{
 		dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
 
-		for(const vk::Buffer buffer : task.index_buffers)
+		for(const vk::Buffer buffer : params.index_buffers)
 		{
 			if(const auto src_sync_info= GetBufferSrcSyncInfoForLastUsage(buffer))
 			{
@@ -140,7 +135,7 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 	{
 		dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
 
-		for(const vk::Buffer buffer : task.vertex_buffers)
+		for(const vk::Buffer buffer : params.vertex_buffers)
 		{
 			if(const auto src_sync_info= GetBufferSrcSyncInfoForLastUsage(buffer))
 			{
@@ -158,7 +153,7 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 	{
 		dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
 
-		for(const vk::Buffer buffer : task.uniform_buffers)
+		for(const vk::Buffer buffer : params.uniform_buffers)
 		{
 			if(const auto src_sync_info= GetBufferSrcSyncInfoForLastUsage(buffer))
 			{
@@ -172,7 +167,7 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 		}
 	}
 
-	for(const ImageInfo image_info : task.input_images)
+	for(const ImageInfo image_info : params.input_images)
 	{
 		if(GetLastImageUsage(image_info.image) != ImageUsage::GraphicsSrc)
 		{
@@ -190,7 +185,7 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 	}
 
 	if(!buffer_barriers.empty() || !image_barriers.empty())
-		command_buffer.pipelineBarrier(
+		command_buffer_.pipelineBarrier(
 			src_pipeline_stage_flags,
 			dst_pipeline_stage_flags,
 			vk::DependencyFlags(),
@@ -200,28 +195,28 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 
 	// TODO - add synchronization for output images to ensure write after read.
 
-	command_buffer.beginRenderPass(
+	command_buffer_.beginRenderPass(
 		vk::RenderPassBeginInfo(
-			task.render_pass,
-			task.framebuffer,
-			vk::Rect2D(vk::Offset2D(0, 0), task.viewport_size),
-			uint32_t(task.clear_values.size()), task.clear_values.data()),
+			params.render_pass,
+			params.framebuffer,
+			vk::Rect2D(vk::Offset2D(0, 0), params.viewport_size),
+			uint32_t(params.clear_values.size()), params.clear_values.data()),
 		vk::SubpassContents::eInline);
 
-	task.func(command_buffer);
+	func(command_buffer_);
 
-	command_buffer.endRenderPass();
+	command_buffer_.endRenderPass();
 
-	UpdateLastBuffersUsage(task.indirect_draw_buffers, BufferUsage::IndirectDrawSrc);
-	UpdateLastBuffersUsage(task.index_buffers, BufferUsage::IndexSrc);
-	UpdateLastBuffersUsage(task.vertex_buffers, BufferUsage::VertexSrc);
-	UpdateLastBuffersUsage(task.uniform_buffers, BufferUsage::UniformSrc);
+	UpdateLastBuffersUsage(params.indirect_draw_buffers, BufferUsage::IndirectDrawSrc);
+	UpdateLastBuffersUsage(params.index_buffers, BufferUsage::IndexSrc);
+	UpdateLastBuffersUsage(params.vertex_buffers, BufferUsage::VertexSrc);
+	UpdateLastBuffersUsage(params.uniform_buffers, BufferUsage::UniformSrc);
 
-	for(const ImageInfo& image_info : task.input_images)
+	for(const ImageInfo& image_info : params.input_images)
 		UpdateLastImageUsage(image_info.image, ImageUsage::GraphicsSrc);
 }
 
-void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, const TransferTask& task)
+void TaskOrganiser::ExecuteTask(const TransferTaskParams& params, const TaskFunc& func)
 {
 	std::vector<vk::BufferMemoryBarrier> buffer_barriers;
 	std::vector<vk::ImageMemoryBarrier> image_barriers;
@@ -233,7 +228,7 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 	{
 		dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
 
-		for(const vk::Buffer buffer : task.input_buffers)
+		for(const vk::Buffer buffer : params.input_buffers)
 		{
 			if(const auto src_sync_info= GetBufferSrcSyncInfoForLastUsage(buffer))
 			{
@@ -247,7 +242,7 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 		}
 	}
 
-	for(const vk::Buffer buffer : task.output_buffers)
+	for(const vk::Buffer buffer : params.output_buffers)
 	{
 		if(const auto last_usage= GetLastBufferUsage(buffer))
 		{
@@ -259,7 +254,7 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 		}
 	}
 
-	for(const ImageInfo image_info : task.input_images)
+	for(const ImageInfo image_info : params.input_images)
 	{
 		if(GetLastImageUsage(image_info.image) != ImageUsage::TransferSrc)
 		{
@@ -276,7 +271,7 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 		}
 	}
 
-	for(const ImageInfo image_info : task.output_images)
+	for(const ImageInfo image_info : params.output_images)
 	{
 		if(GetLastImageUsage(image_info.image) != ImageUsage::TransferDst)
 		{
@@ -294,7 +289,7 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 	}
 
 	if(!buffer_barriers.empty() || !image_barriers.empty() || require_barrier_for_write_after_read_sync)
-		command_buffer.pipelineBarrier(
+		command_buffer_.pipelineBarrier(
 			src_pipeline_stage_flags,
 			dst_pipeline_stage_flags,
 			vk::DependencyFlags(),
@@ -302,22 +297,15 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 			uint32_t(buffer_barriers.size()), buffer_barriers.data(),
 			uint32_t(image_barriers.size()), image_barriers.data());
 
-	task.func(command_buffer);
+	func(command_buffer_);
 
-	UpdateLastBuffersUsage(task.input_buffers, BufferUsage::TransferSrc);
-	UpdateLastBuffersUsage(task.output_buffers, BufferUsage::TransferDst);
+	UpdateLastBuffersUsage(params.input_buffers, BufferUsage::TransferSrc);
+	UpdateLastBuffersUsage(params.output_buffers, BufferUsage::TransferDst);
 
-	for(const ImageInfo& image_info : task.input_images)
+	for(const ImageInfo& image_info : params.input_images)
 		UpdateLastImageUsage(image_info.image, ImageUsage::TransferSrc);
-	for(const ImageInfo& image_info : task.output_images)
+	for(const ImageInfo& image_info : params.output_images)
 		UpdateLastImageUsage(image_info.image, ImageUsage::TransferDst);
-}
-
-void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, const PresentTask& task)
-{
-	// TODO - add barriers.
-
-	task.func(command_buffer);
 }
 
 void TaskOrganiser::UpdateLastBuffersUsage(const std::vector<vk::Buffer> buffers, const BufferUsage usage)

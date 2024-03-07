@@ -192,11 +192,11 @@ SkyRenderer::~SkyRenderer()
 
 void SkyRenderer::PrepareFrame(TaskOrganiser& task_organiser)
 {
-	TaskOrganiser::TransferTask task;
+	TaskOrganiser::TransferTaskParams task;
 	task.input_buffers.push_back(world_processor_.GetPlayerStateBuffer());
 	task.output_buffers.push_back(uniform_buffer_.GetBuffer());
 
-	task.func=
+	const auto task_func=
 		[this](const vk::CommandBuffer command_buffer)
 		{
 			// Copy view matrix.
@@ -212,12 +212,12 @@ void SkyRenderer::PrepareFrame(TaskOrganiser& task_organiser)
 				});
 		};
 
-	task_organiser.ExecuteTask(task);
+	task_organiser.ExecuteTask(task, task_func);
 }
 
-void SkyRenderer::CollectFrameInputs(TaskOrganiser::GraphicsTask& out_task)
+void SkyRenderer::CollectFrameInputs(TaskOrganiser::GraphicsTaskParams& out_task_params)
 {
-	out_task.uniform_buffers.push_back(uniform_buffer_.GetBuffer());
+	out_task_params.uniform_buffers.push_back(uniform_buffer_.GetBuffer());
 }
 
 void SkyRenderer::Draw(const vk::CommandBuffer command_buffer)

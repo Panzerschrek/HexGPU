@@ -191,11 +191,11 @@ BuildPrismRenderer::~BuildPrismRenderer()
 
 void BuildPrismRenderer::PrepareFrame(TaskOrganiser& task_organiser)
 {
-	TaskOrganiser::TransferTask task;
+	TaskOrganiser::TransferTaskParams task;
 	task.input_buffers.push_back(world_processor_.GetPlayerStateBuffer());
 	task.output_buffers.push_back(uniform_buffer_.GetBuffer());
 
-	task.func=
+	const auto task_func=
 		[this](const vk::CommandBuffer command_buffer)
 		{
 			// Get build position from player state.
@@ -223,12 +223,12 @@ void BuildPrismRenderer::PrepareFrame(TaskOrganiser& task_organiser)
 				});
 		};
 
-	task_organiser.ExecuteTask(task);
+	task_organiser.ExecuteTask(task, task_func);
 }
 
-void BuildPrismRenderer::CollectFrameInputs(TaskOrganiser::GraphicsTask& out_task)
+void BuildPrismRenderer::CollectFrameInputs(TaskOrganiser::GraphicsTaskParams& out_task_params)
 {
-	out_task.uniform_buffers.push_back(uniform_buffer_.GetBuffer());
+	out_task_params.uniform_buffers.push_back(uniform_buffer_.GetBuffer());
 }
 
 void BuildPrismRenderer::Draw(const vk::CommandBuffer command_buffer)

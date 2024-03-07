@@ -220,11 +220,11 @@ void WorldTexturesManager::PrepareFrame(TaskOrganiser& task_organiser)
 		return;
 	textures_loaded_= true;
 
-	TaskOrganiser::TransferTask task;
+	TaskOrganiser::TransferTaskParams task;
 	task.input_buffers.push_back(*staging_buffer_);
 	task.output_images.push_back(GetImageInfo());
 
-	task.func=
+	const auto task_func=
 		[this](const vk::CommandBuffer command_buffer)
 		{
 			for(uint32_t dst_image_index= 0; dst_image_index < c_num_layers; ++dst_image_index)
@@ -254,7 +254,7 @@ void WorldTexturesManager::PrepareFrame(TaskOrganiser& task_organiser)
 			}
 		};
 
-	task_organiser.ExecuteTask(task);
+	task_organiser.ExecuteTask(task, task_func);
 }
 
 vk::ImageView WorldTexturesManager::GetImageView() const

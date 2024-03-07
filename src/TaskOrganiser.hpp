@@ -18,22 +18,17 @@ public:
 		uint32_t num_layers= 0;
 	};
 
-	using TaksFunc= std::function<void(vk::CommandBuffer command_buffer)>;
+	using TaskFunc= std::function<void(vk::CommandBuffer command_buffer)>;
 
-	struct TaskBase
-	{
-		TaksFunc func;
-	};
-
-	struct ComputeTask : public TaskBase
+	struct ComputeTaskParams
 	{
 		std::vector<vk::Buffer> input_storage_buffers;
 		std::vector<vk::Buffer> output_storage_buffers;
-		// Buffers which are both input and output. Do not list them in input and/or output lists.
+		// Buffers which are both input and output. Do not list them in input and/or output lists!
 		std::vector<vk::Buffer> input_output_storage_buffers;
 	};
 
-	struct GraphicsTask : public TaskBase
+	struct GraphicsTaskParams
 	{
 		// Input graphics buffers.
 		std::vector<vk::Buffer> indirect_draw_buffers;
@@ -49,7 +44,7 @@ public:
 		std::vector<vk::ClearValue> clear_values;
 	};
 
-	struct TransferTask : public TaskBase
+	struct TransferTaskParams
 	{
 		std::vector<vk::Buffer> input_buffers;
 		std::vector<vk::Buffer> output_buffers;
@@ -57,21 +52,14 @@ public:
 		std::vector<ImageInfo> output_images;
 	};
 
-	struct PresentTask : public TaskBase
-	{
-		// TODO
-	};
-
-	using Task= std::variant<ComputeTask, GraphicsTask, TransferTask, PresentTask>;
-
 public:
 	explicit TaskOrganiser(WindowVulkan& window_vulkan);
 
 	void SetCommandBuffer(vk::CommandBuffer command_buffer);
 
-	// Push commands of the task into the command buffer.
-	// Passed function is executed immideately.
-	void ExecuteTask(const Task& task);
+	void ExecuteTask(const ComputeTaskParams& params, const TaskFunc& func);
+	void ExecuteTask(const GraphicsTaskParams& params, const TaskFunc& func);
+	void ExecuteTask(const TransferTaskParams& params, const TaskFunc& func);
 
 private:
 	enum struct BufferUsage : uint8_t
@@ -107,11 +95,6 @@ private:
 	};
 
 private:
-	void ExecuteTaskImpl(vk::CommandBuffer command_buffer, const ComputeTask& task);
-	void ExecuteTaskImpl(vk::CommandBuffer command_buffer, const GraphicsTask& task);
-	void ExecuteTaskImpl(vk::CommandBuffer command_buffer, const TransferTask& task);
-	void ExecuteTaskImpl(vk::CommandBuffer command_buffer, const PresentTask& task);
-
 	void UpdateLastBuffersUsage(const std::vector<vk::Buffer> buffers, BufferUsage usage);
 	void UpdateLastBufferUsage(vk::Buffer buffer, BufferUsage usage);
 	std::optional<BufferUsage> GetLastBufferUsage(vk::Buffer buffer) const;

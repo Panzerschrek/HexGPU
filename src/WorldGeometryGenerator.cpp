@@ -650,12 +650,12 @@ void WorldGeometryGenerator::InitialFillBuffers(TaskOrganiser& task_organiser)
 		return;
 	buffers_initially_filled_= true;
 
-	TaskOrganiser::TransferTask task;
+	TaskOrganiser::TransferTaskParams task;
 
 	task.output_buffers.push_back(vertex_buffer_.GetBuffer());
 	task.output_buffers.push_back(chunk_draw_info_buffer_.GetBuffer());
 
-	task.func=
+	const auto task_func=
 		[this](const vk::CommandBuffer command_buffer)
 		{
 			// Fill initially vertex buffer with zeros.
@@ -666,18 +666,18 @@ void WorldGeometryGenerator::InitialFillBuffers(TaskOrganiser& task_organiser)
 			command_buffer.fillBuffer(chunk_draw_info_buffer_.GetBuffer(), 0, chunk_draw_info_buffer_.GetSize(), 0);
 		};
 
-	task_organiser.ExecuteTask(task);
+	task_organiser.ExecuteTask(task, task_func);
 }
 
 void WorldGeometryGenerator::ShiftChunkDrawInfo(
 	TaskOrganiser& task_organiser,
 	const std::array<int32_t, 2> shift)
 {
-	TaskOrganiser::ComputeTask shift_task;
+	TaskOrganiser::ComputeTaskParams shift_task;
 	shift_task.input_storage_buffers.push_back(chunk_draw_info_buffer_.GetBuffer());
 	shift_task.output_storage_buffers.push_back(chunk_draw_info_buffer_temp_.GetBuffer());
 
-	shift_task.func=
+	const auto shift_task_func=
 		[this, shift](const vk::CommandBuffer command_buffer)
 		{
 			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *chunk_draw_info_shift_pipeline_.pipeline);
@@ -708,15 +708,15 @@ void WorldGeometryGenerator::ShiftChunkDrawInfo(
 			command_buffer.dispatch(world_size_[0], world_size_[1], 1);
 		};
 
-	task_organiser.ExecuteTask(shift_task);
+	task_organiser.ExecuteTask(shift_task, shift_task_func);
 
 	// Copy temp buffer back to chunk draw info buffer.
 
-	TaskOrganiser::TransferTask copy_back_task;
+	TaskOrganiser::TransferTaskParams copy_back_task;
 	copy_back_task.input_buffers.push_back(chunk_draw_info_buffer_temp_.GetBuffer());
 	copy_back_task.output_buffers.push_back(chunk_draw_info_buffer_.GetBuffer());
 
-	copy_back_task.func=
+	const auto copy_back_task_func=
 		[this](const vk::CommandBuffer command_buffer)
 		{
 			HEX_ASSERT(chunk_draw_info_buffer_temp_.GetSize() == chunk_draw_info_buffer_.GetSize());
@@ -729,7 +729,7 @@ void WorldGeometryGenerator::ShiftChunkDrawInfo(
 				});
 		};
 
-	task_organiser.ExecuteTask(copy_back_task);
+	task_organiser.ExecuteTask(copy_back_task, copy_back_task_func);
 }
 
 void WorldGeometryGenerator::BuildChunksToUpdateList()
@@ -780,10 +780,10 @@ void WorldGeometryGenerator::BuildChunksToUpdateList()
 
 void WorldGeometryGenerator::PrepareGeometrySizeCalculation(TaskOrganiser& task_organiser)
 {
-	TaskOrganiser::ComputeTask task;
+	TaskOrganiser::ComputeTaskParams task;
 	task.input_output_storage_buffers.push_back(chunk_draw_info_buffer_.GetBuffer());
 
-	task.func=
+	const auto task_func=
 		[this](const vk::CommandBuffer command_buffer)
 		{
 			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *geometry_size_calculate_prepare_pipeline_.pipeline);
@@ -809,18 +809,18 @@ void WorldGeometryGenerator::PrepareGeometrySizeCalculation(TaskOrganiser& task_
 			command_buffer.dispatch(world_size_[0], world_size_[1], 1);
 		};
 
-	task_organiser.ExecuteTask(task);
+	task_organiser.ExecuteTask(task, task_func);
 }
 
 void WorldGeometryGenerator::CalculateGeometrySize(TaskOrganiser& task_organiser)
 {
 	const uint32_t actual_buffers_index= world_processor_.GetActualBuffersIndex();
 
-	TaskOrganiser::ComputeTask task;
+	TaskOrganiser::ComputeTaskParams task;
 	task.input_storage_buffers.push_back(world_processor_.GetChunkDataBuffer(actual_buffers_index));
 	task.input_output_storage_buffers.push_back(chunk_draw_info_buffer_.GetBuffer());
 
-	task.func=
+	const auto task_func=
 		[this, actual_buffers_index](const vk::CommandBuffer command_buffer)
 		{
 			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *geometry_size_calculate_pipeline_.pipeline);
@@ -861,7 +861,7 @@ void WorldGeometryGenerator::CalculateGeometrySize(TaskOrganiser& task_organiser
 			}
 		};
 
-	task_organiser.ExecuteTask(task);
+	task_organiser.ExecuteTask(task, task_func);
 }
 
 void WorldGeometryGenerator::AllocateMemoryForGeometry(TaskOrganiser& task_organiser)
@@ -870,11 +870,11 @@ void WorldGeometryGenerator::AllocateMemoryForGeometry(TaskOrganiser& task_organ
 	// So, perform several updates if necessary.
 	for(size_t offset= 0; offset < chunks_to_update_.size(); offset+= c_max_chunks_to_allocate)
 	{
-		TaskOrganiser::ComputeTask task;
+		TaskOrganiser::ComputeTaskParams task;
 		task.input_output_storage_buffers.push_back(chunk_draw_info_buffer_.GetBuffer());
 		task.input_output_storage_buffers.push_back(vertex_memory_allocator_.GetAllocatorDataBuffer());
 
-		task.func=
+		const auto task_func=
 			[this, offset](const vk::CommandBuffer command_buffer)
 			{
 				command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *geometry_allocate_pipeline_.pipeline);
@@ -905,7 +905,7 @@ void WorldGeometryGenerator::AllocateMemoryForGeometry(TaskOrganiser& task_organ
 				command_buffer.dispatch(1, 1 , 1);
 			};
 
-		task_organiser.ExecuteTask(task);
+		task_organiser.ExecuteTask(task, task_func);
 	};
 }
 
@@ -913,13 +913,13 @@ void WorldGeometryGenerator::GenGeometry(TaskOrganiser& task_organiser)
 {
 	const uint32_t actual_buffers_index= world_processor_.GetActualBuffersIndex();
 
-	TaskOrganiser::ComputeTask task;
+	TaskOrganiser::ComputeTaskParams task;
 	task.input_storage_buffers.push_back(world_processor_.GetChunkDataBuffer(actual_buffers_index));
 	task.input_storage_buffers.push_back(world_processor_.GetLightDataBuffer(actual_buffers_index));
 	task.input_output_storage_buffers.push_back(chunk_draw_info_buffer_.GetBuffer());
 	task.output_storage_buffers.push_back(vertex_buffer_.GetBuffer());
 
-	task.func=
+	const auto task_func=
 		[this, actual_buffers_index](const vk::CommandBuffer command_buffer)
 		{
 			// Update geometry, count number of quads.
@@ -962,7 +962,7 @@ void WorldGeometryGenerator::GenGeometry(TaskOrganiser& task_organiser)
 			}
 		};
 
-	task_organiser.ExecuteTask(task);
+	task_organiser.ExecuteTask(task, task_func);
 }
 
 } // namespace HexGPU

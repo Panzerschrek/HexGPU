@@ -984,7 +984,7 @@ void WorldProcessor::InitialFillBuffers(TaskOrganiser& task_organiser)
 		return;
 	initial_buffers_filled_= true;
 
-	TaskOrganiser::TransferTask task;
+	TaskOrganiser::TransferTaskParams task;
 	task.output_buffers.push_back(chunk_data_buffers_[0].GetBuffer());
 	task.output_buffers.push_back(chunk_data_buffers_[1].GetBuffer());
 	task.output_buffers.push_back(light_buffers_[0].GetBuffer());
@@ -994,7 +994,7 @@ void WorldProcessor::InitialFillBuffers(TaskOrganiser& task_organiser)
 	task.output_buffers.push_back(player_world_window_buffer_.GetBuffer());
 	task.output_buffers.push_back(player_state_read_back_buffer_.GetBuffer());
 
-	task.func=
+	const auto task_func=
 		[this](const vk::CommandBuffer command_buffer)
 		{
 			// Zero chunk data buffers in order to prevent bugs with uninitialized memory.
@@ -1027,7 +1027,7 @@ void WorldProcessor::InitialFillBuffers(TaskOrganiser& task_organiser)
 			command_buffer.fillBuffer(player_state_read_back_buffer_.GetBuffer(), 0, player_state_read_back_buffer_.GetSize(), 0);
 		};
 
-	task_organiser.ExecuteTask(task);
+	task_organiser.ExecuteTask(task, task_func);
 }
 
 void WorldProcessor::ReadBackAndProcessPlayerState()
@@ -1074,10 +1074,10 @@ void WorldProcessor::InitialGenerateWorld(TaskOrganiser& task_organiser)
 {
 	const uint32_t dst_buffer_index= GetDstBufferIndex();
 
-	TaskOrganiser::ComputeTask world_gen_task;
+	TaskOrganiser::ComputeTaskParams world_gen_task;
 	world_gen_task.output_storage_buffers.push_back(chunk_data_buffers_[dst_buffer_index].GetBuffer());
 
-	world_gen_task.func=
+	const auto world_gen_task_func=
 		[this, dst_buffer_index](const vk::CommandBuffer command_buffer)
 		{
 			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_gen_pipeline_.pipeline);
@@ -1115,13 +1115,13 @@ void WorldProcessor::InitialGenerateWorld(TaskOrganiser& task_organiser)
 			}
 		};
 
-	task_organiser.ExecuteTask(world_gen_task);
+	task_organiser.ExecuteTask(world_gen_task, world_gen_task_func);
 
-	TaskOrganiser::ComputeTask initial_light_fill_task;
+	TaskOrganiser::ComputeTaskParams initial_light_fill_task;
 	initial_light_fill_task.input_storage_buffers.push_back(chunk_data_buffers_[dst_buffer_index].GetBuffer());
 	initial_light_fill_task.output_storage_buffers.push_back(light_buffers_[dst_buffer_index].GetBuffer());
 
-	initial_light_fill_task.func=
+	const auto initial_light_fill_task_func=
 		[this, dst_buffer_index](const vk::CommandBuffer command_buffer)
 		{
 			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *initial_light_fill_pipeline_.pipeline);
@@ -1156,7 +1156,7 @@ void WorldProcessor::InitialGenerateWorld(TaskOrganiser& task_organiser)
 			}
 		};
 
-	task_organiser.ExecuteTask(initial_light_fill_task);
+	task_organiser.ExecuteTask(initial_light_fill_task, initial_light_fill_task_func);
 }
 
 void WorldProcessor::DetermineChunksUpdateKind(const RelativeWorldShiftChunks relative_world_shift)
@@ -1209,11 +1209,11 @@ void WorldProcessor::UpdateWorldBlocks(
 	const uint32_t src_buffer_index= GetSrcBufferIndex();
 	const uint32_t dst_buffer_index= GetDstBufferIndex();
 
-	TaskOrganiser::ComputeTask task;
+	TaskOrganiser::ComputeTaskParams task;
 	task.input_storage_buffers.push_back(chunk_data_buffers_[src_buffer_index].GetBuffer());
 	task.output_storage_buffers.push_back(chunk_data_buffers_[dst_buffer_index].GetBuffer());
 
-	task.func=
+	const auto task_func=
 		[this, src_buffer_index, relative_world_shift](const vk::CommandBuffer command_buffer)
 		{
 			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_blocks_update_pipeline_.pipeline);
@@ -1263,7 +1263,7 @@ void WorldProcessor::UpdateWorldBlocks(
 			}
 		};
 
-	task_organiser.ExecuteTask(task);
+	task_organiser.ExecuteTask(task, task_func);
 }
 
 void WorldProcessor::UpdateLight(
@@ -1273,11 +1273,11 @@ void WorldProcessor::UpdateLight(
 	const uint32_t src_buffer_index= GetSrcBufferIndex();
 	const uint32_t dst_buffer_index= GetDstBufferIndex();
 
-	TaskOrganiser::ComputeTask task;
+	TaskOrganiser::ComputeTaskParams task;
 	task.input_storage_buffers.push_back(light_buffers_[src_buffer_index].GetBuffer());
 	task.output_storage_buffers.push_back(light_buffers_[dst_buffer_index].GetBuffer());
 
-	task.func=
+	const auto task_func=
 		[this, src_buffer_index, relative_world_shift](const vk::CommandBuffer command_buffer)
 		{
 			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *light_update_pipeline_.pipeline);
@@ -1327,7 +1327,7 @@ void WorldProcessor::UpdateLight(
 			}
 		};
 
-	task_organiser.ExecuteTask(task);
+	task_organiser.ExecuteTask(task, task_func);
 }
 
 void WorldProcessor::GenerateWorld(
@@ -1336,10 +1336,10 @@ void WorldProcessor::GenerateWorld(
 {
 	const uint32_t dst_buffer_index= GetDstBufferIndex();
 
-	TaskOrganiser::ComputeTask world_gen_task;
+	TaskOrganiser::ComputeTaskParams world_gen_task;
 	world_gen_task.output_storage_buffers.push_back(chunk_data_buffers_[dst_buffer_index].GetBuffer());
 
-	world_gen_task.func=
+	const auto world_gen_task_func=
 		[this, dst_buffer_index, relative_world_shift](const vk::CommandBuffer command_buffer)
 		{
 			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_gen_pipeline_.pipeline);
@@ -1379,13 +1379,13 @@ void WorldProcessor::GenerateWorld(
 			}
 		};
 
-	task_organiser.ExecuteTask(world_gen_task);
+	task_organiser.ExecuteTask(world_gen_task, world_gen_task_func);
 
-	TaskOrganiser::ComputeTask initial_light_fill_task;
+	TaskOrganiser::ComputeTaskParams initial_light_fill_task;
 	initial_light_fill_task.input_storage_buffers.push_back(chunk_data_buffers_[dst_buffer_index].GetBuffer());
 	initial_light_fill_task.output_storage_buffers.push_back(light_buffers_[dst_buffer_index].GetBuffer());
 
-	initial_light_fill_task.func=
+	const auto initial_light_fill_task_func=
 		[this, dst_buffer_index](const vk::CommandBuffer command_buffer)
 		{
 			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *initial_light_fill_pipeline_.pipeline);
@@ -1423,19 +1423,19 @@ void WorldProcessor::GenerateWorld(
 			}
 		};
 
-	task_organiser.ExecuteTask(initial_light_fill_task);
+	task_organiser.ExecuteTask(initial_light_fill_task, initial_light_fill_task_func);
 }
 
 void WorldProcessor::BuildPlayerWorldWindow(TaskOrganiser& task_organiser)
 {
 	const uint32_t src_buffer_index= GetSrcBufferIndex();
 
-	TaskOrganiser::ComputeTask task;
+	TaskOrganiser::ComputeTaskParams task;
 	task.input_storage_buffers.push_back(player_state_buffer_.GetBuffer());
 	task.input_storage_buffers.push_back(chunk_data_buffers_[src_buffer_index].GetBuffer());
 	task.output_storage_buffers.push_back(player_world_window_buffer_.GetBuffer());
 
-	task.func=
+	const auto task_func=
 		[this, src_buffer_index](const vk::CommandBuffer command_buffer)
 		{
 			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *player_world_window_build_pipeline_.pipeline);
@@ -1474,7 +1474,7 @@ void WorldProcessor::BuildPlayerWorldWindow(TaskOrganiser& task_organiser)
 				c_player_world_window_size[2] / c_workgroup_size[2]);
 		};
 
-	task_organiser.ExecuteTask(task);
+	task_organiser.ExecuteTask(task, task_func);
 }
 
 void WorldProcessor::UpdatePlayer(
@@ -1490,12 +1490,12 @@ void WorldProcessor::UpdatePlayer(
 	player_update_uniforms.keyboard_state= keyboard_state;
 	player_update_uniforms.mouse_state= mouse_state;
 
-	TaskOrganiser::ComputeTask player_update_task;
+	TaskOrganiser::ComputeTaskParams player_update_task;
 	player_update_task.input_output_storage_buffers.push_back(player_state_buffer_.GetBuffer());
 	player_update_task.input_output_storage_buffers.push_back(world_blocks_external_update_queue_buffer_.GetBuffer());
 	player_update_task.input_output_storage_buffers.push_back(player_world_window_buffer_.GetBuffer());
 
-	player_update_task.func=
+	const auto player_update_task_func=
 		[this, player_update_uniforms](const vk::CommandBuffer command_buffer)
 		{
 			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *player_update_pipeline_.pipeline);
@@ -1517,13 +1517,13 @@ void WorldProcessor::UpdatePlayer(
 			command_buffer.dispatch(1, 1, 1);
 		};
 
-	task_organiser.ExecuteTask(player_update_task);
+	task_organiser.ExecuteTask(player_update_task, player_update_task_func);
 
-	TaskOrganiser::TransferTask player_state_read_back_task;
+	TaskOrganiser::TransferTaskParams player_state_read_back_task;
 	player_state_read_back_task.input_buffers.push_back(player_state_buffer_.GetBuffer());
 	player_state_read_back_task.output_buffers.push_back(player_state_read_back_buffer_.GetBuffer());
 
-	player_state_read_back_task.func=
+	const auto player_state_read_back_task_func=
 		[this](const vk::CommandBuffer command_buffer)
 		{
 			// Copy player state into readback buffer.
@@ -1540,7 +1540,7 @@ void WorldProcessor::UpdatePlayer(
 				});
 		};
 
-	task_organiser.ExecuteTask(player_state_read_back_task);
+	task_organiser.ExecuteTask(player_state_read_back_task, player_state_read_back_task_func);
 }
 
 void WorldProcessor::FlushWorldBlocksExternalUpdateQueue(TaskOrganiser& task_organiser)
@@ -1548,11 +1548,11 @@ void WorldProcessor::FlushWorldBlocksExternalUpdateQueue(TaskOrganiser& task_org
 	// Flush the queue into the destination world buffer.
 	const uint32_t dst_buffer_index= GetDstBufferIndex();
 
-	TaskOrganiser::ComputeTask task;
+	TaskOrganiser::ComputeTaskParams task;
 	task.input_output_storage_buffers.push_back(world_blocks_external_update_queue_buffer_.GetBuffer());
 	task.input_output_storage_buffers.push_back(chunk_data_buffers_[dst_buffer_index].GetBuffer());
 
-	task.func=
+	const auto task_func=
 		[this](const vk::CommandBuffer command_buffer)
 		{
 			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_blocks_external_update_queue_flush_pipeline_.pipeline);
@@ -1584,7 +1584,7 @@ void WorldProcessor::FlushWorldBlocksExternalUpdateQueue(TaskOrganiser& task_org
 			command_buffer.dispatch(1, 1, 1);
 		};
 
-	task_organiser.ExecuteTask(task);
+	task_organiser.ExecuteTask(task, task_func);
 }
 
 uint32_t WorldProcessor::GetSrcBufferIndex() const

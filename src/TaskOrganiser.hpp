@@ -7,6 +7,26 @@
 namespace HexGPU
 {
 
+/*
+	A class wich simplifies synchronization of Vulakn tasks between each other.
+	All task are started in submission order.
+	Each task has inputs and outputs - buffers and images.
+	If a buffer is used as input in one task, a barrier may be added before it in order to ensure,
+	that previous tasks which use this buffer are finished (if necessary).
+	The same is performed for images too.
+	Also this class manages image layout transitions.
+	So, it's almost not needed to use manual pipeline barriers.
+
+	Graphics tasks also starn/end render passes.
+
+	It's imprortant not to forget to specify all inputs/outputs in order to ensure proper synchronization.
+	So, when modifying tasks code make sure new inputs/outputs are properly added.
+
+	TODO - improve this class:
+	* Add output images in render passes
+	* Add output images in compute tasks
+	* Allow render passes to perform image layout transition themselves and track images layout separately
+*/
 class TaskOrganiser
 {
 public:
@@ -20,6 +40,7 @@ public:
 
 	using TaskFunc= std::function<void(vk::CommandBuffer command_buffer)>;
 
+	// Task type for a batch of compute shader dispatches.
 	struct ComputeTaskParams
 	{
 		std::vector<vk::Buffer> input_storage_buffers;
@@ -28,6 +49,7 @@ public:
 		std::vector<vk::Buffer> input_output_storage_buffers;
 	};
 
+	// Task type for a batch of draw commands within single render pass.
 	struct GraphicsTaskParams
 	{
 		// Input graphics buffers.
@@ -44,6 +66,7 @@ public:
 		std::vector<vk::ClearValue> clear_values;
 	};
 
+	// Task type for transfer commands - buffer to buffer, buffer to image, image to buffer, image to image copies, buffer updates.
 	struct TransferTaskParams
 	{
 		std::vector<vk::Buffer> input_buffers;
@@ -55,8 +78,10 @@ public:
 public:
 	explicit TaskOrganiser(WindowVulkan& window_vulkan);
 
+	// Set current command buffer. Initially there is no buffer.
 	void SetCommandBuffer(vk::CommandBuffer command_buffer);
 
+	// Execute tasks of different kind.
 	void ExecuteTask(const ComputeTaskParams& params, const TaskFunc& func);
 	void ExecuteTask(const GraphicsTaskParams& params, const TaskFunc& func);
 	void ExecuteTask(const TransferTaskParams& params, const TaskFunc& func);
@@ -85,6 +110,8 @@ private:
 		GraphicsSrc,
 		TransferDst,
 		TransferSrc,
+		// TODO - add GraphicsDst for render pass output images.
+		// TODO - add usages for compute shaders.
 	};
 
 	struct ImageSyncInfo

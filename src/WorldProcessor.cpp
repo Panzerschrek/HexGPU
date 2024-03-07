@@ -1274,6 +1274,7 @@ void WorldProcessor::UpdateLight(
 	const uint32_t dst_buffer_index= GetDstBufferIndex();
 
 	TaskOrganiser::ComputeTaskParams task;
+	task.input_storage_buffers.push_back(chunk_data_buffers_[src_buffer_index].GetBuffer());
 	task.input_storage_buffers.push_back(light_buffers_[src_buffer_index].GetBuffer());
 	task.output_storage_buffers.push_back(light_buffers_[dst_buffer_index].GetBuffer());
 
@@ -1553,12 +1554,11 @@ void WorldProcessor::FlushWorldBlocksExternalUpdateQueue(TaskOrganiser& task_org
 	task.input_output_storage_buffers.push_back(chunk_data_buffers_[dst_buffer_index].GetBuffer());
 
 	const auto task_func=
-		[this](const vk::CommandBuffer command_buffer)
+		[this, dst_buffer_index](const vk::CommandBuffer command_buffer)
 		{
 			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_blocks_external_update_queue_flush_pipeline_.pipeline);
 
 			// Flush the queue into the destination world buffer.
-			const uint32_t dst_buffer_index= GetDstBufferIndex();
 			const auto descriptor_set= world_blocks_external_update_queue_flush_descriptor_sets_[dst_buffer_index];
 
 			command_buffer.bindDescriptorSets(

@@ -77,9 +77,9 @@ void TaskOrganiser::ExecuteTask(const ComputeTaskParams& params, const TaskFunc&
 			src_pipeline_stage_flags,
 			dst_pipeline_stage_flags,
 			vk::DependencyFlags(),
-			0, nullptr,
-			uint32_t(buffer_barriers.size()), buffer_barriers.data(),
-			0, nullptr);
+			{},
+			buffer_barriers,
+			{});
 
 	func(command_buffer_);
 
@@ -189,9 +189,9 @@ void TaskOrganiser::ExecuteTask(const GraphicsTaskParams& params, const TaskFunc
 			src_pipeline_stage_flags,
 			dst_pipeline_stage_flags,
 			vk::DependencyFlags(),
-			0, nullptr,
-			uint32_t(buffer_barriers.size()), buffer_barriers.data(),
-			uint32_t(image_barriers.size()), image_barriers.data());
+			{},
+			buffer_barriers,
+			image_barriers);
 
 	// TODO - add synchronization for output images to ensure write after read.
 
@@ -293,9 +293,9 @@ void TaskOrganiser::ExecuteTask(const TransferTaskParams& params, const TaskFunc
 			src_pipeline_stage_flags,
 			dst_pipeline_stage_flags,
 			vk::DependencyFlags(),
-			0, nullptr,
-			uint32_t(buffer_barriers.size()), buffer_barriers.data(),
-			uint32_t(image_barriers.size()), image_barriers.data());
+			{},
+			buffer_barriers,
+			image_barriers);
 
 	func(command_buffer_);
 
@@ -383,7 +383,7 @@ std::optional<TaskOrganiser::BufferSyncInfo> TaskOrganiser::GetBufferDstSyncInfo
 		return BufferSyncInfo{vk::AccessFlagBits::eIndexRead, vk::PipelineStageFlagBits::eVertexInput};
 
 	case BufferUsage::VertexSrc:
-		return BufferSyncInfo{vk::AccessFlagBits::eVertexAttributeRead, vk::PipelineStageFlagBits::eVertexShader};
+		return BufferSyncInfo{vk::AccessFlagBits::eVertexAttributeRead, vk::PipelineStageFlagBits::eVertexInput};
 
 	case BufferUsage::UniformSrc:
 		return BufferSyncInfo{vk::AccessFlagBits::eUniformRead, vk::PipelineStageFlagBits::eVertexShader};
@@ -434,7 +434,7 @@ vk::PipelineStageFlags TaskOrganiser::GetPipelineStageForBufferUsage(const Buffe
 	case BufferUsage::IndexSrc:
 		return vk::PipelineStageFlagBits::eVertexInput;
 	case BufferUsage::VertexSrc:
-		return vk::PipelineStageFlagBits::eVertexShader;
+		return vk::PipelineStageFlagBits::eVertexInput;
 	case BufferUsage::UniformSrc:
 		// TODO - list other kinds of shaders?
 		return vk::PipelineStageFlagBits::eVertexShader | vk::PipelineStageFlagBits::eGeometryShader | vk::PipelineStageFlagBits::eFragmentShader;

@@ -270,6 +270,7 @@ void WorldRenderer::CollectFrameInputs(TaskOrganiser::GraphicsTask& out_task)
 	out_task.index_buffers.push_back(*index_buffer_);
 	out_task.vertex_buffers.push_back(geometry_generator_.GetVertexBuffer());
 	out_task.uniform_buffers.push_back(uniform_buffer_.GetBuffer());
+	out_task.input_images.push_back(world_textures_manager_.GetImageInfo());
 }
 
 void WorldRenderer::Draw(const vk::CommandBuffer command_buffer)

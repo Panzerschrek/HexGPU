@@ -14,6 +14,7 @@ public:
 	void PrepareFrame(TaskOrganiser& task_organiser);
 
 	vk::ImageView GetImageView() const;
+	TaskOrganiser::ImageInfo GetImageInfo() const;
 
 private:
 	const vk::Device vk_device_;

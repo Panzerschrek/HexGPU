@@ -96,6 +96,7 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, const GraphicsTask& task)
 {
 	std::vector<vk::BufferMemoryBarrier> buffer_barriers;
+	std::vector<vk::ImageMemoryBarrier> image_barriers;
 	vk::PipelineStageFlags src_pipeline_stage_flags;
 	vk::PipelineStageFlags dst_pipeline_stage_flags;
 
@@ -171,14 +172,31 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 		}
 	}
 
-	if(!buffer_barriers.empty())
+	for(const ImageInfo image_info : task.input_images)
+	{
+		if(GetLastImageUsage(image_info.image) != ImageUsage::GraphicsSrc)
+		{
+			const auto sync_info= GetSyncInfoForLastImageUsage(image_info.image);
+			image_barriers.emplace_back(
+				sync_info.access_flags, vk::AccessFlagBits::eShaderRead,
+				sync_info.layout, vk::ImageLayout::eShaderReadOnlyOptimal,
+				queue_family_index_, queue_family_index_,
+				image_info.image,
+				vk::ImageSubresourceRange(image_info.asppect_flags, 0u, image_info.num_mips, 0u, image_info.num_layers));
+
+			src_pipeline_stage_flags|= sync_info.pipeline_stage_flags;
+			dst_pipeline_stage_flags|= vk::PipelineStageFlagBits::eVertexShader;
+		}
+	}
+
+	if(!buffer_barriers.empty() || !image_barriers.empty())
 		command_buffer.pipelineBarrier(
 			src_pipeline_stage_flags,
 			dst_pipeline_stage_flags,
 			vk::DependencyFlags(),
 			0, nullptr,
 			uint32_t(buffer_barriers.size()), buffer_barriers.data(),
-			0, nullptr);
+			uint32_t(image_barriers.size()), image_barriers.data());
 
 	// TODO - add synchronization for output images to ensure write after read.
 
@@ -198,11 +216,15 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 	UpdateLastBuffersUsage(task.index_buffers, BufferUsage::IndexSrc);
 	UpdateLastBuffersUsage(task.vertex_buffers, BufferUsage::VertexSrc);
 	UpdateLastBuffersUsage(task.uniform_buffers, BufferUsage::UniformSrc);
+
+	for(const ImageInfo& image_info : task.input_images)
+		UpdateLastImageUsage(image_info.image, ImageUsage::GraphicsSrc);
 }
 
 void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, const TransferTask& task)
 {
 	std::vector<vk::BufferMemoryBarrier> buffer_barriers;
+	std::vector<vk::ImageMemoryBarrier> image_barriers;
 	vk::PipelineStageFlags src_pipeline_stage_flags;
 	vk::PipelineStageFlags dst_pipeline_stage_flags;
 	bool require_barrier_for_write_after_read_sync= false;
@@ -237,19 +259,58 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 		}
 	}
 
-	if(!buffer_barriers.empty() || require_barrier_for_write_after_read_sync)
+	for(const ImageInfo image_info : task.input_images)
+	{
+		if(GetLastImageUsage(image_info.image) != ImageUsage::TransferSrc)
+		{
+			const auto sync_info= GetSyncInfoForLastImageUsage(image_info.image);
+			image_barriers.emplace_back(
+				sync_info.access_flags, vk::AccessFlagBits::eTransferRead,
+				sync_info.layout, vk::ImageLayout::eTransferSrcOptimal,
+				queue_family_index_, queue_family_index_,
+				image_info.image,
+				vk::ImageSubresourceRange(image_info.asppect_flags, 0u, image_info.num_mips, 0u, image_info.num_layers));
+
+			src_pipeline_stage_flags|= sync_info.pipeline_stage_flags;
+			dst_pipeline_stage_flags|= vk::PipelineStageFlagBits::eTransfer;
+		}
+	}
+
+	for(const ImageInfo image_info : task.output_images)
+	{
+		if(GetLastImageUsage(image_info.image) != ImageUsage::TransferDst)
+		{
+			const auto sync_info= GetSyncInfoForLastImageUsage(image_info.image);
+			image_barriers.emplace_back(
+				sync_info.access_flags, vk::AccessFlagBits::eTransferWrite,
+				sync_info.layout, vk::ImageLayout::eTransferDstOptimal,
+				queue_family_index_, queue_family_index_,
+				image_info.image,
+				vk::ImageSubresourceRange(image_info.asppect_flags, 0u, image_info.num_mips, 0u, image_info.num_layers));
+
+			src_pipeline_stage_flags|= sync_info.pipeline_stage_flags;
+			dst_pipeline_stage_flags|= vk::PipelineStageFlagBits::eTransfer;
+		}
+	}
+
+	if(!buffer_barriers.empty() || !image_barriers.empty() || require_barrier_for_write_after_read_sync)
 		command_buffer.pipelineBarrier(
 			src_pipeline_stage_flags,
 			dst_pipeline_stage_flags,
 			vk::DependencyFlags(),
 			0, nullptr,
 			uint32_t(buffer_barriers.size()), buffer_barriers.data(),
-			0, nullptr);
+			uint32_t(image_barriers.size()), image_barriers.data());
 
 	task.func(command_buffer);
 
 	UpdateLastBuffersUsage(task.input_buffers, BufferUsage::TransferSrc);
 	UpdateLastBuffersUsage(task.output_buffers, BufferUsage::TransferDst);
+
+	for(const ImageInfo& image_info : task.input_images)
+		UpdateLastImageUsage(image_info.image, ImageUsage::TransferSrc);
+	for(const ImageInfo& image_info : task.output_images)
+		UpdateLastImageUsage(image_info.image, ImageUsage::TransferDst);
 }
 
 void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, const PresentTask& task)
@@ -274,6 +335,19 @@ std::optional<TaskOrganiser::BufferUsage> TaskOrganiser::GetLastBufferUsage(cons
 {
 	const auto it= last_buffer_usage_.find(buffer);
 	if(it == last_buffer_usage_.end())
+		return std::nullopt;
+	return it->second;
+}
+
+void TaskOrganiser::UpdateLastImageUsage(const vk::Image image, const ImageUsage usage)
+{
+	last_image_usage_[image]= usage;
+}
+
+std::optional<TaskOrganiser::ImageUsage> TaskOrganiser::GetLastImageUsage(const vk::Image image) const
+{
+	const auto it= last_image_usage_.find(image);
+	if(it == last_image_usage_.end())
 		return std::nullopt;
 	return it->second;
 }
@@ -386,6 +460,30 @@ vk::PipelineStageFlags TaskOrganiser::GetPipelineStageForBufferUsage(const Buffe
 
 	HEX_ASSERT(false);
 	return vk::PipelineStageFlags();
+}
+
+TaskOrganiser::ImageSyncInfo TaskOrganiser::GetSyncInfoForLastImageUsage(const vk::Image image)
+{
+	if(const auto usage= GetLastImageUsage(image))
+		return GetSyncInfoForImageUsage(*usage);
+	return {vk::AccessFlags(), vk::PipelineStageFlagBits(), vk::ImageLayout::eUndefined};
+}
+
+TaskOrganiser::ImageSyncInfo TaskOrganiser::GetSyncInfoForImageUsage(const ImageUsage usage)
+{
+	switch(usage)
+	{
+	case ImageUsage::GraphicsSrc:
+		// TODO - list other kinds of shaders?
+		return {vk::AccessFlagBits::eShaderRead, vk::PipelineStageFlagBits::eVertexShader | vk::PipelineStageFlagBits::eGeometryShader | vk::PipelineStageFlagBits::eFragmentShader, vk::ImageLayout::eShaderReadOnlyOptimal};
+	case ImageUsage::TransferDst:
+		return {vk::AccessFlagBits::eTransferWrite, vk::PipelineStageFlagBits::eTransfer, vk::ImageLayout::eTransferDstOptimal};
+	case ImageUsage::TransferSrc:
+		return {vk::AccessFlagBits::eTransferRead, vk::PipelineStageFlagBits::eTransfer, vk::ImageLayout::eTransferSrcOptimal};
+	};
+
+	HEX_ASSERT(false);
+	return {};
 }
 
 } // namespace HexGPU

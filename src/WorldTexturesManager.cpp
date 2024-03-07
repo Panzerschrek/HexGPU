@@ -222,31 +222,11 @@ void WorldTexturesManager::PrepareFrame(TaskOrganiser& task_organiser)
 
 	TaskOrganiser::TransferTask task;
 	task.input_buffers.push_back(*staging_buffer_);
-	// TODO - fill output image here.
+	task.output_images.push_back(GetImageInfo());
 
 	task.func=
 		[this](const vk::CommandBuffer command_buffer)
 		{
-			// TODO - perform transitions in the TaskOrganiser class instead.
-
-			// Transfer to dst optimal
-			{
-				const vk::ImageMemoryBarrier image_memory_transfer(
-					vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eMemoryRead,
-					vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal,
-					queue_family_index_, queue_family_index_,
-					*image_,
-					vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, 0u, c_num_layers));
-
-				command_buffer.pipelineBarrier(
-					vk::PipelineStageFlagBits::eTransfer,
-					vk::PipelineStageFlagBits::eBottomOfPipe,
-					vk::DependencyFlags(),
-					{},
-					{},
-					{image_memory_transfer});
-			}
-
 			for(uint32_t dst_image_index= 0; dst_image_index < c_num_layers; ++dst_image_index)
 			{
 				uint32_t offset= dst_image_index * c_texture_num_texels_with_mips * uint32_t(sizeof(PixelType));
@@ -272,25 +252,6 @@ void WorldTexturesManager::PrepareFrame(TaskOrganiser& task_organiser)
 					offset+= current_size * current_size * uint32_t(sizeof(PixelType));
 				}
 			}
-
-			// Wait for update and transfer layout.
-			// TODO - check if this is correct.
-			{
-				const vk::ImageMemoryBarrier image_memory_transfer(
-					vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eMemoryRead,
-					vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
-					queue_family_index_, queue_family_index_,
-					*image_,
-					vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, 0u, c_num_layers));
-
-				command_buffer.pipelineBarrier(
-					vk::PipelineStageFlagBits::eTransfer,
-					vk::PipelineStageFlagBits::eBottomOfPipe,
-					vk::DependencyFlags(),
-					0u, nullptr,
-					0u, nullptr,
-					1u, &image_memory_transfer);
-			}
 		};
 
 	task_organiser.ExecuteTask(task);
@@ -299,6 +260,17 @@ void WorldTexturesManager::PrepareFrame(TaskOrganiser& task_organiser)
 vk::ImageView WorldTexturesManager::GetImageView() const
 {
 	return image_view_.get();
+}
+
+TaskOrganiser::ImageInfo WorldTexturesManager::GetImageInfo() const
+{
+	TaskOrganiser::ImageInfo info;
+	info.image= *image_;
+	info.asppect_flags= vk::ImageAspectFlagBits::eColor;
+	info.num_mips= c_num_mips;
+	info.num_layers= c_num_layers;
+
+	return info;
 }
 
 } // namespace HexGPU

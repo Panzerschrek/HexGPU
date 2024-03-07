@@ -10,6 +10,14 @@ namespace HexGPU
 class TaskOrganiser
 {
 public:
+	struct ImageInfo
+	{
+		vk::Image image;
+		vk::ImageAspectFlags asppect_flags;
+		uint32_t num_mips= 0;
+		uint32_t num_layers= 0;
+	};
+
 	using TaksFunc= std::function<void(vk::CommandBuffer command_buffer)>;
 
 	struct TaskBase
@@ -23,7 +31,6 @@ public:
 		std::vector<vk::Buffer> output_storage_buffers;
 		// Buffers which are both input and output. Do not list them in input and/or output lists.
 		std::vector<vk::Buffer> input_output_storage_buffers;
-		// TODO - add also images.
 	};
 
 	struct GraphicsTask : public TaskBase
@@ -33,7 +40,8 @@ public:
 		std::vector<vk::Buffer> index_buffers;
 		std::vector<vk::Buffer> vertex_buffers;
 		std::vector<vk::Buffer> uniform_buffers;
-		// TODO - add also images.
+
+		std::vector<ImageInfo> input_images;
 
 		vk::Framebuffer framebuffer;
 		vk::Extent2D viewport_size;
@@ -43,10 +51,10 @@ public:
 
 	struct TransferTask : public TaskBase
 	{
-		// If a buffer is both input and output, put it into both containers.
 		std::vector<vk::Buffer> input_buffers;
 		std::vector<vk::Buffer> output_buffers;
-		// TODO - add also images.
+		std::vector<ImageInfo> input_images;
+		std::vector<ImageInfo> output_images;
 	};
 
 	struct PresentTask : public TaskBase
@@ -84,6 +92,20 @@ private:
 		vk::PipelineStageFlags pipeline_stage_flags;
 	};
 
+	enum class ImageUsage : uint8_t
+	{
+		GraphicsSrc,
+		TransferDst,
+		TransferSrc,
+	};
+
+	struct ImageSyncInfo
+	{
+		vk::AccessFlags access_flags;
+		vk::PipelineStageFlags pipeline_stage_flags;
+		vk::ImageLayout layout= vk::ImageLayout::eUndefined;
+	};
+
 private:
 	void ExecuteTaskImpl(vk::CommandBuffer command_buffer, const ComputeTask& task);
 	void ExecuteTaskImpl(vk::CommandBuffer command_buffer, const GraphicsTask& task);
@@ -94,12 +116,19 @@ private:
 	void UpdateLastBufferUsage(vk::Buffer buffer, BufferUsage usage);
 	std::optional<BufferUsage> GetLastBufferUsage(vk::Buffer buffer) const;
 
+	void UpdateLastImageUsage(vk::Image image, ImageUsage usage);
+	std::optional<ImageUsage> GetLastImageUsage(vk::Image image) const;
+
 	std::optional<BufferSyncInfo> GetBufferSrcSyncInfoForLastUsage(vk::Buffer buffer) const;
 
 	static std::optional<BufferSyncInfo> GetBufferSrcSyncInfo(BufferUsage usage);
 	static std::optional<BufferSyncInfo> GetBufferDstSyncInfo(BufferUsage usage);
 	static bool IsReadBufferUsage(BufferUsage usage);
 	static vk::PipelineStageFlags GetPipelineStageForBufferUsage(BufferUsage usage);
+
+	ImageSyncInfo GetSyncInfoForLastImageUsage(vk::Image image);
+
+	static ImageSyncInfo GetSyncInfoForImageUsage(ImageUsage usage);
 
 private:
 	const uint32_t queue_family_index_;
@@ -108,6 +137,7 @@ private:
 
 	// Remember buffer usages in order to setup barriers properly.
 	std::unordered_map<VkBuffer, BufferUsage> last_buffer_usage_;
+	std::unordered_map<VkImage, ImageUsage> last_image_usage_;
 };
 
 } // namespace HexGPU

@@ -1,5 +1,5 @@
 #include "Buffer.hpp"
-#include "TaskOrganiser.hpp"
+#include "TaskOrganizer.hpp"
 
 namespace HexGPU
 {
@@ -18,7 +18,7 @@ public:
 	vk::Buffer GetAllocatorDataBuffer() const;
 	vk::DeviceSize GetAllocatorDataBufferSize() const;
 
-	void EnsureInitialized(TaskOrganiser& task_organiser);
+	void EnsureInitialized(TaskOrganizer& task_organizer);
 
 private:
 	const vk::Device vk_device_;

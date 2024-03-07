@@ -190,9 +190,9 @@ SkyRenderer::~SkyRenderer()
 	vk_device_.waitIdle();
 }
 
-void SkyRenderer::PrepareFrame(TaskOrganiser& task_organiser)
+void SkyRenderer::PrepareFrame(TaskOrganizer& task_organizer)
 {
-	TaskOrganiser::TransferTaskParams task;
+	TaskOrganizer::TransferTaskParams task;
 	task.input_buffers.push_back(world_processor_.GetPlayerStateBuffer());
 	task.output_buffers.push_back(uniform_buffer_.GetBuffer());
 
@@ -212,10 +212,10 @@ void SkyRenderer::PrepareFrame(TaskOrganiser& task_organiser)
 				});
 		};
 
-	task_organiser.ExecuteTask(task, task_func);
+	task_organizer.ExecuteTask(task, task_func);
 }
 
-void SkyRenderer::CollectFrameInputs(TaskOrganiser::GraphicsTaskParams& out_task_params)
+void SkyRenderer::CollectFrameInputs(TaskOrganizer::GraphicsTaskParams& out_task_params)
 {
 	out_task_params.uniform_buffers.push_back(uniform_buffer_.GetBuffer());
 }

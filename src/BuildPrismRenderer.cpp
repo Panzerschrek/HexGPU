@@ -189,9 +189,9 @@ BuildPrismRenderer::~BuildPrismRenderer()
 	vk_device_.waitIdle();
 }
 
-void BuildPrismRenderer::PrepareFrame(TaskOrganiser& task_organiser)
+void BuildPrismRenderer::PrepareFrame(TaskOrganizer& task_organizer)
 {
-	TaskOrganiser::TransferTaskParams task;
+	TaskOrganizer::TransferTaskParams task;
 	task.input_buffers.push_back(world_processor_.GetPlayerStateBuffer());
 	task.output_buffers.push_back(uniform_buffer_.GetBuffer());
 
@@ -223,10 +223,10 @@ void BuildPrismRenderer::PrepareFrame(TaskOrganiser& task_organiser)
 				});
 		};
 
-	task_organiser.ExecuteTask(task, task_func);
+	task_organizer.ExecuteTask(task, task_func);
 }
 
-void BuildPrismRenderer::CollectFrameInputs(TaskOrganiser::GraphicsTaskParams& out_task_params)
+void BuildPrismRenderer::CollectFrameInputs(TaskOrganizer::GraphicsTaskParams& out_task_params)
 {
 	out_task_params.uniform_buffers.push_back(uniform_buffer_.GetBuffer());
 }

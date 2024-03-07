@@ -41,13 +41,13 @@ vk::DeviceSize GPUAllocator::GetAllocatorDataBufferSize() const
 	return allocator_data_buffer_.GetSize();
 }
 
-void GPUAllocator::EnsureInitialized(TaskOrganiser& task_organiser)
+void GPUAllocator::EnsureInitialized(TaskOrganizer& task_organizer)
 {
 	if(initialized_)
 		return;
 	initialized_= true;
 
-	TaskOrganiser::TransferTaskParams task;
+	TaskOrganizer::TransferTaskParams task;
 	task.output_buffers.push_back(allocator_data_buffer_.GetBuffer());
 
 	const auto task_func=
@@ -60,7 +60,7 @@ void GPUAllocator::EnsureInitialized(TaskOrganiser& task_organiser)
 			command_buffer.updateBuffer(allocator_data_buffer_.GetBuffer(), 0u, allocator_data_buffer_.GetSize(), data.data());
 		};
 
-	task_organiser.ExecuteTask(task, task_func);
+	task_organizer.ExecuteTask(task, task_func);
 }
 
 } // namespace HexGPU

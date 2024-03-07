@@ -600,10 +600,10 @@ WorldGeometryGenerator::~WorldGeometryGenerator()
 	vk_device_.waitIdle();
 }
 
-void WorldGeometryGenerator::Update(TaskOrganiser& task_organiser)
+void WorldGeometryGenerator::Update(TaskOrganizer& task_organizer)
 {
-	vertex_memory_allocator_.EnsureInitialized(task_organiser);
-	InitialFillBuffers(task_organiser);
+	vertex_memory_allocator_.EnsureInitialized(task_organizer);
+	InitialFillBuffers(task_organizer);
 
 	const WorldOffsetChunks new_world_offset= world_processor_.GetWorldOffset();
 	if(new_world_offset != world_offset_)
@@ -616,15 +616,15 @@ void WorldGeometryGenerator::Update(TaskOrganiser& task_organiser)
 			new_world_offset[1] - int32_t(world_offset_[1]),
 		};
 
-		ShiftChunkDrawInfo(task_organiser, shift);
+		ShiftChunkDrawInfo(task_organizer, shift);
 		world_offset_= new_world_offset;
 	}
 
 	BuildChunksToUpdateList();
-	PrepareGeometrySizeCalculation(task_organiser);
-	CalculateGeometrySize(task_organiser);
-	AllocateMemoryForGeometry(task_organiser);
-	GenGeometry(task_organiser);
+	PrepareGeometrySizeCalculation(task_organizer);
+	CalculateGeometrySize(task_organizer);
+	AllocateMemoryForGeometry(task_organizer);
+	GenGeometry(task_organizer);
 
 	++frame_counter_;
 }
@@ -644,13 +644,13 @@ vk::DeviceSize WorldGeometryGenerator::GetChunkDrawInfoBufferSize() const
 	return chunk_draw_info_buffer_.GetSize();
 }
 
-void WorldGeometryGenerator::InitialFillBuffers(TaskOrganiser& task_organiser)
+void WorldGeometryGenerator::InitialFillBuffers(TaskOrganizer& task_organizer)
 {
 	if(buffers_initially_filled_)
 		return;
 	buffers_initially_filled_= true;
 
-	TaskOrganiser::TransferTaskParams task;
+	TaskOrganizer::TransferTaskParams task;
 
 	task.output_buffers.push_back(vertex_buffer_.GetBuffer());
 	task.output_buffers.push_back(chunk_draw_info_buffer_.GetBuffer());
@@ -666,14 +666,14 @@ void WorldGeometryGenerator::InitialFillBuffers(TaskOrganiser& task_organiser)
 			command_buffer.fillBuffer(chunk_draw_info_buffer_.GetBuffer(), 0, chunk_draw_info_buffer_.GetSize(), 0);
 		};
 
-	task_organiser.ExecuteTask(task, task_func);
+	task_organizer.ExecuteTask(task, task_func);
 }
 
 void WorldGeometryGenerator::ShiftChunkDrawInfo(
-	TaskOrganiser& task_organiser,
+	TaskOrganizer& task_organizer,
 	const std::array<int32_t, 2> shift)
 {
-	TaskOrganiser::ComputeTaskParams shift_task;
+	TaskOrganizer::ComputeTaskParams shift_task;
 	shift_task.input_storage_buffers.push_back(chunk_draw_info_buffer_.GetBuffer());
 	shift_task.output_storage_buffers.push_back(chunk_draw_info_buffer_temp_.GetBuffer());
 
@@ -708,11 +708,11 @@ void WorldGeometryGenerator::ShiftChunkDrawInfo(
 			command_buffer.dispatch(world_size_[0], world_size_[1], 1);
 		};
 
-	task_organiser.ExecuteTask(shift_task, shift_task_func);
+	task_organizer.ExecuteTask(shift_task, shift_task_func);
 
 	// Copy temp buffer back to chunk draw info buffer.
 
-	TaskOrganiser::TransferTaskParams copy_back_task;
+	TaskOrganizer::TransferTaskParams copy_back_task;
 	copy_back_task.input_buffers.push_back(chunk_draw_info_buffer_temp_.GetBuffer());
 	copy_back_task.output_buffers.push_back(chunk_draw_info_buffer_.GetBuffer());
 
@@ -729,7 +729,7 @@ void WorldGeometryGenerator::ShiftChunkDrawInfo(
 				});
 		};
 
-	task_organiser.ExecuteTask(copy_back_task, copy_back_task_func);
+	task_organizer.ExecuteTask(copy_back_task, copy_back_task_func);
 }
 
 void WorldGeometryGenerator::BuildChunksToUpdateList()
@@ -778,9 +778,9 @@ void WorldGeometryGenerator::BuildChunksToUpdateList()
 	}
 }
 
-void WorldGeometryGenerator::PrepareGeometrySizeCalculation(TaskOrganiser& task_organiser)
+void WorldGeometryGenerator::PrepareGeometrySizeCalculation(TaskOrganizer& task_organizer)
 {
-	TaskOrganiser::ComputeTaskParams task;
+	TaskOrganizer::ComputeTaskParams task;
 	task.input_output_storage_buffers.push_back(chunk_draw_info_buffer_.GetBuffer());
 
 	const auto task_func=
@@ -809,14 +809,14 @@ void WorldGeometryGenerator::PrepareGeometrySizeCalculation(TaskOrganiser& task_
 			command_buffer.dispatch(world_size_[0], world_size_[1], 1);
 		};
 
-	task_organiser.ExecuteTask(task, task_func);
+	task_organizer.ExecuteTask(task, task_func);
 }
 
-void WorldGeometryGenerator::CalculateGeometrySize(TaskOrganiser& task_organiser)
+void WorldGeometryGenerator::CalculateGeometrySize(TaskOrganizer& task_organizer)
 {
 	const uint32_t actual_buffers_index= world_processor_.GetActualBuffersIndex();
 
-	TaskOrganiser::ComputeTaskParams task;
+	TaskOrganizer::ComputeTaskParams task;
 	task.input_storage_buffers.push_back(world_processor_.GetChunkDataBuffer(actual_buffers_index));
 	task.input_output_storage_buffers.push_back(chunk_draw_info_buffer_.GetBuffer());
 
@@ -861,16 +861,16 @@ void WorldGeometryGenerator::CalculateGeometrySize(TaskOrganiser& task_organiser
 			}
 		};
 
-	task_organiser.ExecuteTask(task, task_func);
+	task_organizer.ExecuteTask(task, task_func);
 }
 
-void WorldGeometryGenerator::AllocateMemoryForGeometry(TaskOrganiser& task_organiser)
+void WorldGeometryGenerator::AllocateMemoryForGeometry(TaskOrganizer& task_organizer)
 {
 	// We have limited uniform size for chunks to update list.
 	// So, perform several updates if necessary.
 	for(size_t offset= 0; offset < chunks_to_update_.size(); offset+= c_max_chunks_to_allocate)
 	{
-		TaskOrganiser::ComputeTaskParams task;
+		TaskOrganizer::ComputeTaskParams task;
 		task.input_output_storage_buffers.push_back(chunk_draw_info_buffer_.GetBuffer());
 		task.input_output_storage_buffers.push_back(vertex_memory_allocator_.GetAllocatorDataBuffer());
 
@@ -905,15 +905,15 @@ void WorldGeometryGenerator::AllocateMemoryForGeometry(TaskOrganiser& task_organ
 				command_buffer.dispatch(1, 1 , 1);
 			};
 
-		task_organiser.ExecuteTask(task, task_func);
+		task_organizer.ExecuteTask(task, task_func);
 	};
 }
 
-void WorldGeometryGenerator::GenGeometry(TaskOrganiser& task_organiser)
+void WorldGeometryGenerator::GenGeometry(TaskOrganizer& task_organizer)
 {
 	const uint32_t actual_buffers_index= world_processor_.GetActualBuffersIndex();
 
-	TaskOrganiser::ComputeTaskParams task;
+	TaskOrganizer::ComputeTaskParams task;
 	task.input_storage_buffers.push_back(world_processor_.GetChunkDataBuffer(actual_buffers_index));
 	task.input_storage_buffers.push_back(world_processor_.GetLightDataBuffer(actual_buffers_index));
 	task.input_output_storage_buffers.push_back(chunk_draw_info_buffer_.GetBuffer());
@@ -962,7 +962,7 @@ void WorldGeometryGenerator::GenGeometry(TaskOrganiser& task_organiser)
 			}
 		};
 
-	task_organiser.ExecuteTask(task, task_func);
+	task_organizer.ExecuteTask(task, task_func);
 }
 
 } // namespace HexGPU

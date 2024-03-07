@@ -212,7 +212,7 @@ WorldTexturesManager::~WorldTexturesManager()
 	vk_device_.waitIdle();
 }
 
-void WorldTexturesManager::PrepareFrame(TaskOrganiser& task_organiser)
+void WorldTexturesManager::PrepareFrame(TaskOrganizer& task_organizer)
 {
 	// Copy buffer into the image after ininitialization, because we need a command buffer.
 
@@ -220,7 +220,7 @@ void WorldTexturesManager::PrepareFrame(TaskOrganiser& task_organiser)
 		return;
 	textures_loaded_= true;
 
-	TaskOrganiser::TransferTaskParams task;
+	TaskOrganizer::TransferTaskParams task;
 	task.input_buffers.push_back(*staging_buffer_);
 	task.output_images.push_back(GetImageInfo());
 
@@ -254,7 +254,7 @@ void WorldTexturesManager::PrepareFrame(TaskOrganiser& task_organiser)
 			}
 		};
 
-	task_organiser.ExecuteTask(task, task_func);
+	task_organizer.ExecuteTask(task, task_func);
 }
 
 vk::ImageView WorldTexturesManager::GetImageView() const
@@ -262,9 +262,9 @@ vk::ImageView WorldTexturesManager::GetImageView() const
 	return image_view_.get();
 }
 
-TaskOrganiser::ImageInfo WorldTexturesManager::GetImageInfo() const
+TaskOrganizer::ImageInfo WorldTexturesManager::GetImageInfo() const
 {
-	TaskOrganiser::ImageInfo info;
+	TaskOrganizer::ImageInfo info;
 	info.image= *image_;
 	info.asppect_flags= vk::ImageAspectFlagBits::eColor;
 	info.num_mips= c_num_mips;

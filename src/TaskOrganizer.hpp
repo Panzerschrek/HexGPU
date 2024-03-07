@@ -27,7 +27,7 @@ namespace HexGPU
 	* Add output images in compute tasks
 	* Allow render passes to perform image layout transition themselves and track images layout separately
 */
-class TaskOrganiser
+class TaskOrganizer
 {
 public:
 	struct ImageInfo
@@ -76,7 +76,7 @@ public:
 	};
 
 public:
-	explicit TaskOrganiser(WindowVulkan& window_vulkan);
+	explicit TaskOrganizer(WindowVulkan& window_vulkan);
 
 	// Set current command buffer. Initially there is no buffer.
 	void SetCommandBuffer(vk::CommandBuffer command_buffer);

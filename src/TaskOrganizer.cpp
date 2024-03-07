@@ -1,20 +1,20 @@
-#include "TaskOrganiser.hpp"
+#include "TaskOrganizer.hpp"
 #include "Assert.hpp"
 
 namespace HexGPU
 {
 
-TaskOrganiser::TaskOrganiser(WindowVulkan& window_vulkan)
+TaskOrganizer::TaskOrganizer(WindowVulkan& window_vulkan)
 	: queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 {
 }
 
-void TaskOrganiser::SetCommandBuffer(vk::CommandBuffer command_buffer)
+void TaskOrganizer::SetCommandBuffer(vk::CommandBuffer command_buffer)
 {
 	command_buffer_= command_buffer;
 }
 
-void TaskOrganiser::ExecuteTask(const ComputeTaskParams& params, const TaskFunc& func)
+void TaskOrganizer::ExecuteTask(const ComputeTaskParams& params, const TaskFunc& func)
 {
 	std::vector<vk::BufferMemoryBarrier> buffer_barriers;
 	vk::PipelineStageFlags src_pipeline_stage_flags;
@@ -90,7 +90,7 @@ void TaskOrganiser::ExecuteTask(const ComputeTaskParams& params, const TaskFunc&
 	UpdateLastBuffersUsage(params.input_output_storage_buffers, BufferUsage::ComputeShaderDst);
 }
 
-void TaskOrganiser::ExecuteTask(const GraphicsTaskParams& params, const TaskFunc& func)
+void TaskOrganizer::ExecuteTask(const GraphicsTaskParams& params, const TaskFunc& func)
 {
 	std::vector<vk::BufferMemoryBarrier> buffer_barriers;
 	std::vector<vk::ImageMemoryBarrier> image_barriers;
@@ -215,7 +215,7 @@ void TaskOrganiser::ExecuteTask(const GraphicsTaskParams& params, const TaskFunc
 		UpdateLastImageUsage(image_info.image, ImageUsage::GraphicsSrc);
 }
 
-void TaskOrganiser::ExecuteTask(const TransferTaskParams& params, const TaskFunc& func)
+void TaskOrganizer::ExecuteTask(const TransferTaskParams& params, const TaskFunc& func)
 {
 	std::vector<vk::BufferMemoryBarrier> buffer_barriers;
 	std::vector<vk::ImageMemoryBarrier> image_barriers;
@@ -307,18 +307,18 @@ void TaskOrganiser::ExecuteTask(const TransferTaskParams& params, const TaskFunc
 		UpdateLastImageUsage(image_info.image, ImageUsage::TransferDst);
 }
 
-void TaskOrganiser::UpdateLastBuffersUsage(const std::vector<vk::Buffer> buffers, const BufferUsage usage)
+void TaskOrganizer::UpdateLastBuffersUsage(const std::vector<vk::Buffer> buffers, const BufferUsage usage)
 {
 	for(const vk::Buffer buffer : buffers)
 		UpdateLastBufferUsage(buffer, usage);
 }
 
-void TaskOrganiser::UpdateLastBufferUsage(const vk::Buffer buffer, const BufferUsage usage)
+void TaskOrganizer::UpdateLastBufferUsage(const vk::Buffer buffer, const BufferUsage usage)
 {
 	last_buffer_usage_[buffer]= usage;
 }
 
-std::optional<TaskOrganiser::BufferUsage> TaskOrganiser::GetLastBufferUsage(const vk::Buffer buffer) const
+std::optional<TaskOrganizer::BufferUsage> TaskOrganizer::GetLastBufferUsage(const vk::Buffer buffer) const
 {
 	const auto it= last_buffer_usage_.find(buffer);
 	if(it == last_buffer_usage_.end())
@@ -326,12 +326,12 @@ std::optional<TaskOrganiser::BufferUsage> TaskOrganiser::GetLastBufferUsage(cons
 	return it->second;
 }
 
-void TaskOrganiser::UpdateLastImageUsage(const vk::Image image, const ImageUsage usage)
+void TaskOrganizer::UpdateLastImageUsage(const vk::Image image, const ImageUsage usage)
 {
 	last_image_usage_[image]= usage;
 }
 
-std::optional<TaskOrganiser::ImageUsage> TaskOrganiser::GetLastImageUsage(const vk::Image image) const
+std::optional<TaskOrganizer::ImageUsage> TaskOrganizer::GetLastImageUsage(const vk::Image image) const
 {
 	const auto it= last_image_usage_.find(image);
 	if(it == last_image_usage_.end())
@@ -339,7 +339,7 @@ std::optional<TaskOrganiser::ImageUsage> TaskOrganiser::GetLastImageUsage(const 
 	return it->second;
 }
 
-std::optional<TaskOrganiser::BufferSyncInfo> TaskOrganiser::GetBufferSrcSyncInfoForLastUsage(const vk::Buffer buffer) const
+std::optional<TaskOrganizer::BufferSyncInfo> TaskOrganizer::GetBufferSrcSyncInfoForLastUsage(const vk::Buffer buffer) const
 {
 	if(const auto last_usage= GetLastBufferUsage(buffer))
 		return GetBufferSrcSyncInfo(*last_usage);
@@ -347,7 +347,7 @@ std::optional<TaskOrganiser::BufferSyncInfo> TaskOrganiser::GetBufferSrcSyncInfo
 	return std::nullopt;
 }
 
-std::optional<TaskOrganiser::BufferSyncInfo> TaskOrganiser::GetBufferSrcSyncInfo(const BufferUsage usage)
+std::optional<TaskOrganizer::BufferSyncInfo> TaskOrganizer::GetBufferSrcSyncInfo(const BufferUsage usage)
 {
 	switch(usage)
 	{
@@ -370,7 +370,7 @@ std::optional<TaskOrganiser::BufferSyncInfo> TaskOrganiser::GetBufferSrcSyncInfo
 	return std::nullopt;
 }
 
-std::optional<TaskOrganiser::BufferSyncInfo> TaskOrganiser::GetBufferDstSyncInfo(const BufferUsage usage)
+std::optional<TaskOrganizer::BufferSyncInfo> TaskOrganizer::GetBufferDstSyncInfo(const BufferUsage usage)
 {
 	// TODO - check if this is correct.
 	switch(usage)
@@ -403,7 +403,7 @@ std::optional<TaskOrganiser::BufferSyncInfo> TaskOrganiser::GetBufferDstSyncInfo
 	return std::nullopt;
 }
 
-bool TaskOrganiser::IsReadBufferUsage(const BufferUsage usage)
+bool TaskOrganizer::IsReadBufferUsage(const BufferUsage usage)
 {
 	switch(usage)
 	{
@@ -424,7 +424,7 @@ bool TaskOrganiser::IsReadBufferUsage(const BufferUsage usage)
 	return false;
 }
 
-vk::PipelineStageFlags TaskOrganiser::GetPipelineStageForBufferUsage(const BufferUsage usage)
+vk::PipelineStageFlags TaskOrganizer::GetPipelineStageForBufferUsage(const BufferUsage usage)
 {
 	// TODO - check if this is correct.
 	switch(usage)
@@ -450,14 +450,14 @@ vk::PipelineStageFlags TaskOrganiser::GetPipelineStageForBufferUsage(const Buffe
 	return vk::PipelineStageFlags();
 }
 
-TaskOrganiser::ImageSyncInfo TaskOrganiser::GetSyncInfoForLastImageUsage(const vk::Image image)
+TaskOrganizer::ImageSyncInfo TaskOrganizer::GetSyncInfoForLastImageUsage(const vk::Image image)
 {
 	if(const auto usage= GetLastImageUsage(image))
 		return GetSyncInfoForImageUsage(*usage);
 	return {vk::AccessFlags(), vk::PipelineStageFlagBits(), vk::ImageLayout::eUndefined};
 }
 
-TaskOrganiser::ImageSyncInfo TaskOrganiser::GetSyncInfoForImageUsage(const ImageUsage usage)
+TaskOrganizer::ImageSyncInfo TaskOrganizer::GetSyncInfoForImageUsage(const ImageUsage usage)
 {
 	switch(usage)
 	{

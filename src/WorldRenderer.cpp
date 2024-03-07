@@ -256,15 +256,15 @@ WorldRenderer::~WorldRenderer()
 	vk_device_.waitIdle();
 }
 
-void WorldRenderer::PrepareFrame(TaskOrganiser& task_organiser)
+void WorldRenderer::PrepareFrame(TaskOrganizer& task_organizer)
 {
-	world_textures_manager_.PrepareFrame(task_organiser);
-	geometry_generator_.Update(task_organiser);
-	BuildDrawIndirectBuffer(task_organiser);
-	CopyViewMatrix(task_organiser);
+	world_textures_manager_.PrepareFrame(task_organizer);
+	geometry_generator_.Update(task_organizer);
+	BuildDrawIndirectBuffer(task_organizer);
+	CopyViewMatrix(task_organizer);
 }
 
-void WorldRenderer::CollectFrameInputs(TaskOrganiser::GraphicsTaskParams& out_task_params)
+void WorldRenderer::CollectFrameInputs(TaskOrganizer::GraphicsTaskParams& out_task_params)
 {
 	out_task_params.indirect_draw_buffers.push_back(draw_indirect_buffer_.GetBuffer());
 	out_task_params.index_buffers.push_back(*index_buffer_);
@@ -466,9 +466,9 @@ WorldRenderer::WorldDrawPipeline WorldRenderer::CreateWorldDrawPipeline(
 	return pipeline;
 }
 
-void WorldRenderer::CopyViewMatrix(TaskOrganiser& task_organiser)
+void WorldRenderer::CopyViewMatrix(TaskOrganizer& task_organizer)
 {
-	TaskOrganiser::TransferTaskParams task;
+	TaskOrganizer::TransferTaskParams task;
 	task.input_buffers.push_back(world_processor_.GetPlayerStateBuffer());
 	task.output_buffers.push_back(uniform_buffer_.GetBuffer());
 
@@ -488,12 +488,12 @@ void WorldRenderer::CopyViewMatrix(TaskOrganiser& task_organiser)
 				});
 		};
 
-	task_organiser.ExecuteTask(task, task_func);
+	task_organizer.ExecuteTask(task, task_func);
 }
 
-void WorldRenderer::BuildDrawIndirectBuffer(TaskOrganiser& task_organiser)
+void WorldRenderer::BuildDrawIndirectBuffer(TaskOrganizer& task_organizer)
 {
-	TaskOrganiser::ComputeTaskParams task;
+	TaskOrganizer::ComputeTaskParams task;
 	task.input_storage_buffers.push_back(geometry_generator_.GetChunkDrawInfoBuffer());
 	task.output_storage_buffers.push_back(draw_indirect_buffer_.GetBuffer());
 
@@ -524,7 +524,7 @@ void WorldRenderer::BuildDrawIndirectBuffer(TaskOrganiser& task_organiser)
 			command_buffer.dispatch(world_size_[0], world_size_[1], 1);
 		};
 
-	task_organiser.ExecuteTask(task, task_func);
+	task_organizer.ExecuteTask(task, task_func);
 }
 
 } // namespace HexGPU

@@ -78,7 +78,7 @@ Host::Host()
 	: settings_("HexGPU.cfg")
 	, system_window_(settings_)
 	, window_vulkan_(system_window_)
-	, task_organiser_(window_vulkan_)
+	, task_organizer_(window_vulkan_)
 	, global_descriptor_pool_(CreateGlobalDescriptorPool(window_vulkan_.GetVulkanDevice()))
 	, world_processor_(window_vulkan_, *global_descriptor_pool_, settings_)
 	, world_renderer_(window_vulkan_, world_processor_, *global_descriptor_pool_)
@@ -109,20 +109,20 @@ bool Host::Loop()
 	}
 
 	const vk::CommandBuffer command_buffer= window_vulkan_.BeginFrame();
-	task_organiser_.SetCommandBuffer(command_buffer);
+	task_organizer_.SetCommandBuffer(command_buffer);
 
 	world_processor_.Update(
-		task_organiser_,
+		task_organizer_,
 		dt_s,
 		CreateKeyboardState(keys_state),
 		CreateMouseState(events),
 		CalculateAspect(window_vulkan_.GetViewportSize()));
 
-	world_renderer_.PrepareFrame(task_organiser_);
-	build_prism_renderer_.PrepareFrame(task_organiser_);
-	sky_renderer_.PrepareFrame(task_organiser_);
+	world_renderer_.PrepareFrame(task_organizer_);
+	build_prism_renderer_.PrepareFrame(task_organizer_);
+	sky_renderer_.PrepareFrame(task_organizer_);
 
-	TaskOrganiser::GraphicsTaskParams graphics_task_params;
+	TaskOrganizer::GraphicsTaskParams graphics_task_params;
 	world_renderer_.CollectFrameInputs(graphics_task_params);
 	build_prism_renderer_.CollectFrameInputs(graphics_task_params);
 	sky_renderer_.CollectFrameInputs(graphics_task_params);
@@ -148,7 +148,7 @@ bool Host::Loop()
 		[&](const vk::Framebuffer framebuffer)
 		{
 			graphics_task_params.framebuffer= framebuffer;
-			task_organiser_.ExecuteTask(graphics_task_params, graphics_task_func);
+			task_organizer_.ExecuteTask(graphics_task_params, graphics_task_func);
 		});
 
 	const Clock::time_point tick_end_time= Clock::now();

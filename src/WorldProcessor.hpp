@@ -4,7 +4,7 @@
 #include "Keyboard.hpp"
 #include "Mouse.hpp"
 #include "Pipeline.hpp"
-#include "TaskOrganiser.hpp"
+#include "TaskOrganizer.hpp"
 #include "WindowVulkan.hpp"
 
 namespace HexGPU
@@ -20,7 +20,7 @@ public:
 	~WorldProcessor();
 
 	void Update(
-		TaskOrganiser& task_organiser,
+		TaskOrganizer& task_organizer,
 		float time_delta_s,
 		KeyboardState keyboard_state,
 		MouseState mouse_state,
@@ -91,23 +91,23 @@ private:
 	};
 
 private:
-	void InitialFillBuffers(TaskOrganiser& task_organiser);
+	void InitialFillBuffers(TaskOrganizer& task_organizer);
 	void InitialFillBuffersImpl();
 	void ReadBackAndProcessPlayerState();
-	void InitialGenerateWorld(TaskOrganiser& task_organiser);
+	void InitialGenerateWorld(TaskOrganizer& task_organizer);
 	void DetermineChunksUpdateKind(RelativeWorldShiftChunks relative_world_shift);
 	void BuildCurrentFrameChunksToUpdateList(float prev_offset_within_tick, float cur_offset_within_tick);
-	void UpdateWorldBlocks(TaskOrganiser& task_organiser, RelativeWorldShiftChunks relative_world_shift);
-	void UpdateLight(TaskOrganiser& task_organiser, RelativeWorldShiftChunks relative_world_shift);
-	void GenerateWorld(TaskOrganiser& task_organiser, RelativeWorldShiftChunks relative_world_shift);
-	void BuildPlayerWorldWindow(TaskOrganiser& task_organiser);
+	void UpdateWorldBlocks(TaskOrganizer& task_organizer, RelativeWorldShiftChunks relative_world_shift);
+	void UpdateLight(TaskOrganizer& task_organizer, RelativeWorldShiftChunks relative_world_shift);
+	void GenerateWorld(TaskOrganizer& task_organizer, RelativeWorldShiftChunks relative_world_shift);
+	void BuildPlayerWorldWindow(TaskOrganizer& task_organizer);
 	void UpdatePlayer(
-		TaskOrganiser& task_organiser,
+		TaskOrganizer& task_organizer,
 		float time_delta_s,
 		KeyboardState keyboard_state,
 		MouseState mouse_state,
 		float aspect);
-	void FlushWorldBlocksExternalUpdateQueue(TaskOrganiser& task_organiser);
+	void FlushWorldBlocksExternalUpdateQueue(TaskOrganizer& task_organizer);
 
 	uint32_t GetSrcBufferIndex() const;
 	uint32_t GetDstBufferIndex() const;

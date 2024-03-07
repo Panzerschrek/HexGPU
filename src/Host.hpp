@@ -3,6 +3,7 @@
 #include "SystemWindow.hpp"
 #include "WorldRenderer.hpp"
 #include "SkyRenderer.hpp"
+#include "TaskOrganizer.hpp"
 #include <chrono>
 
 namespace HexGPU
@@ -22,6 +23,7 @@ private:
 	Settings settings_;
 	SystemWindow system_window_;
 	WindowVulkan window_vulkan_;
+	TaskOrganizer task_organizer_;
 	const vk::UniqueDescriptorPool global_descriptor_pool_;
 	WorldProcessor world_processor_;
 	WorldRenderer world_renderer_;

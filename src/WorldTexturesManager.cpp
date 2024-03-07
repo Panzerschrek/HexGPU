@@ -212,7 +212,7 @@ WorldTexturesManager::~WorldTexturesManager()
 	vk_device_.waitIdle();
 }
 
-void WorldTexturesManager::PrepareFrame(const vk::CommandBuffer command_buffer)
+void WorldTexturesManager::PrepareFrame(TaskOrganizer& task_organizer)
 {
 	// Copy buffer into the image after ininitialization, because we need a command buffer.
 
@@ -220,73 +220,57 @@ void WorldTexturesManager::PrepareFrame(const vk::CommandBuffer command_buffer)
 		return;
 	textures_loaded_= true;
 
-	// Transfer to dst optimal
-	{
-		const vk::ImageMemoryBarrier image_memory_transfer(
-			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eMemoryRead,
-			vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal,
-			queue_family_index_, queue_family_index_,
-			*image_,
-			vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, 0u, c_num_layers));
+	TaskOrganizer::TransferTaskParams task;
+	task.input_buffers.push_back(*staging_buffer_);
+	task.output_images.push_back(GetImageInfo());
 
-		command_buffer.pipelineBarrier(
-			vk::PipelineStageFlagBits::eTransfer,
-			vk::PipelineStageFlagBits::eBottomOfPipe,
-			vk::DependencyFlags(),
-			{},
-			{},
-			{image_memory_transfer});
-	}
-
-	for(uint32_t dst_image_index= 0; dst_image_index < c_num_layers; ++dst_image_index)
-	{
-		uint32_t offset= dst_image_index * c_texture_num_texels_with_mips * uint32_t(sizeof(PixelType));
-
-		for(uint32_t mip= 0; mip < c_num_mips; ++mip)
+	const auto task_func=
+		[this](const vk::CommandBuffer command_buffer)
 		{
-			const uint32_t current_size= c_texture_size >> mip;
+			for(uint32_t dst_image_index= 0; dst_image_index < c_num_layers; ++dst_image_index)
+			{
+				uint32_t offset= dst_image_index * c_texture_num_texels_with_mips * uint32_t(sizeof(PixelType));
 
-			command_buffer.copyBufferToImage(
-				*staging_buffer_,
-				*image_,
-				vk::ImageLayout::eTransferDstOptimal,
+				for(uint32_t mip= 0; mip < c_num_mips; ++mip)
 				{
-					{
-						offset,
-						current_size, current_size,
-						vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, mip, dst_image_index, 1u),
-						vk::Offset3D(0, 0, 0),
-						vk::Extent3D(current_size, current_size, 1u)
-					}
-				});
+					const uint32_t current_size= c_texture_size >> mip;
 
-			offset+= current_size * current_size * uint32_t(sizeof(PixelType));
-		}
-	}
+					command_buffer.copyBufferToImage(
+						*staging_buffer_,
+						*image_,
+						vk::ImageLayout::eTransferDstOptimal,
+						{
+							{
+								offset,
+								current_size, current_size,
+								vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, mip, dst_image_index, 1u),
+								vk::Offset3D(0, 0, 0),
+								vk::Extent3D(current_size, current_size, 1u)
+							}
+						});
 
-	// Wait for update and transfer layout.
-	// TODO - check if this is correct.
-	{
-		const vk::ImageMemoryBarrier image_memory_transfer(
-			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eMemoryRead,
-			vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal,
-			queue_family_index_, queue_family_index_,
-			*image_,
-			vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, 0u, c_num_layers));
+					offset+= current_size * current_size * uint32_t(sizeof(PixelType));
+				}
+			}
+		};
 
-		command_buffer.pipelineBarrier(
-			vk::PipelineStageFlagBits::eTransfer,
-			vk::PipelineStageFlagBits::eBottomOfPipe,
-			vk::DependencyFlags(),
-			0u, nullptr,
-			0u, nullptr,
-			1u, &image_memory_transfer);
-	}
+	task_organizer.ExecuteTask(task, task_func);
 }
 
 vk::ImageView WorldTexturesManager::GetImageView() const
 {
 	return image_view_.get();
+}
+
+TaskOrganizer::ImageInfo WorldTexturesManager::GetImageInfo() const
+{
+	TaskOrganizer::ImageInfo info;
+	info.image= *image_;
+	info.asppect_flags= vk::ImageAspectFlagBits::eColor;
+	info.num_mips= c_num_mips;
+	info.num_layers= c_num_layers;
+
+	return info;
 }
 
 } // namespace HexGPU

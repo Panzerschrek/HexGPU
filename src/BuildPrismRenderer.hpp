@@ -15,7 +15,8 @@ public:
 
 	~BuildPrismRenderer();
 
-	void PrepareFrame(vk::CommandBuffer command_buffer);
+	void PrepareFrame(TaskOrganizer& task_organizer);
+	void CollectFrameInputs(TaskOrganizer::GraphicsTaskParams& out_task_params);
 	void Draw(vk::CommandBuffer command_buffer);
 
 private:

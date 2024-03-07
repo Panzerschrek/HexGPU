@@ -17,7 +17,8 @@ public:
 
 	~WorldRenderer();
 
-	void PrepareFrame(vk::CommandBuffer command_buffer);
+	void PrepareFrame(TaskOrganizer& task_organizer);
+	void CollectFrameInputs(TaskOrganizer::GraphicsTaskParams& out_task_params);
 	void Draw(vk::CommandBuffer command_buffer);
 
 private:
@@ -32,7 +33,8 @@ private:
 		vk::Extent2D viewport_size,
 		vk::RenderPass render_pass);
 
-	void BuildDrawIndirectBuffer(vk::CommandBuffer command_buffer);
+	void CopyViewMatrix(TaskOrganizer& task_organizer);
+	void BuildDrawIndirectBuffer(TaskOrganizer& task_organizer);
 
 private:
 	const vk::Device vk_device_;

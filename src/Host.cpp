@@ -78,6 +78,7 @@ Host::Host()
 	: settings_("HexGPU.cfg")
 	, system_window_(settings_)
 	, window_vulkan_(system_window_)
+	, task_organizer_(window_vulkan_)
 	, global_descriptor_pool_(CreateGlobalDescriptorPool(window_vulkan_.GetVulkanDevice()))
 	, world_processor_(window_vulkan_, *global_descriptor_pool_, settings_)
 	, world_renderer_(window_vulkan_, world_processor_, *global_descriptor_pool_)
@@ -108,24 +109,46 @@ bool Host::Loop()
 	}
 
 	const vk::CommandBuffer command_buffer= window_vulkan_.BeginFrame();
+	task_organizer_.SetCommandBuffer(command_buffer);
 
 	world_processor_.Update(
-		command_buffer,
+		task_organizer_,
 		dt_s,
 		CreateKeyboardState(keys_state),
 		CreateMouseState(events),
 		CalculateAspect(window_vulkan_.GetViewportSize()));
 
-	world_renderer_.PrepareFrame(command_buffer);
-	sky_renderer_.PrepareFrame(command_buffer);
-	build_prism_renderer_.PrepareFrame(command_buffer);
+	world_renderer_.PrepareFrame(task_organizer_);
+	build_prism_renderer_.PrepareFrame(task_organizer_);
+	sky_renderer_.PrepareFrame(task_organizer_);
 
-	window_vulkan_.EndFrame(
-		[&](const vk::CommandBuffer command_buffer)
+	TaskOrganizer::GraphicsTaskParams graphics_task_params;
+	world_renderer_.CollectFrameInputs(graphics_task_params);
+	build_prism_renderer_.CollectFrameInputs(graphics_task_params);
+	sky_renderer_.CollectFrameInputs(graphics_task_params);
+
+	graphics_task_params.render_pass= window_vulkan_.GetRenderPass();
+	graphics_task_params.viewport_size= window_vulkan_.GetViewportSize();
+
+	const auto graphics_task_func=
+		[this](const vk::CommandBuffer command_buffer)
 		{
 			world_renderer_.Draw(command_buffer);
 			sky_renderer_.Draw(command_buffer);
 			build_prism_renderer_.Draw(command_buffer);
+		};
+
+	graphics_task_params.clear_values=
+	{
+		vk::ClearColorValue(std::array<float,4>{1.0f, 0.0f, 1.0f, 1.0f}), // Clear with pink to catch some mistakes.
+		vk::ClearDepthStencilValue(1.0f, 0u),
+	};
+
+	window_vulkan_.EndFrame(
+		[&](const vk::Framebuffer framebuffer)
+		{
+			graphics_task_params.framebuffer= framebuffer;
+			task_organizer_.ExecuteTask(graphics_task_params, graphics_task_func);
 		});
 
 	const Clock::time_point tick_end_time= Clock::now();

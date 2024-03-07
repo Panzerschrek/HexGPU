@@ -9,7 +9,7 @@ namespace HexGPU
 class WindowVulkan final
 {
 public:
-	using DrawFunction= std::function<void(vk::CommandBuffer)>;
+	using DrawFunction= std::function<void(vk::Framebuffer framebuffer)>;
 
 public:
 	explicit WindowVulkan(const SystemWindow& system_window);

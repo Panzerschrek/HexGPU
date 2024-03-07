@@ -232,17 +232,17 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 
 	// Select surface format. Prefer usage of normalized rbga32.
 	const std::vector<vk::SurfaceFormatKHR> surface_formats= physical_device.getSurfaceFormatsKHR(*surface_);
-	vk::SurfaceFormatKHR surface_format= surface_formats.back();
-	for(const vk::SurfaceFormatKHR& surface_format_variant : surface_formats)
+	swapchain_surface_format_= surface_formats.back();
+	for(const vk::SurfaceFormatKHR& surface_format : surface_formats)
 	{
-		if( surface_format_variant.format == vk::Format::eR8G8B8A8Unorm ||
-			surface_format_variant.format == vk::Format::eB8G8R8A8Unorm)
+		if( surface_format.format == vk::Format::eR8G8B8A8Unorm ||
+			surface_format.format == vk::Format::eB8G8R8A8Unorm)
 		{
-			surface_format= surface_format_variant;
+			swapchain_surface_format_= surface_format;
 			break;
 		}
 	}
-	Log::Info("Swapchan surface format: ", vk::to_string(surface_format.format), " ", vk::to_string(surface_format.colorSpace));
+	Log::Info("Swapchan surface format: ", vk::to_string(swapchain_surface_format_.format), " ", vk::to_string(swapchain_surface_format_.colorSpace));
 
 	// TODO - avoid creating depth buffer here.
 
@@ -294,8 +294,8 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 			vk::SwapchainCreateFlagsKHR(),
 			*surface_,
 			surface_capabilities.minImageCount,
-			surface_format.format,
-			surface_format.colorSpace,
+			swapchain_surface_format_.format,
+			swapchain_surface_format_.colorSpace,
 			surface_capabilities.maxImageExtent,
 			1u,
 			vk::ImageUsageFlagBits::eColorAttachment,
@@ -311,7 +311,7 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 	{
 		{
 			vk::AttachmentDescriptionFlags(),
-			surface_format.format,
+			swapchain_surface_format_.format,
 			vk::SampleCountFlagBits::e1,
 			vk::AttachmentLoadOp::eDontCare,
 			vk::AttachmentStoreOp::eStore,
@@ -407,7 +407,7 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window)
 					vk::ImageViewCreateFlags(),
 					framebuffers_[i].image,
 					vk::ImageViewType::e2D,
-					surface_format.format,
+					swapchain_surface_format_.format,
 					vk::ComponentMapping(),
 					vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, 1u, 0u, 1u)));
 
@@ -538,6 +538,21 @@ vk::RenderPass WindowVulkan::GetRenderPass() const
 vk::PhysicalDeviceMemoryProperties WindowVulkan::GetMemoryProperties() const
 {
 	return memory_properties_;
+}
+
+vk::PhysicalDevice WindowVulkan::GetPhysicalDevice() const
+{
+	return physical_device_;
+}
+
+vk::Format WindowVulkan::GetSwapchainSurfaceFormat() const
+{
+	return swapchain_surface_format_.format;
+}
+
+vk::SwapchainKHR WindowVulkan::GetSwapchain() const
+{
+	return *swapchain_;
 }
 
 size_t WindowVulkan::GetNumCommandBuffers() const

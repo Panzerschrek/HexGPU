@@ -23,6 +23,9 @@ public:
 	uint32_t GetQueueFamilyIndex() const;
 	vk::RenderPass GetRenderPass() const; // Render pass for rendering directly into screen.
 	vk::PhysicalDeviceMemoryProperties GetMemoryProperties() const;
+	vk::PhysicalDevice GetPhysicalDevice() const;
+	vk::Format GetSwapchainSurfaceFormat() const;
+	vk::SwapchainKHR GetSwapchain() const;
 
 	// Command buffers are circulary reused.
 	// When a new command buffer is started, its previous contents is guaranteed to be flushed.
@@ -60,6 +63,7 @@ private:
 	vk::Extent2D viewport_size_;
 	vk::PhysicalDeviceMemoryProperties memory_properties_;
 	vk::PhysicalDevice physical_device_;
+	vk::SurfaceFormatKHR swapchain_surface_format_;
 	vk::UniqueSwapchainKHR swapchain_;
 
 	vk::UniqueRenderPass render_pass_;

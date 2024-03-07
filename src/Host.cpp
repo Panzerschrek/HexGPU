@@ -119,10 +119,8 @@ bool Host::Loop()
 		CalculateAspect(window_vulkan_.GetViewportSize()));
 
 	world_renderer_.PrepareFrame(task_organiser_);
-
-	// TODO - add other tasks into the task organizer.
-	sky_renderer_.PrepareFrame(command_buffer);
-	build_prism_renderer_.PrepareFrame(command_buffer);
+	build_prism_renderer_.PrepareFrame(task_organiser_);
+	sky_renderer_.PrepareFrame(task_organiser_);
 
 	window_vulkan_.EndFrame(
 		[&](const vk::CommandBuffer command_buffer)

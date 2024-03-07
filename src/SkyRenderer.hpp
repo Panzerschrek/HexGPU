@@ -13,7 +13,7 @@ public:
 		vk::DescriptorPool global_descriptor_pool);
 	~SkyRenderer();
 
-	void PrepareFrame(vk::CommandBuffer command_buffer);
+	void PrepareFrame(TaskOrganiser& task_organiser);
 
 	void Draw(vk::CommandBuffer command_buffer);
 

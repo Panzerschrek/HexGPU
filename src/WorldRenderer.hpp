@@ -18,6 +18,7 @@ public:
 	~WorldRenderer();
 
 	void PrepareFrame(TaskOrganiser& task_organiser);
+	void CollectFrameInputs(TaskOrganiser::GraphicsTask& out_task);
 	void Draw(vk::CommandBuffer command_buffer);
 
 private:

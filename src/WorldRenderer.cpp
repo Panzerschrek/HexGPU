@@ -264,6 +264,14 @@ void WorldRenderer::PrepareFrame(TaskOrganiser& task_organiser)
 	CopyViewMatrix(task_organiser);
 }
 
+void WorldRenderer::CollectFrameInputs(TaskOrganiser::GraphicsTask& out_task)
+{
+	out_task.indirect_draw_buffers.push_back(draw_indirect_buffer_.GetBuffer());
+	out_task.index_buffers.push_back(*index_buffer_);
+	out_task.vertex_buffers.push_back(geometry_generator_.GetVertexBuffer());
+	out_task.uniform_buffers.push_back(uniform_buffer_.GetBuffer());
+}
+
 void WorldRenderer::Draw(const vk::CommandBuffer command_buffer)
 {
 	const vk::Buffer vertex_buffer= geometry_generator_.GetVertexBuffer();

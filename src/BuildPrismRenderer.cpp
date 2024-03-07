@@ -189,49 +189,41 @@ BuildPrismRenderer::~BuildPrismRenderer()
 	vk_device_.waitIdle();
 }
 
-void BuildPrismRenderer::PrepareFrame(const vk::CommandBuffer command_buffer)
+void BuildPrismRenderer::PrepareFrame(TaskOrganiser& task_organiser)
 {
-	// Get build position from player state.
-	command_buffer.copyBuffer(
-		world_processor_.GetPlayerStateBuffer(),
-		uniform_buffer_.GetBuffer(),
+	TaskOrganiser::TransferTask task;
+	task.input_buffers.push_back(world_processor_.GetPlayerStateBuffer());
+	task.output_buffers.push_back(uniform_buffer_.GetBuffer());
+
+	task.func=
+		[this](const vk::CommandBuffer command_buffer)
 		{
-			{
-				offsetof(WorldProcessor::PlayerState, build_pos),
-				offsetof(DrawUniforms, build_pos),
-				sizeof(int32_t) * 4
-			}
-		});
+			// Get build position from player state.
+			command_buffer.copyBuffer(
+				world_processor_.GetPlayerStateBuffer(),
+				uniform_buffer_.GetBuffer(),
+				{
+					{
+						offsetof(WorldProcessor::PlayerState, build_pos),
+						offsetof(DrawUniforms, build_pos),
+						sizeof(int32_t) * 4
+					}
+				});
 
-	// Copy view matrix.
-	command_buffer.copyBuffer(
-		world_processor_.GetPlayerStateBuffer(),
-		uniform_buffer_.GetBuffer(),
-		{
-			{
-				offsetof(WorldProcessor::PlayerState, blocks_matrix),
-				offsetof(DrawUniforms, view_matrix),
-				sizeof(float) * 16
-			},
-		});
+			// Copy view matrix.
+			command_buffer.copyBuffer(
+				world_processor_.GetPlayerStateBuffer(),
+				uniform_buffer_.GetBuffer(),
+				{
+					{
+						offsetof(WorldProcessor::PlayerState, blocks_matrix),
+						offsetof(DrawUniforms, view_matrix),
+						sizeof(float) * 16
+					},
+				});
+		};
 
-	// Add barrier between uniform buffer memory copy and result usage in shader.
-	{
-		const vk::BufferMemoryBarrier barrier(
-			vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eShaderRead,
-			queue_family_index_, queue_family_index_,
-			uniform_buffer_.GetBuffer(),
-			0,
-			VK_WHOLE_SIZE);
-
-		command_buffer.pipelineBarrier(
-			vk::PipelineStageFlagBits::eTransfer,
-			vk::PipelineStageFlagBits::eVertexShader,
-			vk::DependencyFlags(),
-			0, nullptr,
-			1, &barrier,
-			0, nullptr);
-	}
+	task_organiser.ExecuteTask(task);
 }
 
 void BuildPrismRenderer::Draw(const vk::CommandBuffer command_buffer)

@@ -23,8 +23,6 @@ void TaskOrganiser::ExecuteTask(const ComputeTaskParams& params, const TaskFunc&
 
 	if(const auto dst_sync_info= GetBufferDstSyncInfo(BufferUsage::ComputeShaderSrc))
 	{
-		dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
-
 		for(const vk::Buffer buffer : params.input_storage_buffers)
 		{
 			if(const auto src_sync_info= GetBufferSrcSyncInfoForLastUsage(buffer))
@@ -35,6 +33,7 @@ void TaskOrganiser::ExecuteTask(const ComputeTaskParams& params, const TaskFunc&
 					buffer,
 					0, VK_WHOLE_SIZE);
 				src_pipeline_stage_flags|= src_sync_info->pipeline_stage_flags;
+				dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
 			}
 		}
 
@@ -48,6 +47,7 @@ void TaskOrganiser::ExecuteTask(const ComputeTaskParams& params, const TaskFunc&
 					buffer,
 					0, VK_WHOLE_SIZE);
 				src_pipeline_stage_flags|= src_sync_info->pipeline_stage_flags;
+				dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
 			}
 			if(const auto last_usage= GetLastBufferUsage(buffer))
 			{
@@ -55,6 +55,7 @@ void TaskOrganiser::ExecuteTask(const ComputeTaskParams& params, const TaskFunc&
 				{
 					require_barrier_for_write_after_read_sync= true;
 					src_pipeline_stage_flags|= GetPipelineStageForBufferUsage(*last_usage);
+					dst_pipeline_stage_flags|= vk::PipelineStageFlagBits::eComputeShader;
 				}
 			}
 		}
@@ -68,6 +69,7 @@ void TaskOrganiser::ExecuteTask(const ComputeTaskParams& params, const TaskFunc&
 			{
 				require_barrier_for_write_after_read_sync= true;
 				src_pipeline_stage_flags|= GetPipelineStageForBufferUsage(*last_usage);
+				dst_pipeline_stage_flags|= vk::PipelineStageFlagBits::eComputeShader;
 			}
 		}
 	}
@@ -97,8 +99,6 @@ void TaskOrganiser::ExecuteTask(const GraphicsTaskParams& params, const TaskFunc
 
 	if(const auto dst_sync_info= GetBufferDstSyncInfo(BufferUsage::IndirectDrawSrc))
 	{
-		dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
-
 		for(const vk::Buffer buffer : params.indirect_draw_buffers)
 		{
 			if(const auto src_sync_info= GetBufferSrcSyncInfoForLastUsage(buffer))
@@ -109,14 +109,13 @@ void TaskOrganiser::ExecuteTask(const GraphicsTaskParams& params, const TaskFunc
 					buffer,
 					0, VK_WHOLE_SIZE);
 				src_pipeline_stage_flags|= src_sync_info->pipeline_stage_flags;
+				dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
 			}
 		}
 	}
 
 	if(const auto dst_sync_info= GetBufferDstSyncInfo(BufferUsage::IndexSrc))
 	{
-		dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
-
 		for(const vk::Buffer buffer : params.index_buffers)
 		{
 			if(const auto src_sync_info= GetBufferSrcSyncInfoForLastUsage(buffer))
@@ -127,14 +126,13 @@ void TaskOrganiser::ExecuteTask(const GraphicsTaskParams& params, const TaskFunc
 					buffer,
 					0, VK_WHOLE_SIZE);
 				src_pipeline_stage_flags|= src_sync_info->pipeline_stage_flags;
+				dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
 			}
 		}
 	}
 
 	if(const auto dst_sync_info= GetBufferDstSyncInfo(BufferUsage::VertexSrc))
 	{
-		dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
-
 		for(const vk::Buffer buffer : params.vertex_buffers)
 		{
 			if(const auto src_sync_info= GetBufferSrcSyncInfoForLastUsage(buffer))
@@ -145,14 +143,13 @@ void TaskOrganiser::ExecuteTask(const GraphicsTaskParams& params, const TaskFunc
 					buffer,
 					0, VK_WHOLE_SIZE);
 				src_pipeline_stage_flags|= src_sync_info->pipeline_stage_flags;
+				dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
 			}
 		}
 	}
 
 	if(const auto dst_sync_info= GetBufferDstSyncInfo(BufferUsage::UniformSrc))
 	{
-		dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
-
 		for(const vk::Buffer buffer : params.uniform_buffers)
 		{
 			if(const auto src_sync_info= GetBufferSrcSyncInfoForLastUsage(buffer))
@@ -163,6 +160,7 @@ void TaskOrganiser::ExecuteTask(const GraphicsTaskParams& params, const TaskFunc
 					buffer,
 					0, VK_WHOLE_SIZE);
 				src_pipeline_stage_flags|= src_sync_info->pipeline_stage_flags;
+				dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
 			}
 		}
 	}
@@ -180,6 +178,7 @@ void TaskOrganiser::ExecuteTask(const GraphicsTaskParams& params, const TaskFunc
 				vk::ImageSubresourceRange(image_info.asppect_flags, 0u, image_info.num_mips, 0u, image_info.num_layers));
 
 			src_pipeline_stage_flags|= sync_info.pipeline_stage_flags;
+			// Do not allow to execute vertex shader before image isn't ready, since image reads are possible already in vertex shader.
 			dst_pipeline_stage_flags|= vk::PipelineStageFlagBits::eVertexShader;
 		}
 	}
@@ -226,8 +225,6 @@ void TaskOrganiser::ExecuteTask(const TransferTaskParams& params, const TaskFunc
 
 	if(const auto dst_sync_info= GetBufferDstSyncInfo(BufferUsage::TransferSrc))
 	{
-		dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
-
 		for(const vk::Buffer buffer : params.input_buffers)
 		{
 			if(const auto src_sync_info= GetBufferSrcSyncInfoForLastUsage(buffer))
@@ -238,6 +235,7 @@ void TaskOrganiser::ExecuteTask(const TransferTaskParams& params, const TaskFunc
 					buffer,
 					0, VK_WHOLE_SIZE);
 				src_pipeline_stage_flags|= src_sync_info->pipeline_stage_flags;
+				dst_pipeline_stage_flags|= dst_sync_info->pipeline_stage_flags;
 			}
 		}
 	}
@@ -250,6 +248,7 @@ void TaskOrganiser::ExecuteTask(const TransferTaskParams& params, const TaskFunc
 			{
 				require_barrier_for_write_after_read_sync= true;
 				src_pipeline_stage_flags|= GetPipelineStageForBufferUsage(*last_usage);
+				dst_pipeline_stage_flags|= vk::PipelineStageFlagBits::eTransfer;
 			}
 		}
 	}
@@ -386,6 +385,7 @@ std::optional<TaskOrganiser::BufferSyncInfo> TaskOrganiser::GetBufferDstSyncInfo
 		return BufferSyncInfo{vk::AccessFlagBits::eVertexAttributeRead, vk::PipelineStageFlagBits::eVertexInput};
 
 	case BufferUsage::UniformSrc:
+		// Uniforms may be accessed in vertex shader and later.
 		return BufferSyncInfo{vk::AccessFlagBits::eUniformRead, vk::PipelineStageFlagBits::eVertexShader};
 
 	case BufferUsage::ComputeShaderSrc:

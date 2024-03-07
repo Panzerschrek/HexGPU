@@ -34,6 +34,11 @@ public:
 		std::vector<vk::Buffer> vertex_buffers;
 		std::vector<vk::Buffer> uniform_buffers;
 		// TODO - add also images.
+
+		vk::Framebuffer framebuffer;
+		vk::Extent2D viewport_size;
+		vk::RenderPass render_pass;
+		std::vector<vk::ClearValue> clear_values;
 	};
 
 	struct TransferTask : public TaskBase

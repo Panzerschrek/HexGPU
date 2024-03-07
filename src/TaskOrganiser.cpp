@@ -182,7 +182,17 @@ void TaskOrganiser::ExecuteTaskImpl(const vk::CommandBuffer command_buffer, cons
 
 	// TODO - add synchronization for output images to ensure write after read.
 
+	command_buffer.beginRenderPass(
+		vk::RenderPassBeginInfo(
+			task.render_pass,
+			task.framebuffer,
+			vk::Rect2D(vk::Offset2D(0, 0), task.viewport_size),
+			uint32_t(task.clear_values.size()), task.clear_values.data()),
+		vk::SubpassContents::eInline);
+
 	task.func(command_buffer);
+
+	command_buffer.endRenderPass();
 
 	UpdateLastBuffersUsage(task.indirect_draw_buffers, BufferUsage::IndirectDrawSrc);
 	UpdateLastBuffersUsage(task.index_buffers, BufferUsage::IndexSrc);
@@ -364,6 +374,7 @@ vk::PipelineStageFlags TaskOrganiser::GetPipelineStageForBufferUsage(const Buffe
 	case BufferUsage::VertexSrc:
 		return vk::PipelineStageFlagBits::eVertexShader;
 	case BufferUsage::UniformSrc:
+		// TODO - list other kinds of shaders?
 		return vk::PipelineStageFlagBits::eVertexShader | vk::PipelineStageFlagBits::eGeometryShader | vk::PipelineStageFlagBits::eFragmentShader;
 	case BufferUsage::ComputeShaderSrc:
 	case BufferUsage::ComputeShaderDst:

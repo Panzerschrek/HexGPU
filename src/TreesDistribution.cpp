@@ -33,7 +33,7 @@ void SaveTestDistribution(const std::vector<Point>& points, const DistributionSi
 			if(square_distnace >= square_radius)
 				continue;
 
-			const int32_t brightness= 255 - 240 * (square_radius - square_distnace) / square_radius;
+			const int32_t brightness= 255 * (square_radius - square_distnace) / square_radius;
 
 			const int32_t x= uint32_t(dx + point.coord[0]) % size[0];
 			const int32_t y= uint32_t(dy + point.coord[1]) % size[1];
@@ -62,7 +62,7 @@ void GenTestTreesDistribution()
 		std::uniform_real_distribution<float>(0.0f, float(size[1])),
 	};
 
-	std::uniform_real_distribution<float> radius_distribution{4.0f, 16.0f};
+	std::uniform_real_distribution<float> radius_distribution{std::log(4.0f), std::log(16.0f)};
 
 	std::vector<Point> points;
 
@@ -76,7 +76,7 @@ void GenTestTreesDistribution()
 				int32_t(std::floor(dis[0](gen))),
 				int32_t(std::floor(dis[1](gen))),
 			},
-			uint32_t(std::floor(radius_distribution(gen))),
+			uint32_t(std::floor(std::exp(radius_distribution(gen)))),
 		};
 
 		bool too_close= false;

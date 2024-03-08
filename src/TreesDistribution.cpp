@@ -62,11 +62,20 @@ void GenTestTreesDistribution()
 
 		for(const Point& prev_point : points)
 		{
-			const int32_t diff[2]
+			int32_t diff[2]
 			{
 				point[0] - prev_point[0],
 				point[1] - prev_point[1],
 			};
+			// Add wrapping.
+			for(uint32_t j= 0; j < 2; ++j)
+			{
+				if(diff[j] <= -int32_t(size[j]) / 2)
+					diff[j]+= int32_t(size[j]);
+				else if(diff[j] >= int32_t(size[j]) / 2)
+					diff[j]-= int32_t(size[j]);
+			}
+
 			const int32_t square_dist= diff[0] * diff[0] + diff[1] * diff[1];
 			if(square_dist < min_square_distance)
 			{

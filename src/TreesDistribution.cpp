@@ -1,4 +1,5 @@
 #include "TreesDistribution.hpp"
+#include "Assert.hpp"
 #include "Tga.hpp"
 #include <array>
 #include <random>
@@ -48,6 +49,22 @@ void SaveTestDistribution(const std::vector<Point>& points, const DistributionSi
 	WriteTGA(uint16_t(size[0]), uint16_t(size[1]), pixels.data(), "test.tga");
 }
 
+// This generator should produce identical sequences on all platforms.
+using RangGen= std::mt19937;
+
+// Use our own functions for random generator sampling - for determinism.
+
+RangGen::result_type RandUpTo(RangGen& gen, const uint32_t max_plus_one)
+{
+	return gen() % max_plus_one;
+}
+
+RangGen::result_type RandInRange(RangGen& gen, const uint32_t min, const uint32_t max_plus_one)
+{
+	HEX_ASSERT(min < max_plus_one);
+	return min + gen() % (max_plus_one - min);
+}
+
 } // namespace
 
 void GenTestTreesDistribution()
@@ -58,14 +75,6 @@ void GenTestTreesDistribution()
 	const RangGen::result_type seed= 0;
 	RangGen gen(seed);
 
-	std::uniform_real_distribution<float> dis[2]
-	{
-		std::uniform_real_distribution<float>(0.0f, float(size[0])),
-		std::uniform_real_distribution<float>(0.0f, float(size[1])),
-	};
-
-	std::uniform_real_distribution<float> radius_distribution{std::log(4.0f), std::log(16.0f)};
-
 	std::vector<Point> points;
 
 	const uint32_t num_points= 100000;
@@ -75,11 +84,13 @@ void GenTestTreesDistribution()
 		const Point point
 		{
 			{
-				int32_t(std::floor(dis[0](gen))),
-				int32_t(std::floor(dis[1](gen))),
+				int32_t(RandUpTo(gen, size[0])),
+				int32_t(RandUpTo(gen, size[1])),
 			},
-			uint32_t(std::floor(std::exp(radius_distribution(gen)))),
+			uint32_t(RandInRange(gen, 4, 17)),
 		};
+		HEX_ASSERT(point.coord[0] >= 0 && point.coord[0] < int32_t(size[0]));
+		HEX_ASSERT(point.coord[1] >= 0 && point.coord[1] < int32_t(size[1]));
 
 		bool too_close= false;
 

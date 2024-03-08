@@ -11,6 +11,25 @@ namespace HexGPU
 namespace
 {
 
+using CubeHexCoord= std::array<int32_t, 3>;
+
+CubeHexCoord GetCubeCoord(const std::array<int32_t, 2>& coord)
+{
+	// See https://www.redblobgames.com/grids/hexagons/#conversions.
+	const int32_t q= coord[0];
+	const int32_t r= coord[1] - ((coord[0] - (coord[0] & 1)) >> 1);
+	return {q, r, -q - r};
+}
+
+int32_t HexDist(const std::array<int32_t, 2>& from, const std::array<int32_t, 2>& to)
+{
+	// See https://www.redblobgames.com/grids/hexagons/#distances.
+	const CubeHexCoord from_cube= GetCubeCoord(from);
+	const CubeHexCoord to_cube= GetCubeCoord(to);
+	const int32_t diff[3]{from_cube[0] - to_cube[0], from_cube[1] - to_cube[1], from_cube[2] - to_cube[2]};
+	return (std::abs(diff[0]) + std::abs(diff[1]) + std::abs(diff[2])) >> 1;
+}
+
 using DistributionSize= std::array<uint32_t, 2>;
 
 struct Point
@@ -25,16 +44,13 @@ void SaveTestDistribution(const std::vector<Point>& points, const DistributionSi
 
 	for(const Point& point : points)
 	{
-		const int32_t square_radius= int32_t(point.radius * point.radius);
-
 		for(int32_t dy= -int32_t(point.radius); dy <= int32_t(point.radius); ++dy)
 		for(int32_t dx= -int32_t(point.radius); dx <= int32_t(point.radius); ++dx)
 		{
-			const int32_t square_distnace= dx * dx + dy * dy;
-			if(square_distnace >= square_radius)
+			const int32_t dist= HexDist(point.coord, {point.coord[0] + dx, point.coord[1] + dy});
+			if(dist > int32_t(point.radius))
 				continue;
-
-			const int32_t brightness= 255 * (square_radius - square_distnace) / square_radius;
+			const int32_t brightness= 255u * uint32_t(1 + point.radius - uint32_t(dist)) / (1 + point.radius);
 
 			const int32_t x= uint32_t(dx + point.coord[0]) % size[0];
 			const int32_t y= uint32_t(dy + point.coord[1]) % size[1];
@@ -96,23 +112,18 @@ void GenTestTreesDistribution()
 
 		for(const Point& prev_point : points)
 		{
-			int32_t diff[2]
-			{
-				point.coord[0] - prev_point.coord[0],
-				point.coord[1] - prev_point.coord[1],
-			};
+			std::array<int32_t, 2> prev_coord= prev_point.coord;
 			// Add wrapping.
 			for(uint32_t j= 0; j < 2; ++j)
 			{
-				if(diff[j] <= -int32_t(size[j]) / 2)
-					diff[j]+= int32_t(size[j]);
-				else if(diff[j] >= int32_t(size[j]) / 2)
-					diff[j]-= int32_t(size[j]);
+				if(prev_coord[j] - point.coord[j] >= +int32_t(size[j] / 2))
+					prev_coord[j]-= int32_t(size[j]);
+				if(prev_coord[j] - point.coord[j] <= -int32_t(size[j] / 2))
+					prev_coord[j]+= int32_t(size[j]);
 			}
 
-			const int32_t square_dist= diff[0] * diff[0] + diff[1] * diff[1];
-			const int32_t min_ditance= int32_t(point.radius + prev_point.radius);
-			if(square_dist < min_ditance * min_ditance)
+			const int32_t dist= HexDist(point.coord, prev_coord);
+			if(dist < int32_t(point.radius + prev_point.radius))
 			{
 				too_close= true;
 				break;

@@ -91,47 +91,54 @@ void GenTestTreesDistribution()
 	const RangGen::result_type seed= 0;
 	RangGen gen(seed);
 
+	(void)RandInRange;
+
 	std::vector<Point> points;
 
-	const uint32_t num_points= 100000;
-
-	for(uint32_t i= 0; i < num_points; ++i)
+	// Use radii from big to low.
+	const uint32_t radii[]= {32, 8, 4};
+	for(const uint32_t radius : radii)
 	{
-		const Point point
-		{
-			{
-				int32_t(RandUpTo(gen, size[0])),
-				int32_t(RandUpTo(gen, size[1])),
-			},
-			uint32_t(RandInRange(gen, 4, 17)),
-		};
-		HEX_ASSERT(point.coord[0] >= 0 && point.coord[0] < int32_t(size[0]));
-		HEX_ASSERT(point.coord[1] >= 0 && point.coord[1] < int32_t(size[1]));
+		const uint32_t num_points= 100000 / (radius * radius);
 
-		bool too_close= false;
-
-		for(const Point& prev_point : points)
+		for(uint32_t i= 0; i < num_points; ++i)
 		{
-			std::array<int32_t, 2> prev_coord= prev_point.coord;
-			// Add wrapping.
-			for(uint32_t j= 0; j < 2; ++j)
+			const Point point
 			{
-				if(prev_coord[j] - point.coord[j] >= +int32_t(size[j] / 2))
-					prev_coord[j]-= int32_t(size[j]);
-				if(prev_coord[j] - point.coord[j] <= -int32_t(size[j] / 2))
-					prev_coord[j]+= int32_t(size[j]);
+				{
+					int32_t(RandUpTo(gen, size[0])),
+					int32_t(RandUpTo(gen, size[1])),
+				},
+				radius,
+			};
+			HEX_ASSERT(point.coord[0] >= 0 && point.coord[0] < int32_t(size[0]));
+			HEX_ASSERT(point.coord[1] >= 0 && point.coord[1] < int32_t(size[1]));
+
+			bool too_close= false;
+
+			for(const Point& prev_point : points)
+			{
+				std::array<int32_t, 2> prev_coord= prev_point.coord;
+				// Add wrapping.
+				for(uint32_t j= 0; j < 2; ++j)
+				{
+					if(prev_coord[j] - point.coord[j] >= +int32_t(size[j] / 2))
+						prev_coord[j]-= int32_t(size[j]);
+					if(prev_coord[j] - point.coord[j] <= -int32_t(size[j] / 2))
+						prev_coord[j]+= int32_t(size[j]);
+				}
+
+				const int32_t dist= HexDist(point.coord, prev_coord);
+				if(dist < int32_t(radius * 2))
+				{
+					too_close= true;
+					break;
+				}
 			}
 
-			const int32_t dist= HexDist(point.coord, prev_coord);
-			if(dist < int32_t(point.radius + prev_point.radius))
-			{
-				too_close= true;
-				break;
-			}
+			if(!too_close)
+				points.push_back(point);
 		}
-
-		if(!too_close)
-			points.push_back(point);
 	}
 
 	SaveTestDistribution(points, size);

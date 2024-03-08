@@ -54,8 +54,10 @@ void GenTestTreesDistribution()
 {
 	const DistributionSize size{512, 512};
 
-	std::random_device rd;
-	std::mt19937 gen(rd());
+	using RangGen= std::mt19937;
+	const RangGen::result_type seed= 0;
+	RangGen gen(seed);
+
 	std::uniform_real_distribution<float> dis[2]
 	{
 		std::uniform_real_distribution<float>(0.0f, float(size[0])),

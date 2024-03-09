@@ -102,7 +102,17 @@ void main()
 					int rel_z= z - chunk_structure_description.min.z;
 					int structure_block_offset= rel_z + rel_y * structure_description.size.z + rel_x * (structure_description.size.z * structure_description.size.y);
 
-					chunks_data[column_offset + z]= structures_data[column_data_offset + rel_z];
+					// TODO - generalize this - use some sort of replace priority table.
+
+					uint8_t block_type= structures_data[column_data_offset + rel_z];
+					if(block_type == c_block_type_air)
+						continue; // Do not replace blocks with air.
+
+					uint8_t current_block_type= chunks_data[column_offset + z];
+					if(block_type == c_block_type_foliage && current_block_type != c_block_type_air)
+						continue; // Allow replacing only air with foliage.
+
+					chunks_data[column_offset + z]= block_type;
 				}
 			}
 		}

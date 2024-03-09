@@ -42,11 +42,11 @@ void main()
 	const int c_cells_per_chunk[2]=
 		int[2](int(c_chunk_width >> c_tree_map_cell_size_log2[0]), int(c_chunk_width >> c_tree_map_cell_size_log2[1]));
 
-	// Add extra border 1 to process trees in adjacent chunks.
+	// Add extra border to process trees in adjacent chunks.
 	int tree_grid_cell_start_x= chunk_global_position.x * c_cells_per_chunk[0] - 1;
-	int tree_grid_cell_start_y= chunk_global_position.y * c_cells_per_chunk[1] - 1;
+	int tree_grid_cell_start_y= chunk_global_position.y * c_cells_per_chunk[1] - 2;
 	int tree_grid_cell_end_x= tree_grid_cell_start_x + c_cells_per_chunk[0] + 2;
-	int tree_grid_cell_end_y= tree_grid_cell_start_y + c_cells_per_chunk[1] + 2;
+	int tree_grid_cell_end_y= tree_grid_cell_start_y + c_cells_per_chunk[1] + 4;
 	for(int cell_y= tree_grid_cell_start_y; cell_y < tree_grid_cell_end_y; ++cell_y)
 	for(int cell_x= tree_grid_cell_start_x; cell_x < tree_grid_cell_end_x; ++cell_x)
 	{

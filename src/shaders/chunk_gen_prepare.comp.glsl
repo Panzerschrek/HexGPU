@@ -24,8 +24,10 @@ void main()
 	ChunkGenInfo info;
 	info.num_structures= 1;
 
-	info.structures[0].min= i16vec4(4,  7, 60, 0);
-	info.structures[0].max= i16vec4(7, 10, 65, 0);
+	int offset_x= chunk_global_position.y & 7;
+	int offset_y= chunk_global_position.x & 3;
+	info.structures[0].min= i16vec4(int16_t(offset_x + 0), int16_t(offset_y + 0), int16_t(60), int16_t(0));
+	info.structures[0].max= i16vec4(int16_t(offset_x + 3), int16_t(offset_y + 3), int16_t(65), 0);
 
 	int chunk_index= chunk_position.x + chunk_position.y * world_size_chunks.x;
 	chunk_gen_infos[chunk_index]= info;

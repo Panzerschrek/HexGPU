@@ -84,8 +84,8 @@ private:
 
 	struct ChunkStructureDescription
 	{
-		int16_t min[4]{};
-		int16_t max[4]{};
+		int8_t min[4]{};
+		int8_t max[4]{};
 	};
 
 	static constexpr uint32_t c_max_chunk_structures= 24;

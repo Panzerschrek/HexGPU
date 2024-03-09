@@ -40,9 +40,9 @@ void main()
 		int offset_x= (chunk_global_position.y & 7) + (i * 4);
 		int offset_y= (chunk_global_position.x & 3) + (i * 8);
 
-		info.structures[i].min= i16vec4(int16_t(offset_x), int16_t(offset_y), int16_t(50), int16_t(structure_id));
+		info.structures[i].min= i8vec4(int8_t(offset_x), int8_t(offset_y), int8_t(50), int8_t(structure_id));
 		// Adding extra for y 1 is important here to handle shifted columns.
-		info.structures[i].max= i16vec4(int16_t(offset_x + int(structure_size.x)), int16_t(offset_y + int(structure_size.y) + 1), int16_t(50 + int(structure_size.z)), 0);
+		info.structures[i].max= i8vec4(int8_t(offset_x + int(structure_size.x)), int16_t(offset_y + int(structure_size.y) + 1), int8_t(50 + int(structure_size.z)), 0);
 
 		++info.num_structures;
 	}

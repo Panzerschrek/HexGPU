@@ -1,8 +1,8 @@
 struct ChunkStructureDescription
 {
 	// Coordinates - relative to chunk.
-	i16vec4 min; // w - structure kind id
-	i16vec4 max;
+	i8vec4 min; // w - structure kind id
+	i8vec4 max;
 };
 
 const uint c_max_chunk_structures= 24;

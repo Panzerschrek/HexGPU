@@ -26,6 +26,11 @@ layout(binding= 0, std430) buffer chunks_data_buffer
 	uint8_t chunks_data[];
 };
 
+layout(binding= 1, std430) buffer chunk_gen_info_buffer
+{
+	ChunkGenInfo chunk_gen_infos[];
+};
+
 int GetGroundLevel(int global_x, int global_y)
 {
 	// HACK. If not doing this, borders parallel to world X axis are to sharply.
@@ -79,6 +84,12 @@ void main()
 	for(int z= ground_z + 1; z < c_chunk_height; ++z)
 	{
 		chunks_data[column_offset + z]= c_block_type_air;
+	}
+
+	if(chunk_gen_infos[chunk_index].structures[0].min.xy == i16vec2(local_x, local_y))
+	{
+		for(int z= ground_z + 1; z < ground_z + 5; ++z)
+			chunks_data[column_offset + z]= c_block_type_wood;
 	}
 
 	// TODO - make water.

@@ -20,6 +20,7 @@ namespace ChunkGenPrepareShaderBindings
 namespace WorldGenShaderBindings
 {
 	const ShaderBindingIndex chunk_data_buffer= 0;
+	const ShaderBindingIndex chunk_gen_info_buffer= 1;
 }
 
 namespace InitialLightFillShaderBindings
@@ -191,6 +192,13 @@ ComputePipeline CreateWorldGenPipeline(const vk::Device vk_device)
 	{
 		{
 			WorldGenShaderBindings::chunk_data_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+		{
+			WorldGenShaderBindings::chunk_gen_info_buffer,
 			vk::DescriptorType::eStorageBuffer,
 			1u,
 			vk::ShaderStageFlagBits::eCompute,
@@ -539,7 +547,7 @@ WorldProcessor::WorldProcessor(
 	, chunk_gen_info_buffer_(
 		window_vulkan,
 		sizeof(ChunkGenInfo) * world_size_[0] * world_size_[1],
-		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferSrc)
+		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst)
 	, chunk_data_buffers_{
 		CreateChunkDataBuffer(window_vulkan, world_size_),
 		CreateChunkDataBuffer(window_vulkan, world_size_)}
@@ -646,6 +654,11 @@ WorldProcessor::WorldProcessor(
 			0u,
 			chunk_data_buffers_[i].GetSize());
 
+		const vk::DescriptorBufferInfo descriptor_chunk_gen_info_buffer(
+			chunk_gen_info_buffer_.GetBuffer(),
+			0u,
+			chunk_gen_info_buffer_.GetSize());
+
 		vk_device_.updateDescriptorSets(
 			{
 				{
@@ -656,6 +669,16 @@ WorldProcessor::WorldProcessor(
 					vk::DescriptorType::eStorageBuffer,
 					nullptr,
 					&descriptor_chunk_data_buffer_info,
+					nullptr
+				},
+				{
+					world_gen_descriptor_sets_[i],
+					WorldGenShaderBindings::chunk_gen_info_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_chunk_gen_info_buffer,
 					nullptr
 				},
 			},
@@ -1156,9 +1179,50 @@ void WorldProcessor::ReadBackAndProcessPlayerState()
 
 void WorldProcessor::InitialGenerateWorld(TaskOrganizer& task_organizer)
 {
+	TaskOrganizer::ComputeTaskParams chunk_gen_prepare_task;
+	chunk_gen_prepare_task.output_storage_buffers.push_back(chunk_gen_info_buffer_.GetBuffer());
+
+	const auto chunk_gen_prepare_task_func=
+		[this](const vk::CommandBuffer command_buffer)
+		{
+			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *chunk_gen_prepare_pipeline_.pipeline);
+
+			command_buffer.bindDescriptorSets(
+				vk::PipelineBindPoint::eCompute,
+				*chunk_gen_prepare_pipeline_.pipeline_layout,
+				0u,
+				{chunk_gen_prepare_descriptor_set_},
+				{});
+
+			for(uint32_t x= 0; x < world_size_[0]; ++x)
+			for(uint32_t y= 0; y < world_size_[1]; ++y)
+			{
+				ChunkGenPrepareUniforms uniforms;
+				uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+				uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+				uniforms.chunk_position[0]= int32_t(x);
+				uniforms.chunk_position[1]= int32_t(y);
+				uniforms.chunk_global_position[0]= world_offset_[0] + int32_t(x);
+				uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(y);
+				uniforms.seed= world_seed_;
+
+				command_buffer.pushConstants(
+					*chunk_gen_prepare_pipeline_.pipeline_layout,
+					vk::ShaderStageFlagBits::eCompute,
+					0,
+					sizeof(ChunkGenPrepareUniforms), static_cast<const void*>(&uniforms));
+
+				// For now perform single-threaded preparation.
+				command_buffer.dispatch(1, 1, 1);
+			}
+		};
+
+	task_organizer.ExecuteTask(chunk_gen_prepare_task, chunk_gen_prepare_task_func);
+
 	const uint32_t dst_buffer_index= GetDstBufferIndex();
 
 	TaskOrganizer::ComputeTaskParams world_gen_task;
+	world_gen_task.input_storage_buffers.push_back(chunk_gen_info_buffer_.GetBuffer());
 	world_gen_task.output_storage_buffers.push_back(chunk_data_buffers_[dst_buffer_index].GetBuffer());
 
 	const auto world_gen_task_func=
@@ -1419,9 +1483,53 @@ void WorldProcessor::GenerateWorld(
 	TaskOrganizer& task_organizer,
 	const RelativeWorldShiftChunks relative_world_shift)
 {
+	TaskOrganizer::ComputeTaskParams chunk_gen_prepare_task;
+	chunk_gen_prepare_task.output_storage_buffers.push_back(chunk_gen_info_buffer_.GetBuffer());
+
+	const auto chunk_gen_prepare_task_func=
+		[this, relative_world_shift](const vk::CommandBuffer command_buffer)
+		{
+			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *chunk_gen_prepare_pipeline_.pipeline);
+
+			command_buffer.bindDescriptorSets(
+				vk::PipelineBindPoint::eCompute,
+				*chunk_gen_prepare_pipeline_.pipeline_layout,
+				0u,
+				{chunk_gen_prepare_descriptor_set_},
+				{});
+
+			for(const auto& chunk_to_update : current_frame_chunks_to_update_list_)
+			{
+				const uint32_t chunk_index= chunk_to_update[0] + chunk_to_update[1] * world_size_[0];
+				if(chunks_upate_kind_[chunk_index] != ChunkUpdateKind::Generate)
+					continue;
+
+				ChunkGenPrepareUniforms uniforms;
+				uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+				uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+				uniforms.chunk_position[0]= int32_t(chunk_to_update[0]);
+				uniforms.chunk_position[1]= int32_t(chunk_to_update[1]);
+				uniforms.chunk_global_position[0]= world_offset_[0] + int32_t(chunk_to_update[0]) + relative_world_shift[0];
+				uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(chunk_to_update[1]) + relative_world_shift[1];
+				uniforms.seed= world_seed_;
+
+				command_buffer.pushConstants(
+					*chunk_gen_prepare_pipeline_.pipeline_layout,
+					vk::ShaderStageFlagBits::eCompute,
+					0,
+					sizeof(ChunkGenPrepareUniforms), static_cast<const void*>(&uniforms));
+
+				// For now perform single-threaded preparation.
+				command_buffer.dispatch(1, 1, 1);
+			}
+		};
+
+	task_organizer.ExecuteTask(chunk_gen_prepare_task, chunk_gen_prepare_task_func);
+
 	const uint32_t dst_buffer_index= GetDstBufferIndex();
 
 	TaskOrganizer::ComputeTaskParams world_gen_task;
+	world_gen_task.input_storage_buffers.push_back(chunk_gen_info_buffer_.GetBuffer());
 	world_gen_task.output_storage_buffers.push_back(chunk_data_buffers_[dst_buffer_index].GetBuffer());
 
 	const auto world_gen_task_func=
@@ -1449,6 +1557,7 @@ void WorldProcessor::GenerateWorld(
 				uniforms.chunk_position[1]= int32_t(chunk_to_update[1]);
 				uniforms.chunk_global_position[0]= world_offset_[0] + int32_t(chunk_to_update[0]) + relative_world_shift[0];
 				uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(chunk_to_update[1]) + relative_world_shift[1];
+				uniforms.seed= world_seed_;
 
 				command_buffer.pushConstants(
 					*world_gen_pipeline_.pipeline_layout,

@@ -77,7 +77,7 @@ void main()
 		if( min_xy.x >= c_chunk_width || max_xy.x <= 0 || min_xy.y >= c_chunk_width || max_xy.y <= 0)
 			continue; // This tree lies fully ootside this chunk.
 
-		int z= GetGroundLevel(tree_global_x, tree_global_y, seed);
+		int z= GetGroundLevel(tree_global_x, tree_global_y, seed) + 1;
 
 		ChunkStructureDescription chunk_structure;
 		chunk_structure.min= i8vec4(i8vec2(min_xy), int8_t(z), int8_t(structure_id));

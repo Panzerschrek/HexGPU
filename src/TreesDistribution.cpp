@@ -85,9 +85,6 @@ RangGen::result_type RandInRange(RangGen& gen, const uint32_t min, const uint32_
 
 TreeMap GenTreeMap(const uint32_t seed)
 {
-	const DistributionSize size= c_tree_map_size;
-
-	using RangGen= std::mt19937;
 	RangGen gen(seed);
 
 	std::vector<Point> points;
@@ -104,13 +101,13 @@ TreeMap GenTreeMap(const uint32_t seed)
 		const Point point
 		{
 			{
-				int32_t(RandUpTo(gen, size[0])),
-				int32_t(RandUpTo(gen, size[1])),
+				int32_t(RandUpTo(gen, c_tree_map_size[0])),
+				int32_t(RandUpTo(gen, c_tree_map_size[1])),
 			},
 			uint32_t(RandInRange(gen, c_min_radius, c_max_radius_plus_one)),
 		};
-		HEX_ASSERT(point.coord[0] >= 0 && point.coord[0] < int32_t(size[0]));
-		HEX_ASSERT(point.coord[1] >= 0 && point.coord[1] < int32_t(size[1]));
+		HEX_ASSERT(point.coord[0] >= 0 && point.coord[0] < int32_t(c_tree_map_size[0]));
+		HEX_ASSERT(point.coord[1] >= 0 && point.coord[1] < int32_t(c_tree_map_size[1]));
 
 		bool too_close= false;
 
@@ -120,10 +117,10 @@ TreeMap GenTreeMap(const uint32_t seed)
 			// Add wrapping.
 			for(uint32_t j= 0; j < 2; ++j)
 			{
-				if(prev_coord[j] - point.coord[j] >= +int32_t(size[j] / 2))
-					prev_coord[j]-= int32_t(size[j]);
-				if(prev_coord[j] - point.coord[j] <= -int32_t(size[j] / 2))
-					prev_coord[j]+= int32_t(size[j]);
+				if(prev_coord[j] - point.coord[j] >= +int32_t(c_tree_map_size[j] / 2))
+					prev_coord[j]-= int32_t(c_tree_map_size[j]);
+				if(prev_coord[j] - point.coord[j] <= -int32_t(c_tree_map_size[j] / 2))
+					prev_coord[j]+= int32_t(c_tree_map_size[j]);
 			}
 
 			const int32_t dist= HexDist(point.coord, prev_coord);
@@ -139,7 +136,7 @@ TreeMap GenTreeMap(const uint32_t seed)
 	}
 
 	if(false)
-		SaveTestDistribution(points, size);
+		SaveTestDistribution(points, c_tree_map_size);
 
 	// Make cell map from list of points.
 	TreeMap tree_map;

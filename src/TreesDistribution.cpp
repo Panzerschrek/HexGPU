@@ -17,7 +17,7 @@ CubeHexCoord GetCubeCoord(const std::array<int32_t, 2>& coord)
 {
 	// See https://www.redblobgames.com/grids/hexagons/#conversions.
 	const int32_t q= coord[0];
-	const int32_t r= coord[1] - ((coord[0] - (coord[0] & 1)) >> 1);
+	const int32_t r= coord[1] - ((coord[0] + (coord[0] & 1)) >> 1);
 	return {q, r, -q - r};
 }
 

@@ -97,6 +97,7 @@ void main()
 		chunks_data[column_offset + z]= c_block_type_air;
 	}
 
+	// Place structures (like trees).
 	uint num_structures= chunk_gen_infos[chunk_index].num_structures;
 	for(uint chunk_structure_index= 0; chunk_structure_index < num_structures; ++chunk_structure_index)
 	{
@@ -129,6 +130,5 @@ void main()
 	}
 
 	// TODO - make water.
-	// TODO - plant trees.
 	// TODO - make caves.
 }

@@ -6,6 +6,7 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 
 #include "inc/chunk_gen_info.glsl"
+#include "inc/constants.glsl"
 #include "inc/structures.glsl"
 #include "inc/trees_distribution.glsl"
 
@@ -34,25 +35,50 @@ layout(binding= 2, std430) buffer tree_map_buffer
 
 void main()
 {
-	ChunkGenInfo info;
-	info.num_structures= 0;
+	int chunk_index= chunk_position.x + chunk_position.y * world_size_chunks.x;
+	chunk_gen_infos[chunk_index].num_structures= 0;
 
-	for(int i= 0; i < 2; ++i)
+	const int c_cells_per_chunk[2]=
+		int[2](int(c_chunk_width >> c_tree_map_cell_size_log2[0]), int(c_chunk_width >> c_tree_map_cell_size_log2[1]));
+
+	int tree_grid_cell_start_x= chunk_global_position.x * c_cells_per_chunk[0];
+	int tree_grid_cell_start_y= chunk_global_position.y * c_cells_per_chunk[1];
+	int tree_grid_cell_end_x= tree_grid_cell_start_x + c_cells_per_chunk[0];
+	int tree_grid_cell_end_y= tree_grid_cell_start_y + c_cells_per_chunk[1];
+	for(int cell_y= tree_grid_cell_start_y; cell_y < tree_grid_cell_end_y; ++cell_y)
+	for(int cell_x= tree_grid_cell_start_x; cell_x < tree_grid_cell_end_x; ++cell_x)
 	{
-		uint8_t structure_id= uint8_t(i);
+		int cell_index=
+			(cell_x & int(c_tree_map_cell_grid_size[0] - 1)) +
+			(cell_y & int(c_tree_map_cell_grid_size[1] - 1)) * int(c_tree_map_cell_grid_size[0]);
+
+		TreeMapCell cell= tree_map.cells[cell_index];
+		if(cell.sequential_index == 0)
+			continue;
+
+		int tree_global_x= (cell_x << int(c_tree_map_cell_size_log2[0])) + int(cell.coord.x);
+		int tree_global_y= (cell_y << int(c_tree_map_cell_size_log2[1])) + int(cell.coord.y);
+
+		int tree_chunk_x= tree_global_x & (c_chunk_width - 1);
+		int tree_chunk_y= tree_global_y & (c_chunk_width - 1);
+
+		uint8_t structure_id= uint8_t(1);
 
 		u8vec4 structure_size= structure_descriptions[uint(structure_id)].size;
 
-		int offset_x= (chunk_global_position.y & 7) + (i * 4);
-		int offset_y= (chunk_global_position.x & 3) + (i * 8);
+		int offset_x= tree_chunk_x;
+		int offset_y= tree_chunk_y;
 
-		info.structures[i].min= i8vec4(int8_t(offset_x), int8_t(offset_y), int8_t(50), int8_t(structure_id));
+		ChunkStructureDescription chunk_structure;
+
+		chunk_structure.min= i8vec4(int8_t(offset_x), int8_t(offset_y), int8_t(50), int8_t(structure_id));
 		// Adding extra for y 1 is important here to handle shifted columns.
-		info.structures[i].max= i8vec4(int8_t(offset_x + int(structure_size.x)), int16_t(offset_y + int(structure_size.y) + 1), int8_t(50 + int(structure_size.z)), 0);
+		chunk_structure.max= i8vec4(int8_t(offset_x + int(structure_size.x)), int16_t(offset_y + int(structure_size.y) + 1), int8_t(50 + int(structure_size.z)), 0);
 
-		++info.num_structures;
+		chunk_gen_infos[chunk_index].structures[ chunk_gen_infos[chunk_index].num_structures ]= chunk_structure;
+		++chunk_gen_infos[chunk_index].num_structures;
+		if( chunk_gen_infos[chunk_index].num_structures >= c_max_chunk_structures)
+			return;
 	}
 
-	int chunk_index= chunk_position.x + chunk_position.y * world_size_chunks.x;
-	chunk_gen_infos[chunk_index]= info;
 }

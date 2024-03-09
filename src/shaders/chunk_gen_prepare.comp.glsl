@@ -9,6 +9,7 @@
 #include "inc/constants.glsl"
 #include "inc/structures.glsl"
 #include "inc/trees_distribution.glsl"
+#include "inc/world_gen_common.glsl"
 
 layout(push_constant) uniform uniforms_block
 {
@@ -75,9 +76,11 @@ void main()
 		if( min_xy.x >= c_chunk_width || max_xy.x <= 0 || min_xy.y >= c_chunk_width || max_xy.y <= 0)
 			continue; // This tree lies fully ootside this chunk.
 
+		int z= GetGroundLevel(tree_global_x, tree_global_y, seed);
+
 		ChunkStructureDescription chunk_structure;
-		chunk_structure.min= i8vec4(i8vec2(min_xy), int8_t(50), int8_t(structure_id));
-		chunk_structure.max= i8vec4(i8vec2(max_xy), int8_t(50 + int(structure_size.z)), 0);
+		chunk_structure.min= i8vec4(i8vec2(min_xy), int8_t(z), int8_t(structure_id));
+		chunk_structure.max= i8vec4(i8vec2(max_xy), int8_t(z + int(structure_size.z)), 0);
 
 		chunk_gen_infos[chunk_index].structures[ chunk_gen_infos[chunk_index].num_structures ]= chunk_structure;
 		++chunk_gen_infos[chunk_index].num_structures;

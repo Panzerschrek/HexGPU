@@ -7,8 +7,8 @@
 #include "inc/block_type.glsl"
 #include "inc/chunk_gen_info.glsl"
 #include "inc/hex_funcs.glsl"
-#include "inc/noise.glsl"
 #include "inc/structures.glsl"
+#include "inc/world_gen_common.glsl"
 
 // maxComputeWorkGroupInvocations is at least 128.
 // If this is changed, corresponding C++ code must be changed too!
@@ -42,27 +42,6 @@ layout(binding= 3, std430) buffer structures_data_buffer
 	uint8_t structures_data[];
 };
 
-int GetGroundLevel(int global_x, int global_y)
-{
-	// HACK. If not doing this, borders parallel to world X axis are to sharply.
-	int global_y_corrected= global_y - (global_x & 1);
-
-	// Add several octaves of triangle-interpolated noise.
-	// Use seed with offset to avoid fractal noise apperiance at world center (0, 0).
-	int noise=
-		(hex_TriangularInterpolatedNoiseDefault(global_y_corrected, global_x, seed + 0, 6)     ) +
-		(hex_TriangularInterpolatedNoiseDefault(global_y_corrected, global_x, seed + 1, 5) >> 1) +
-		(hex_TriangularInterpolatedNoiseDefault(global_y_corrected, global_x, seed + 2, 4) >> 2) +
-		(hex_TriangularInterpolatedNoiseDefault(global_y_corrected, global_x, seed + 3, 3) >> 3);
-
-	// TODO - scale result noise depending on current biome.
-	int noise_scaled= noise >> 11;
-
-	int base_ground_value= 2; // TODO - choose base value depending on current biome.
-
-	return max(3, min(base_ground_value + noise_scaled, c_chunk_height - 2));
-}
-
 void main()
 {
 	int chunk_index= chunk_position.x + chunk_position.y * world_size_chunks.x;
@@ -73,7 +52,7 @@ void main()
 	int global_x= (chunk_global_position.x << c_chunk_width_log2) + local_x;
 	int global_y= (chunk_global_position.y << c_chunk_width_log2) + local_y;
 
-	int ground_z= GetGroundLevel(global_x, global_y);
+	int ground_z= GetGroundLevel(global_x, global_y, seed);
 
 	int column_offset= chunk_data_offset + ChunkBlockAddress(ivec3(local_x, local_y, 0));
 

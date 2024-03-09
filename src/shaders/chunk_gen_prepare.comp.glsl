@@ -56,7 +56,7 @@ void main()
 
 		TreeMapCell cell= tree_map.cells[cell_index];
 		if(cell.sequential_index == 0)
-			continue;
+			continue; // This cell contains no point.
 
 		int tree_global_x= (cell_x << int(c_tree_map_cell_size_log2[0])) + int(cell.coord.x);
 		int tree_global_y= (cell_y << int(c_tree_map_cell_size_log2[1])) + int(cell.coord.y);
@@ -75,7 +75,7 @@ void main()
 		ivec2 max_xy= min_xy + ivec2(int(structure_size.x), int(structure_size.y) + 1);
 
 		if( min_xy.x >= c_chunk_width || max_xy.x <= 0 || min_xy.y >= c_chunk_width || max_xy.y <= 0)
-			continue; // This tree lies fully ootside this chunk.
+			continue; // This tree lies fully outside this chunk.
 
 		int z= GetGroundLevel(tree_global_x, tree_global_y, seed) + 1;
 

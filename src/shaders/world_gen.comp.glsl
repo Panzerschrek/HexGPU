@@ -61,9 +61,7 @@ void main()
 
 	// Place stone up to the ground layer.
 	for(int z= 1; z < ground_z - 2; ++z)
-	{
 		chunks_data[column_offset + z]= c_block_type_stone;
-	}
 
 	// TODO - make soil layer variable-height.
 	chunks_data[column_offset + ground_z - 2]= c_block_type_soil;
@@ -72,35 +70,35 @@ void main()
 
 	// Fill remaining space with air.
 	for(int z= ground_z + 1; z < c_chunk_height; ++z)
-	{
 		chunks_data[column_offset + z]= c_block_type_air;
-	}
 
 	// Place structures (like trees).
 	uint num_structures= chunk_gen_infos[chunk_index].num_structures;
 	for(uint chunk_structure_index= 0; chunk_structure_index < num_structures; ++chunk_structure_index)
 	{
 		ChunkStructureDescription chunk_structure_description= chunk_gen_infos[chunk_index].structures[chunk_structure_index];
-		uint strukcture_kind_index= uint(chunk_structure_description.min.w);
-		StructureDescription structure_description= structure_descriptions[strukcture_kind_index];
+
 		if( local_x >= chunk_structure_description.min.x && local_x < chunk_structure_description.max.x &&
 			local_y >= chunk_structure_description.min.y && local_y < chunk_structure_description.max.y)
 		{
+			uint strukcture_kind_index= uint(chunk_structure_description.min.w);
+			StructureDescription structure_description= structure_descriptions[strukcture_kind_index];
+
 			int rel_x= local_x - chunk_structure_description.min.x;
 			int rel_y= local_y - chunk_structure_description.min.y;
 			if((chunk_structure_description.min.x & 1) != 0 && (rel_x & 1) == 0)
-			{
 				--rel_y;
-			}
+
 			if(rel_y >= 0 && rel_y < int(structure_description.size.y))
 			{
 				int column_data_offset=
 					int(structure_description.data_offset) +
 					rel_y * structure_description.size.z + rel_x * (structure_description.size.z * structure_description.size.y);
+
+				// Fill column of this structure.
 				for(int z= chunk_structure_description.min.z; z < chunk_structure_description.max.z; ++z)
 				{
 					int rel_z= z - chunk_structure_description.min.z;
-					int structure_block_offset= rel_z + rel_y * structure_description.size.z + rel_x * (structure_description.size.z * structure_description.size.y);
 
 					// TODO - generalize this - use some sort of replace priority table.
 

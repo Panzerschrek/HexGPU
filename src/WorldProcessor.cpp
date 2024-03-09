@@ -12,6 +12,11 @@ namespace HexGPU
 namespace
 {
 
+namespace ChunkGenPrepareShaderBindings
+{
+	const ShaderBindingIndex chunk_gen_info_buffer= 0;
+}
+
 namespace WorldGenShaderBindings
 {
 	const ShaderBindingIndex chunk_data_buffer= 0;
@@ -55,6 +60,14 @@ namespace WorldBlocksExternalUpdateQueueFlushShaderBindigns
 	const ShaderBindingIndex chunk_data_buffer= 0;
 	const ShaderBindingIndex world_blocks_external_update_queue_buffer= 1;
 }
+
+struct ChunkGenPrepareUniforms
+{
+	int32_t world_size_chunks[2]{};
+	int32_t chunk_position[2]{};
+	int32_t chunk_global_position[2]{};
+	int32_t seed= 0;
+};
 
 // This constant should match workgroup size in shader!
 constexpr uint32_t c_world_gen_workgroup_size[]{8, 16, 1};
@@ -128,6 +141,44 @@ WorldSizeChunks ReadWorldSize(Settings& settings)
 	Log::Info("World size is ", world_size_x, "x", world_size_y, " chunks");
 
 	return WorldSizeChunks{uint32_t(world_size_x), uint32_t(world_size_y)};
+}
+
+ComputePipeline CreateChunkGenPreparePipeline(const vk::Device vk_device)
+{
+	ComputePipeline pipeline;
+
+	pipeline.shader= CreateShader(vk_device, ShaderNames::chunk_gen_prepare_comp);
+
+	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
+	{
+		{
+			ChunkGenPrepareShaderBindings::chunk_gen_info_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+	};
+
+	pipeline.descriptor_set_layout= vk_device.createDescriptorSetLayoutUnique(
+		vk::DescriptorSetLayoutCreateInfo(
+			vk::DescriptorSetLayoutCreateFlags(),
+			uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
+
+	const vk::PushConstantRange push_constant_range(
+		vk::ShaderStageFlagBits::eCompute,
+		0u,
+		sizeof(ChunkGenPrepareUniforms));
+
+	pipeline.pipeline_layout= vk_device.createPipelineLayoutUnique(
+		vk::PipelineLayoutCreateInfo(
+			vk::PipelineLayoutCreateFlags(),
+			1u, &*pipeline.descriptor_set_layout,
+			1u, &push_constant_range));
+
+	pipeline.pipeline= CreateComputePipeline(vk_device, *pipeline.shader, *pipeline.pipeline_layout);
+
+	return pipeline;
 }
 
 ComputePipeline CreateWorldGenPipeline(const vk::Device vk_device)
@@ -485,6 +536,10 @@ WorldProcessor::WorldProcessor(
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, world_size_(ReadWorldSize(settings))
 	, world_seed_(int32_t(settings.GetOrSetInt("g_world_seed")))
+	, chunk_gen_info_buffer_(
+		window_vulkan,
+		sizeof(ChunkGenInfo) * world_size_[0] * world_size_[1],
+		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferSrc)
 	, chunk_data_buffers_{
 		CreateChunkDataBuffer(window_vulkan, world_size_),
 		CreateChunkDataBuffer(window_vulkan, world_size_)}
@@ -510,6 +565,9 @@ WorldProcessor::WorldProcessor(
 		vk::BufferUsageFlagBits::eTransferDst,
 		vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
 	, player_state_read_back_buffer_mapped_(player_state_read_back_buffer_.Map(window_vulkan.GetVulkanDevice()))
+	, chunk_gen_prepare_pipeline_(CreateChunkGenPreparePipeline(vk_device_))
+	, chunk_gen_prepare_descriptor_set_(
+		CreateDescriptorSet(vk_device_, global_descriptor_pool, *chunk_gen_prepare_pipeline_.descriptor_set_layout))
 	, world_gen_pipeline_(CreateWorldGenPipeline(vk_device_))
 	, world_gen_descriptor_sets_{
 		CreateDescriptorSet(vk_device_, global_descriptor_pool, *world_gen_pipeline_.descriptor_set_layout),
@@ -556,6 +614,29 @@ WorldProcessor::WorldProcessor(
 	HEX_ASSERT(player_state_read_back_buffer_num_frames_ > 0);
 
 	Log::Info("World seed: ", world_seed_);
+
+	// Update chunk gen prepare descriptor set.
+	{
+		const vk::DescriptorBufferInfo descriptor_chunk_gen_info_buffer(
+			chunk_gen_info_buffer_.GetBuffer(),
+			0u,
+			chunk_gen_info_buffer_.GetSize());
+
+		vk_device_.updateDescriptorSets(
+			{
+				{
+					chunk_gen_prepare_descriptor_set_,
+					ChunkGenPrepareShaderBindings::chunk_gen_info_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_chunk_gen_info_buffer,
+					nullptr
+				},
+			},
+			{});
+	}
 
 	// Update world generation descriptor sets.
 	for(uint32_t i= 0; i < 2; ++i)
@@ -985,6 +1066,7 @@ void WorldProcessor::InitialFillBuffers(TaskOrganizer& task_organizer)
 	initial_buffers_filled_= true;
 
 	TaskOrganizer::TransferTaskParams task;
+	task.output_buffers.push_back(chunk_gen_info_buffer_.GetBuffer());
 	task.output_buffers.push_back(chunk_data_buffers_[0].GetBuffer());
 	task.output_buffers.push_back(chunk_data_buffers_[1].GetBuffer());
 	task.output_buffers.push_back(light_buffers_[0].GetBuffer());
@@ -997,6 +1079,8 @@ void WorldProcessor::InitialFillBuffers(TaskOrganizer& task_organizer)
 	const auto task_func=
 		[this](const vk::CommandBuffer command_buffer)
 		{
+			command_buffer.fillBuffer(chunk_gen_info_buffer_.GetBuffer(), 0, chunk_gen_info_buffer_.GetSize(), 0);
+
 			// Zero chunk data buffers in order to prevent bugs with uninitialized memory.
 			for(uint32_t i= 0; i < 2; ++i)
 				command_buffer.fillBuffer(chunk_data_buffers_[i].GetBuffer(), 0, chunk_data_buffers_[i].GetSize(), 0);

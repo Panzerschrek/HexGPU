@@ -5,6 +5,7 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 
 #include "inc/block_type.glsl"
+#include "inc/chunk_gen_info.glsl"
 #include "inc/hex_funcs.glsl"
 #include "inc/noise.glsl"
 

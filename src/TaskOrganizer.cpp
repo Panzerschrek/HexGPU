@@ -454,7 +454,7 @@ TaskOrganizer::ImageSyncInfo TaskOrganizer::GetSyncInfoForLastImageUsage(const v
 {
 	if(const auto usage= GetLastImageUsage(image))
 		return GetSyncInfoForImageUsage(*usage);
-	return {vk::AccessFlags(), vk::PipelineStageFlagBits(), vk::ImageLayout::eUndefined};
+	return {vk::AccessFlags(), vk::PipelineStageFlagBits::eBottomOfPipe, vk::ImageLayout::eUndefined};
 }
 
 TaskOrganizer::ImageSyncInfo TaskOrganizer::GetSyncInfoForImageUsage(const ImageUsage usage)

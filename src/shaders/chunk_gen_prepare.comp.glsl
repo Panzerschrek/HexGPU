@@ -33,7 +33,7 @@ void main()
 
 	for(int i= 0; i < 2; ++i)
 	{
-		uint8_t structure_id= uint8_t(0);
+		uint8_t structure_id= uint8_t(i);
 
 		u8vec4 structure_size= structure_descriptions[uint(structure_id)].size;
 

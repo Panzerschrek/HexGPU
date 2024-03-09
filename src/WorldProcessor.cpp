@@ -1201,7 +1201,7 @@ void WorldProcessor::InitialFillBuffers(TaskOrganizer& task_organizer)
 		[this](const vk::CommandBuffer command_buffer)
 		{
 			{
-				const TreeMap tree_map= GenTreeMap();
+				const TreeMap tree_map= GenTreeMap(world_seed_);
 				command_buffer.updateBuffer(
 					tree_map_buffer_.GetBuffer(),
 					0,

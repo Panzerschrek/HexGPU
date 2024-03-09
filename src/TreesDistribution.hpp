@@ -41,6 +41,6 @@ struct TreeMapCell
 
 using TreeMap= std::array<TreeMapCell, c_tree_map_cell_grid_size[0] * c_tree_map_cell_grid_size[1]>;
 
-TreeMap GenTreeMap();
+TreeMap GenTreeMap(uint32_t seed);
 
 } // namespace HexGPU

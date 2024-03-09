@@ -83,12 +83,11 @@ RangGen::result_type RandInRange(RangGen& gen, const uint32_t min, const uint32_
 
 } // namespace
 
-TreeMap GenTreeMap()
+TreeMap GenTreeMap(const uint32_t seed)
 {
 	const DistributionSize size= c_tree_map_size;
 
 	using RangGen= std::mt19937;
-	const RangGen::result_type seed= 0;
 	RangGen gen(seed);
 
 	std::vector<Point> points;

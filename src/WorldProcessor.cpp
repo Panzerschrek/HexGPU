@@ -21,6 +21,8 @@ namespace WorldGenShaderBindings
 {
 	const ShaderBindingIndex chunk_data_buffer= 0;
 	const ShaderBindingIndex chunk_gen_info_buffer= 1;
+	const ShaderBindingIndex structure_descriptions_buffer= 2;
+	const ShaderBindingIndex structures_data_buffer= 3;
 }
 
 namespace InitialLightFillShaderBindings
@@ -199,6 +201,20 @@ ComputePipeline CreateWorldGenPipeline(const vk::Device vk_device)
 		},
 		{
 			WorldGenShaderBindings::chunk_gen_info_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+		{
+			WorldGenShaderBindings::structure_descriptions_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+		{
+			WorldGenShaderBindings::structures_data_buffer,
 			vk::DescriptorType::eStorageBuffer,
 			1u,
 			vk::ShaderStageFlagBits::eCompute,
@@ -660,6 +676,16 @@ WorldProcessor::WorldProcessor(
 			0u,
 			chunk_gen_info_buffer_.GetSize());
 
+		const vk::DescriptorBufferInfo descriptor_structure_descriptions_buffer(
+			structures_buffer_.GetDescriptionsBuffer(),
+			0u,
+			structures_buffer_.GetDescriptionsBufferSize());
+
+		const vk::DescriptorBufferInfo descriptor_structures_data_buffer(
+			structures_buffer_.GetDataBuffer(),
+			0u,
+			structures_buffer_.GetDataBufferSize());
+
 		vk_device_.updateDescriptorSets(
 			{
 				{
@@ -680,6 +706,26 @@ WorldProcessor::WorldProcessor(
 					vk::DescriptorType::eStorageBuffer,
 					nullptr,
 					&descriptor_chunk_gen_info_buffer,
+					nullptr
+				},
+				{
+					world_gen_descriptor_sets_[i],
+					WorldGenShaderBindings::structure_descriptions_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_structure_descriptions_buffer,
+					nullptr
+				},
+				{
+					world_gen_descriptor_sets_[i],
+					WorldGenShaderBindings::structures_data_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_structures_data_buffer,
 					nullptr
 				},
 			},
@@ -1224,6 +1270,8 @@ void WorldProcessor::InitialGenerateWorld(TaskOrganizer& task_organizer)
 
 	TaskOrganizer::ComputeTaskParams world_gen_task;
 	world_gen_task.input_storage_buffers.push_back(chunk_gen_info_buffer_.GetBuffer());
+	world_gen_task.input_storage_buffers.push_back(structures_buffer_.GetDescriptionsBuffer());
+	world_gen_task.input_storage_buffers.push_back(structures_buffer_.GetDataBuffer());
 	world_gen_task.output_storage_buffers.push_back(chunk_data_buffers_[dst_buffer_index].GetBuffer());
 
 	const auto world_gen_task_func=
@@ -1531,6 +1579,8 @@ void WorldProcessor::GenerateWorld(
 
 	TaskOrganizer::ComputeTaskParams world_gen_task;
 	world_gen_task.input_storage_buffers.push_back(chunk_gen_info_buffer_.GetBuffer());
+	world_gen_task.input_storage_buffers.push_back(structures_buffer_.GetDescriptionsBuffer());
+	world_gen_task.input_storage_buffers.push_back(structures_buffer_.GetDataBuffer());
 	world_gen_task.output_storage_buffers.push_back(chunk_data_buffers_[dst_buffer_index].GetBuffer());
 
 	const auto world_gen_task_func=

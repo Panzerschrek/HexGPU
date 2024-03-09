@@ -8,6 +8,7 @@
 #include "inc/chunk_gen_info.glsl"
 #include "inc/hex_funcs.glsl"
 #include "inc/noise.glsl"
+#include "inc/structures.glsl"
 
 // maxComputeWorkGroupInvocations is at least 128.
 // If this is changed, corresponding C++ code must be changed too!
@@ -29,6 +30,16 @@ layout(binding= 0, std430) buffer chunks_data_buffer
 layout(binding= 1, std430) buffer chunk_gen_info_buffer
 {
 	ChunkGenInfo chunk_gen_infos[];
+};
+
+layout(binding= 2, std430) buffer structure_descriptions_buffer
+{
+	StructureDescription structure_descriptions[];
+};
+
+layout(binding= 3, std430) buffer structures_data_buffer
+{
+	uint8_t structures_data[];
 };
 
 int GetGroundLevel(int global_x, int global_y)
@@ -86,10 +97,25 @@ void main()
 		chunks_data[column_offset + z]= c_block_type_air;
 	}
 
-	if(chunk_gen_infos[chunk_index].structures[0].min.xy == i16vec2(local_x, local_y))
+	uint num_structures= chunk_gen_infos[chunk_index].num_structures;
+	for(uint chunk_structure_index= 0; chunk_structure_index < num_structures; ++chunk_structure_index)
 	{
-		for(int z= ground_z + 1; z < ground_z + 5; ++z)
-			chunks_data[column_offset + z]= c_block_type_wood;
+		ChunkStructureDescription chunk_structure_description= chunk_gen_infos[chunk_index].structures[chunk_structure_index];
+		uint strukcture_kind_index= 0;
+		StructureDescription structure_description= structure_descriptions[strukcture_kind_index];
+		if( local_x >= chunk_structure_description.min.x && local_x < chunk_structure_description.max.x &&
+			local_y >= chunk_structure_description.min.y && local_y < chunk_structure_description.max.y)
+		{
+			int rel_x= local_x - chunk_structure_description.min.x;
+			int rel_y= local_y - chunk_structure_description.min.y;
+			for(int z= chunk_structure_description.min.z; z < chunk_structure_description.max.z; ++z)
+			{
+				int rel_z= z - chunk_structure_description.min.z;
+				int structure_block_offset= rel_z + rel_y * structure_description.size[2] + rel_x * (structure_description.size[2] * structure_description.size[1]);
+
+				chunks_data[column_offset + z]= structures_data[structure_description.data_offset + structure_block_offset];
+			}
+		}
 	}
 
 	// TODO - make water.

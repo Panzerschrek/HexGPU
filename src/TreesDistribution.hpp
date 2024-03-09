@@ -35,8 +35,8 @@ constexpr std::array<uint32_t, 2> c_tree_map_cell_grid_size
 // This struct must match the same struct in GLSL code!
 struct TreeMapCell
 {
-	uint32_t sequential_index= 0; // Index of this point. If 0 - this cell contains no point.
-	uint16_t coord[2]{}; // Coordinates relative to tree map start.
+	uint16_t sequential_index= 0; // Index of this point. If 0 - this cell contains no point.
+	uint8_t coord[2]{}; // Coordinates relative to cell.
 };
 
 using TreeMap= std::array<TreeMapCell, c_tree_map_cell_grid_size[0] * c_tree_map_cell_grid_size[1]>;

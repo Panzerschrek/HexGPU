@@ -144,6 +144,7 @@ TreeMap GenTreeMap()
 
 	// Make cell map from list of points.
 	TreeMap tree_map;
+	HEX_ASSERT(points.size() < 65535);
 	for(size_t i= 0; i < points.size(); ++i)
 	{
 		const Point& point= points[i];
@@ -158,9 +159,9 @@ TreeMap GenTreeMap()
 		TreeMapCell& cell= tree_map[cell_coord[0] + cell_coord[1] * c_tree_map_cell_grid_size[0]];
 		HEX_ASSERT(cell.sequential_index == 0); // Should produce no more than 1 point per cell.
 
-		cell.sequential_index= uint32_t(i + 1); // Skip 0 - no point indicator.
-		cell.coord[0]= uint16_t(point.coord[0]);
-		cell.coord[1]= uint16_t(point.coord[1]);
+		cell.sequential_index= uint16_t(i + 1); // Skip 0 - no point indicator.
+		cell.coord[0]= uint8_t(point.coord[0] & (c_tree_map_cell_size[0] - 1));
+		cell.coord[1]= uint8_t(point.coord[1] & (c_tree_map_cell_size[1] - 1));
 	}
 
 	return tree_map;

@@ -108,12 +108,22 @@ void main()
 		{
 			int rel_x= local_x - chunk_structure_description.min.x;
 			int rel_y= local_y - chunk_structure_description.min.y;
-			for(int z= chunk_structure_description.min.z; z < chunk_structure_description.max.z; ++z)
+			if((chunk_structure_description.min.x & 1) != 0 && (rel_x & 1) == 0)
 			{
-				int rel_z= z - chunk_structure_description.min.z;
-				int structure_block_offset= rel_z + rel_y * structure_description.size[2] + rel_x * (structure_description.size[2] * structure_description.size[1]);
+				--rel_y;
+			}
+			if(rel_y >= 0 && rel_y < int(structure_description.size.y))
+			{
+				int column_data_offset=
+					int(structure_description.data_offset) +
+					rel_y * structure_description.size.z + rel_x * (structure_description.size.z * structure_description.size.y);
+				for(int z= chunk_structure_description.min.z; z < chunk_structure_description.max.z; ++z)
+				{
+					int rel_z= z - chunk_structure_description.min.z;
+					int structure_block_offset= rel_z + rel_y * structure_description.size.z + rel_x * (structure_description.size.z * structure_description.size.y);
 
-				chunks_data[column_offset + z]= structures_data[structure_description.data_offset + structure_block_offset];
+					chunks_data[column_offset + z]= structures_data[column_data_offset + rel_z];
+				}
 			}
 		}
 	}

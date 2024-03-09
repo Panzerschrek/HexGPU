@@ -15,6 +15,7 @@ namespace
 namespace ChunkGenPrepareShaderBindings
 {
 	const ShaderBindingIndex chunk_gen_info_buffer= 0;
+	const ShaderBindingIndex structure_descriptions_buffer= 1;
 }
 
 namespace WorldGenShaderBindings
@@ -156,6 +157,13 @@ ComputePipeline CreateChunkGenPreparePipeline(const vk::Device vk_device)
 	{
 		{
 			ChunkGenPrepareShaderBindings::chunk_gen_info_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+		{
+			ChunkGenPrepareShaderBindings::structure_descriptions_buffer,
 			vk::DescriptorType::eStorageBuffer,
 			1u,
 			vk::ShaderStageFlagBits::eCompute,
@@ -647,6 +655,11 @@ WorldProcessor::WorldProcessor(
 			0u,
 			chunk_gen_info_buffer_.GetSize());
 
+		const vk::DescriptorBufferInfo descriptor_structure_descriptions_buffer(
+			structures_buffer_.GetDescriptionsBuffer(),
+			0u,
+			structures_buffer_.GetDescriptionsBufferSize());
+
 		vk_device_.updateDescriptorSets(
 			{
 				{
@@ -657,6 +670,16 @@ WorldProcessor::WorldProcessor(
 					vk::DescriptorType::eStorageBuffer,
 					nullptr,
 					&descriptor_chunk_gen_info_buffer,
+					nullptr
+				},
+				{
+					chunk_gen_prepare_descriptor_set_,
+					ChunkGenPrepareShaderBindings::structure_descriptions_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_structure_descriptions_buffer,
 					nullptr
 				},
 			},
@@ -1227,6 +1250,7 @@ void WorldProcessor::ReadBackAndProcessPlayerState()
 void WorldProcessor::InitialGenerateWorld(TaskOrganizer& task_organizer)
 {
 	TaskOrganizer::ComputeTaskParams chunk_gen_prepare_task;
+	chunk_gen_prepare_task.input_storage_buffers.push_back(structures_buffer_.GetDescriptionsBuffer());
 	chunk_gen_prepare_task.output_storage_buffers.push_back(chunk_gen_info_buffer_.GetBuffer());
 
 	const auto chunk_gen_prepare_task_func=
@@ -1533,6 +1557,7 @@ void WorldProcessor::GenerateWorld(
 	const RelativeWorldShiftChunks relative_world_shift)
 {
 	TaskOrganizer::ComputeTaskParams chunk_gen_prepare_task;
+	chunk_gen_prepare_task.input_storage_buffers.push_back(structures_buffer_.GetDescriptionsBuffer());
 	chunk_gen_prepare_task.output_storage_buffers.push_back(chunk_gen_info_buffer_.GetBuffer());
 
 	const auto chunk_gen_prepare_task_func=

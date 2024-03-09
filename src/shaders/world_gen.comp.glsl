@@ -101,7 +101,7 @@ void main()
 	for(uint chunk_structure_index= 0; chunk_structure_index < num_structures; ++chunk_structure_index)
 	{
 		ChunkStructureDescription chunk_structure_description= chunk_gen_infos[chunk_index].structures[chunk_structure_index];
-		uint strukcture_kind_index= 0;
+		uint strukcture_kind_index= uint(chunk_structure_description.min.w);
 		StructureDescription structure_description= structure_descriptions[strukcture_kind_index];
 		if( local_x >= chunk_structure_description.min.x && local_x < chunk_structure_description.max.x &&
 			local_y >= chunk_structure_description.min.y && local_y < chunk_structure_description.max.y)

@@ -1,7 +1,7 @@
 struct ChunkStructureDescription
 {
 	// Coordinates - relative to chunk.
-	i16vec4 min;
+	i16vec4 min; // w - structure kind id
 	i16vec4 max;
 };
 

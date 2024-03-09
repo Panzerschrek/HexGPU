@@ -1,26 +1,12 @@
 #pragma once
 #include "Buffer.hpp"
-#include "BlockType.hpp"
+#include "Structures.hpp"
 
 namespace HexGPU
 {
 
 class StructuresBuffer
 {
-public:
-	// This struct must match the same struct in GLSL code!
-	struct StructureDescription
-	{
-		uint8_t size[4]{};
-		uint32_t data_offset= 0;
-	};
-
-	struct Structures
-	{
-		std::vector<StructuresBuffer::StructureDescription> descriptions;
-		std::vector<BlockType> data;
-	};
-
 public:
 	StructuresBuffer(WindowVulkan& window_vulkan, const Structures& structures);
 	~StructuresBuffer();

@@ -544,6 +544,7 @@ WorldProcessor::WorldProcessor(
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, world_size_(ReadWorldSize(settings))
 	, world_seed_(int32_t(settings.GetOrSetInt("g_world_seed")))
+	, structures_buffer_(window_vulkan, GenStructures())
 	, chunk_gen_info_buffer_(
 		window_vulkan,
 		sizeof(ChunkGenInfo) * world_size_[0] * world_size_[1],

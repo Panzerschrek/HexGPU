@@ -4,8 +4,8 @@
 #include "Keyboard.hpp"
 #include "Mouse.hpp"
 #include "Pipeline.hpp"
+#include "StructuresBuffer.hpp"
 #include "TaskOrganizer.hpp"
-#include "WindowVulkan.hpp"
 
 namespace HexGPU
 {
@@ -133,6 +133,8 @@ private:
 
 	const WorldSizeChunks world_size_;
 	const int32_t world_seed_;
+
+	const StructuresBuffer structures_buffer_;
 
 	const Buffer chunk_gen_info_buffer_;
 

@@ -16,6 +16,7 @@ namespace ChunkGenPrepareShaderBindings
 {
 	const ShaderBindingIndex chunk_gen_info_buffer= 0;
 	const ShaderBindingIndex structure_descriptions_buffer= 1;
+	const ShaderBindingIndex tree_map_buffer= 2;
 }
 
 namespace WorldGenShaderBindings
@@ -164,6 +165,13 @@ ComputePipeline CreateChunkGenPreparePipeline(const vk::Device vk_device)
 		},
 		{
 			ChunkGenPrepareShaderBindings::structure_descriptions_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+		{
+			ChunkGenPrepareShaderBindings::tree_map_buffer,
 			vk::DescriptorType::eStorageBuffer,
 			1u,
 			vk::ShaderStageFlagBits::eCompute,
@@ -569,6 +577,10 @@ WorldProcessor::WorldProcessor(
 	, world_size_(ReadWorldSize(settings))
 	, world_seed_(int32_t(settings.GetOrSetInt("g_world_seed")))
 	, structures_buffer_(window_vulkan, GenStructures())
+	, tree_map_buffer_(
+		window_vulkan,
+		sizeof(TreeMap),
+		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst)
 	, chunk_gen_info_buffer_(
 		window_vulkan,
 		sizeof(ChunkGenInfo) * world_size_[0] * world_size_[1],
@@ -660,6 +672,11 @@ WorldProcessor::WorldProcessor(
 			0u,
 			structures_buffer_.GetDescriptionsBufferSize());
 
+		const vk::DescriptorBufferInfo descriptor_tree_map_buffer(
+			tree_map_buffer_.GetBuffer(),
+			0u,
+			tree_map_buffer_.GetSize());
+
 		vk_device_.updateDescriptorSets(
 			{
 				{
@@ -680,6 +697,16 @@ WorldProcessor::WorldProcessor(
 					vk::DescriptorType::eStorageBuffer,
 					nullptr,
 					&descriptor_structure_descriptions_buffer,
+					nullptr
+				},
+				{
+					chunk_gen_prepare_descriptor_set_,
+					ChunkGenPrepareShaderBindings::tree_map_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_tree_map_buffer,
 					nullptr
 				},
 			},
@@ -1159,6 +1186,7 @@ void WorldProcessor::InitialFillBuffers(TaskOrganizer& task_organizer)
 	initial_buffers_filled_= true;
 
 	TaskOrganizer::TransferTaskParams task;
+	task.output_buffers.push_back(tree_map_buffer_.GetBuffer());
 	task.output_buffers.push_back(chunk_gen_info_buffer_.GetBuffer());
 	task.output_buffers.push_back(chunk_data_buffers_[0].GetBuffer());
 	task.output_buffers.push_back(chunk_data_buffers_[1].GetBuffer());
@@ -1172,6 +1200,15 @@ void WorldProcessor::InitialFillBuffers(TaskOrganizer& task_organizer)
 	const auto task_func=
 		[this](const vk::CommandBuffer command_buffer)
 		{
+			{
+				const TreeMap tree_map= GenTreeMap();
+				command_buffer.updateBuffer(
+					tree_map_buffer_.GetBuffer(),
+					0,
+					sizeof(TreeMap),
+					static_cast<const void*>(&tree_map));
+			}
+
 			command_buffer.fillBuffer(chunk_gen_info_buffer_.GetBuffer(), 0, chunk_gen_info_buffer_.GetSize(), 0);
 
 			// Zero chunk data buffers in order to prevent bugs with uninitialized memory.
@@ -1251,6 +1288,7 @@ void WorldProcessor::InitialGenerateWorld(TaskOrganizer& task_organizer)
 {
 	TaskOrganizer::ComputeTaskParams chunk_gen_prepare_task;
 	chunk_gen_prepare_task.input_storage_buffers.push_back(structures_buffer_.GetDescriptionsBuffer());
+	chunk_gen_prepare_task.input_storage_buffers.push_back(tree_map_buffer_.GetBuffer());
 	chunk_gen_prepare_task.output_storage_buffers.push_back(chunk_gen_info_buffer_.GetBuffer());
 
 	const auto chunk_gen_prepare_task_func=
@@ -1558,6 +1596,7 @@ void WorldProcessor::GenerateWorld(
 {
 	TaskOrganizer::ComputeTaskParams chunk_gen_prepare_task;
 	chunk_gen_prepare_task.input_storage_buffers.push_back(structures_buffer_.GetDescriptionsBuffer());
+	chunk_gen_prepare_task.input_storage_buffers.push_back(tree_map_buffer_.GetBuffer());
 	chunk_gen_prepare_task.output_storage_buffers.push_back(chunk_gen_info_buffer_.GetBuffer());
 
 	const auto chunk_gen_prepare_task_func=

@@ -7,6 +7,7 @@
 
 #include "inc/chunk_gen_info.glsl"
 #include "inc/structures.glsl"
+#include "inc/trees_distribution.glsl"
 
 layout(push_constant) uniform uniforms_block
 {
@@ -24,6 +25,11 @@ layout(binding= 0, std430) buffer chunk_gen_info_buffer
 layout(binding= 1, std430) buffer structure_descriptions_buffer
 {
 	StructureDescription structure_descriptions[];
+};
+
+layout(binding= 2, std430) buffer tree_map_buffer
+{
+	TreeMap tree_map;
 };
 
 void main()

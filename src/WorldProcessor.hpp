@@ -6,6 +6,7 @@
 #include "Pipeline.hpp"
 #include "StructuresBuffer.hpp"
 #include "TaskOrganizer.hpp"
+#include "TreesDistribution.hpp"
 
 namespace HexGPU
 {
@@ -136,6 +137,7 @@ private:
 
 	const StructuresBuffer structures_buffer_;
 
+	const Buffer tree_map_buffer_;
 	const Buffer chunk_gen_info_buffer_;
 
 	// Use double buffering for world update.

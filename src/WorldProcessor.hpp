@@ -89,7 +89,7 @@ private:
 		int8_t max[4]{};
 	};
 
-	static constexpr uint32_t c_max_chunk_structures= 24;
+	static constexpr uint32_t c_max_chunk_structures= 32;
 
 	struct ChunkGenInfo
 	{

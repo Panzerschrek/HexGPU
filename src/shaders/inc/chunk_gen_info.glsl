@@ -5,7 +5,7 @@ struct ChunkStructureDescription
 	i8vec4 max;
 };
 
-const uint c_max_chunk_structures= 24;
+const uint c_max_chunk_structures= 32;
 
 struct ChunkGenInfo
 {

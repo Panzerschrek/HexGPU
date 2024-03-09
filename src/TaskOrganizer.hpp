@@ -1,8 +1,8 @@
 #pragma once
 #include "WindowVulkan.hpp"
 #include <functional>
+#include <optional>
 #include <unordered_map>
-#include <variant>
 
 namespace HexGPU
 {

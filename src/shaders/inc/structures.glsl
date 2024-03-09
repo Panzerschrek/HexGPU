@@ -2,5 +2,6 @@
 struct StructureDescription
 {
 	u8vec4 size;
+	u8vec4 center;
 	uint data_offset;
 };

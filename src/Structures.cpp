@@ -13,6 +13,9 @@ StructureDescription GenLargeTree(std::vector<BlockType>& out_data)
 	structure.size[0]= 6;
 	structure.size[1]= 6;
 	structure.size[2]= 9;
+	structure.center[0]= 2;
+	structure.center[1]= 2;
+	structure.center[2]= 0;
 
 	const auto volume= structure.size[0] * structure.size[1] * structure.size[2];
 
@@ -95,6 +98,9 @@ StructureDescription GenBasicTree(std::vector<BlockType>& out_data)
 	structure.size[0]= 3;
 	structure.size[1]= 3;
 	structure.size[2]= 5;
+	structure.center[0]= 1;
+	structure.center[1]= 1;
+	structure.center[2]= 0;
 
 	const auto volume= structure.size[0] * structure.size[1] * structure.size[2];
 

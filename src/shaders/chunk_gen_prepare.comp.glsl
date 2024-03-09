@@ -66,8 +66,9 @@ void main()
 		uint8_t structure_id= uint8_t(1);
 
 		u8vec4 structure_size= structure_descriptions[uint(structure_id)].size;
+		u8vec4 structure_center= structure_descriptions[uint(structure_id)].center;
 
-		ivec2 min_xy= ivec2(tree_chunk_x, tree_chunk_y);
+		ivec2 min_xy= ivec2(tree_chunk_x - int(structure_center.x), tree_chunk_y - int(structure_center.y));
 		// Adding extra 1 for "y" is important here to handle shifted columns.
 		ivec2 max_xy= min_xy + ivec2(int(structure_size.x), int(structure_size.y) + 1);
 

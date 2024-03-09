@@ -9,6 +9,7 @@ namespace HexGPU
 struct StructureDescription
 {
 	uint8_t size[4]{};
+	uint8_t center[4]{}; // Point used for placement.
 	uint32_t data_offset= 0;
 };
 

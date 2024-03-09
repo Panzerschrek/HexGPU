@@ -41,10 +41,11 @@ void main()
 	const int c_cells_per_chunk[2]=
 		int[2](int(c_chunk_width >> c_tree_map_cell_size_log2[0]), int(c_chunk_width >> c_tree_map_cell_size_log2[1]));
 
-	int tree_grid_cell_start_x= chunk_global_position.x * c_cells_per_chunk[0];
-	int tree_grid_cell_start_y= chunk_global_position.y * c_cells_per_chunk[1];
-	int tree_grid_cell_end_x= tree_grid_cell_start_x + c_cells_per_chunk[0];
-	int tree_grid_cell_end_y= tree_grid_cell_start_y + c_cells_per_chunk[1];
+	// Add extra border 1 to process trees in adjacent chunks.
+	int tree_grid_cell_start_x= chunk_global_position.x * c_cells_per_chunk[0] - 1;
+	int tree_grid_cell_start_y= chunk_global_position.y * c_cells_per_chunk[1] - 1;
+	int tree_grid_cell_end_x= tree_grid_cell_start_x + c_cells_per_chunk[0] + 2;
+	int tree_grid_cell_end_y= tree_grid_cell_start_y + c_cells_per_chunk[1] + 2;
 	for(int cell_y= tree_grid_cell_start_y; cell_y < tree_grid_cell_end_y; ++cell_y)
 	for(int cell_x= tree_grid_cell_start_x; cell_x < tree_grid_cell_end_x; ++cell_x)
 	{
@@ -59,26 +60,27 @@ void main()
 		int tree_global_x= (cell_x << int(c_tree_map_cell_size_log2[0])) + int(cell.coord.x);
 		int tree_global_y= (cell_y << int(c_tree_map_cell_size_log2[1])) + int(cell.coord.y);
 
-		int tree_chunk_x= tree_global_x & (c_chunk_width - 1);
-		int tree_chunk_y= tree_global_y & (c_chunk_width - 1);
+		int tree_chunk_x= tree_global_x - (chunk_global_position.x << c_chunk_width_log2);
+		int tree_chunk_y= tree_global_y - (chunk_global_position.y << c_chunk_width_log2);
 
 		uint8_t structure_id= uint8_t(1);
 
 		u8vec4 structure_size= structure_descriptions[uint(structure_id)].size;
 
-		int offset_x= tree_chunk_x;
-		int offset_y= tree_chunk_y;
+		ivec2 min_xy= ivec2(tree_chunk_x, tree_chunk_y);
+		// Adding extra 1 for "y" is important here to handle shifted columns.
+		ivec2 max_xy= min_xy + ivec2(int(structure_size.x), int(structure_size.y) + 1);
+
+		if( min_xy.x >= c_chunk_width || max_xy.x <= 0 || min_xy.y >= c_chunk_width || max_xy.y <= 0)
+			continue; // This tree lies fully ootside this chunk.
 
 		ChunkStructureDescription chunk_structure;
-
-		chunk_structure.min= i8vec4(int8_t(offset_x), int8_t(offset_y), int8_t(50), int8_t(structure_id));
-		// Adding extra for y 1 is important here to handle shifted columns.
-		chunk_structure.max= i8vec4(int8_t(offset_x + int(structure_size.x)), int16_t(offset_y + int(structure_size.y) + 1), int8_t(50 + int(structure_size.z)), 0);
+		chunk_structure.min= i8vec4(i8vec2(min_xy), int8_t(50), int8_t(structure_id));
+		chunk_structure.max= i8vec4(i8vec2(max_xy), int8_t(50 + int(structure_size.z)), 0);
 
 		chunk_gen_infos[chunk_index].structures[ chunk_gen_infos[chunk_index].num_structures ]= chunk_structure;
 		++chunk_gen_infos[chunk_index].num_structures;
 		if( chunk_gen_infos[chunk_index].num_structures >= c_max_chunk_structures)
 			return;
 	}
-
 }

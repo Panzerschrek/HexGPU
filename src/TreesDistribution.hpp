@@ -14,11 +14,11 @@ constexpr std::array<uint32_t, 2> c_tree_map_size
 };
 
 // Each cell contains zero or one point.
-constexpr std::array<uint32_t, 2> c_tree_map_cell_log2{2, 1};
+constexpr std::array<uint32_t, 2> c_tree_map_cell_size_log2{2, 1};
 constexpr std::array<uint32_t, 2> c_tree_map_cell_size
 {
-	1 << c_tree_map_cell_log2[0],
-	1 << c_tree_map_cell_log2[1],
+	1 << c_tree_map_cell_size_log2[0],
+	1 << c_tree_map_cell_size_log2[1],
 };
 
 static_assert(c_tree_map_size[0] % c_tree_map_cell_size[0] == 0, "Wrong size");

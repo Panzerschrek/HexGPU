@@ -42,6 +42,25 @@ Dlä vozmožnosti izmenätj plotnostj možno kak-to pronumerovatj tocki v raspre
 Takže algoritm možno modifiçirovatj dlä rasstonovki tocek s razlicnym radiusom - dlä derevjev razlicnogo razmera.
 
 
+### Potençialjnyhj podhod rasstanovki derevjev s raznoj plotnostju
+
+Možno sozdatj "Poisson Disk" rasstonovku v neskoljko etapov.
+
+Na pervom etape tocki rasstavläjutsä s radiusom R.
+
+Na vtorom etape tocki rasstavläjutsä s radiusom R / n.
+Radius uže rasstavlennyh tocek sbrasyva do R / n.
+
+Na tretjem etape tocki rasstavläjutsä s radiusom R / (n*m).
+Radius uže rasstavlennyh tocek sbrasyvajetsä do R / (n*m).
+No castj sohranäjetsä - takije tocki stanut boljšimi derevjami.
+
+"n" - okolo 4, "m" - okolo 2.
+
+Vse tocki numerujutsä v porädke rasstonovki.
+Pri generaçii cankov vybirajutsä tocki s porädkovym nomerom niže nomera, sootvetstvujuscego plotnosti rosta derevjev v tekuscem biome.
+
+
 ### Generaçija derevjev
 
 Dlä prostoty predpolagajetsä na proçessore sgenerirovatj po nekomu algoritmu nabor modelek derevjev (kak tröhmernyj massiv blokov).

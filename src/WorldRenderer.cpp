@@ -563,8 +563,8 @@ WorldRenderer::WorldDrawPipeline WorldRenderer::CreateWorldWaterDrawPipeline(
 	WorldDrawPipeline pipeline;
 
 	// Create shaders
-	pipeline.shader_vert= CreateShader(vk_device, ShaderNames::world_vert);
-	pipeline.shader_frag= CreateShader(vk_device, ShaderNames::world_frag);
+	pipeline.shader_vert= CreateShader(vk_device, ShaderNames::water_vert);
+	pipeline.shader_frag= CreateShader(vk_device, ShaderNames::water_frag);
 
 	// Create texture sampler
 	pipeline.texture_sampler=

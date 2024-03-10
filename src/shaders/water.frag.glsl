@@ -13,6 +13,7 @@ layout(location= 2) in flat float f_tex_index;
 
 layout(location = 0) out vec4 out_color;
 
+
 void main()
 {
 	vec4 tex_value= HexagonFetch(texture_image, vec3(f_tex_coord, f_tex_index));
@@ -20,7 +21,6 @@ void main()
 	if(tex_value.a < 0.5)
 		discard;
 
-	// tex_value.rgb= vec3(0.5, 0.5, 0.5);
 	vec3 l= CombineLight(f_light.x * c_fire_light_color, f_light.y * c_sky_light_color, c_ambient_light_color);
-	out_color= vec4(l * tex_value.rgb, 1.0);
+	out_color= vec4(l * tex_value.rgb, 0.5);
 }

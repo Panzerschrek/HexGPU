@@ -105,6 +105,8 @@ struct WorldBlocksUpdateUniforms
 	int32_t world_size_chunks[2]{};
 	int32_t in_chunk_position[2]{};
 	int32_t out_chunk_position[2]{};
+	uint32_t current_tick= 0;
+	uint32_t reserved= 0;
 };
 
 struct LightUpdateUniforms
@@ -1497,6 +1499,7 @@ void WorldProcessor::UpdateWorldBlocks(
 				uniforms.in_chunk_position[1]= int32_t(chunk_to_update[1]) + relative_world_shift[1];
 				uniforms.out_chunk_position[0]= int32_t(chunk_to_update[0]);
 				uniforms.out_chunk_position[1]= int32_t(chunk_to_update[1]);
+				uniforms.current_tick= current_tick_;
 
 				HEX_ASSERT(uniforms.in_chunk_position[0] >= 0 && uniforms.in_chunk_position[0] < int32_t(world_size_[0]));
 				HEX_ASSERT(uniforms.in_chunk_position[1] >= 0 && uniforms.in_chunk_position[1] < int32_t(world_size_[1]));

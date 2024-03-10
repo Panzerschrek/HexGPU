@@ -16,6 +16,8 @@ layout(push_constant) uniform uniforms_block
 	ivec2 world_size_chunks;
 	ivec2 in_chunk_position;
 	ivec2 out_chunk_position;
+	uint current_tick;
+	uint reserved;
 };
 
 layout(binding= 0, std430) buffer chunks_data_input_buffer
@@ -57,19 +59,24 @@ uint8_t TransformBlock(int block_x, int block_y, int z)
 
 	uint8_t block_type= chunks_input_data[column_address + z];
 
+	// Allow blocks to fall down only each second tick.
+	bool is_block_falling_tick= (current_tick & 1) != 0;
+
 	// Switch over block type.
 	if(block_type == c_block_type_air)
 	{
 		// If we have a sand block above, convert this block into sand.
 		// This should match sand block logic.
-		if(z < c_chunk_height - 1 && chunks_input_data[column_address + z + 1] == c_block_type_sand)
+		if(is_block_falling_tick &&
+			z < c_chunk_height - 1 && chunks_input_data[column_address + z + 1] == c_block_type_sand)
 			return c_block_type_sand;
 	}
 	else if(block_type == c_block_type_sand)
 	{
 		// If sand block has air below, it falls down and is replaced with air.
 		// This should match air block logic.
-		if(z > 0 && chunks_input_data[column_address + z - 1] == c_block_type_air)
+		if(is_block_falling_tick &&
+			z > 0 && chunks_input_data[column_address + z - 1] == c_block_type_air)
 			return c_block_type_air;
 	}
 	else if(block_type == c_block_type_soil)

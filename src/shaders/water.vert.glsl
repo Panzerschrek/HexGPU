@@ -26,5 +26,6 @@ void main()
 	f_light.x= float(int(tex_coord.w) & 0xFF) * c_light_scale;
 	f_light.y= float(uint(uint16_t(tex_coord.w)) >> 8) * c_light_scale;
 
-	gl_Position= view_matrix * vec4(pos, 1.0);
+	vec3 pos_corrected= pos * vec3(1.0, 1.0, 1.0 / 128.0); // Rescale water height back.
+	gl_Position= view_matrix * vec4(pos_corrected, 1.0);
 }

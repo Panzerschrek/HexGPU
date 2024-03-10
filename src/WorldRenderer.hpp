@@ -33,6 +33,11 @@ private:
 		vk::Extent2D viewport_size,
 		vk::RenderPass render_pass);
 
+	static WorldDrawPipeline CreateWorldWaterDrawPipeline(
+		vk::Device vk_device,
+		vk::Extent2D viewport_size,
+		vk::RenderPass render_pass);
+
 	void CopyViewMatrix(TaskOrganizer& task_organizer);
 	void BuildDrawIndirectBuffer(TaskOrganizer& task_organizer);
 
@@ -55,6 +60,9 @@ private:
 
 	const WorldDrawPipeline draw_pipeline_;
 	const vk::DescriptorSet descriptor_set_;
+
+	const WorldDrawPipeline water_draw_pipeline_;
+	const vk::DescriptorSet water_descriptor_set_;
 
 	vk::UniqueBuffer index_buffer_;
 	vk::UniqueDeviceMemory index_buffer_memory_;

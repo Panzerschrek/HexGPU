@@ -156,6 +156,7 @@ TreeMap GenTreeMap(const uint32_t seed)
 		HEX_ASSERT(cell.sequential_index == 0); // Should produce no more than 1 point per cell.
 
 		cell.sequential_index= uint16_t(i + 1); // Skip 0 - no point indicator.
+		cell.radius= uint16_t(point.radius);
 		cell.coord[0]= uint8_t(point.coord[0] & (c_tree_map_cell_size[0] - 1));
 		cell.coord[1]= uint8_t(point.coord[1] & (c_tree_map_cell_size[1] - 1));
 	}

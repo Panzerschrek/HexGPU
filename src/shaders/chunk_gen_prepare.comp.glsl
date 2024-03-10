@@ -64,11 +64,11 @@ void main()
 		int tree_chunk_x= tree_global_x - (chunk_global_position.x << c_chunk_width_log2);
 		int tree_chunk_y= tree_global_y - (chunk_global_position.y << c_chunk_width_log2);
 
-		// Choose randomly one of two tree types.
-		uint8_t structure_id= uint8_t(cell.sequential_index & 1);
+		// Choose tree model based on point radius (greater radius - bigger the tree).
+		uint structure_id= uint(cell.radius) <= 2u ? 1u : 0u;
 
-		u8vec4 structure_size= structure_descriptions[uint(structure_id)].size;
-		u8vec4 structure_center= structure_descriptions[uint(structure_id)].center;
+		u8vec4 structure_size= structure_descriptions[structure_id].size;
+		u8vec4 structure_center= structure_descriptions[structure_id].center;
 
 		ivec2 min_xy= ivec2(tree_chunk_x - int(structure_center.x), tree_chunk_y - int(structure_center.y));
 		// Adding extra 1 for "y" is important here to handle shifted columns.

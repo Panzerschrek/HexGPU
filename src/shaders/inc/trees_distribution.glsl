@@ -15,6 +15,7 @@ const uint c_tree_map_cell_grid_size[2] = uint[2]
 struct TreeMapCell
 {
 	uint16_t sequential_index;
+	uint16_t radius;
 	u8vec2 coord;
 };
 

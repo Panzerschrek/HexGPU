@@ -36,6 +36,7 @@ constexpr std::array<uint32_t, 2> c_tree_map_cell_grid_size
 struct TreeMapCell
 {
 	uint16_t sequential_index= 0; // Index of this point. If 0 - this cell contains no point.
+	uint16_t radius= 0;
 	uint8_t coord[2]{}; // Coordinates relative to cell.
 };
 

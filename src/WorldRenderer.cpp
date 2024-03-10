@@ -347,7 +347,7 @@ void WorldRenderer::CollectFrameInputs(TaskOrganizer::GraphicsTaskParams& out_ta
 	out_task_params.input_images.push_back(world_textures_manager_.GetImageInfo());
 }
 
-void WorldRenderer::Draw(const vk::CommandBuffer command_buffer, const float time_s)
+void WorldRenderer::DrawOpaque(const vk::CommandBuffer command_buffer)
 {
 	const vk::Buffer vertex_buffer= geometry_generator_.GetVertexBuffer();
 
@@ -355,48 +355,53 @@ void WorldRenderer::Draw(const vk::CommandBuffer command_buffer, const float tim
 	command_buffer.bindVertexBuffers(0u, 1u, &vertex_buffer, &offsets);
 	command_buffer.bindIndexBuffer(*index_buffer_, 0u, vk::IndexType::eUint16);
 
-	{
-		command_buffer.bindDescriptorSets(
-			vk::PipelineBindPoint::eGraphics,
-			*draw_pipeline_.pipeline_layout,
-			0u,
-			{descriptor_set_},
-			{});
+	command_buffer.bindDescriptorSets(
+		vk::PipelineBindPoint::eGraphics,
+		*draw_pipeline_.pipeline_layout,
+		0u,
+		{descriptor_set_},
+		{});
 
-		command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *draw_pipeline_.pipeline);
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *draw_pipeline_.pipeline);
 
-		command_buffer.drawIndexedIndirect(
-			draw_indirect_buffer_.GetBuffer(),
-			0,
-			world_size_[0] * world_size_[1],
-			sizeof(vk::DrawIndexedIndirectCommand));
-	}
+	command_buffer.drawIndexedIndirect(
+		draw_indirect_buffer_.GetBuffer(),
+		0,
+		world_size_[0] * world_size_[1],
+		sizeof(vk::DrawIndexedIndirectCommand));
+}
 
-	{
-		command_buffer.bindDescriptorSets(
-			vk::PipelineBindPoint::eGraphics,
-			*water_draw_pipeline_.pipeline_layout,
-			0u,
-			{water_descriptor_set_},
-			{});
+void WorldRenderer::DrawTransparent(const vk::CommandBuffer command_buffer, const float time_s)
+{
+	const vk::Buffer vertex_buffer= geometry_generator_.GetVertexBuffer();
 
-		command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *water_draw_pipeline_.pipeline);
+	const vk::DeviceSize offsets= 0u;
+	command_buffer.bindVertexBuffers(0u, 1u, &vertex_buffer, &offsets);
+	command_buffer.bindIndexBuffer(*index_buffer_, 0u, vk::IndexType::eUint16);
 
-		WaterPushConstantsUniforms uniforms;
-		uniforms.water_phase= time_s;
+	command_buffer.bindDescriptorSets(
+		vk::PipelineBindPoint::eGraphics,
+		*water_draw_pipeline_.pipeline_layout,
+		0u,
+		{water_descriptor_set_},
+		{});
 
-		command_buffer.pushConstants(
-			*water_draw_pipeline_.pipeline_layout,
-			vk::ShaderStageFlagBits::eFragment,
-			0,
-			sizeof(WaterPushConstantsUniforms), static_cast<const void*>(&uniforms));
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *water_draw_pipeline_.pipeline);
 
-		command_buffer.drawIndexedIndirect(
-			water_draw_indirect_buffer_.GetBuffer(),
-			0,
-			world_size_[0] * world_size_[1],
-			sizeof(vk::DrawIndexedIndirectCommand));
-	}
+	WaterPushConstantsUniforms uniforms;
+	uniforms.water_phase= time_s;
+
+	command_buffer.pushConstants(
+		*water_draw_pipeline_.pipeline_layout,
+		vk::ShaderStageFlagBits::eFragment,
+		0,
+		sizeof(WaterPushConstantsUniforms), static_cast<const void*>(&uniforms));
+
+	command_buffer.drawIndexedIndirect(
+		water_draw_indirect_buffer_.GetBuffer(),
+		0,
+		world_size_[0] * world_size_[1],
+		sizeof(vk::DrawIndexedIndirectCommand));
 }
 
 WorldRenderer::WorldDrawPipeline WorldRenderer::CreateWorldDrawPipeline(

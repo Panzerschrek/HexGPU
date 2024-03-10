@@ -19,7 +19,8 @@ public:
 
 	void PrepareFrame(TaskOrganizer& task_organizer);
 	void CollectFrameInputs(TaskOrganizer::GraphicsTaskParams& out_task_params);
-	void Draw(vk::CommandBuffer command_buffer, float time_s);
+	void DrawOpaque(vk::CommandBuffer command_buffer);
+	void DrawTransparent(vk::CommandBuffer command_buffer, float time_s);
 
 private:
 	struct WorldDrawPipeline : public GraphicsPipeline

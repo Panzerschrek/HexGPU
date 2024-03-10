@@ -136,8 +136,9 @@ bool Host::Loop()
 	const auto graphics_task_func=
 		[this, absoulte_time_s](const vk::CommandBuffer command_buffer)
 		{
-			world_renderer_.Draw(command_buffer, absoulte_time_s);
+			world_renderer_.DrawOpaque(command_buffer);
 			sky_renderer_.Draw(command_buffer);
+			world_renderer_.DrawTransparent(command_buffer, absoulte_time_s);
 			build_prism_renderer_.Draw(command_buffer);
 		};
 

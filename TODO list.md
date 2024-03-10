@@ -6,7 +6,6 @@ The order represents importance and/or dependency.
 * Flowing water
 * Improved textures loading - use smaller staging buffer and free it at the end of the loading process
 * Biome-based world generation
-* Trees generation
 * Update light only after blocks update - in order to avoid black spots in places of removed blocks
 * Growing grass improvements - grow randomly
 * Grass logic improvements - disappers slower, become yellow, require water or sunlight to grow, etc.
@@ -20,6 +19,8 @@ The order represents importance and/or dependency.
 * Anisotropy textures filtering
 * Run SPIR-V optimizer for compiled shaders
 * Configurable textures config
+* Trees generation with variable density
+* Procedural tree models
 * Chunk vertices allocator - make it faster (remove linear complexity)
 * Plates (half-blocks)
 * Vertically-splitted half-blocks

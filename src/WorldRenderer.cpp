@@ -36,6 +36,11 @@ struct DrawUniforms
 	float view_matrix[16]{};
 };
 
+struct WaterPushConstantsUniforms
+{
+	float water_phase= 0.0f;
+};
+
 // Returns indeces for quads with size - maximum uint16_t vertex index.
 std::vector<uint16_t> GetQuadsIndices()
 {
@@ -342,7 +347,7 @@ void WorldRenderer::CollectFrameInputs(TaskOrganizer::GraphicsTaskParams& out_ta
 	out_task_params.input_images.push_back(world_textures_manager_.GetImageInfo());
 }
 
-void WorldRenderer::Draw(const vk::CommandBuffer command_buffer)
+void WorldRenderer::Draw(const vk::CommandBuffer command_buffer, const float time_s)
 {
 	const vk::Buffer vertex_buffer= geometry_generator_.GetVertexBuffer();
 
@@ -376,6 +381,15 @@ void WorldRenderer::Draw(const vk::CommandBuffer command_buffer)
 			{});
 
 		command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *water_draw_pipeline_.pipeline);
+
+		WaterPushConstantsUniforms uniforms;
+		uniforms.water_phase= time_s;
+
+		command_buffer.pushConstants(
+			*water_draw_pipeline_.pipeline_layout,
+			vk::ShaderStageFlagBits::eFragment,
+			0,
+			sizeof(WaterPushConstantsUniforms), static_cast<const void*>(&uniforms));
 
 		command_buffer.drawIndexedIndirect(
 			water_draw_indirect_buffer_.GetBuffer(),
@@ -611,13 +625,18 @@ WorldRenderer::WorldDrawPipeline WorldRenderer::CreateWorldWaterDrawPipeline(
 				vk::DescriptorSetLayoutCreateFlags(),
 				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
 
+	const vk::PushConstantRange push_constant_range(
+		vk::ShaderStageFlagBits::eFragment,
+		0u,
+		sizeof(WaterPushConstantsUniforms));
+
 	// Create pipeline layout
 	pipeline.pipeline_layout=
 		vk_device.createPipelineLayoutUnique(
 			vk::PipelineLayoutCreateInfo(
 				vk::PipelineLayoutCreateFlags(),
 				1u, &*pipeline.descriptor_set_layout,
-				0u, nullptr));
+				1u, &push_constant_range));
 
 	// Create pipeline.
 

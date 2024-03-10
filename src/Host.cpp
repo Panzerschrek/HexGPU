@@ -97,6 +97,9 @@ bool Host::Loop()
 
 	const float dt_s= float(dt.count()) * float(Clock::duration::period::num) / float(Clock::duration::period::den);
 
+	const float absoulte_time_s=
+		float((tick_start_time - init_time_).count()) * float(Clock::duration::period::num) / float(Clock::duration::period::den);
+
 	const auto keys_state= system_window_.GetKeyboardState();
 	const auto events= system_window_.ProcessEvents();
 
@@ -131,9 +134,9 @@ bool Host::Loop()
 	graphics_task_params.viewport_size= window_vulkan_.GetViewportSize();
 
 	const auto graphics_task_func=
-		[this](const vk::CommandBuffer command_buffer)
+		[this, absoulte_time_s](const vk::CommandBuffer command_buffer)
 		{
-			world_renderer_.Draw(command_buffer);
+			world_renderer_.Draw(command_buffer, absoulte_time_s);
 			sky_renderer_.Draw(command_buffer);
 			build_prism_renderer_.Draw(command_buffer);
 		};

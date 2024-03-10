@@ -26,6 +26,12 @@ namespace DrawShaderBindings
 	const ShaderBindingIndex sampler= 1;
 }
 
+namespace WaterDrawShaderBindings
+{
+	const ShaderBindingIndex uniform_buffer= 0;
+	const ShaderBindingIndex sampler= 1;
+}
+
 struct DrawIndirectBufferBuildUniforms
 {
 	int32_t world_size_chunks[2];
@@ -300,7 +306,7 @@ WorldRenderer::WorldRenderer(
 			{
 				{
 					water_descriptor_set_,
-					DrawShaderBindings::uniform_buffer,
+					WaterDrawShaderBindings::uniform_buffer,
 					0u,
 					1u,
 					vk::DescriptorType::eUniformBuffer,
@@ -310,7 +316,7 @@ WorldRenderer::WorldRenderer(
 				},
 				{
 					water_descriptor_set_,
-					DrawShaderBindings::sampler,
+					WaterDrawShaderBindings::sampler,
 					0u,
 					1u,
 					vk::DescriptorType::eCombinedImageSampler,
@@ -610,13 +616,13 @@ WorldRenderer::WorldDrawPipeline WorldRenderer::CreateWorldWaterDrawPipeline(
 	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
 	{
 		{
-			DrawShaderBindings::uniform_buffer,
+			WaterDrawShaderBindings::uniform_buffer,
 			vk::DescriptorType::eUniformBuffer,
 			1u,
 			vk::ShaderStageFlagBits::eVertex,
 		},
 		{
-			DrawShaderBindings::sampler,
+			WaterDrawShaderBindings::sampler,
 			vk::DescriptorType::eCombinedImageSampler,
 			1u,
 			vk::ShaderStageFlagBits::eFragment,

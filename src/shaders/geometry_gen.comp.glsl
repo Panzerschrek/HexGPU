@@ -332,7 +332,7 @@ void main()
 		quad_north.vertices[2]= v[4];
 		quad_north.vertices[3]= v[5];
 
-		uint quad_index= quads_offset + atomicAdd(chunk_draw_info[chunk_index].num_quads, 2);
+		uint quad_index= chunk_draw_info[chunk_index].first_water_quad + atomicAdd(chunk_draw_info[chunk_index].num_water_quads, 2);
 		quads[quad_index]= quad_south;
 		quads[quad_index + 1]= quad_north;
 	}

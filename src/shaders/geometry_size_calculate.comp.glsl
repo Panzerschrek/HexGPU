@@ -93,6 +93,6 @@ void main()
 	if(block_value == c_block_type_water)
 	{
 		// Add two water hexagon quads.
-		atomicAdd(chunk_draw_info[chunk_index].new_num_quads, 2);
+		atomicAdd(chunk_draw_info[chunk_index].new_water_num_quads, 2);
 	}
 }

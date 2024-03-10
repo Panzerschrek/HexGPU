@@ -17,6 +17,7 @@ namespace DrawIndirectBufferBuildShaderBindings
 {
 	const ShaderBindingIndex chunk_draw_info_buffer= 0;
 	const ShaderBindingIndex draw_indirect_buffer= 1;
+	const ShaderBindingIndex water_draw_indirect_buffer= 2;
 }
 
 namespace DrawShaderBindings
@@ -81,6 +82,13 @@ ComputePipeline CreateDrawIndirectBufferBuildPipeline(const vk::Device vk_device
 			vk::ShaderStageFlagBits::eCompute,
 			nullptr,
 		},
+		{
+			DrawIndirectBufferBuildShaderBindings::water_draw_indirect_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
 	};
 
 	pipeline.descriptor_set_layout= vk_device.createDescriptorSetLayoutUnique(
@@ -120,6 +128,10 @@ WorldRenderer::WorldRenderer(
 		window_vulkan,
 		world_size_[0] * world_size_[1] * uint32_t(sizeof(vk::DrawIndexedIndirectCommand)),
 		vk::BufferUsageFlagBits::eIndirectBuffer | vk::BufferUsageFlagBits::eStorageBuffer)
+	, water_draw_indirect_buffer_(
+		window_vulkan,
+		world_size_[0] * world_size_[1] * uint32_t(sizeof(vk::DrawIndexedIndirectCommand)),
+		vk::BufferUsageFlagBits::eIndirectBuffer | vk::BufferUsageFlagBits::eStorageBuffer)
 	, uniform_buffer_(
 		window_vulkan,
 		sizeof(DrawUniforms),
@@ -144,7 +156,12 @@ WorldRenderer::WorldRenderer(
 		const vk::DescriptorBufferInfo descriptor_draw_indirect_buffer_info(
 			draw_indirect_buffer_.GetBuffer(),
 			0u,
-			uint32_t(sizeof(vk::DrawIndexedIndirectCommand)) * world_size_[0] * world_size_[1]);
+			draw_indirect_buffer_.GetSize());
+
+		const vk::DescriptorBufferInfo descriptor_water_draw_indirect_buffer_info(
+			water_draw_indirect_buffer_.GetBuffer(),
+			0u,
+			water_draw_indirect_buffer_.GetSize());
 
 		vk_device_.updateDescriptorSets(
 			{
@@ -166,6 +183,16 @@ WorldRenderer::WorldRenderer(
 					vk::DescriptorType::eStorageBuffer,
 					nullptr,
 					&descriptor_draw_indirect_buffer_info,
+					nullptr
+				},
+				{
+					draw_indirect_buffer_build_descriptor_set_,
+					DrawIndirectBufferBuildShaderBindings::water_draw_indirect_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_water_draw_indirect_buffer_info,
 					nullptr
 				},
 			},
@@ -291,6 +318,12 @@ void WorldRenderer::Draw(const vk::CommandBuffer command_buffer)
 
 	command_buffer.drawIndexedIndirect(
 		draw_indirect_buffer_.GetBuffer(),
+		0,
+		world_size_[0] * world_size_[1],
+		sizeof(vk::DrawIndexedIndirectCommand));
+
+	command_buffer.drawIndexedIndirect(
+		water_draw_indirect_buffer_.GetBuffer(),
 		0,
 		world_size_[0] * world_size_[1],
 		sizeof(vk::DrawIndexedIndirectCommand));
@@ -496,6 +529,7 @@ void WorldRenderer::BuildDrawIndirectBuffer(TaskOrganizer& task_organizer)
 	TaskOrganizer::ComputeTaskParams task;
 	task.input_storage_buffers.push_back(geometry_generator_.GetChunkDrawInfoBuffer());
 	task.output_storage_buffers.push_back(draw_indirect_buffer_.GetBuffer());
+	task.output_storage_buffers.push_back(water_draw_indirect_buffer_.GetBuffer());
 
 	const auto task_func=
 		[this](const vk::CommandBuffer command_buffer)

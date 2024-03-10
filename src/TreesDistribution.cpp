@@ -17,7 +17,7 @@ CubeHexCoord GetCubeCoord(const std::array<int32_t, 2>& coord)
 {
 	// See https://www.redblobgames.com/grids/hexagons/#conversions.
 	const int32_t q= coord[0];
-	const int32_t r= coord[1] - ((coord[0] - (coord[0] & 1)) >> 1);
+	const int32_t r= coord[1] - ((coord[0] + (coord[0] & 1)) >> 1);
 	return {q, r, -q - r};
 }
 
@@ -83,65 +83,85 @@ RangGen::result_type RandInRange(RangGen& gen, const uint32_t min, const uint32_
 
 } // namespace
 
-void GenTestTreesDistribution()
+TreeMap GenTreeMap(const uint32_t seed)
 {
-	const DistributionSize size{512, 512};
-
-	using RangGen= std::mt19937;
-	const RangGen::result_type seed= 0;
 	RangGen gen(seed);
-
-	(void)RandInRange;
 
 	std::vector<Point> points;
 
-	// Use radii from big to low.
-	const uint32_t radii[]= {32, 8, 4};
-	for(const uint32_t radius : radii)
+	// TODO - remove quadratic complexity?
+	const uint32_t num_points= 20000;
+
+	// Caution! Minimal distance must be greater than maximum distance within one tree map cell!
+	const uint32_t c_min_radius= 2;
+	const uint32_t c_max_radius_plus_one= 5;
+
+	for(uint32_t i= 0; i < num_points; ++i)
 	{
-		const uint32_t num_points= 100000 / (radius * radius);
-
-		for(uint32_t i= 0; i < num_points; ++i)
+		const Point point
 		{
-			const Point point
 			{
-				{
-					int32_t(RandUpTo(gen, size[0])),
-					int32_t(RandUpTo(gen, size[1])),
-				},
-				radius,
-			};
-			HEX_ASSERT(point.coord[0] >= 0 && point.coord[0] < int32_t(size[0]));
-			HEX_ASSERT(point.coord[1] >= 0 && point.coord[1] < int32_t(size[1]));
+				int32_t(RandUpTo(gen, c_tree_map_size[0])),
+				int32_t(RandUpTo(gen, c_tree_map_size[1])),
+			},
+			uint32_t(RandInRange(gen, c_min_radius, c_max_radius_plus_one)),
+		};
+		HEX_ASSERT(point.coord[0] >= 0 && point.coord[0] < int32_t(c_tree_map_size[0]));
+		HEX_ASSERT(point.coord[1] >= 0 && point.coord[1] < int32_t(c_tree_map_size[1]));
 
-			bool too_close= false;
+		bool too_close= false;
 
-			for(const Point& prev_point : points)
+		for(const Point& prev_point : points)
+		{
+			std::array<int32_t, 2> prev_coord= prev_point.coord;
+			// Add wrapping.
+			for(uint32_t j= 0; j < 2; ++j)
 			{
-				std::array<int32_t, 2> prev_coord= prev_point.coord;
-				// Add wrapping.
-				for(uint32_t j= 0; j < 2; ++j)
-				{
-					if(prev_coord[j] - point.coord[j] >= +int32_t(size[j] / 2))
-						prev_coord[j]-= int32_t(size[j]);
-					if(prev_coord[j] - point.coord[j] <= -int32_t(size[j] / 2))
-						prev_coord[j]+= int32_t(size[j]);
-				}
-
-				const int32_t dist= HexDist(point.coord, prev_coord);
-				if(dist < int32_t(radius * 2))
-				{
-					too_close= true;
-					break;
-				}
+				if(prev_coord[j] - point.coord[j] >= +int32_t(c_tree_map_size[j] / 2))
+					prev_coord[j]-= int32_t(c_tree_map_size[j]);
+				if(prev_coord[j] - point.coord[j] <= -int32_t(c_tree_map_size[j] / 2))
+					prev_coord[j]+= int32_t(c_tree_map_size[j]);
 			}
 
-			if(!too_close)
-				points.push_back(point);
+			const int32_t dist= HexDist(point.coord, prev_coord);
+			if(dist < int32_t(point.radius + prev_point.radius))
+			{
+				too_close= true;
+				break;
+			}
 		}
+
+		if(!too_close)
+			points.push_back(point);
 	}
 
-	SaveTestDistribution(points, size);
+	if(false)
+		SaveTestDistribution(points, c_tree_map_size);
+
+	// Make cell map from list of points.
+	TreeMap tree_map;
+	HEX_ASSERT(points.size() < 65535);
+	for(size_t i= 0; i < points.size(); ++i)
+	{
+		const Point& point= points[i];
+		const uint32_t cell_coord[2]
+		{
+			uint32_t(point.coord[0]) / c_tree_map_cell_size[0],
+			uint32_t(point.coord[1]) / c_tree_map_cell_size[1],
+		};
+		HEX_ASSERT(cell_coord[0] < c_tree_map_cell_grid_size[0]);
+		HEX_ASSERT(cell_coord[1] < c_tree_map_cell_grid_size[1]);
+
+		TreeMapCell& cell= tree_map[cell_coord[0] + cell_coord[1] * c_tree_map_cell_grid_size[0]];
+		HEX_ASSERT(cell.sequential_index == 0); // Should produce no more than 1 point per cell.
+
+		cell.sequential_index= uint16_t(i + 1); // Skip 0 - no point indicator.
+		cell.radius= uint16_t(point.radius);
+		cell.coord[0]= uint8_t(point.coord[0] & (c_tree_map_cell_size[0] - 1));
+		cell.coord[1]= uint8_t(point.coord[1] & (c_tree_map_cell_size[1] - 1));
+	}
+
+	return tree_map;
 }
 
 } // namespace HexGPU

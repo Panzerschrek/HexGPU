@@ -4,8 +4,9 @@
 #include "Keyboard.hpp"
 #include "Mouse.hpp"
 #include "Pipeline.hpp"
+#include "StructuresBuffer.hpp"
 #include "TaskOrganizer.hpp"
-#include "WindowVulkan.hpp"
+#include "TreesDistribution.hpp"
 
 namespace HexGPU
 {
@@ -82,6 +83,21 @@ private:
 		WorldBlockExternalUpdate updates[c_max_world_blocks_external_updates];
 	};
 
+	struct ChunkStructureDescription
+	{
+		int8_t min[4]{};
+		int8_t max[4]{};
+	};
+
+	static constexpr uint32_t c_max_chunk_structures= 32;
+
+	struct ChunkGenInfo
+	{
+		uint32_t num_structures= 0;
+		uint32_t reserved[3]{};
+		ChunkStructureDescription structures[c_max_chunk_structures];
+	};
+
 	using RelativeWorldShiftChunks= std::array<int32_t, 2>;
 
 	enum class ChunkUpdateKind : uint8_t
@@ -119,6 +135,11 @@ private:
 	const WorldSizeChunks world_size_;
 	const int32_t world_seed_;
 
+	const StructuresBuffer structures_buffer_;
+
+	const Buffer tree_map_buffer_;
+	const Buffer chunk_gen_info_buffer_;
+
 	// Use double buffering for world update.
 	// On each step data is read from one of them and written into another.
 	const std::array<Buffer, 2> chunk_data_buffers_;
@@ -134,6 +155,9 @@ private:
 	const uint32_t player_state_read_back_buffer_num_frames_;
 	const Buffer player_state_read_back_buffer_;
 	const void* const player_state_read_back_buffer_mapped_;
+
+	const ComputePipeline chunk_gen_prepare_pipeline_;
+	const vk::DescriptorSet chunk_gen_prepare_descriptor_set_;
 
 	const ComputePipeline world_gen_pipeline_;
 	const std::array<vk::DescriptorSet, 2> world_gen_descriptor_sets_;

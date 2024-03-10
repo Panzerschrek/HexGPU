@@ -5,8 +5,10 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 
 #include "inc/block_type.glsl"
+#include "inc/chunk_gen_info.glsl"
 #include "inc/hex_funcs.glsl"
-#include "inc/noise.glsl"
+#include "inc/structures.glsl"
+#include "inc/world_gen_common.glsl"
 
 // maxComputeWorkGroupInvocations is at least 128.
 // If this is changed, corresponding C++ code must be changed too!
@@ -25,26 +27,20 @@ layout(binding= 0, std430) buffer chunks_data_buffer
 	uint8_t chunks_data[];
 };
 
-int GetGroundLevel(int global_x, int global_y)
+layout(binding= 1, std430) buffer chunk_gen_info_buffer
 {
-	// HACK. If not doing this, borders parallel to world X axis are to sharply.
-	int global_y_corrected= global_y - (global_x & 1);
+	ChunkGenInfo chunk_gen_infos[];
+};
 
-	// Add several octaves of triangle-interpolated noise.
-	// Use seed with offset to avoid fractal noise apperiance at world center (0, 0).
-	int noise=
-		(hex_TriangularInterpolatedNoiseDefault(global_y_corrected, global_x, seed + 0, 6)     ) +
-		(hex_TriangularInterpolatedNoiseDefault(global_y_corrected, global_x, seed + 1, 5) >> 1) +
-		(hex_TriangularInterpolatedNoiseDefault(global_y_corrected, global_x, seed + 2, 4) >> 2) +
-		(hex_TriangularInterpolatedNoiseDefault(global_y_corrected, global_x, seed + 3, 3) >> 3);
+layout(binding= 2, std430) buffer structure_descriptions_buffer
+{
+	StructureDescription structure_descriptions[];
+};
 
-	// TODO - scale result noise depending on current biome.
-	int noise_scaled= noise >> 11;
-
-	int base_ground_value= 2; // TODO - choose base value depending on current biome.
-
-	return max(3, min(base_ground_value + noise_scaled, c_chunk_height - 2));
-}
+layout(binding= 3, std430) buffer structures_data_buffer
+{
+	uint8_t structures_data[];
+};
 
 void main()
 {
@@ -56,7 +52,7 @@ void main()
 	int global_x= (chunk_global_position.x << c_chunk_width_log2) + local_x;
 	int global_y= (chunk_global_position.y << c_chunk_width_log2) + local_y;
 
-	int ground_z= GetGroundLevel(global_x, global_y);
+	int ground_z= GetGroundLevel(global_x, global_y, seed);
 
 	int column_offset= chunk_data_offset + ChunkBlockAddress(ivec3(local_x, local_y, 0));
 
@@ -65,9 +61,7 @@ void main()
 
 	// Place stone up to the ground layer.
 	for(int z= 1; z < ground_z - 2; ++z)
-	{
 		chunks_data[column_offset + z]= c_block_type_stone;
-	}
 
 	// TODO - make soil layer variable-height.
 	chunks_data[column_offset + ground_z - 2]= c_block_type_soil;
@@ -76,11 +70,52 @@ void main()
 
 	// Fill remaining space with air.
 	for(int z= ground_z + 1; z < c_chunk_height; ++z)
-	{
 		chunks_data[column_offset + z]= c_block_type_air;
+
+	// Place structures (like trees).
+	uint num_structures= chunk_gen_infos[chunk_index].num_structures;
+	for(uint chunk_structure_index= 0; chunk_structure_index < num_structures; ++chunk_structure_index)
+	{
+		ChunkStructureDescription chunk_structure_description= chunk_gen_infos[chunk_index].structures[chunk_structure_index];
+
+		if( local_x >= chunk_structure_description.min.x && local_x < chunk_structure_description.max.x &&
+			local_y >= chunk_structure_description.min.y && local_y < chunk_structure_description.max.y)
+		{
+			uint strukcture_kind_index= uint(chunk_structure_description.min.w);
+			StructureDescription structure_description= structure_descriptions[strukcture_kind_index];
+
+			int rel_x= local_x - chunk_structure_description.min.x;
+			int rel_y= local_y - chunk_structure_description.min.y;
+			if((chunk_structure_description.min.x & 1) != 0 && (rel_x & 1) == 0)
+				--rel_y;
+
+			if(rel_y >= 0 && rel_y < int(structure_description.size.y))
+			{
+				int column_data_offset=
+					int(structure_description.data_offset) +
+					rel_y * structure_description.size.z + rel_x * (structure_description.size.z * structure_description.size.y);
+
+				// Fill column of this structure.
+				for(int z= chunk_structure_description.min.z; z < chunk_structure_description.max.z; ++z)
+				{
+					int rel_z= z - chunk_structure_description.min.z;
+
+					// TODO - generalize this - use some sort of replace priority table.
+
+					uint8_t block_type= structures_data[column_data_offset + rel_z];
+					if(block_type == c_block_type_air)
+						continue; // Do not replace blocks with air.
+
+					uint8_t current_block_type= chunks_data[column_offset + z];
+					if(block_type == c_block_type_foliage && current_block_type != c_block_type_air)
+						continue; // Allow replacing only air with foliage.
+
+					chunks_data[column_offset + z]= block_type;
+				}
+			}
+		}
 	}
 
 	// TODO - make water.
-	// TODO - plant trees.
 	// TODO - make caves.
 }

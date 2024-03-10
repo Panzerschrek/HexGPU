@@ -90,7 +90,7 @@ TreeMap GenTreeMap(const uint32_t seed)
 	std::vector<Point> points;
 
 	// TODO - remove quadratic complexity?
-	const uint32_t num_points= 10000;
+	const uint32_t num_points= 20000;
 
 	// Caution! Minimal distance must be greater than maximum distance within one tree map cell!
 	const uint32_t c_min_radius= 2;

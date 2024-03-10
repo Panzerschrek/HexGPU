@@ -293,7 +293,7 @@ WorldRenderer::WorldRenderer(
 
 		const vk::DescriptorImageInfo descriptor_tex_info(
 			vk::Sampler(),
-			world_textures_manager_.GetImageView(),
+			world_textures_manager_.GetWaterImageView(),
 			vk::ImageLayout::eShaderReadOnlyOptimal);
 
 		vk_device_.updateDescriptorSets(

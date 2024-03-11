@@ -254,9 +254,6 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 
 					int adjacent_block_address= adjacent_columns[i] + z;
 
-					// Flow is 1/4 of difference on each tick.
-					// Allowing more flow at once creates ugly waves.
-
 					uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
 					if(adjacent_block_type == c_block_type_air)
 					{
@@ -280,14 +277,16 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 						int max_individual_adjacent_in_flow= (c_max_water_level - adjacent_water_level) >> 3;
 						int max_individual_adjacent_out_flow= adjacent_water_level >> 3;
 
+						// Flow is 1/8 of difference on each tick.
+						// Allowing more flow at once creates ugly oscilations.
 						int level_diff= water_level - adjacent_water_level;
-						if(level_diff >= 4)
-							flow_out+= min(max_individual_adjacent_in_flow, min(max_individual_out_flow, level_diff >> 2));
-						else if(level_diff <= -4)
+						if(level_diff >= 8)
+							flow_out+= min(max_individual_adjacent_in_flow, min(max_individual_out_flow, level_diff >> 3));
+						else if(level_diff <= -8)
 						{
 							// Prevent adjacent block out flow if flow down is possilble.
 							if(!adjacent_can_flow_down)
-								flow_in+= min(max_individual_adjacent_out_flow, min(max_individual_in_flow, (-level_diff) >> 2));
+								flow_in+= min(max_individual_adjacent_out_flow, min(max_individual_in_flow, (-level_diff) >> 3));
 						}
 						else
 						{

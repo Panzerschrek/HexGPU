@@ -76,11 +76,24 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 	// Switch over block type.
 	if(block_type == c_block_type_air)
 	{
-		// If we have a sand block above, convert this block into sand.
-		// This should match sand block logic.
-		if(is_block_falling_tick &&
-			z < c_chunk_height - 1 && chunks_input_data[column_address + z + 1] == c_block_type_sand)
-			return u8vec2(c_block_type_sand, 0);
+		if(is_block_falling_tick && z < c_chunk_height - 1)
+		{
+			uint8_t block_above_type= chunks_input_data[column_address + z + 1];
+			if(block_above_type == c_block_type_sand)
+			{
+				// If we have a sand block above, convert this block into sand.
+				// This should match sand block logic.
+				return u8vec2(c_block_type_sand, 0);
+			}
+			if(block_above_type == c_block_type_water)
+			{
+				// If we have a water block above, convert this block into water.
+				// Use proper water level.
+				// This should match water block logic.
+				uint8_t water_level_above= chunks_auxiliar_input_data[column_address + z + 1];
+				return u8vec2(c_block_type_water, water_level_above);
+			}
+		}
 	}
 	else if(block_type == c_block_type_sand)
 	{
@@ -89,6 +102,19 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 		if(is_block_falling_tick &&
 			z > 0 && chunks_input_data[column_address + z - 1] == c_block_type_air)
 			return u8vec2(c_block_type_air, 0);
+	}
+	else if(block_type == c_block_type_water)
+	{
+		if(is_block_falling_tick && z > 0)
+		{
+			uint8_t block_below_type= chunks_input_data[column_address + z - 1];
+			if(block_below_type == c_block_type_air)
+			{
+				// If water block has air below, it falls down and is replaced with air.
+				// This should match air block logic.
+				return u8vec2(c_block_type_air, 0);
+			}
+		}
 	}
 	else if(block_type == c_block_type_soil)
 	{

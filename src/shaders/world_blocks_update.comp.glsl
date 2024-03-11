@@ -71,7 +71,10 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 	uint8_t block_type= chunks_input_data[column_address + z];
 
 	// Allow blocks to fall down only each second tick.
-	bool is_block_falling_tick= (current_tick & 1) != 0;
+	bool is_block_falling_tick= (current_tick & 1) == 0;
+	// It's important to perform fall down logic and water side flow logic in separate ticks.
+	// Doing so we prevent cases where water is suddenly replaced with sand, for example.
+	bool is_water_side_flow_tick= (current_tick & 1) == 1;
 
 	// Switch over block type.
 	if(block_type == c_block_type_air)
@@ -105,14 +108,14 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 	}
 	else if(block_type == c_block_type_water)
 	{
+		int water_level= int(chunks_auxiliar_input_data[column_address + z]);
+
 		if(is_block_falling_tick)
 		{
 			// Process water flow down in block falling tick.
 			// Caution!
 			// Water flow-in for block below should be identical to flow-out for block above,
 			// in order to preserve total amount of water!
-
-			int water_level= int(chunks_auxiliar_input_data[column_address + z]);
 			int flow_in= 0;
 			int flow_out= 0;
 
@@ -152,6 +155,54 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 				// Has some water left.
 				return u8vec2(c_block_type_water, new_water_level);
 			}
+		}
+		else if(is_water_side_flow_tick)
+		{
+			// Perform water side flow.
+			// TODO - fix possible problems at world edges.
+			int flow_in= 0;
+			int flow_out= 0;
+
+			// Prevent overflow/underflow by limiting flow from each block by 1/8 of water level/remaining capacity.
+			// 1/8 is less than 1/6 to handle worse cases with flow from all sides.
+			int max_individual_in_flow= (c_max_water_level - water_level) >> 3;
+			int max_individual_out_flow= water_level >> 3;
+
+			for(int i= 0; i < 6; ++i) // For adjacent blocks.
+			{
+				int adjacent_block_address= adjacent_columns[i] + z;
+
+				// Flow is 1/4 of difference on each tick.
+				// Allowing more flow at once creates ugly waves.
+
+				uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
+				if(adjacent_block_type == c_block_type_air)
+				{
+					// TODO - flow into air.
+					// flow_out+= min(max_individual_out_flow, water_level >> 2);
+				}
+				else if(adjacent_block_type == c_block_type_water)
+				{
+					int adjacent_water_level= chunks_auxiliar_input_data[adjacent_block_address];
+
+					int max_individual_adjacent_in_flow= (c_max_water_level - adjacent_water_level) >> 3;
+					int max_individual_adjacent_out_flow= adjacent_water_level >> 3;
+
+					int level_diff= water_level - adjacent_water_level;
+					if(level_diff >= 4)
+						flow_out+= min(max_individual_adjacent_in_flow, min(max_individual_out_flow, level_diff >> 2));
+					else if(level_diff <= -4)
+						flow_in+= min(max_individual_adjacent_out_flow, min(max_individual_in_flow, (-level_diff) >> 2));
+					else
+					{
+						// Level diff is too low - perform no flow.
+					}
+				}
+			}
+
+			int new_water_level= water_level + flow_in - flow_out; // Should be in allowed range [0; c_max_water_level]
+			// Assuming it's not possible to drain all water in side flow logic.
+			return u8vec2(c_block_type_water, new_water_level);
 		}
 	}
 	else if(block_type == c_block_type_soil)

@@ -115,6 +115,18 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 				uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
 				if(adjacent_block_type == c_block_type_water)
 				{
+					bool adjacent_can_flow_down= false;
+					if(z > 0)
+					{
+						int adjacent_block_below_address= adjacent_block_address - 1;
+						uint8_t adjacent_block_below_type= chunks_input_data[adjacent_block_below_address];
+						adjacent_can_flow_down=
+							adjacent_block_below_type == c_block_type_air ||
+							(adjacent_block_below_type == c_block_type_water &&  int(chunks_auxiliar_input_data[adjacent_block_below_address]) < c_max_water_level);
+					}
+					if(adjacent_can_flow_down)
+						continue; // Prevent out flow if flow down is possilble.
+
 					int adjacent_water_level= chunks_auxiliar_input_data[adjacent_block_address];
 
 					int max_individual_adjacent_out_flow= adjacent_water_level >> 3;
@@ -217,6 +229,16 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 				}
 				else if(adjacent_block_type == c_block_type_water)
 				{
+					bool adjacent_can_flow_down= false;
+					if(z > 0)
+					{
+						int adjacent_block_below_address= adjacent_block_address - 1;
+						uint8_t adjacent_block_below_type= chunks_input_data[adjacent_block_below_address];
+						adjacent_can_flow_down=
+							adjacent_block_below_type == c_block_type_air ||
+							(adjacent_block_below_type == c_block_type_water &&  int(chunks_auxiliar_input_data[adjacent_block_below_address]) < c_max_water_level);
+					}
+
 					int adjacent_water_level= chunks_auxiliar_input_data[adjacent_block_address];
 
 					int max_individual_adjacent_in_flow= (c_max_water_level - adjacent_water_level) >> 3;
@@ -226,13 +248,30 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 					if(level_diff >= 4)
 						flow_out+= min(max_individual_adjacent_in_flow, min(max_individual_out_flow, level_diff >> 2));
 					else if(level_diff <= -4)
-						flow_in+= min(max_individual_adjacent_out_flow, min(max_individual_in_flow, (-level_diff) >> 2));
+					{
+						// Prevent adjacent block out flow if flow down is possilble.
+						if(!adjacent_can_flow_down)
+							flow_in+= min(max_individual_adjacent_out_flow, min(max_individual_in_flow, (-level_diff) >> 2));
+					}
 					else
 					{
 						// Level diff is too low - perform no flow.
 					}
 				}
 			}
+
+			bool can_flow_down= false;
+			if(z > 0)
+			{
+				int block_below_address= column_address + z - 1;
+				uint8_t block_below_type= chunks_input_data[block_below_address];
+				can_flow_down=
+					block_below_type == c_block_type_air ||
+					(block_below_type == c_block_type_water && int(chunks_auxiliar_input_data[block_below_address]) < c_max_water_level);
+			}
+
+			if(can_flow_down)
+				flow_out= 0; // Prevent out flow if flow down is possilble.
 
 			int new_water_level= water_level + flow_in - flow_out; // Should be in allowed range [0; c_max_water_level]
 			// Assuming it's not possible to drain all water in side flow logic.

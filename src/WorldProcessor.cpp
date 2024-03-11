@@ -1245,6 +1245,17 @@ vk::DeviceSize WorldProcessor::GetChunkDataBufferSize() const
 	return chunk_data_buffers_[0].GetSize();
 }
 
+vk::Buffer WorldProcessor::GetChunkAuxiliarDataBuffer(const uint32_t index) const
+{
+	HEX_ASSERT(index < 2);
+	return chunk_auxiliar_data_buffers_[index].GetBuffer();
+}
+
+vk::DeviceSize WorldProcessor::GetChunkAuxiliarDataBufferSize() const
+{
+	return chunk_auxiliar_data_buffers_[0].GetSize();
+}
+
 vk::Buffer WorldProcessor::GetLightDataBuffer(const uint32_t index) const
 {
 	HEX_ASSERT(index < 2);

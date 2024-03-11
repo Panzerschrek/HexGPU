@@ -4,6 +4,7 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 
+#include "inc/block_type.glsl"
 #include "inc/hex_funcs.glsl"
 #include "inc/world_blocks_external_update_queue.glsl"
 
@@ -42,7 +43,9 @@ void main()
 			{
 				// Allow changing block if it isn't changed by someone else.
 				chunks_data[address]= update.new_block_type;
-				chunks_auxiliar_data[address]= uint8_t(0);
+
+				if(update.new_block_type == c_block_type_water)
+					chunks_auxiliar_data[address]= uint8_t(c_max_water_level);
 			}
 			else
 			{

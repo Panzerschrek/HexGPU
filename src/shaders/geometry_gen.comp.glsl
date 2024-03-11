@@ -45,6 +45,11 @@ layout(binding= 3, std430) buffer chunk_draw_info_buffer
 	ChunkDrawInfo chunk_draw_info[];
 };
 
+layout(binding= 4, std430) buffer chunks_auxiliar_data_buffer
+{
+	uint8_t chunks_auxiliar_data[];
+};
+
 layout(push_constant) uniform uniforms_block
 {
 	ivec2 world_size_chunks;
@@ -298,7 +303,7 @@ void main()
 		// Calculate hexagon vertices.
 		WorldVertex v[6];
 
-		int water_level= 255; // TODO - read actual water level.
+		int water_level= int(chunks_auxiliar_data[block_address]);
 
 		// Scale Z in order to represent different fractional water height.
 		int z_fractional= (z << 7) + (water_level >> 1);

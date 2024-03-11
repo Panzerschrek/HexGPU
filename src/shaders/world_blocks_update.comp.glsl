@@ -40,7 +40,8 @@ layout(binding= 3, std430) buffer chunks_auxiliar_data_output_buffer
 	uint8_t chunks_auxiliar_output_data[];
 };
 
-uint8_t TransformBlock(int block_x, int block_y, int z)
+// Returns pair of block type and auxiliar data.
+u8vec2 TransformBlock(int block_x, int block_y, int z)
 {
 	ivec2 max_coord= GetMaxWorldCoord(world_size_chunks);
 
@@ -79,7 +80,7 @@ uint8_t TransformBlock(int block_x, int block_y, int z)
 		// This should match sand block logic.
 		if(is_block_falling_tick &&
 			z < c_chunk_height - 1 && chunks_input_data[column_address + z + 1] == c_block_type_sand)
-			return c_block_type_sand;
+			return u8vec2(c_block_type_sand, 0);
 	}
 	else if(block_type == c_block_type_sand)
 	{
@@ -87,7 +88,7 @@ uint8_t TransformBlock(int block_x, int block_y, int z)
 		// This should match air block logic.
 		if(is_block_falling_tick &&
 			z > 0 && chunks_input_data[column_address + z - 1] == c_block_type_air)
-			return c_block_type_air;
+			return u8vec2(c_block_type_air, 0);
 	}
 	else if(block_type == c_block_type_soil)
 	{
@@ -137,7 +138,7 @@ uint8_t TransformBlock(int block_x, int block_y, int z)
 
 			// TODO - perform convertion into grass randomly with chance proportional to number of grass blocks nearby.
 			if(num_adjacent_grass_blocks > 0)
-				return c_block_type_grass;
+				return u8vec2(c_block_type_grass, 0);
 		}
 	}
 	else if(block_type == c_block_type_grass)
@@ -146,11 +147,11 @@ uint8_t TransformBlock(int block_x, int block_y, int z)
 		// TODO - take also light level into account.
 		uint8_t block_above_type= chunks_input_data[column_address + z_up_clamped];
 		if(!(block_above_type == c_block_type_air || block_above_type == c_block_type_foliage))
-			return c_block_type_soil;
+			return u8vec2(c_block_type_soil, 0);
 	}
 
 	// Common case when block type isn't chanhed.
-	return block_type;
+	return u8vec2(block_type, chunks_auxiliar_input_data[column_address + z]);
 }
 
 void main()
@@ -165,10 +166,16 @@ void main()
 	int block_y= (in_chunk_position.y << c_chunk_width_log2) + invocation.y;
 	int z= invocation.z;
 
-	uint8_t new_block_type= TransformBlock(block_x, block_y, z);
+	u8vec2 new_block_state= TransformBlock(block_x, block_y, z);
 
 	// Write updated block.
 	int chunk_index= out_chunk_position.x + out_chunk_position.y * world_size_chunks.x;
 	int chunk_data_offset= chunk_index * c_chunk_volume;
-	chunks_output_data[chunk_data_offset + ChunkBlockAddress(invocation)]= new_block_type;
+
+	int address= chunk_data_offset + ChunkBlockAddress(invocation);
+
+	chunks_output_data[address]= new_block_state.x;
+
+	// TODO - avoid writin auxiliar data for blocks which don't use it.
+	chunks_auxiliar_output_data[address]= new_block_state.y;
 }

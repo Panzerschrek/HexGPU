@@ -29,6 +29,10 @@ public:
 
 	vk::Buffer GetChunkDataBuffer(uint32_t index) const;
 	vk::DeviceSize GetChunkDataBufferSize() const;
+
+	vk::Buffer GetChunkAuxiliarDataBuffer(uint32_t index) const;
+	vk::DeviceSize GetChunkAuxiliarDataBufferSize() const;
+
 	vk::Buffer GetLightDataBuffer(uint32_t index) const;
 	vk::DeviceSize GetLightDataBufferSize() const;
 

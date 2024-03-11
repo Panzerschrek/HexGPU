@@ -40,6 +40,7 @@ namespace GeometryGenShaderBindings
 	const ShaderBindingIndex chunk_data_buffer= 1;
 	const ShaderBindingIndex chunk_light_buffer= 2;
 	const ShaderBindingIndex chunk_draw_info_buffer= 3;
+	const ShaderBindingIndex chunk_auxiliar_data_buffer= 4;
 }
 
 struct ChunkDrawInfoShiftUniforms
@@ -311,6 +312,13 @@ ComputePipeline CreateGeometryGenPipeline(const vk::Device vk_device)
 			vk::ShaderStageFlagBits::eCompute,
 			nullptr,
 		},
+		{
+			GeometryGenShaderBindings::chunk_auxiliar_data_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
 	};
 
 	pipeline.descriptor_set_layout= vk_device.createDescriptorSetLayoutUnique(
@@ -547,6 +555,11 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 			0u,
 			chunk_draw_info_buffer_.GetSize());
 
+		const vk::DescriptorBufferInfo descriptor_chunk_auxiliar_data_buffer_info(
+			world_processor_.GetChunkAuxiliarDataBuffer(i),
+			0u,
+			world_processor_.GetChunkAuxiliarDataBufferSize());
+
 		vk_device_.updateDescriptorSets(
 			{
 				{
@@ -587,6 +600,16 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 					vk::DescriptorType::eStorageBuffer,
 					nullptr,
 					&descriptor_chunk_draw_info_buffer_info,
+					nullptr
+				},
+				{
+					geometry_gen_descriptor_sets_[i],
+					GeometryGenShaderBindings::chunk_auxiliar_data_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_chunk_auxiliar_data_buffer_info,
 					nullptr
 				},
 			},
@@ -915,6 +938,7 @@ void WorldGeometryGenerator::GenGeometry(TaskOrganizer& task_organizer)
 
 	TaskOrganizer::ComputeTaskParams task;
 	task.input_storage_buffers.push_back(world_processor_.GetChunkDataBuffer(actual_buffers_index));
+	task.input_storage_buffers.push_back(world_processor_.GetChunkAuxiliarDataBuffer(actual_buffers_index));
 	task.input_storage_buffers.push_back(world_processor_.GetLightDataBuffer(actual_buffers_index));
 	task.input_output_storage_buffers.push_back(chunk_draw_info_buffer_.GetBuffer());
 	task.output_storage_buffers.push_back(vertex_buffer_.GetBuffer());

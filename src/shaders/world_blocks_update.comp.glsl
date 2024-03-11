@@ -30,6 +30,16 @@ layout(binding= 1, std430) buffer chunks_data_output_buffer
 	uint8_t chunks_output_data[];
 };
 
+layout(binding= 2, std430) buffer chunks_auxiliar_data_input_buffer
+{
+	uint8_t chunks_auxiliar_input_data[];
+};
+
+layout(binding= 3, std430) buffer chunks_auxiliar_data_output_buffer
+{
+	uint8_t chunks_auxiliar_output_data[];
+};
+
 uint8_t TransformBlock(int block_x, int block_y, int z)
 {
 	ivec2 max_coord= GetMaxWorldCoord(world_size_chunks);

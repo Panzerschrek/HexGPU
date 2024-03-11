@@ -143,6 +143,7 @@ private:
 	// Use double buffering for world update.
 	// On each step data is read from one of them and written into another.
 	const std::array<Buffer, 2> chunk_data_buffers_;
+	const std::array<Buffer, 2> chunk_auxiliar_data_buffers_; // Buffer for additional data for some types of blocks.
 
 	// Use double buffering for light update.
 	// On each step data is read from one of them and written into another.

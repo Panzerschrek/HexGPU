@@ -42,6 +42,11 @@ layout(binding= 3, std430) buffer structures_data_buffer
 	uint8_t structures_data[];
 };
 
+layout(binding= 4, std430) buffer chunks_auxiliar_data_buffer
+{
+	uint8_t chunks_auxiliar_data[];
+};
+
 void main()
 {
 	int chunk_index= chunk_position.x + chunk_position.y * world_size_chunks.x;

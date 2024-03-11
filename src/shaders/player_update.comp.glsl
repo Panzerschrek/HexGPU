@@ -189,15 +189,18 @@ void UpdateBuildPos()
 			continue; // Located in the same grid cell.
 
 		ivec3 pos_in_window= grid_pos - player_world_window.offset.xyz;
-		if(IsPosInsidePlayerWorldWindow(pos_in_window) &&
-			player_world_window.window_data[GetAddressOfBlockInPlayerWorldWindow(pos_in_window)] != c_block_type_air)
+		if(IsPosInsidePlayerWorldWindow(pos_in_window))
 		{
-			// Reached non-air block.
-			// Destroy position is in this block, build position is in previous block.
-			player_state.destroy_pos.xyz= grid_pos;
-			player_state.build_pos.xyz= last_grid_pos;
-			player_state.build_pos.w= int(GetBuildDirection(last_grid_pos, grid_pos));
-			return;
+			uint8_t block_type= player_world_window.window_data[GetAddressOfBlockInPlayerWorldWindow(pos_in_window)];
+			if(c_block_optical_density_table[uint(block_type)] != c_optical_density_air)
+			{
+				// Reached non-solid block.
+				// Destroy position is in this block, build position is in previous block.
+				player_state.destroy_pos.xyz= grid_pos;
+				player_state.build_pos.xyz= last_grid_pos;
+				player_state.build_pos.w= int(GetBuildDirection(last_grid_pos, grid_pos));
+				return;
+			}
 		}
 
 		last_grid_pos= grid_pos;

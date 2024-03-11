@@ -79,23 +79,57 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 	// Switch over block type.
 	if(block_type == c_block_type_air)
 	{
-		if(is_block_falling_tick && z < c_chunk_height - 1)
+		if(is_block_falling_tick)
 		{
-			uint8_t block_above_type= chunks_input_data[column_address + z + 1];
-			if(block_above_type == c_block_type_sand)
+			if( z < c_chunk_height - 1)
 			{
-				// If we have a sand block above, convert this block into sand.
-				// This should match sand block logic.
-				return u8vec2(c_block_type_sand, 0);
+				uint8_t block_above_type= chunks_input_data[column_address + z + 1];
+				if(block_above_type == c_block_type_sand)
+				{
+					// If we have a sand block above, convert this block into sand.
+					// This should match sand block logic.
+					return u8vec2(c_block_type_sand, 0);
+				}
+				if(block_above_type == c_block_type_water)
+				{
+					// If we have a water block above, convert this block into water.
+					// Use proper water level.
+					// This should match water block logic.
+					uint8_t water_level_above= chunks_auxiliar_input_data[column_address + z + 1];
+					return u8vec2(c_block_type_water, water_level_above);
+				}
 			}
-			if(block_above_type == c_block_type_water)
+		}
+		else if(is_water_side_flow_tick)
+		{
+			// Check if water flows into this air block.
+			// This should mirror water block logic!
+			int flow_in= 0;
+
+			const int max_individual_in_flow= c_max_water_level >> 3;
+
+			for(int i= 0; i < 6; ++i) // For adjacent blocks.
 			{
-				// If we have a water block above, convert this block into water.
-				// Use proper water level.
-				// This should match water block logic.
-				uint8_t water_level_above= chunks_auxiliar_input_data[column_address + z + 1];
-				return u8vec2(c_block_type_water, water_level_above);
+				int adjacent_block_address= adjacent_columns[i] + z;
+
+				uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
+				if(adjacent_block_type == c_block_type_water)
+				{
+					int adjacent_water_level= chunks_auxiliar_input_data[adjacent_block_address];
+
+					int max_individual_adjacent_out_flow= adjacent_water_level >> 3;
+
+					flow_in+= min(max_individual_in_flow, max_individual_adjacent_out_flow);
+				}
 			}
+
+			if(flow_in != 0)
+			{
+				// Has some in water flow - convert into water.
+				return u8vec2(c_block_type_water, flow_in);
+			}
+			else
+				return u8vec2(c_block_type_air, 0);
 		}
 	}
 	else if(block_type == c_block_type_sand)
@@ -178,8 +212,8 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 				uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
 				if(adjacent_block_type == c_block_type_air)
 				{
-					// TODO - flow into air.
-					// flow_out+= min(max_individual_out_flow, water_level >> 2);
+					const int max_individual_adjacent_in_flow= c_max_water_level >> 3;
+					flow_out+= min(max_individual_adjacent_in_flow, max_individual_out_flow);
 				}
 				else if(adjacent_block_type == c_block_type_water)
 				{

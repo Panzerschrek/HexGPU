@@ -268,15 +268,17 @@ void main()
 		if(IsPosInsidePlayerWorldWindow(pos_in_window))
 		{
 			int address_in_window= GetAddressOfBlockInPlayerWorldWindow(pos_in_window);
+			if(player_world_window.window_data[address_in_window] == c_block_type_air)
+			{
+				WorldBlockExternalUpdate update;
+				update.position= ivec4(player_state.build_pos.xyz, 0);
+				update.old_block_type= player_world_window.window_data[address_in_window];
+				update.new_block_type= player_state.build_block_type;
+				PushUpdateIntoQueue(update);
 
-			WorldBlockExternalUpdate update;
-			update.position= ivec4(player_state.build_pos.xyz, 0);
-			update.old_block_type= player_world_window.window_data[address_in_window];
-			update.new_block_type= player_state.build_block_type;
-			PushUpdateIntoQueue(update);
-
-			player_world_window.window_data[address_in_window]= player_state.build_block_type;
-			UpdateBuildPos();
+				player_world_window.window_data[address_in_window]= player_state.build_block_type;
+				UpdateBuildPos();
+			}
 		}
 	}
 	if((mouse_state & c_mouse_mask_l_clicked) != 0)
@@ -285,15 +287,17 @@ void main()
 		if(IsPosInsidePlayerWorldWindow(pos_in_window))
 		{
 			int address_in_window= GetAddressOfBlockInPlayerWorldWindow(pos_in_window);
+			if(player_world_window.window_data[address_in_window] != c_block_type_water)
+			{
+				WorldBlockExternalUpdate update;
+				update.position= ivec4(player_state.destroy_pos.xyz, 0);
+				update.old_block_type= player_world_window.window_data[address_in_window];
+				update.new_block_type= c_block_type_air;
+				PushUpdateIntoQueue(update);
 
-			WorldBlockExternalUpdate update;
-			update.position= ivec4(player_state.destroy_pos.xyz, 0);
-			update.old_block_type= player_world_window.window_data[address_in_window];
-			update.new_block_type= c_block_type_air;
-			PushUpdateIntoQueue(update);
-
-			player_world_window.window_data[address_in_window]= c_block_type_air;
-			UpdateBuildPos();
+				player_world_window.window_data[address_in_window]= c_block_type_air;
+				UpdateBuildPos();
+			}
 		}
 	}
 

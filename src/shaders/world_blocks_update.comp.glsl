@@ -105,14 +105,52 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 	}
 	else if(block_type == c_block_type_water)
 	{
-		if(is_block_falling_tick && z > 0)
+		if(is_block_falling_tick)
 		{
-			uint8_t block_below_type= chunks_input_data[column_address + z - 1];
-			if(block_below_type == c_block_type_air)
+			// Process water flow down in block falling tick.
+			// Caution!
+			// Water flow-in for block below should be identical to flow-out for block above,
+			// in order to preserve total amount of water!
+
+			int water_level= int(chunks_auxiliar_input_data[column_address + z]);
+			int flow_in= 0;
+			int flow_out= 0;
+
+			if(z > 0)
 			{
-				// If water block has air below, it falls down and is replaced with air.
-				// This should match air block logic.
+				uint8_t block_below_type= chunks_input_data[column_address + z - 1];
+				if(block_below_type == c_block_type_air)
+				{
+					// If we have air below - transfer all water.
+					// This shoul match air block logic.
+					flow_out= water_level;
+				}
+				else if(block_below_type == c_block_type_water)
+				{
+					int water_level_below= int(chunks_auxiliar_input_data[column_address + z - 1]);
+					flow_out= min(water_level, c_max_water_level - water_level_below);
+				}
+			}
+			if(z < c_chunk_height - 1)
+			{
+				uint8_t block_above_type= chunks_input_data[column_address + z + 1];
+				if(block_above_type == c_block_type_water)
+				{
+					int water_level_above= int(chunks_auxiliar_input_data[column_address + z + 1]);
+					flow_in= min(water_level_above, c_max_water_level - water_level);
+				}
+			}
+
+			int new_water_level= water_level + flow_in - flow_out; // Should be in allowed range [0; c_max_water_level]
+			if(new_water_level == 0)
+			{
+				// Nothing left in this block - convert it into air.
 				return u8vec2(c_block_type_air, 0);
+			}
+			else
+			{
+				// Has some water left.
+				return u8vec2(c_block_type_water, new_water_level);
 			}
 		}
 	}

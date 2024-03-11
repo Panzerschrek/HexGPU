@@ -320,7 +320,8 @@ void main()
 		const int tex_scale= int(c_texture_property_table[tex_index].x);
 		ivec2 tc_base= tex_scale * ivec2(base_x, base_y);
 
-		int16_t light= RepackAndScaleLight(light_buffer[block_address_up], 272);
+		// Use light of this block.
+		int16_t light= RepackAndScaleLight(light_buffer[block_address], 272);
 
 		v[0].tex_coord= i16vec4(int16_t(tc_base.x + 1 * tex_scale), int16_t(tc_base.y + 0 * tex_scale), tex_index, light);
 		v[1].tex_coord= i16vec4(int16_t(tc_base.x + 3 * tex_scale), int16_t(tc_base.y + 0 * tex_scale), tex_index, light);

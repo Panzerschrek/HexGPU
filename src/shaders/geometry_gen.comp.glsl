@@ -296,7 +296,7 @@ void main()
 		quads[quad_index]= quad;
 	}
 
-	if(block_value == c_block_type_water)
+	if(block_value == c_block_type_water && block_value_up != c_block_type_water)
 	{
 		// Add two water hexagon quads.
 

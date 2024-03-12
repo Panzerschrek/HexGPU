@@ -20,3 +20,5 @@ int GetGroundLevel(int global_x, int global_y, int seed)
 
 	return max(3, min(base_ground_value + noise_scaled, c_chunk_height - 2));
 }
+
+const int c_water_level= 32;

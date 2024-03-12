@@ -61,6 +61,10 @@ void main()
 		int tree_global_x= (cell_x << int(c_tree_map_cell_size_log2[0])) + int(cell.coord.x);
 		int tree_global_y= (cell_y << int(c_tree_map_cell_size_log2[1])) + int(cell.coord.y);
 
+		int z= GetGroundLevel(tree_global_x, tree_global_y, seed) + 1;
+		if(z <= c_water_level + 1)
+			continue;
+
 		int tree_chunk_x= tree_global_x - (chunk_global_position.x << c_chunk_width_log2);
 		int tree_chunk_y= tree_global_y - (chunk_global_position.y << c_chunk_width_log2);
 
@@ -77,7 +81,6 @@ void main()
 		if( min_xy.x >= c_chunk_width || max_xy.x <= 0 || min_xy.y >= c_chunk_width || max_xy.y <= 0)
 			continue; // This tree lies fully outside this chunk.
 
-		int z= GetGroundLevel(tree_global_x, tree_global_y, seed) + 1;
 
 		ChunkStructureDescription chunk_structure;
 		chunk_structure.min= i8vec4(i8vec2(min_xy), int8_t(z), int8_t(structure_id));

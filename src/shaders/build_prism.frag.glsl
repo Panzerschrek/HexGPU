@@ -8,5 +8,6 @@ layout(location = 0) out vec4 out_color;
 void main()
 {
 	float f= fract(dot(vec4(0.5), step(0.5, fract(f_stripes)))) * 2.0;
-	out_color= vec4(vec3(0.0, 0.0, 0.0), f_alpha * f);
+	float inv_factor= 1.0 - f * f_alpha;
+	out_color= vec4(vec3(1.0 - inv_factor), inv_factor);
 }

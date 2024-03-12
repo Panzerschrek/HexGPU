@@ -110,8 +110,8 @@ GraphicsPipeline CreateBuildPrismPipeline(
 	// Use simple alpha-blending.
 	const vk::PipelineColorBlendAttachmentState pipeline_color_blend_attachment_state(
 		VK_TRUE,
-		vk::BlendFactor::eSrcAlpha, vk::BlendFactor::eOneMinusSrcAlpha, vk::BlendOp::eAdd,
-		vk::BlendFactor::eSrcAlpha, vk::BlendFactor::eOneMinusSrcAlpha, vk::BlendOp::eAdd,
+		vk::BlendFactor::eOneMinusDstColor, vk::BlendFactor::eSrcAlpha, vk::BlendOp::eAdd,
+		vk::BlendFactor::eOne, vk::BlendFactor::eZero, vk::BlendOp::eAdd,
 		vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
 
 	const vk::PipelineColorBlendStateCreateInfo pipeline_color_blend_state_create_info(

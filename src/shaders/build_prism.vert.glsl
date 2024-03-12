@@ -88,7 +88,7 @@ void main()
 	int direction= c_triangle_index_to_side[gl_VertexIndex / 3];
 
 	// Highlight active build prism side.
-	f_alpha= direction == build_pos.w ? 0.7 : 0.3;
+	f_alpha= direction == build_pos.w ? 0.8 : 0.2;
 
 	f_stripes= vec4(2.0, 3.0, 3.0, 6.0) * vec4(v.x, v.y + (1.0 / 3.0) * v.x, v.y - (1.0 / 3.0) * v.x, v.z);
 }

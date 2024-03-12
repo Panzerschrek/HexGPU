@@ -4,6 +4,9 @@
 namespace HexGPU
 {
 
+namespace
+{
+
 #pragma pack(push, 1)
 struct TGAHeader
 {
@@ -26,6 +29,8 @@ struct TGAHeader
 #pragma pack(pop)
 
 static_assert(sizeof(TGAHeader) == 18, "Invalid size");
+
+} // namespace
 
 void WriteTGA(
 	const uint16_t width, const uint16_t height,

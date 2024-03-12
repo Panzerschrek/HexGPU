@@ -133,8 +133,6 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 				// This should mirror water block logic!
 				int flow_in= 0;
 
-				const int max_individual_in_flow= c_max_water_level >> 3;
-
 				for(int i= 0; i < 6; ++i) // For adjacent blocks.
 				{
 					if(!adjacent_column_is_in_active_area[i])
@@ -157,11 +155,9 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 						if(adjacent_can_flow_down)
 							continue; // Prevent out flow if flow down is possilble.
 
-						int adjacent_water_level= chunks_auxiliar_input_data[adjacent_block_address];
+						int adjacent_water_level= int(chunks_auxiliar_input_data[adjacent_block_address]);
 
-						int max_individual_adjacent_out_flow= adjacent_water_level >> 3;
-
-						flow_in+= min(max_individual_in_flow, max_individual_adjacent_out_flow);
+						flow_in+= adjacent_water_level >> 3;
 					}
 				}
 
@@ -242,11 +238,6 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 				int flow_in= 0;
 				int flow_out= 0;
 
-				// Prevent overflow/underflow by limiting flow from each block by 1/8 of water level/remaining capacity.
-				// 1/8 is less than 1/6 to handle worse cases with flow from all sides.
-				int max_individual_in_flow= (c_max_water_level - water_level) >> 3;
-				int max_individual_out_flow= water_level >> 3;
-
 				for(int i= 0; i < 6; ++i) // For adjacent blocks.
 				{
 					if(!adjacent_column_is_in_active_area[i])
@@ -257,36 +248,36 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 					uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
 					if(adjacent_block_type == c_block_type_air)
 					{
-						const int max_individual_adjacent_in_flow= c_max_water_level >> 3;
-						flow_out+= min(max_individual_adjacent_in_flow, max_individual_out_flow);
+						flow_out+= water_level >> 3;
 					}
 					else if(adjacent_block_type == c_block_type_water)
 					{
-						bool adjacent_can_flow_down= false;
-						if(z > 0)
-						{
-							int adjacent_block_below_address= adjacent_block_address - 1;
-							uint8_t adjacent_block_below_type= chunks_input_data[adjacent_block_below_address];
-							adjacent_can_flow_down=
-								adjacent_block_below_type == c_block_type_air ||
-								(adjacent_block_below_type == c_block_type_water &&  int(chunks_auxiliar_input_data[adjacent_block_below_address]) < c_max_water_level);
-						}
-
-						int adjacent_water_level= chunks_auxiliar_input_data[adjacent_block_address];
-
-						int max_individual_adjacent_in_flow= (c_max_water_level - adjacent_water_level) >> 3;
-						int max_individual_adjacent_out_flow= adjacent_water_level >> 3;
+						int adjacent_water_level= int(chunks_auxiliar_input_data[adjacent_block_address]);
 
 						// Flow is 1/8 of difference on each tick.
-						// Allowing more flow at once creates ugly oscilations.
+						// Doing so we prevent water flow/underflow, since difference can't be more than water level or remaining capacity.
+						// In the worst case with all blocks flowing in/out overflow isn't possible, because there are maximum 6 adjacent blocks.
+						// It's possible to use 1/6, but 1/8 is better,
+						// since it uses cheap bit shift instead of expensive integer division.
+
 						int level_diff= water_level - adjacent_water_level;
 						if(level_diff >= 8)
-							flow_out+= min(max_individual_adjacent_in_flow, min(max_individual_out_flow, level_diff >> 3));
+							flow_out+= level_diff >> 3;
 						else if(level_diff <= -8)
 						{
 							// Prevent adjacent block out flow if flow down is possilble.
+							bool adjacent_can_flow_down= false;
+							if(z > 0)
+							{
+								int adjacent_block_below_address= adjacent_block_address - 1;
+								uint8_t adjacent_block_below_type= chunks_input_data[adjacent_block_below_address];
+								adjacent_can_flow_down=
+									adjacent_block_below_type == c_block_type_air ||
+									(adjacent_block_below_type == c_block_type_water && int(chunks_auxiliar_input_data[adjacent_block_below_address]) < c_max_water_level);
+							}
+
 							if(!adjacent_can_flow_down)
-								flow_in+= min(max_individual_adjacent_out_flow, min(max_individual_in_flow, (-level_diff) >> 3));
+								flow_in+= (-level_diff) >> 3;
 						}
 						else
 						{

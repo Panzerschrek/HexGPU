@@ -302,18 +302,80 @@ void main()
 
 		int water_level= int(chunks_auxiliar_data[block_address]);
 
-		// Scale Z in order to represent different fractional water height.
-		int z_fractional= (z << 8) + water_level;
+		bool upper_block_is_water[6]= bool[6]( false, false, false, false, false, false );
+		bool nearby_block_is_air [6]= bool[6]( false, false, false, false, false, false );
+		int vertex_water_level[6]= int[6](water_level, water_level, water_level, water_level, water_level, water_level);
+		int vertex_water_block_count[6]= int[6](1, 1, 1, 1, 1, 1);
+
+		ivec2 max_coord= GetMaxWorldCoord(world_size_chunks);
+
+		int side_y_base= block_y + ((block_x + 1) & 1);
+		int east_x_clamped= min(block_x + 1, max_coord.x);
+		int west_x_clamped= max(block_x - 1, 0);
+
+		int adjacent_blocks[6]= int[6](
+			// north
+			GetBlockFullAddress(ivec3(block_x, min(block_y + 1, max_coord.y), z), world_size_chunks),
+			// north-east
+			GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(side_y_base - 0, max_coord.y)), z), world_size_chunks),
+			// south-east
+			GetBlockFullAddress(ivec3(east_x_clamped, max(0, min(side_y_base - 1, max_coord.y)), z), world_size_chunks),
+			// south
+			GetBlockFullAddress(ivec3(block_x, max(block_y - 1, 0), z), world_size_chunks),
+			// south-west
+			GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 1, max_coord.y)), z), world_size_chunks),
+			// north-west
+			GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 0, max_coord.y)), z), world_size_chunks) );
+
+		for(int i= 0; i < 6; ++i) // For adjacent blocks
+		{
+			int adjacent_block_address= adjacent_blocks[i];
+
+			int v0= i;
+			int v1= (i + 1) % 6;
+
+			if( z < c_chunk_height - 1 && chunks_data[adjacent_block_address + 1] == c_block_type_water)
+			{
+				upper_block_is_water[v0]= true;
+				upper_block_is_water[v1]= true;
+			}
+			else if(chunks_data[adjacent_block_address] == c_block_type_air)
+			{
+				nearby_block_is_air[v0]= true;
+				nearby_block_is_air[v1]= true;
+			}
+			else if(chunks_data[adjacent_block_address] == c_block_type_water)
+			{
+				int level= int(chunks_auxiliar_data[adjacent_block_address]);
+				vertex_water_level[v0]+= level;
+				vertex_water_level[v1]+= level;
+				++vertex_water_block_count[v0];
+				++vertex_water_block_count[v1];
+			}
+		}
+
+		for(int i= 0; i < 6; ++i) // Calculate vertex water level
+		{
+			if(upper_block_is_water[i])
+				vertex_water_level[i]= (z + 1) << 8;
+			else if(nearby_block_is_air[i])
+				vertex_water_level[i]= z << 8;
+			else
+			{
+				int average= vertex_water_level[i] / vertex_water_block_count[i];
+				vertex_water_level[i]= (z << 8) + average;
+			}
+		}
 
 		// Calculate hexagon vertices.
 		WorldVertex v[6];
 
-		v[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(z_fractional), 0.0);
-		v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z_fractional), 0.0);
-		v[2].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(z_fractional), 0.0);
-		v[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(z_fractional), 0.0);
-		v[4].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z_fractional), 0.0);
-		v[5].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(z_fractional), 0.0);
+		v[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(vertex_water_level[4]), 0.0);
+		v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(vertex_water_level[3]), 0.0);
+		v[2].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(vertex_water_level[2]), 0.0);
+		v[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(vertex_water_level[5]), 0.0);
+		v[4].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(vertex_water_level[1]), 0.0);
+		v[5].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(vertex_water_level[0]), 0.0);
 
 		const uint tex_index= uint(c_block_texture_table[uint(c_block_type_water)].x);
 

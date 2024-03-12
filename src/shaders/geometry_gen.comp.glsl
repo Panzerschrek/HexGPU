@@ -300,13 +300,13 @@ void main()
 	{
 		// Add two water hexagon quads.
 
-		// Calculate hexagon vertices.
-		WorldVertex v[6];
-
 		int water_level= int(chunks_auxiliar_data[block_address]);
 
 		// Scale Z in order to represent different fractional water height.
 		int z_fractional= (z << 8) + water_level;
+
+		// Calculate hexagon vertices.
+		WorldVertex v[6];
 
 		v[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(z_fractional), 0.0);
 		v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z_fractional), 0.0);

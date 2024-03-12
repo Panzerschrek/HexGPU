@@ -579,7 +579,6 @@ WorldRenderer::WorldDrawPipeline WorldRenderer::CreateWorldDrawPipeline(
 	return pipeline;
 }
 
-
 WorldRenderer::WorldDrawPipeline WorldRenderer::CreateWorldWaterDrawPipeline(
 	const vk::Device vk_device,
 	const vk::Extent2D viewport_size,
@@ -587,11 +586,9 @@ WorldRenderer::WorldDrawPipeline WorldRenderer::CreateWorldWaterDrawPipeline(
 {
 	WorldDrawPipeline pipeline;
 
-	// Create shaders
 	pipeline.shader_vert= CreateShader(vk_device, ShaderNames::water_vert);
 	pipeline.shader_frag= CreateShader(vk_device, ShaderNames::water_frag);
 
-	// Create texture sampler
 	pipeline.texture_sampler=
 		vk_device.createSamplerUnique(
 			vk::SamplerCreateInfo(
@@ -612,7 +609,6 @@ WorldRenderer::WorldDrawPipeline WorldRenderer::CreateWorldWaterDrawPipeline(
 				vk::BorderColor::eFloatTransparentBlack,
 				VK_FALSE));
 
-	// Create descriptor set layout.
 	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
 	{
 		{
@@ -641,7 +637,6 @@ WorldRenderer::WorldDrawPipeline WorldRenderer::CreateWorldWaterDrawPipeline(
 		0u,
 		sizeof(WaterPushConstantsUniforms));
 
-	// Create pipeline layout
 	pipeline.pipeline_layout=
 		vk_device.createPipelineLayoutUnique(
 			vk::PipelineLayoutCreateInfo(
@@ -649,9 +644,7 @@ WorldRenderer::WorldDrawPipeline WorldRenderer::CreateWorldWaterDrawPipeline(
 				1u, &*pipeline.descriptor_set_layout,
 				1u, &push_constant_range));
 
-	// Create pipeline.
-
-	const vk::PipelineShaderStageCreateInfo shader_stage_create_info[2]
+	const vk::PipelineShaderStageCreateInfo shader_stage_create_info[]
 	{
 		{
 			vk::PipelineShaderStageCreateFlags(),

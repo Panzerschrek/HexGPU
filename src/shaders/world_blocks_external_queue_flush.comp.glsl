@@ -46,6 +46,8 @@ void main()
 
 				if(update.new_block_type == c_block_type_water)
 					chunks_auxiliar_data[address]= uint8_t(c_max_water_level);
+				else
+					chunks_auxiliar_data[address]= uint8_t(0);
 			}
 			else
 			{

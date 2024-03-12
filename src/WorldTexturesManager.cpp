@@ -70,7 +70,7 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 			vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, 0u, c_num_layers)));
 
 	// Create water image view.
-	// Create 2d image view pointing to one of the layers of the textures array.
+	// Create 2d image view pointing to one of the layers of the textures array (for simplicity).
 	const uint32_t c_water_image_index= 10;
 	water_image_view_= vk_device_.createImageViewUnique(
 		vk::ImageViewCreateInfo(

@@ -1,9 +1,6 @@
 Here is the list of futures that needs to be implemented.
 The order represents importance and/or dependency.
 * Chunks save/load
-* Textures with scale based on block type/side
-* Textures without cross-block repetition (with zeroing at each block)
-* Flowing water
 * Improved textures loading - use smaller staging buffer and free it at the end of the loading process
 * Biome-based world generation
 * Update light only after blocks update - in order to avoid black spots in places of removed blocks
@@ -18,6 +15,10 @@ The order represents importance and/or dependency.
 * Use device-local memory almost everywhere
 * Anisotropy textures filtering
 * Run SPIR-V optimizer for compiled shaders
+* Smooth water mesh
+* Water blocks side polygons
+* Twostage water rendering - back faces than front faces, in order to achieve somewhat good transparency ordering
+* Underwater fog
 * Configurable textures config
 * Trees generation with variable density
 * Procedural tree models
@@ -30,4 +31,5 @@ The order represents importance and/or dependency.
 * Stars (at night)
 * Rain/snow
 * GUI
+* Pipe blocks for fast directional water transfer
 * Sparse chunk geometry update improvements - update area around player frequently, use direction of view, etc.

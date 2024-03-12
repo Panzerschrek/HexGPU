@@ -16,6 +16,7 @@ const char* const c_block_textures_table[]
 	/*  7 */ "stone.jpg",
 	/*  8 */ "wood.jpg",
 	/*  9 */ "wood-end.jpg",
+	/* 10 */ "water2.tga",
 };
 
 } // namespace HexGPU

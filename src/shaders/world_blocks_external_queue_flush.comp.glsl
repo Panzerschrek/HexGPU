@@ -4,6 +4,7 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 
+#include "inc/block_type.glsl"
 #include "inc/hex_funcs.glsl"
 #include "inc/world_blocks_external_update_queue.glsl"
 
@@ -23,6 +24,11 @@ layout(binding= 1, std430) buffer world_blocks_external_update_queue_buffer
 	WorldBlocksExternalUpdateQueue world_blocks_external_update_queue;
 };
 
+layout(binding= 2, std430) buffer chunks_auxiliar_data_buffer
+{
+	uint8_t chunks_auxiliar_data[];
+};
+
 void main()
 {
 	for(uint i= 0; i < min(world_blocks_external_update_queue.num_updates, c_max_world_blocks_external_updates); ++i)
@@ -37,6 +43,11 @@ void main()
 			{
 				// Allow changing block if it isn't changed by someone else.
 				chunks_data[address]= update.new_block_type;
+
+				if(update.new_block_type == c_block_type_water)
+					chunks_auxiliar_data[address]= uint8_t(c_max_water_level);
+				else
+					chunks_auxiliar_data[address]= uint8_t(0);
 			}
 			else
 			{

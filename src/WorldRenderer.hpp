@@ -19,7 +19,8 @@ public:
 
 	void PrepareFrame(TaskOrganizer& task_organizer);
 	void CollectFrameInputs(TaskOrganizer::GraphicsTaskParams& out_task_params);
-	void Draw(vk::CommandBuffer command_buffer);
+	void DrawOpaque(vk::CommandBuffer command_buffer);
+	void DrawTransparent(vk::CommandBuffer command_buffer, float time_s);
 
 private:
 	struct WorldDrawPipeline : public GraphicsPipeline
@@ -29,6 +30,11 @@ private:
 
 private:
 	static WorldDrawPipeline CreateWorldDrawPipeline(
+		vk::Device vk_device,
+		vk::Extent2D viewport_size,
+		vk::RenderPass render_pass);
+
+	static WorldDrawPipeline CreateWorldWaterDrawPipeline(
 		vk::Device vk_device,
 		vk::Extent2D viewport_size,
 		vk::RenderPass render_pass);
@@ -47,6 +53,7 @@ private:
 	WorldTexturesManager world_textures_manager_;
 
 	const Buffer draw_indirect_buffer_;
+	const Buffer water_draw_indirect_buffer_;
 	const Buffer uniform_buffer_;
 
 	const ComputePipeline draw_indirect_buffer_build_pipeline_;
@@ -54,6 +61,9 @@ private:
 
 	const WorldDrawPipeline draw_pipeline_;
 	const vk::DescriptorSet descriptor_set_;
+
+	const WorldDrawPipeline water_draw_pipeline_;
+	const vk::DescriptorSet water_descriptor_set_;
 
 	vk::UniqueBuffer index_buffer_;
 	vk::UniqueDeviceMemory index_buffer_memory_;

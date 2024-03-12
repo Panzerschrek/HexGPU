@@ -22,6 +22,11 @@ layout(binding= 1, std430) buffer draw_indirect_buffer
 	VkDrawIndexedIndirectCommand draw_commands[];
 };
 
+layout(binding= 2, std430) buffer water_draw_indirect_buffer
+{
+	VkDrawIndexedIndirectCommand water_draw_commands[];
+};
+
 const uint c_indices_per_quad= 6;
 
 void main()
@@ -31,15 +36,31 @@ void main()
 
 	uint chunk_index= chunk_x + chunk_y * uint(world_size_chunks.x);
 
-	uint num_quads= chunk_draw_info[chunk_index].num_quads;
-	uint first_quad= chunk_draw_info[chunk_index].first_quad;
+	{
+		uint num_quads= chunk_draw_info[chunk_index].num_quads;
+		uint first_quad= chunk_draw_info[chunk_index].first_quad;
 
-	VkDrawIndexedIndirectCommand draw_command;
-	draw_command.indexCount= num_quads * c_indices_per_quad;
-	draw_command.instanceCount= 1;
-	draw_command.firstIndex= 0;
-	draw_command.vertexOffset= int(first_quad) * 4;
-	draw_command.firstInstance= 0;
+		VkDrawIndexedIndirectCommand draw_command;
+		draw_command.indexCount= num_quads * c_indices_per_quad;
+		draw_command.instanceCount= 1;
+		draw_command.firstIndex= 0;
+		draw_command.vertexOffset= int(first_quad) * 4;
+		draw_command.firstInstance= 0;
 
-	draw_commands[chunk_index]= draw_command;
+		draw_commands[chunk_index]= draw_command;
+	}
+
+	{
+		uint num_quads= chunk_draw_info[chunk_index].num_water_quads;
+		uint first_quad= chunk_draw_info[chunk_index].first_water_quad;
+
+		VkDrawIndexedIndirectCommand draw_command;
+		draw_command.indexCount= num_quads * c_indices_per_quad;
+		draw_command.instanceCount= 1;
+		draw_command.firstIndex= 0;
+		draw_command.vertexOffset= int(first_quad) * 4;
+		draw_command.firstInstance= 0;
+
+		water_draw_commands[chunk_index]= draw_command;
+	}
 }

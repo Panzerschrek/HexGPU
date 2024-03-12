@@ -14,6 +14,7 @@ public:
 	void PrepareFrame(TaskOrganizer& task_organizer);
 
 	vk::ImageView GetImageView() const;
+	vk::ImageView GetWaterImageView() const;
 	TaskOrganizer::ImageInfo GetImageInfo() const;
 
 private:
@@ -22,6 +23,7 @@ private:
 
 	const vk::UniqueImage image_;
 	vk::UniqueImageView image_view_;
+	vk::UniqueImageView water_image_view_;
 	vk::UniqueDeviceMemory image_memory_;
 
 	vk::UniqueBuffer staging_buffer_;

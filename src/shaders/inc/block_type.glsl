@@ -30,7 +30,7 @@ const uint8_t c_block_optical_density_table[c_num_block_types]=
 	c_optical_density_solid, // brick
 	c_optical_density_semisolid, // foliage
 	c_optical_density_solid, // fire stone
-	c_optical_density_semisolid, // water
+	c_optical_density_air, // water
 	c_optical_density_solid  // sand
 );
 
@@ -65,12 +65,12 @@ const i16vec3 c_block_texture_table[c_num_block_types]=
 	i16vec3( 0,  0,  0), // brick
 	i16vec3( 3,  3,  3), // foliage
 	i16vec3( 1,  1,  1), // fire stone
-	i16vec3( 0,  0,  0), // water
+	i16vec3(10, 10, 10), // water
 	i16vec3( 4,  4,  4)  // sand
 );
 
 // If this changed, TexturesTable.hpp" must be changed too!
-const uint c_num_textures= 10;
+const uint c_num_textures= 11;
 
 // "x" - scale, "y" per-block flag.
 const u8vec2 c_texture_property_table[c_num_textures]=
@@ -85,7 +85,8 @@ const u8vec2 c_texture_property_table[c_num_textures]=
 	u8vec2(4, 1), // spherical_block_2.png
 	u8vec2(3, 0), // stone.jpg
 	u8vec2(4, 0), // wood.jpg
-	u8vec2(4, 1) // wood-end.jpg
+	u8vec2(4, 1), // wood-end.jpg
+	u8vec2(1, 0)  // water2.tga
 );
 
 // If this changed, C++ code must be changed too!

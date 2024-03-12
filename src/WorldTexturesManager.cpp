@@ -69,6 +69,18 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 			vk::ComponentMapping(),
 			vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, 0u, c_num_layers)));
 
+	// Create water image view.
+	// Create 2d image view pointing to one of the layers of the textures array (for simplicity).
+	const uint32_t c_water_image_index= 10;
+	water_image_view_= vk_device_.createImageViewUnique(
+		vk::ImageViewCreateInfo(
+			vk::ImageViewCreateFlags(),
+			*image_,
+			vk::ImageViewType::e2D,
+			vk::Format::eR8G8B8A8Unorm,
+			vk::ComponentMapping(),
+			vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, c_water_image_index, 1u)));
+
 	// Create staging buffer.
 	// For now create it with size of whole texture (with mips and extra padding).
 	const uint32_t buffer_data_size= c_num_layers * c_texture_num_texels_with_mips * sizeof(PixelType) * 2;
@@ -181,6 +193,11 @@ void WorldTexturesManager::PrepareFrame(TaskOrganizer& task_organizer)
 vk::ImageView WorldTexturesManager::GetImageView() const
 {
 	return image_view_.get();
+}
+
+vk::ImageView WorldTexturesManager::GetWaterImageView() const
+{
+	return water_image_view_.get();
 }
 
 TaskOrganizer::ImageInfo WorldTexturesManager::GetImageInfo() const

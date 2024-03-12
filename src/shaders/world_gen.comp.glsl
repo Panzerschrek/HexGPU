@@ -42,6 +42,11 @@ layout(binding= 3, std430) buffer structures_data_buffer
 	uint8_t structures_data[];
 };
 
+layout(binding= 4, std430) buffer chunks_auxiliar_data_buffer
+{
+	uint8_t chunks_auxiliar_data[];
+};
+
 void main()
 {
 	int chunk_index= chunk_position.x + chunk_position.y * world_size_chunks.x;
@@ -64,12 +69,28 @@ void main()
 		chunks_data[column_offset + z]= c_block_type_stone;
 
 	// TODO - make soil layer variable-height.
-	chunks_data[column_offset + ground_z - 2]= c_block_type_soil;
-	chunks_data[column_offset + ground_z - 1]= c_block_type_soil;
-	chunks_data[column_offset + ground_z]= c_block_type_grass;
+	if(ground_z <= c_water_level)
+	{
+		chunks_data[column_offset + ground_z - 2]= c_block_type_stone;
+		chunks_data[column_offset + ground_z - 1]= c_block_type_sand;
+		chunks_data[column_offset + ground_z]= c_block_type_sand;
+	}
+	else
+	{
+		chunks_data[column_offset + ground_z - 2]= c_block_type_soil;
+		chunks_data[column_offset + ground_z - 1]= c_block_type_soil;
+		chunks_data[column_offset + ground_z]= c_block_type_grass;
+	}
+
+	// Fill awater.
+	for(int z= ground_z + 1; z <= c_water_level; ++z)
+	{
+		chunks_data[column_offset + z]= c_block_type_water;
+		chunks_auxiliar_data[column_offset + z]= uint8_t(c_max_water_level);
+	}
 
 	// Fill remaining space with air.
-	for(int z= ground_z + 1; z < c_chunk_height; ++z)
+	for(int z= max(ground_z + 1, c_water_level + 1); z < c_chunk_height; ++z)
 		chunks_data[column_offset + z]= c_block_type_air;
 
 	// Place structures (like trees).

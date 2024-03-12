@@ -21,4 +21,6 @@ const int c_sky_light_shift= 4;
 
 const int c_max_sky_light= 15;
 
+const int c_max_water_level= 255;
+
 #endif // CONSTANTS_GLSL_HEADER

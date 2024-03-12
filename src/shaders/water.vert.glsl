@@ -16,17 +16,16 @@ layout(location=1) in i16vec4 tex_coord;
 
 layout(location= 0) out vec2 f_light;
 layout(location= 1) out vec2 f_tex_coord;
-layout(location= 2) out flat float f_tex_index;
 
 void main()
 {
 	f_tex_coord= vec2(tex_coord.xy) * c_tex_coord_scale;
-	f_tex_index= int(tex_coord.z);
 
 	// Normalize light [0; 255] -> [0; 1]
 	const float c_light_scale= 1.0 / 255.0;
 	f_light.x= float(int(tex_coord.w) & 0xFF) * c_light_scale;
 	f_light.y= float(uint(uint16_t(tex_coord.w)) >> 8) * c_light_scale;
 
-	gl_Position= view_matrix * vec4(pos, 1.0);
+	vec3 pos_corrected= pos * vec3(1.0, 1.0, 1.0 / 256.0); // Rescale water height back.
+	gl_Position= view_matrix * vec4(pos_corrected, 1.0);
 }

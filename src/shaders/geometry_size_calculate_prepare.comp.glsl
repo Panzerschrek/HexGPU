@@ -26,4 +26,5 @@ void main()
 	uint chunk_index= chunk_x + chunk_y * uint(world_size_chunks.x);
 
 	chunk_draw_info[chunk_index].new_num_quads= 0;
+	chunk_draw_info[chunk_index].new_water_num_quads= 0;
 }

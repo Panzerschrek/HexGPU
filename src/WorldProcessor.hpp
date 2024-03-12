@@ -29,6 +29,10 @@ public:
 
 	vk::Buffer GetChunkDataBuffer(uint32_t index) const;
 	vk::DeviceSize GetChunkDataBufferSize() const;
+
+	vk::Buffer GetChunkAuxiliarDataBuffer(uint32_t index) const;
+	vk::DeviceSize GetChunkAuxiliarDataBufferSize() const;
+
 	vk::Buffer GetLightDataBuffer(uint32_t index) const;
 	vk::DeviceSize GetLightDataBufferSize() const;
 
@@ -143,6 +147,7 @@ private:
 	// Use double buffering for world update.
 	// On each step data is read from one of them and written into another.
 	const std::array<Buffer, 2> chunk_data_buffers_;
+	const std::array<Buffer, 2> chunk_auxiliar_data_buffers_; // Buffer for additional data for some types of blocks.
 
 	// Use double buffering for light update.
 	// On each step data is read from one of them and written into another.

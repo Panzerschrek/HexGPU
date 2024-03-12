@@ -40,8 +40,25 @@ vec4 HexagonFetch(in sampler2DArray tex, vec3 tex_coord)
 		return texelFetch(
 			tex,
 			ivec3(
-				mod(GetHexagonTexCoordY(tex_coord.xy * vec2(tex_size)) ,tex_size),
+				mod(GetHexagonTexCoordY(tex_coord.xy * vec2(tex_size)), tex_size),
 				texture_layer),
+			0);
+	}
+	else
+		return texture(tex, tex_coord);
+}
+
+vec4 HexagonFetch(in sampler2D tex, vec2 tex_coord)
+{
+	float lod= textureQueryLod(tex, tex_coord).x;
+
+	if(lod <= c_hexagon_fetch_lod_edge)
+	{
+		ivec2 tex_size= textureSize(tex, 0);
+
+		return texelFetch(
+			tex,
+			ivec2(mod(GetHexagonTexCoordY(tex_coord * vec2(tex_size)), tex_size)),
 			0);
 	}
 	else

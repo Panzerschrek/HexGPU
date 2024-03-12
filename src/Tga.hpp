@@ -5,8 +5,8 @@ namespace HexGPU
 {
 
 void WriteTGA(
-	const uint16_t width, const uint16_t height,
-	const PixelType* data,
-	const char* file_path);
+	uint16_t width, uint16_t height,
+	const PixelType* const data,
+	const char* const file_path);
 
 } // namespace HexGPU

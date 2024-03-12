@@ -234,7 +234,6 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 			if(is_in_active_area)
 			{
 				// Perform water side flow.
-				// TODO - fix possible problems at world edges.
 				int flow_in= 0;
 				int flow_out= 0;
 
@@ -245,6 +244,12 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 
 					int adjacent_block_address= adjacent_columns[i] + z;
 
+					// Flow is 1/8 of difference on each tick.
+					// Doing so we prevent water flow/underflow, since difference can't be more than water level or remaining capacity.
+					// In the worst case with all blocks flowing in/out overflow isn't possible, because there are maximum 6 adjacent blocks.
+					// It's possible to use 1/6, but 1/8 is better,
+					// since it uses cheap bit shift instead of expensive integer division.
+
 					uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
 					if(adjacent_block_type == c_block_type_air)
 					{
@@ -253,12 +258,6 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 					else if(adjacent_block_type == c_block_type_water)
 					{
 						int adjacent_water_level= int(chunks_auxiliar_input_data[adjacent_block_address]);
-
-						// Flow is 1/8 of difference on each tick.
-						// Doing so we prevent water flow/underflow, since difference can't be more than water level or remaining capacity.
-						// In the worst case with all blocks flowing in/out overflow isn't possible, because there are maximum 6 adjacent blocks.
-						// It's possible to use 1/6, but 1/8 is better,
-						// since it uses cheap bit shift instead of expensive integer division.
 
 						int level_diff= water_level - adjacent_water_level;
 						if(level_diff >= 8)
@@ -391,6 +390,6 @@ void main()
 
 	chunks_output_data[address]= new_block_state.x;
 
-	// TODO - avoid writin auxiliar data for blocks which don't use it.
+	// TODO - avoid writing auxiliar data for blocks which don't use it?
 	chunks_auxiliar_output_data[address]= new_block_state.y;
 }

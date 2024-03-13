@@ -7,6 +7,50 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED On)
 set(CMAKE_CXX_EXTENSIONS Off)
 
+# Search dependencies.
+if(WIN32)
+	set(SDL2_INCLUDE_DIRS ${SDL2_DIR}/include)
+	if(${CMAKE_SIZEOF_VOID_P} EQUAL 8)
+		set(ARCH_DIR x64)
+	else()
+		set(ARCH_DIR x86)
+	endif()
+	set(SDL2_LIBRARIES ${SDL2_DIR}/lib/${ARCH_DIR}/SDL2.lib ${SDL2_DIR}/lib/${ARCH_DIR}/SDL2main.lib)
+else()
+	find_package(SDL2 REQUIRED)
+endif()
+
+
+find_package(Vulkan REQUIRED)
+
+find_program(GLSLANGVALIDATOR glslangValidator)
+if(NOT GLSLANGVALIDATOR)
+	message(FATAL_ERROR "glslangValidator not found")
+endif()
+
+# Add ImGui
+set(IMGUI_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../imgui/")
+set(IMGUI_SOURCES
+	${IMGUI_ROOT}/imgui.cpp
+	${IMGUI_ROOT}/imgui_draw.cpp
+	${IMGUI_ROOT}/imgui_tables.cpp
+	${IMGUI_ROOT}/imgui_widgets.cpp
+	${IMGUI_ROOT}/backends/imgui_impl_sdl2.cpp
+	${IMGUI_ROOT}/backends/imgui_impl_vulkan.cpp
+	)
+
+# Add IMGui library before specifying our compiler options.
+add_library(ImGui ${IMGUI_SOURCES})
+
+target_include_directories(
+	ImGui
+		PUBLIC
+			${SDL2_INCLUDE_DIRS}
+			${Vulkan_INCLUDE_DIRS}
+			"${IMGUI_ROOT}"
+			"${IMGUI_ROOT}/backends"
+	)
+
 # Setup compiler options.
 if(MSVC)
 	add_compile_options(/utf-8)
@@ -28,26 +72,6 @@ endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 	add_definitions(-DDEBUG)
-endif()
-
-# Search dependencies.
-if(WIN32)
-	set(SDL2_INCLUDE_DIRS ${SDL2_DIR}/include)
-	if(${CMAKE_SIZEOF_VOID_P} EQUAL 8)
-		set(ARCH_DIR x64)
-	else()
-		set(ARCH_DIR x86)
-	endif()
-	set(SDL2_LIBRARIES ${SDL2_DIR}/lib/${ARCH_DIR}/SDL2.lib ${SDL2_DIR}/lib/${ARCH_DIR}/SDL2main.lib)
-else()
-	find_package(SDL2 REQUIRED)
-endif()
-
-find_package(Vulkan REQUIRED)
-
-find_program(GLSLANGVALIDATOR glslangValidator)
-if(NOT GLSLANGVALIDATOR)
-	message(FATAL_ERROR "glslangValidator not found")
 endif()
 
 # Compile shaders.
@@ -78,16 +102,6 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/ShaderList.cpp.in ${CMAKE_CURRENT_BIN
 set(GENERATED_SOURCES ${CMAKE_CURRENT_BINARY_DIR}/ShaderList.hpp ${CMAKE_CURRENT_BINARY_DIR}/ShaderList.cpp)
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/ShaderList.cpp PROPERTIES OBJECT_DEPENDS "${SHADERS_COMPILED}")
 
-set(IMGUI_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../imgui/")
-set(IMGUI_SOURCES
-	${IMGUI_ROOT}/imgui.cpp
-	${IMGUI_ROOT}/imgui_draw.cpp
-	${IMGUI_ROOT}/imgui_tables.cpp
-	${IMGUI_ROOT}/imgui_widgets.cpp
-	${IMGUI_ROOT}/backends/imgui_impl_sdl2.cpp
-	${IMGUI_ROOT}/backends/imgui_impl_vulkan.cpp
-	)
-
 # Add main executable.
 file(GLOB_RECURSE SOURCES "*.cpp" "*.hpp")
 
@@ -98,7 +112,6 @@ add_executable(
 		${SHADERS}
 		${SHADERS_INCLUDE}
 		${SHADERS_COMPILED}
-		${IMGUI_SOURCES}
 	)
 
 target_include_directories(
@@ -108,8 +121,6 @@ target_include_directories(
 			${CMAKE_CURRENT_BINARY_DIR}
 			${SDL2_INCLUDE_DIRS}
 			${Vulkan_INCLUDE_DIRS}
-			"${IMGUI_ROOT}"
-			"${IMGUI_ROOT}/backends"
 	)
 
 target_link_libraries(
@@ -117,4 +128,5 @@ target_link_libraries(
 		PRIVATE
 			${SDL2_LIBRARIES}
 			${Vulkan_LIBRARIES}
+			ImGui
 	)

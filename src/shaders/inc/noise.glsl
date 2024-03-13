@@ -1,16 +1,31 @@
+const int X_NOISE_GEN   =  1619;
+const int Y_NOISE_GEN   = 31337;
+const int Z_NOISE_GEN   =  6971;
+const int SEED_NOISE_GEN=  1013;
+
 // Basic 2-dimensional noise function with possible seed.
 // Returns value in range [0; 65536).
 int hex_Noise2(int x, int y, int seed)
 {
-	const int X_NOISE_GEN   =  1619;
-	const int Y_NOISE_GEN   = 31337;
-	const int Z_NOISE_GEN   =  6971;
-	const int SEED_NOISE_GEN=  1013;
-
 	int n= (
 		X_NOISE_GEN * x +
 		Y_NOISE_GEN * y +
 		Z_NOISE_GEN * 0 +
+		SEED_NOISE_GEN * seed )
+		& 0x7fffffff;
+
+	n= ( n >> 13 ) ^ n;
+	return ( ( n * ( n * n * 60493 + 19990303 ) + 1376312589 ) & 0x7fffffff ) >> 15;
+}
+
+// Basic 3-dimensional noise function with possible seed.
+// Returns value in range [0; 65536).
+int hex_Noise3(int x, int y, int z, int seed)
+{
+	int n= (
+		X_NOISE_GEN * x +
+		Y_NOISE_GEN * y +
+		Z_NOISE_GEN * z +
 		SEED_NOISE_GEN * seed )
 		& 0x7fffffff;
 

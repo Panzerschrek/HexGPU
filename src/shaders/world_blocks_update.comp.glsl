@@ -6,6 +6,7 @@
 
 #include "inc/block_type.glsl"
 #include "inc/hex_funcs.glsl"
+#include "inc/noise.glsl"
 
 // maxComputeWorkGroupInvocations is at least 128.
 // If this is changed, corresponding C++ code must be changed too!
@@ -307,52 +308,56 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 	else if(block_type == c_block_type_soil)
 	{
 		// Soil may be converted into grass, if there is a grass block nearby.
+		// Perform such conversion check randomly.
 
-		// TODO - check if has enough light.
-
-		// TODO - perform grass propagation checks not each tick, but only sometimes randomly.
-
-		int num_adjacent_grass_blocks= 0;
-
-		// Do not plant grass at top of the world and at very bottom.
-		if( z >= 1 &&
-			z < c_chunk_height - 3 &&
-			// Plant only if has air abowe.
-			chunks_input_data[column_address + z_up_clamped] == c_block_type_air)
+		// TODO - use global coord for noise.
+		int block_rand= hex_Noise3(block_x, block_y, z, int(current_tick));
+		if((block_rand & 15) == 0)
 		{
-			// Check adjacent blocks. If has grass - convert into grass.
-			for(int i= 0; i < 6; ++i)
+			// TODO - check if has enough light.
+
+			int num_adjacent_grass_blocks= 0;
+
+			// Do not plant grass at top of the world and at very bottom.
+			if( z >= 1 &&
+				z < c_chunk_height - 3 &&
+				// Plant only if has air abowe.
+				chunks_input_data[column_address + z_up_clamped] == c_block_type_air)
 			{
-				uint8_t z_minus_one_block_type= chunks_input_data[adjacent_columns[i] + z - 1];
-				uint8_t z_plus_zero_block_type= chunks_input_data[adjacent_columns[i] + z + 0];
-				uint8_t z_plus_one_block_type = chunks_input_data[adjacent_columns[i] + z + 1];
-				uint8_t z_plus_two_block_type = chunks_input_data[adjacent_columns[i] + z + 2];
+				// Check adjacent blocks. If has grass - convert into grass.
+				for(int i= 0; i < 6; ++i)
+				{
+					uint8_t z_minus_one_block_type= chunks_input_data[adjacent_columns[i] + z - 1];
+					uint8_t z_plus_zero_block_type= chunks_input_data[adjacent_columns[i] + z + 0];
+					uint8_t z_plus_one_block_type = chunks_input_data[adjacent_columns[i] + z + 1];
+					uint8_t z_plus_two_block_type = chunks_input_data[adjacent_columns[i] + z + 2];
 
-				if( z_minus_one_block_type == c_block_type_grass &&
-					z_plus_zero_block_type == c_block_type_air &&
-					z_plus_one_block_type  == c_block_type_air)
-				{
-					// Block below is grass and has enough air.
-					++num_adjacent_grass_blocks;
+					if( z_minus_one_block_type == c_block_type_grass &&
+						z_plus_zero_block_type == c_block_type_air &&
+						z_plus_one_block_type  == c_block_type_air)
+					{
+						// Block below is grass and has enough air.
+						++num_adjacent_grass_blocks;
+					}
+					if( z_plus_zero_block_type == c_block_type_grass &&
+						z_plus_one_block_type  == c_block_type_air)
+					{
+						// Block nearby is grass and has enough air.
+						++num_adjacent_grass_blocks;
+					}
+					if( z_plus_one_block_type == c_block_type_grass &&
+						z_plus_two_block_type == c_block_type_air &&
+						chunks_input_data[column_address + z + 2] == c_block_type_air)
+					{
+						// Block above is grass and has enough air.
+						++num_adjacent_grass_blocks;
+					}
 				}
-				if( z_plus_zero_block_type == c_block_type_grass &&
-					z_plus_one_block_type  == c_block_type_air)
-				{
-					// Block nearby is grass and has enough air.
-					++num_adjacent_grass_blocks;
-				}
-				if( z_plus_one_block_type == c_block_type_grass &&
-					z_plus_two_block_type == c_block_type_air &&
-					chunks_input_data[column_address + z + 2] == c_block_type_air)
-				{
-					// Block above is grass and has enough air.
-					++num_adjacent_grass_blocks;
-				}
+
+				// Conversion chance depends on number of grass blocks nearby.
+				if(num_adjacent_grass_blocks * block_rand >= 65536 / 2)
+					return u8vec2(c_block_type_grass, 0);
 			}
-
-			// TODO - perform convertion into grass randomly with chance proportional to number of grass blocks nearby.
-			if(num_adjacent_grass_blocks > 0)
-				return u8vec2(c_block_type_grass, 0);
 		}
 	}
 	else if(block_type == c_block_type_grass)

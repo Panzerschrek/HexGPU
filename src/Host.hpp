@@ -22,6 +22,7 @@ private:
 
 	void DrawFPS();
 	void DrawUI();
+	void DrawCrosshair();
 	void DrawDebugInfo();
 
 private:

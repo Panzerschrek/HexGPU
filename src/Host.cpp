@@ -120,6 +120,7 @@ bool Host::Loop()
 
 	DrawFPS();
 	DrawUI();
+	DrawCrosshair();
 	DrawDebugInfo();
 
 	const vk::CommandBuffer command_buffer= window_vulkan_.BeginFrame();
@@ -229,13 +230,43 @@ void Host::DrawUI()
 	ImGui::End();
 }
 
+void Host::DrawCrosshair()
+{
+	// For now use simplest window to show something like crosshair.
+	// TODO - draw a simple image instead.
+
+	const auto viewport_size= window_vulkan_.GetViewportSize();
+
+	const float size= 12.0f;
+
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, size / 2.0f);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, {size, size});
+
+	ImGui::SetNextWindowPos(
+		{float(viewport_size.width) / 2.0f, float(viewport_size.height) / 2.0f},
+		ImGuiCond_Always,
+		{0.5f, 0.5f});
+
+	ImGui::SetNextWindowSize({size, size});
+
+	ImGui::Begin(
+		"CrosshairWindow",
+		nullptr,
+		ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs);
+
+	ImGui::End();
+
+	ImGui::PopStyleVar();
+	ImGui::PopStyleVar();
+}
+
 void Host::DrawDebugInfo()
 {
 	ImGui::SetNextWindowBgAlpha(0.25f);
 
 	ImGui::SetNextWindowSizeConstraints({200.0f, 64.0f}, {800.0f, 600.0f});
 	ImGui::SetNextWindowSize({300.0f, 200.0f});
-	ImGui::SetNextWindowPos({0.0f, 0.0f});
+	ImGui::SetNextWindowPos({0.0f, 0.0f}, ImGuiCond_Appearing);
 
 	ImGui::Begin(
 		"HexGPU debug info",

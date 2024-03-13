@@ -600,6 +600,15 @@ Buffer CreateLightBuffer(WindowVulkan& window_vulkan, const WorldSizeChunks& wor
 		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
 }
 
+Buffer CreateChunkDataLoadBuffer(WindowVulkan& window_vulkan, const WorldSizeChunks& world_size)
+{
+	return Buffer(
+		window_vulkan,
+		c_chunk_volume * world_size[0] * world_size[1],
+		vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc,
+		vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+}
+
 } // namespace
 
 WorldProcessor::WorldProcessor(
@@ -625,6 +634,10 @@ WorldProcessor::WorldProcessor(
 	, chunk_auxiliar_data_buffers_{
 		CreateChunkDataBuffer(window_vulkan, world_size_),
 		CreateChunkDataBuffer(window_vulkan, world_size_)}
+	, chunk_data_load_bufer_(CreateChunkDataLoadBuffer(window_vulkan, world_size_))
+	, chunk_data_load_bufer_mapped_(chunk_data_load_bufer_.Map(vk_device_))
+	, chunk_auxiliar_data_load_buffer_(CreateChunkDataLoadBuffer(window_vulkan, world_size_))
+	, chunk_auxiliar_data_load_buffer_mapped_(chunk_auxiliar_data_load_buffer_.Map(vk_device_))
 	, light_buffers_{
 		CreateLightBuffer(window_vulkan, world_size_),
 		CreateLightBuffer(window_vulkan, world_size_)}
@@ -1160,6 +1173,9 @@ WorldProcessor::WorldProcessor(
 
 WorldProcessor::~WorldProcessor()
 {
+	chunk_data_load_bufer_.Unmap(vk_device_);
+	chunk_auxiliar_data_load_buffer_.Unmap(vk_device_);
+
 	player_state_read_back_buffer_.Unmap(vk_device_);
 
 	// Sync before destruction.

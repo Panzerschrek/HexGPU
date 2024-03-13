@@ -1287,6 +1287,11 @@ uint32_t WorldProcessor::GetActualBuffersIndex() const
 	return GetSrcBufferIndex();
 }
 
+const WorldProcessor::PlayerState* WorldProcessor::GetLastKnownPlayerState() const
+{
+	return last_known_player_state_ == std::nullopt ? nullptr : &*last_known_player_state_;
+}
+
 void WorldProcessor::InitialFillBuffers(TaskOrganizer& task_organizer)
 {
 	if(initial_buffers_filled_)
@@ -1365,9 +1370,10 @@ void WorldProcessor::ReadBackAndProcessPlayerState()
 
 	const uint32_t current_slot= (current_frame_ - player_state_read_back_buffer_num_frames_) % player_state_read_back_buffer_num_frames_;
 
-	PlayerState player_state{};
+	last_known_player_state_.emplace();
+
 	std::memcpy(
-		&player_state,
+		&last_known_player_state_.value(),
 		static_cast<const uint8_t*>(player_state_read_back_buffer_mapped_) + current_slot * sizeof(PlayerState),
 		sizeof(PlayerState));
 
@@ -1379,8 +1385,8 @@ void WorldProcessor::ReadBackAndProcessPlayerState()
 
 	const int32_t chunk_coord[]
 	{
-		int32_t(std::floor(player_state.pos[0] / c_space_scale_x)) >> int32_t(c_chunk_width_log2),
-		int32_t(std::floor(player_state.pos[1])) >> int32_t(c_chunk_width_log2),
+		int32_t(std::floor(last_known_player_state_->pos[0] / c_space_scale_x)) >> int32_t(c_chunk_width_log2),
+		int32_t(std::floor(last_known_player_state_->pos[1])) >> int32_t(c_chunk_width_log2),
 	};
 	for(uint32_t i= 0; i < 2; ++i)
 	{

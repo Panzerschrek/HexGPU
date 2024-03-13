@@ -17,6 +17,20 @@ using WorldOffsetChunks= std::array<int32_t, 2>;
 class WorldProcessor
 {
 public:
+	// This struct must be identical to the same struct in GLSL code!
+	struct PlayerState
+	{
+		float blocks_matrix[16]{};
+		float sky_matrix[16]{};
+		float pos[4]{};
+		float angles[4]{};
+		int32_t build_pos[4]{}; // component 3 - direction
+		int32_t destroy_pos[4]{};
+		int32_t next_player_world_window_offset[4]{};
+		BlockType build_block_type= BlockType::Air;
+	};
+
+public:
 	WorldProcessor(WindowVulkan& window_vulkan, vk::DescriptorPool global_descriptor_pool, Settings& settings);
 	~WorldProcessor();
 
@@ -43,19 +57,9 @@ public:
 
 	uint32_t GetActualBuffersIndex() const;
 
-public:
-	// This struct must be identical to the same struct in GLSL code!
-	struct PlayerState
-	{
-		float blocks_matrix[16]{};
-		float sky_matrix[16]{};
-		float pos[4]{};
-		float angles[4]{};
-		int32_t build_pos[4]{}; // component 3 - direction
-		int32_t destroy_pos[4]{};
-		int32_t next_player_world_window_offset[4]{};
-		BlockType build_block_type= BlockType::Air;
-	};
+	// Returns player state or null.
+	// Player state is read back from the GPU and is a couple of frames outdated.
+	const PlayerState* GetLastKnownPlayerState() const;
 
 private:
 	// These constants must be the same in GLSL code!
@@ -203,6 +207,8 @@ private:
 
 	// Update kind for each chunk in this tick.
 	std::vector<ChunkUpdateKind> chunks_upate_kind_;
+
+	std::optional<PlayerState> last_known_player_state_;
 };
 
 } // namespace HexGPU

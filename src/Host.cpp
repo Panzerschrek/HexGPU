@@ -221,6 +221,11 @@ void Host::DrawDebugInfo()
 	const auto world_offset= world_processor_.GetWorldOffset();
 	ImGui::Text("World offset (chunks): %d, %d", world_offset[0], world_offset[1]);
 
+	if(const auto player_state= world_processor_.GetLastKnownPlayerState())
+	{
+		ImGui::Text("Player pos: %4.2f, %4.2f, %4.2f", player_state->pos[0], player_state->pos[1], player_state->pos[2]);
+	}
+
 	ImGui::End();
 }
 

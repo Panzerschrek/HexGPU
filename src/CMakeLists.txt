@@ -7,6 +7,23 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED On)
 set(CMAKE_CXX_EXTENSIONS Off)
 
+# Setup compiler options.
+if(MSVC)
+	add_compile_options(/utf-8)
+	add_definitions(
+		-DNOMINMAX
+		-D_CRT_SECURE_NO_WARNINGS)
+else()
+	add_compile_options(-fvisibility=hidden -fvisibility-inlines-hidden)
+	add_compile_options(-fdata-sections -ffunction-sections) # simplify later gc-sections.
+
+	# Clear garbage.
+	string(APPEND CMAKE_EXE_LINKER_FLAGS_RELEASE " -s -Wl,--gc-sections")
+	string(APPEND CMAKE_EXE_LINKER_FLAGS_MINSIZEREL " -s -Wl,--gc-sections")
+	string(APPEND CMAKE_SHARED_LINKER_FLAGS_RELEASE " -s -Wl,--gc-sections")
+	string(APPEND CMAKE_SHARED_LINKER_FLAGS_MINSIZEREL " -s -Wl,--gc-sections")
+endif()
+
 # Search dependencies.
 if(WIN32)
 	set(SDL2_INCLUDE_DIRS ${SDL2_DIR}/include)
@@ -20,7 +37,6 @@ else()
 	find_package(SDL2 REQUIRED)
 endif()
 
-
 find_package(Vulkan REQUIRED)
 
 find_program(GLSLANGVALIDATOR glslangValidator)
@@ -28,7 +44,7 @@ if(NOT GLSLANGVALIDATOR)
 	message(FATAL_ERROR "glslangValidator not found")
 endif()
 
-# Add ImGui
+# Add ImGui. Do this before specifying our compiler warning options.
 set(IMGUI_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../imgui/")
 set(IMGUI_SOURCES
 	${IMGUI_ROOT}/imgui.cpp
@@ -39,8 +55,7 @@ set(IMGUI_SOURCES
 	${IMGUI_ROOT}/backends/imgui_impl_vulkan.cpp
 	)
 
-# Add IMGui library before specifying our compiler options.
-add_library(ImGui ${IMGUI_SOURCES})
+add_library(ImGui STATIC ${IMGUI_SOURCES})
 
 target_include_directories(
 	ImGui
@@ -51,23 +66,11 @@ target_include_directories(
 			"${IMGUI_ROOT}/backends"
 	)
 
-# Setup compiler options.
+# Setup compiler warnign options.
 if(MSVC)
-	add_compile_options(/utf-8)
 	add_compile_options(/W3 /WX)
-	add_definitions(
-		-DNOMINMAX
-		-D_CRT_SECURE_NO_WARNINGS)
 else()
 	add_compile_options(-Werror -Wall -Wextra -Wconversion)
-	add_compile_options(-fvisibility=hidden -fvisibility-inlines-hidden)
-	add_compile_options(-fdata-sections -ffunction-sections) # simplify later gc-sections.
-
-	# Clear garbage.
-	string(APPEND CMAKE_EXE_LINKER_FLAGS_RELEASE " -s -Wl,--gc-sections")
-	string(APPEND CMAKE_EXE_LINKER_FLAGS_MINSIZEREL " -s -Wl,--gc-sections")
-	string(APPEND CMAKE_SHARED_LINKER_FLAGS_RELEASE " -s -Wl,--gc-sections")
-	string(APPEND CMAKE_SHARED_LINKER_FLAGS_MINSIZEREL " -s -Wl,--gc-sections")
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")

@@ -15,13 +15,15 @@ The order represents importance and/or dependency.
 * Use device-local memory almost everywhere
 * Anisotropy textures filtering
 * Run SPIR-V optimizer for compiled shaders
-* Smooth water mesh
 * Water blocks side polygons
 * Twostage water rendering - back faces than front faces, in order to achieve somewhat good transparency ordering
 * Underwater fog
+* Evaporate water from blocks with low level and no input/output flow (randomly)
+* Increase water level in non-full water blocks under the sky when it's raining
 * Configurable textures config
 * Trees generation with variable density
 * Procedural tree models
+* Foliage blocks logic - disapper if there is no tree block nearby
 * Chunk vertices allocator - make it faster (remove linear complexity)
 * Plates (half-blocks)
 * Vertically-splitted half-blocks

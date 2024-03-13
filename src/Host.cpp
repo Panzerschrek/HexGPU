@@ -2,6 +2,9 @@
 #include "Assert.hpp"
 #include "GlobalDescriptorPool.hpp"
 #include "Log.hpp"
+#include "imgui.h"
+#include "imgui_impl_sdl2.h"
+#include "imgui_impl_vulkan.h"
 #include <thread>
 
 
@@ -105,6 +108,8 @@ bool Host::Loop()
 
 	for(const SDL_Event& event : events)
 	{
+		ImGui_ImplSDL2_ProcessEvent(&event);
+
 		if(event.type == SDL_QUIT)
 			quit_requested_= true;
 		if(event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)

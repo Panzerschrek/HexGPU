@@ -78,6 +78,16 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/ShaderList.cpp.in ${CMAKE_CURRENT_BIN
 set(GENERATED_SOURCES ${CMAKE_CURRENT_BINARY_DIR}/ShaderList.hpp ${CMAKE_CURRENT_BINARY_DIR}/ShaderList.cpp)
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/ShaderList.cpp PROPERTIES OBJECT_DEPENDS "${SHADERS_COMPILED}")
 
+set(IMGUI_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../imgui/")
+set(IMGUI_SOURCES
+	${IMGUI_ROOT}/imgui.cpp
+	${IMGUI_ROOT}/imgui_draw.cpp
+	${IMGUI_ROOT}/imgui_tables.cpp
+	${IMGUI_ROOT}/imgui_widgets.cpp
+	${IMGUI_ROOT}/backends/imgui_impl_sdl2.cpp
+	${IMGUI_ROOT}/backends/imgui_impl_vulkan.cpp
+	)
+
 # Add main executable.
 file(GLOB_RECURSE SOURCES "*.cpp" "*.hpp")
 
@@ -87,7 +97,9 @@ add_executable(
 		${GENERATED_SOURCES}
 		${SHADERS}
 		${SHADERS_INCLUDE}
-		${SHADERS_COMPILED})
+		${SHADERS_COMPILED}
+		${IMGUI_SOURCES}
+	)
 
 target_include_directories(
 	HexGPU
@@ -96,6 +108,8 @@ target_include_directories(
 			${CMAKE_CURRENT_BINARY_DIR}
 			${SDL2_INCLUDE_DIRS}
 			${Vulkan_INCLUDE_DIRS}
+			"${IMGUI_ROOT}"
+			"${IMGUI_ROOT}/backends"
 	)
 
 target_link_libraries(

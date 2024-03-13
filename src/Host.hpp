@@ -1,9 +1,9 @@
 #pragma once
 #include "BuildPrismRenderer.hpp"
-#include "SystemWindow.hpp"
-#include "WorldRenderer.hpp"
+#include "ImGuiWrapper.hpp"
 #include "SkyRenderer.hpp"
 #include "TaskOrganizer.hpp"
+#include "WorldRenderer.hpp"
 #include <chrono>
 
 namespace HexGPU
@@ -25,6 +25,7 @@ private:
 	WindowVulkan window_vulkan_;
 	TaskOrganizer task_organizer_;
 	const vk::UniqueDescriptorPool global_descriptor_pool_;
+	ImGuiWrapper im_gui_wrapper_;
 	WorldProcessor world_processor_;
 	WorldRenderer world_renderer_;
 	SkyRenderer sky_renderer_;

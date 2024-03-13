@@ -80,6 +80,7 @@ Host::Host()
 	, window_vulkan_(system_window_)
 	, task_organizer_(window_vulkan_)
 	, global_descriptor_pool_(CreateGlobalDescriptorPool(window_vulkan_.GetVulkanDevice()))
+	, im_gui_wrapper_(system_window_, window_vulkan_)
 	, world_processor_(window_vulkan_, *global_descriptor_pool_, settings_)
 	, world_renderer_(window_vulkan_, world_processor_, *global_descriptor_pool_)
 	, sky_renderer_(window_vulkan_, world_processor_, *global_descriptor_pool_)
@@ -111,6 +112,16 @@ bool Host::Loop()
 			quit_requested_= true;
 	}
 
+	im_gui_wrapper_.ProcessEvents(events);
+	im_gui_wrapper_.BeginFrame();
+
+	{
+		ImGui::SetNextWindowPos({float(window_vulkan_.GetViewportSize().width) - 80.0f, 0});
+		ImGui::Begin("FPS conter", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground );
+		ImGui::Text("FPS: %3.2f", 13.4f);
+		ImGui::End();
+	}
+
 	const vk::CommandBuffer command_buffer= window_vulkan_.BeginFrame();
 	task_organizer_.SetCommandBuffer(command_buffer);
 
@@ -140,6 +151,8 @@ bool Host::Loop()
 			sky_renderer_.Draw(command_buffer);
 			world_renderer_.DrawTransparent(command_buffer, absoulte_time_s);
 			build_prism_renderer_.Draw(command_buffer);
+
+			im_gui_wrapper_.EndFrame(command_buffer);
 		};
 
 	graphics_task_params.clear_values=

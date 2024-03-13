@@ -79,14 +79,14 @@ const u8vec2 c_texture_property_table[c_num_textures]=
 	u8vec2(3, 0), // brick.jpg
 	u8vec2(2, 0), // fire.jpg
 	u8vec2(3, 0), // grass2.jpg
-	u8vec2(4, 0), // leaves3.tga
+	u8vec2(4, 0), // leaves3.png
 	u8vec2(1, 0), // sand.jpg
 	u8vec2(4, 0), // soil.jpg
 	u8vec2(4, 1), // spherical_block_2.png
 	u8vec2(3, 0), // stone.jpg
 	u8vec2(4, 0), // wood.jpg
 	u8vec2(4, 1), // wood-end.jpg
-	u8vec2(1, 0)  // water2.tga
+	u8vec2(1, 0)  // water2.png
 );
 
 // If this changed, C++ code must be changed too!

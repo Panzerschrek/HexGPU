@@ -2,9 +2,6 @@
 #include "Assert.hpp"
 #include "GlobalDescriptorPool.hpp"
 #include "Log.hpp"
-#include "imgui.h"
-#include "imgui_impl_sdl2.h"
-#include "imgui_impl_vulkan.h"
 #include <thread>
 
 
@@ -80,7 +77,8 @@ MouseState CreateMouseState(const std::vector<SDL_Event>& events)
 Host::Host()
 	: settings_("HexGPU.cfg")
 	, system_window_(settings_)
-	, window_vulkan_(system_window_)
+	, window_vulkan_(system_window_, settings_)
+	, imgui_context_(ImGui::CreateContext())
 	, task_organizer_(window_vulkan_)
 	, global_descriptor_pool_(CreateGlobalDescriptorPool(window_vulkan_.GetVulkanDevice()))
 	, world_processor_(window_vulkan_, *global_descriptor_pool_, settings_)
@@ -90,6 +88,35 @@ Host::Host()
 	, init_time_(Clock::now())
 	, prev_tick_time_(init_time_)
 {
+	ImGui_ImplSDL2_InitForVulkan(system_window_.GetSDLWindow());
+
+	ImGui_ImplVulkan_InitInfo init_info{};
+	init_info.Instance = *window_vulkan_.instance_;
+	init_info.PhysicalDevice = window_vulkan_.physical_device_;
+	init_info.Device = *window_vulkan_.vk_device_;
+	init_info.QueueFamily = window_vulkan_.GetQueueFamilyIndex();
+	init_info.Queue = window_vulkan_.queue_;
+	init_info.PipelineCache = nullptr;
+	init_info.DescriptorPool = *global_descriptor_pool_;
+	init_info.RenderPass = window_vulkan_.GetRenderPass();
+	init_info.Subpass = 0;
+	init_info.MinImageCount = uint32_t(window_vulkan_.framebuffers_.size());
+	init_info.ImageCount = uint32_t(window_vulkan_.framebuffers_.size());
+	init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+	init_info.Allocator = nullptr;
+	init_info.CheckVkResultFn = nullptr;
+	ImGui_ImplVulkan_Init(&init_info);
+
+	ImGuiIO& io= ImGui::GetIO();
+	io.Fonts->AddFontDefault();
+}
+
+Host::~Host()
+{
+	window_vulkan_.GetVulkanDevice().waitIdle();
+	ImGui_ImplVulkan_Shutdown();
+	ImGui_ImplSDL2_Shutdown();
+	ImGui::DestroyContext(imgui_context_);
 }
 
 bool Host::Loop()
@@ -116,6 +143,20 @@ bool Host::Loop()
 			quit_requested_= true;
 	}
 
+	ImGui_ImplVulkan_NewFrame();
+	ImGui_ImplSDL2_NewFrame();
+	ImGui::NewFrame();
+
+	{
+		ImGui::Begin("Hello, world!");
+		ImGui::Text("This is some useful text.");
+		ImGui::End();
+	}
+
+	ImGui::Render();
+
+	ImDrawData* const draw_data= ImGui::GetDrawData();
+
 	const vk::CommandBuffer command_buffer= window_vulkan_.BeginFrame();
 	task_organizer_.SetCommandBuffer(command_buffer);
 
@@ -139,12 +180,14 @@ bool Host::Loop()
 	graphics_task_params.viewport_size= window_vulkan_.GetViewportSize();
 
 	const auto graphics_task_func=
-		[this, absoulte_time_s](const vk::CommandBuffer command_buffer)
+		[this, absoulte_time_s, draw_data](const vk::CommandBuffer command_buffer)
 		{
 			world_renderer_.DrawOpaque(command_buffer);
 			sky_renderer_.Draw(command_buffer);
 			world_renderer_.DrawTransparent(command_buffer, absoulte_time_s);
 			build_prism_renderer_.Draw(command_buffer);
+
+			ImGui_ImplVulkan_RenderDrawData(draw_data, command_buffer);
 		};
 
 	graphics_task_params.clear_values=

@@ -87,6 +87,7 @@ Host::Host()
 	, build_prism_renderer_(window_vulkan_, world_processor_, *global_descriptor_pool_)
 	, init_time_(Clock::now())
 	, prev_tick_time_(init_time_)
+	, ticks_counter_(std::chrono::milliseconds(500))
 {
 }
 
@@ -100,6 +101,8 @@ bool Host::Loop()
 
 	const float absoulte_time_s=
 		float((tick_start_time - init_time_).count()) * float(Clock::duration::period::num) / float(Clock::duration::period::den);
+
+	ticks_counter_.Tick();
 
 	const auto keys_state= system_window_.GetKeyboardState();
 	const auto events= system_window_.ProcessEvents();
@@ -115,12 +118,7 @@ bool Host::Loop()
 	im_gui_wrapper_.ProcessEvents(events);
 	im_gui_wrapper_.BeginFrame();
 
-	{
-		ImGui::SetNextWindowPos({float(window_vulkan_.GetViewportSize().width) - 80.0f, 0});
-		ImGui::Begin("FPS conter", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground );
-		ImGui::Text("FPS: %3.2f", 13.4f);
-		ImGui::End();
-	}
+	DrawFPS();
 
 	const vk::CommandBuffer command_buffer= window_vulkan_.BeginFrame();
 	task_organizer_.SetCommandBuffer(command_buffer);
@@ -182,6 +180,26 @@ bool Host::Loop()
 	}
 
 	return quit_requested_;
+}
+
+void Host::DrawFPS()
+{
+	const float offset= 90.0f;
+
+	ImGui::SetNextWindowPos(
+		{float(window_vulkan_.GetViewportSize().width) - offset, 0});
+
+	ImGui::SetNextWindowSize({offset, 16.0f});
+
+	ImGui::SetNextWindowBgAlpha(0.25f);
+	ImGui::Begin(
+		"FPS conter",
+		nullptr,
+		ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs);
+
+	ImGui::Text("fps: %3.2f", ticks_counter_.GetTicksFrequency());
+
+	ImGui::End();
 }
 
 } // namespace HexGPU

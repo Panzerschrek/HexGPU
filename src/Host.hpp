@@ -3,6 +3,7 @@
 #include "ImGuiWrapper.hpp"
 #include "SkyRenderer.hpp"
 #include "TaskOrganizer.hpp"
+#include "TicksCounter.hpp"
 #include "WorldRenderer.hpp"
 #include <chrono>
 
@@ -16,6 +17,9 @@ public:
 
 	// Returns false on quit
 	bool Loop();
+
+private:
+	void DrawFPS();
 
 private:
 	using Clock= std::chrono::steady_clock;
@@ -33,6 +37,8 @@ private:
 
 	const Clock::time_point init_time_;
 	Clock::time_point prev_tick_time_;
+
+	TicksCounter ticks_counter_;
 
 	bool quit_requested_= false;
 };

@@ -7,13 +7,13 @@
 namespace HexGPU
 {
 
+// A helper class for ImGui initialization.
 class ImGuiWrapper
 {
 public:
 	ImGuiWrapper(
 		SystemWindow& system_window,
-		WindowVulkan& window_vulkan,
-		vk::DescriptorPool global_descriptor_pool);
+		WindowVulkan& window_vulkan);
 	~ImGuiWrapper();
 
 	void ProcessEvents(const std::vector<SDL_Event>& events);
@@ -25,6 +25,7 @@ public:
 
 private:
 	const vk::Device vk_device_;
+	const vk::UniqueDescriptorPool descriptor_pool_;
 	ImGuiContext* const context_;
 };
 

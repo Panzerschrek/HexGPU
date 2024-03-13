@@ -53,6 +53,9 @@ ImGuiWrapper::ImGuiWrapper(
 	ImGui_ImplVulkan_Init(&init_info);
 
 	ImGuiIO& io= ImGui::GetIO();
+
+	io.IniFilename= nullptr; // Disable usage of config file.
+
 	io.Fonts->AddFontDefault();
 
 	large_font_= io.Fonts->AddFontFromFileTTF("fonts/plastic_bag.otf", 24);

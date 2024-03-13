@@ -115,6 +115,13 @@ bool Host::Loop()
 	im_gui_wrapper_.ProcessEvents(events);
 	im_gui_wrapper_.BeginFrame();
 
+	{
+		ImGui::SetNextWindowPos({float(window_vulkan_.GetViewportSize().width) - 80.0f, 0});
+		ImGui::Begin("FPS conter", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground );
+		ImGui::Text("FPS: %3.2f", 13.4f);
+		ImGui::End();
+	}
+
 	const vk::CommandBuffer command_buffer= window_vulkan_.BeginFrame();
 	task_organizer_.SetCommandBuffer(command_buffer);
 

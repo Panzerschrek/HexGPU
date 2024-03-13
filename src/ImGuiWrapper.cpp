@@ -52,12 +52,6 @@ void ImGuiWrapper::BeginFrame()
 	ImGui_ImplVulkan_NewFrame();
 	ImGui_ImplSDL2_NewFrame();
 	ImGui::NewFrame();
-
-	{
-		ImGui::Begin("Hello, world!");
-		ImGui::Text("This is some useful text.");
-		ImGui::End();
-	}
 }
 
 void ImGuiWrapper::EndFrame(const vk::CommandBuffer command_buffer)

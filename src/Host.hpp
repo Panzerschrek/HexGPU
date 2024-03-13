@@ -19,7 +19,9 @@ public:
 	bool Loop();
 
 private:
+
 	void DrawFPS();
+	void DrawDebugInfo();
 
 private:
 	using Clock= std::chrono::steady_clock;

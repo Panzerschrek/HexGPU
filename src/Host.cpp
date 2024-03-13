@@ -119,6 +119,7 @@ bool Host::Loop()
 	im_gui_wrapper_.BeginFrame();
 
 	DrawFPS();
+	DrawDebugInfo();
 
 	const vk::CommandBuffer command_buffer= window_vulkan_.BeginFrame();
 	task_organizer_.SetCommandBuffer(command_buffer);
@@ -198,6 +199,27 @@ void Host::DrawFPS()
 		ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs);
 
 	ImGui::Text("fps: %3.2f", ticks_counter_.GetTicksFrequency());
+
+	ImGui::End();
+}
+
+void Host::DrawDebugInfo()
+{
+	ImGui::SetNextWindowBgAlpha(0.25f);
+
+	ImGui::SetNextWindowSizeConstraints({200.0f, 64.0f}, {800.0f, 600.0f});
+	ImGui::SetNextWindowSize({300.0f, 200.0f});
+	ImGui::SetNextWindowPos({0.0f, 0.0f});
+
+	ImGui::Begin(
+		"HexGPU debug info",
+		nullptr);
+
+	const auto world_size= world_processor_.GetWorldSize();
+	ImGui::Text("World size (chunks): %dx%d", world_size[0], world_size[1]);
+
+	const auto world_offset= world_processor_.GetWorldOffset();
+	ImGui::Text("World offset (chunks): %d, %d", world_offset[0], world_offset[1]);
 
 	ImGui::End();
 }

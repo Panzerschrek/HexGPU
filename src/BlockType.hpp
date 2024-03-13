@@ -23,6 +23,20 @@ inline BlockType StringToBlockType(const std::string_view s)
 	return BlockType::Unknown;
 }
 
+inline const char* BlockTypeToString(const BlockType block_type)
+{
+	switch(block_type)
+	{
+#define BLOCK_PROCESS_FUNC(x) case BlockType::x: return #x;
+#include "BlockTypeList.hpp"
+#undef BLOCK_PROCESS_FUNC
+	case BlockType::NumBlockTypes: return "num block types";
+	case BlockType::Unknown: return "unknown";
+	};
+
+	return "invalud";
+}
+
 // If this changed, GLSL code must be changed too!
 enum class Direction : uint8_t
 {

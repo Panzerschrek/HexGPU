@@ -16,6 +16,8 @@ public:
 		WindowVulkan& window_vulkan);
 	~ImGuiWrapper();
 
+	ImFont* GetLargeFont() const;
+
 	void ProcessEvents(const std::vector<SDL_Event>& events);
 
 	void BeginFrame();
@@ -27,6 +29,8 @@ private:
 	const vk::Device vk_device_;
 	const vk::UniqueDescriptorPool descriptor_pool_;
 	ImGuiContext* const context_;
+
+	ImFont* large_font_= nullptr;
 };
 
 } // namespace HexGPU

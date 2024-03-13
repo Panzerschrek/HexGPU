@@ -54,6 +54,7 @@ ImGuiWrapper::ImGuiWrapper(
 
 	ImGuiIO& io= ImGui::GetIO();
 	io.Fonts->AddFontDefault();
+	large_font_= io.Fonts->AddFontFromFileTTF("DroidSans.ttf", 20);
 }
 
 ImGuiWrapper::~ImGuiWrapper()
@@ -62,6 +63,12 @@ ImGuiWrapper::~ImGuiWrapper()
 	ImGui_ImplVulkan_Shutdown();
 	ImGui_ImplSDL2_Shutdown();
 	ImGui::DestroyContext(context_);
+}
+
+
+ImFont* ImGuiWrapper::GetLargeFont() const
+{
+	return large_font_;
 }
 
 void ImGuiWrapper::ProcessEvents(const std::vector<SDL_Event>& events)

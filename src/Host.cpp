@@ -119,6 +119,7 @@ bool Host::Loop()
 	im_gui_wrapper_.BeginFrame();
 
 	DrawFPS();
+	DrawUI();
 	DrawDebugInfo();
 
 	const vk::CommandBuffer command_buffer= window_vulkan_.BeginFrame();
@@ -203,6 +204,31 @@ void Host::DrawFPS()
 	ImGui::End();
 }
 
+void Host::DrawUI()
+{
+	ImGui::SetNextWindowPos({0.0f, float(window_vulkan_.GetViewportSize().height) - 64.0f});
+
+	ImGui::SetNextWindowSize({200.0f, 20.0f});
+
+	ImGui::SetNextWindowBgAlpha(0.25f);
+	ImGui::Begin(
+		"Build Block UI",
+		nullptr,
+		ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs);
+
+	const auto player_state= world_processor_.GetLastKnownPlayerState();
+
+	ImGui::PushFont(im_gui_wrapper_.GetLargeFont());
+
+	ImGui::Text(
+		"Build block: %s",
+		player_state == nullptr ? "unknown" : BlockTypeToString(player_state->build_block_type));
+
+	ImGui::PopFont();
+
+	ImGui::End();
+}
+
 void Host::DrawDebugInfo()
 {
 	ImGui::SetNextWindowBgAlpha(0.25f);
@@ -222,9 +248,7 @@ void Host::DrawDebugInfo()
 	ImGui::Text("World offset (chunks): %d, %d", world_offset[0], world_offset[1]);
 
 	if(const auto player_state= world_processor_.GetLastKnownPlayerState())
-	{
 		ImGui::Text("Player pos: %4.2f, %4.2f, %4.2f", player_state->pos[0], player_state->pos[1], player_state->pos[2]);
-	}
 
 	ImGui::End();
 }

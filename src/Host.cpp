@@ -91,17 +91,17 @@ Host::Host()
 	ImGui_ImplSDL2_InitForVulkan(system_window_.GetSDLWindow());
 
 	ImGui_ImplVulkan_InitInfo init_info{};
-	init_info.Instance = *window_vulkan_.instance_;
-	init_info.PhysicalDevice = window_vulkan_.physical_device_;
-	init_info.Device = *window_vulkan_.vk_device_;
+	init_info.Instance = window_vulkan_.GetVulkanInstance();
+	init_info.PhysicalDevice = window_vulkan_.GetPhysicalDevice();
+	init_info.Device = window_vulkan_.GetVulkanDevice();
 	init_info.QueueFamily = window_vulkan_.GetQueueFamilyIndex();
-	init_info.Queue = window_vulkan_.queue_;
+	init_info.Queue = window_vulkan_.GetQueue();
 	init_info.PipelineCache = nullptr;
 	init_info.DescriptorPool = *global_descriptor_pool_;
 	init_info.RenderPass = window_vulkan_.GetRenderPass();
 	init_info.Subpass = 0;
-	init_info.MinImageCount = uint32_t(window_vulkan_.framebuffers_.size());
-	init_info.ImageCount = uint32_t(window_vulkan_.framebuffers_.size());
+	init_info.MinImageCount = window_vulkan_.GetFramebufferImageCount();
+	init_info.ImageCount = window_vulkan_.GetFramebufferImageCount();
 	init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 	init_info.Allocator = nullptr;
 	init_info.CheckVkResultFn = nullptr;

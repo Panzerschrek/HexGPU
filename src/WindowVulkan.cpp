@@ -515,6 +515,16 @@ void WindowVulkan::EndFrame(const DrawFunction& draw_function)
 			nullptr));
 }
 
+vk::Instance WindowVulkan::GetVulkanInstance() const
+{
+	return *instance_;
+}
+
+vk::PhysicalDevice WindowVulkan::GetPhysicalDevice() const
+{
+	return physical_device_;
+}
+
 vk::Device WindowVulkan::GetVulkanDevice() const
 {
 	return *vk_device_;
@@ -530,6 +540,11 @@ uint32_t WindowVulkan::GetQueueFamilyIndex() const
 	return queue_family_index_;
 }
 
+vk::Queue WindowVulkan::GetQueue() const
+{
+	return queue_;
+}
+
 vk::RenderPass WindowVulkan::GetRenderPass() const
 {
 	return *render_pass_;
@@ -543,6 +558,11 @@ vk::PhysicalDeviceMemoryProperties WindowVulkan::GetMemoryProperties() const
 size_t WindowVulkan::GetNumCommandBuffers() const
 {
 	return command_buffers_.size();
+}
+
+uint32_t WindowVulkan::GetFramebufferImageCount() const
+{
+	return uint32_t(framebuffers_.size());
 }
 
 } // namespace HexGPU

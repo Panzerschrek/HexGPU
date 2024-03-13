@@ -18,9 +18,12 @@ public:
 	vk::CommandBuffer BeginFrame();
 	void EndFrame(const DrawFunction& draw_function);
 
+	vk::Instance GetVulkanInstance() const;
+	vk::PhysicalDevice GetPhysicalDevice() const;
 	vk::Device GetVulkanDevice() const;
 	vk::Extent2D GetViewportSize() const;
 	uint32_t GetQueueFamilyIndex() const;
+	vk::Queue GetQueue() const;
 	vk::RenderPass GetRenderPass() const; // Render pass for rendering directly into screen.
 	vk::PhysicalDeviceMemoryProperties GetMemoryProperties() const;
 
@@ -28,6 +31,8 @@ public:
 	// When a new command buffer is started, its previous contents is guaranteed to be flushed.
 	// So, it's safe to read on CPU data in frame #N, written in frame #N - #NumCommandBuffers.
 	size_t GetNumCommandBuffers() const;
+
+	uint32_t GetFramebufferImageCount() const;
 
 private:
 	struct CommandBufferData

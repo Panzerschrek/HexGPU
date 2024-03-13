@@ -54,7 +54,8 @@ ImGuiWrapper::ImGuiWrapper(
 
 	ImGuiIO& io= ImGui::GetIO();
 	io.Fonts->AddFontDefault();
-	large_font_= io.Fonts->AddFontFromFileTTF("DroidSans.ttf", 20);
+
+	large_font_= io.Fonts->AddFontFromFileTTF("fonts/plastic_bag.otf", 24);
 }
 
 ImGuiWrapper::~ImGuiWrapper()
@@ -64,7 +65,6 @@ ImGuiWrapper::~ImGuiWrapper()
 	ImGui_ImplSDL2_Shutdown();
 	ImGui::DestroyContext(context_);
 }
-
 
 ImFont* ImGuiWrapper::GetLargeFont() const
 {

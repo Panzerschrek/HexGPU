@@ -209,7 +209,7 @@ void Host::DrawUI()
 {
 	ImGui::SetNextWindowPos({0.0f, float(window_vulkan_.GetViewportSize().height) - 64.0f});
 
-	ImGui::SetNextWindowSize({200.0f, 20.0f});
+	ImGui::SetNextWindowSize({320.0f, 40.0f});
 
 	ImGui::SetNextWindowBgAlpha(0.25f);
 	ImGui::Begin(
@@ -222,7 +222,7 @@ void Host::DrawUI()
 	ImGui::PushFont(im_gui_wrapper_.GetLargeFont());
 
 	ImGui::Text(
-		"Build block: %s",
+		"build block: %s",
 		player_state == nullptr ? "unknown" : BlockTypeToString(player_state->build_block_type));
 
 	ImGui::PopFont();

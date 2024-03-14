@@ -118,23 +118,29 @@ private:
 
 private:
 	void InitialFillBuffers(TaskOrganizer& task_organizer);
-	void InitialFillBuffersImpl();
+
 	void ReadBackAndProcessPlayerState();
+
 	void InitialGenerateWorld(TaskOrganizer& task_organizer);
+
 	void DetermineChunksUpdateKind(RelativeWorldShiftChunks relative_world_shift);
 	void BuildCurrentFrameChunksToUpdateList(float prev_offset_within_tick, float cur_offset_within_tick);
+
 	void UpdateWorldBlocks(TaskOrganizer& task_organizer, RelativeWorldShiftChunks relative_world_shift);
 	void UpdateLight(TaskOrganizer& task_organizer, RelativeWorldShiftChunks relative_world_shift);
 	void GenerateWorld(TaskOrganizer& task_organizer, RelativeWorldShiftChunks relative_world_shift);
 	void DownloadChunks(TaskOrganizer& task_organizer);
+
 	void FinishChunksDownloading(TaskOrganizer& task_organizer);
 	void BuildPlayerWorldWindow(TaskOrganizer& task_organizer);
+
 	void UpdatePlayer(
 		TaskOrganizer& task_organizer,
 		float time_delta_s,
 		KeyboardState keyboard_state,
 		MouseState mouse_state,
 		float aspect);
+
 	void FlushWorldBlocksExternalUpdateQueue(TaskOrganizer& task_organizer);
 
 	uint32_t GetSrcBufferIndex() const;

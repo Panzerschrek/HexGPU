@@ -24,11 +24,16 @@ else()
 	string(APPEND CMAKE_SHARED_LINKER_FLAGS_MINSIZEREL " -s -Wl,--gc-sections")
 endif()
 
+#
+# Preparedependencies.
+#
+
+# snappy
 set(SNAPPY_BUILD_TESTS NO CACHE BOOL "")
-set(SNAPPY_BUILD_BENCHMARSK NO CACHE BOOL "")
+set(SNAPPY_BUILD_BENCHMARKS NO CACHE BOOL "")
 add_subdirectory(../snappy snappy)
 
-# Search dependencies.
+# SDL2
 if(WIN32)
 	set(SDL2_INCLUDE_DIRS ${SDL2_DIR}/include)
 	if(${CMAKE_SIZEOF_VOID_P} EQUAL 8)
@@ -41,8 +46,10 @@ else()
 	find_package(SDL2 REQUIRED)
 endif()
 
+# Vulkan
 find_package(Vulkan REQUIRED)
 
+# glslangValidator
 find_program(GLSLANGVALIDATOR glslangValidator)
 if(NOT GLSLANGVALIDATOR)
 	message(FATAL_ERROR "glslangValidator not found")

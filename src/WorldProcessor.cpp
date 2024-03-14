@@ -1194,8 +1194,6 @@ void WorldProcessor::Update(
 
 	ReadBackAndProcessPlayerState();
 
-	FinishChunksDownloading(task_organizer);
-
 	const RelativeWorldShiftChunks relative_shift
 	{
 		next_world_offset_[0] - world_offset_[0],
@@ -1203,6 +1201,8 @@ void WorldProcessor::Update(
 	};
 
 	DetermineChunksUpdateKind(relative_shift);
+
+	FinishChunksDownloading(task_organizer);
 
 	// This frequency allows relatively fast world updates and still doesn't overload GPU too much.
 	const float c_update_frequency= 8.0f;
@@ -1580,8 +1580,8 @@ void WorldProcessor::DetermineChunksUpdateKind(const RelativeWorldShiftChunks re
 		else
 		{
 			if(chunks_storage_.HasDataForChunk({
-				int32_t(x) + int32_t(next_world_offset_[0]),
-				int32_t(y) + int32_t(next_world_offset_[1])}))
+				int32_t(x) + world_offset_[0] + int32_t(relative_world_shift[0]),
+				int32_t(y) + world_offset_[1] + int32_t(relative_world_shift[1])}))
 				chunks_upate_kind_[chunk_index]= ChunkUpdateKind::Upload;
 			else
 				chunks_upate_kind_[chunk_index]= ChunkUpdateKind::Generate;
@@ -1982,6 +1982,8 @@ void WorldProcessor::FinishChunksDownloading(TaskOrganizer& task_organizer)
 			const uint32_t chunk_index= x + y * world_size_[0];
 			const uint32_t offset= chunk_index * c_chunk_volume;
 
+			Log::Info("Saving chunk ", int32_t(x) + world_offset_[0], ", ", int32_t(y) + world_offset_[1]);
+
 			chunks_storage_.SetChunk(
 				{
 					int32_t(x) + world_offset_[0],
@@ -2016,6 +2018,8 @@ void WorldProcessor::UploadChunks(TaskOrganizer& task_organizer)
 				if(chunks_upate_kind_[chunk_index] == ChunkUpdateKind::Upload)
 				{
 					const uint32_t offset= chunk_index * c_chunk_volume;
+
+					Log::Info("Loadig chunk ", int32_t(x) + next_world_offset_[0], ", ", int32_t(y) + next_world_offset_[1]);
 
 					chunks_storage_.GetChunk(
 						{

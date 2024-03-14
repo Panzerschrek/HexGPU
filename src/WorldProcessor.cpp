@@ -1194,7 +1194,7 @@ void WorldProcessor::Update(
 
 	ReadBackAndProcessPlayerState();
 
-	FinishChunksDownloading();
+	FinishChunksDownloading(task_organizer);
 
 	const RelativeWorldShiftChunks relative_shift
 	{
@@ -1578,7 +1578,14 @@ void WorldProcessor::DetermineChunksUpdateKind(const RelativeWorldShiftChunks re
 			in_position[1] >= 0 && in_position[1] < int32_t(world_size_[1]))
 			chunks_upate_kind_[chunk_index]= ChunkUpdateKind::Update;
 		else
-			chunks_upate_kind_[chunk_index]= ChunkUpdateKind::Generate;
+		{
+			if(chunks_storage_.HasDataForChunk({
+				int32_t(x) + int32_t(next_world_offset_[0]),
+				int32_t(y) + int32_t(next_world_offset_[1])}))
+				chunks_upate_kind_[chunk_index]= ChunkUpdateKind::Upload;
+			else
+				chunks_upate_kind_[chunk_index]= ChunkUpdateKind::Generate;
+		}
 	}
 }
 
@@ -1915,7 +1922,7 @@ void WorldProcessor::DownloadChunks(TaskOrganizer& task_organizer)
 					old_pos[1] < 0 || old_pos[1] >= int32_t(world_size_[1]))
 				{
 					// Need to download this chunk.
-					uint32_t chunk_index= x + y * world_size_[0];
+					const uint32_t chunk_index= x + y * world_size_[0];
 					const uint32_t offset= chunk_index * c_chunk_volume;
 
 					command_buffer.copyBuffer(
@@ -1938,7 +1945,7 @@ void WorldProcessor::DownloadChunks(TaskOrganizer& task_organizer)
 	task_organizer.ExecuteTask(task, task_func);
 }
 
-void WorldProcessor::FinishChunksDownloading()
+void WorldProcessor::FinishChunksDownloading(TaskOrganizer& task_organizer)
 {
 	if(!wait_for_chunks_data_download_)
 		return;
@@ -1972,7 +1979,7 @@ void WorldProcessor::FinishChunksDownloading()
 		if( old_pos[0] < 0 || old_pos[0] >= int32_t(world_size_[0]) ||
 			old_pos[1] < 0 || old_pos[1] >= int32_t(world_size_[1]))
 		{
-			uint32_t chunk_index= x + y * world_size_[0];
+			const uint32_t chunk_index= x + y * world_size_[0];
 			const uint32_t offset= chunk_index * c_chunk_volume;
 
 			chunks_storage_.SetChunk(
@@ -1984,6 +1991,52 @@ void WorldProcessor::FinishChunksDownloading()
 				static_cast<const uint8_t*>(chunk_auxiliar_data_load_buffer_mapped_) + offset);
 		}
 	}
+
+
+	// Now we can upload chunks.
+
+	const uint32_t dst_buffer_index= GetDstBufferIndex();
+
+	TaskOrganizer::TransferTaskParams task;
+	task.input_buffers.push_back(chunk_data_load_buffer_.GetBuffer());
+	task.input_buffers.push_back(chunk_auxiliar_data_load_buffer_.GetBuffer());
+	task.output_buffers.push_back(chunk_data_buffers_[dst_buffer_index].GetBuffer());
+	task.output_buffers.push_back(chunk_auxiliar_data_buffers_[dst_buffer_index].GetBuffer());
+
+	const auto task_func=
+		[&](const vk::CommandBuffer command_buffer)
+		{
+
+			for(uint32_t y= 0; y < world_size_[1]; ++y)
+			for(uint32_t x= 0; x < world_size_[0]; ++x)
+			{
+				const uint32_t chunk_index= x + y * world_size_[0];
+				if(chunks_upate_kind_[chunk_index] == ChunkUpdateKind::Upload)
+				{
+					const uint32_t offset= chunk_index * c_chunk_volume;
+
+					chunks_storage_.GetChunk(
+						{
+							int32_t(x) + next_world_offset_[0],
+							int32_t(y) + next_world_offset_[1]
+						},
+						static_cast<BlockType*>(chunk_data_load_buffer_mapped_) + offset,
+						static_cast<uint8_t*>(chunk_auxiliar_data_load_buffer_mapped_) + offset);
+
+					command_buffer.copyBuffer(
+						chunk_data_load_buffer_.GetBuffer(),
+						chunk_data_buffers_[dst_buffer_index].GetBuffer(),
+						{ { offset, offset, c_chunk_volume }});
+
+					command_buffer.copyBuffer(
+						chunk_auxiliar_data_load_buffer_.GetBuffer(),
+						chunk_auxiliar_data_buffers_[dst_buffer_index].GetBuffer(),
+						{ { offset, offset, c_chunk_volume }});
+				}
+			}
+		};
+
+	task_organizer.ExecuteTask(task, task_func);
 }
 
 void WorldProcessor::BuildPlayerWorldWindow(TaskOrganizer& task_organizer)

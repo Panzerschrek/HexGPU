@@ -21,6 +21,8 @@ public:
 	// Fills output arrays of size c_chunk_volume on success.
 	bool GetChunk(ChunkCoord coord, BlockType* blocks_data, uint8_t* blocks_auxiliar_data);
 
+	bool HasDataForChunk(ChunkCoord coord);
+
 private:
 	struct ChunkDataCombined
 	{

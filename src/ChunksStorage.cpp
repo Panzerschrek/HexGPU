@@ -36,4 +36,9 @@ bool ChunksStorage::GetChunk(
 	return true;
 }
 
+bool ChunksStorage::HasDataForChunk(const ChunkCoord coord)
+{
+	return chunks_map_.find(coord) != chunks_map_.end();
+}
+
 } // namespace HexGPU

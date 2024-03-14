@@ -113,6 +113,7 @@ private:
 	{
 		Update,
 		Generate,
+		Upload,
 	};
 
 private:
@@ -126,7 +127,7 @@ private:
 	void UpdateLight(TaskOrganizer& task_organizer, RelativeWorldShiftChunks relative_world_shift);
 	void GenerateWorld(TaskOrganizer& task_organizer, RelativeWorldShiftChunks relative_world_shift);
 	void DownloadChunks(TaskOrganizer& task_organizer);
-	void FinishChunksDownloading();
+	void FinishChunksDownloading(TaskOrganizer& task_organizer);
 	void BuildPlayerWorldWindow(TaskOrganizer& task_organizer);
 	void UpdatePlayer(
 		TaskOrganizer& task_organizer,

@@ -132,6 +132,8 @@ private:
 	void DownloadChunks(TaskOrganizer& task_organizer);
 
 	void FinishChunksDownloading(TaskOrganizer& task_organizer);
+	void UploadChunks(TaskOrganizer& task_organizer);
+
 	void BuildPlayerWorldWindow(TaskOrganizer& task_organizer);
 
 	void UpdatePlayer(

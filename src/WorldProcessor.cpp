@@ -1992,9 +1992,12 @@ void WorldProcessor::FinishChunksDownloading(TaskOrganizer& task_organizer)
 		}
 	}
 
-
 	// Now we can upload chunks.
+	UploadChunks(task_organizer);
+}
 
+void WorldProcessor::UploadChunks(TaskOrganizer& task_organizer)
+{
 	const uint32_t dst_buffer_index= GetDstBufferIndex();
 
 	TaskOrganizer::TransferTaskParams task;

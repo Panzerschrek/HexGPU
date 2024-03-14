@@ -589,7 +589,7 @@ Buffer CreateChunkDataBuffer(WindowVulkan& window_vulkan, const WorldSizeChunks&
 	return Buffer(
 		window_vulkan,
 		c_chunk_volume * world_size[0] * world_size[1],
-		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
+		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc);
 }
 
 Buffer CreateLightBuffer(WindowVulkan& window_vulkan, const WorldSizeChunks& world_size)
@@ -634,8 +634,8 @@ WorldProcessor::WorldProcessor(
 	, chunk_auxiliar_data_buffers_{
 		CreateChunkDataBuffer(window_vulkan, world_size_),
 		CreateChunkDataBuffer(window_vulkan, world_size_)}
-	, chunk_data_load_bufer_(CreateChunkDataLoadBuffer(window_vulkan, world_size_))
-	, chunk_data_load_bufer_mapped_(chunk_data_load_bufer_.Map(vk_device_))
+	, chunk_data_load_buffer_(CreateChunkDataLoadBuffer(window_vulkan, world_size_))
+	, chunk_data_load_buffer_mapped_(chunk_data_load_buffer_.Map(vk_device_))
 	, chunk_auxiliar_data_load_buffer_(CreateChunkDataLoadBuffer(window_vulkan, world_size_))
 	, chunk_auxiliar_data_load_buffer_mapped_(chunk_auxiliar_data_load_buffer_.Map(vk_device_))
 	, light_buffers_{
@@ -1173,7 +1173,7 @@ WorldProcessor::WorldProcessor(
 
 WorldProcessor::~WorldProcessor()
 {
-	chunk_data_load_bufer_.Unmap(vk_device_);
+	chunk_data_load_buffer_.Unmap(vk_device_);
 	chunk_auxiliar_data_load_buffer_.Unmap(vk_device_);
 
 	player_state_read_back_buffer_.Unmap(vk_device_);
@@ -1239,6 +1239,9 @@ void WorldProcessor::Update(
 		current_tick_fractional_= float(current_tick_);
 
 		BuildPlayerWorldWindow(task_organizer);
+
+		// Download (if necessary) chunks which are no longer inside the actuve area from the GPU.
+		DownloadChunks(task_organizer);
 	}
 	else
 		current_tick_fractional_= cur_tick_fractional;
@@ -1872,6 +1875,60 @@ void WorldProcessor::GenerateWorld(
 		};
 
 	task_organizer.ExecuteTask(initial_light_fill_task, initial_light_fill_task_func);
+}
+
+void WorldProcessor::DownloadChunks(TaskOrganizer& task_organizer)
+{
+	if(world_offset_ == next_world_offset_)
+		return;
+
+	const RelativeWorldShiftChunks relative_shift
+	{
+		next_world_offset_[0] - world_offset_[0],
+		next_world_offset_[1] - world_offset_[1],
+	};
+
+	const uint32_t src_buffer_index= GetSrcBufferIndex();
+
+	TaskOrganizer::TransferTaskParams task;
+	task.input_buffers.push_back(chunk_data_buffers_[src_buffer_index].GetBuffer());
+	task.input_buffers.push_back(chunk_auxiliar_data_buffers_[src_buffer_index].GetBuffer());
+	task.output_buffers.push_back(chunk_data_load_buffer_.GetBuffer());
+	task.output_buffers.push_back(chunk_auxiliar_data_load_buffer_.GetBuffer());
+
+	const auto task_func=
+		[this, relative_shift, src_buffer_index](const vk::CommandBuffer command_buffer)
+		{
+			for(uint32_t y= 0; y < world_size_[1]; ++y)
+			for(uint32_t x= 0; x < world_size_[0]; ++x)
+			{
+				const int32_t old_pos[2]
+				{
+					int32_t(x) - relative_shift[0],
+					int32_t(y) - relative_shift[1],
+				};
+
+				if( old_pos[0] < 0 || old_pos[0] >= int32_t(world_size_[0]) ||
+					old_pos[1] < 0 || old_pos[1] >= int32_t(world_size_[1]))
+				{
+					// Need to download this chunk.
+					uint32_t chunk_index= x + y * world_size_[0];
+					const uint32_t offset= chunk_index * c_chunk_volume;
+
+					command_buffer.copyBuffer(
+						chunk_data_buffers_[src_buffer_index].GetBuffer(),
+						chunk_data_load_buffer_.GetBuffer(),
+						{ { offset, offset, c_chunk_volume }});
+
+					command_buffer.copyBuffer(
+						chunk_auxiliar_data_buffers_[src_buffer_index].GetBuffer(),
+						chunk_auxiliar_data_load_buffer_.GetBuffer(),
+						{ { offset, offset, c_chunk_volume }});
+				}
+			}
+		};
+
+	task_organizer.ExecuteTask(task, task_func);
 }
 
 void WorldProcessor::BuildPlayerWorldWindow(TaskOrganizer& task_organizer)

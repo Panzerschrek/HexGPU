@@ -124,6 +124,7 @@ private:
 	void UpdateWorldBlocks(TaskOrganizer& task_organizer, RelativeWorldShiftChunks relative_world_shift);
 	void UpdateLight(TaskOrganizer& task_organizer, RelativeWorldShiftChunks relative_world_shift);
 	void GenerateWorld(TaskOrganizer& task_organizer, RelativeWorldShiftChunks relative_world_shift);
+	void DownloadChunks(TaskOrganizer& task_organizer);
 	void BuildPlayerWorldWindow(TaskOrganizer& task_organizer);
 	void UpdatePlayer(
 		TaskOrganizer& task_organizer,
@@ -154,8 +155,8 @@ private:
 	const std::array<Buffer, 2> chunk_auxiliar_data_buffers_; // Buffer for additional data for some types of blocks.
 
 	// Buffer for chunk data downloading/uploading.
-	const Buffer chunk_data_load_bufer_;
-	void* const chunk_data_load_bufer_mapped_;
+	const Buffer chunk_data_load_buffer_;
+	void* const chunk_data_load_buffer_mapped_;
 	const Buffer chunk_auxiliar_data_load_buffer_;
 	void* const chunk_auxiliar_data_load_buffer_mapped_;
 

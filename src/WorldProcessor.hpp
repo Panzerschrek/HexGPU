@@ -1,6 +1,7 @@
 #pragma once
 #include "BlockType.hpp"
 #include "Buffer.hpp"
+#include "ChunksStorage.hpp"
 #include "Keyboard.hpp"
 #include "Mouse.hpp"
 #include "Pipeline.hpp"
@@ -125,6 +126,7 @@ private:
 	void UpdateLight(TaskOrganizer& task_organizer, RelativeWorldShiftChunks relative_world_shift);
 	void GenerateWorld(TaskOrganizer& task_organizer, RelativeWorldShiftChunks relative_world_shift);
 	void DownloadChunks(TaskOrganizer& task_organizer);
+	void FinishChunksDownloading();
 	void BuildPlayerWorldWindow(TaskOrganizer& task_organizer);
 	void UpdatePlayer(
 		TaskOrganizer& task_organizer,
@@ -197,6 +199,8 @@ private:
 	const std::array<vk::DescriptorSet, 2> world_blocks_external_update_queue_flush_descriptor_sets_;
 
 	const vk::UniqueEvent chunk_data_download_event_;
+
+	ChunksStorage chunks_storage_;
 
 	WorldOffsetChunks world_offset_; // Current offset
 	WorldOffsetChunks next_world_offset_; // Offset which will be current at the start of the next tick

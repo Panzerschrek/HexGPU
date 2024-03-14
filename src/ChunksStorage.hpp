@@ -10,6 +10,7 @@ namespace HexGPU
 class ChunksStorage
 {
 public:
+	// Global chunk coordinates.
 	using ChunkCoord= std::array<int32_t, 2>;
 
 public:

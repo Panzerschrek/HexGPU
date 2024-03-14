@@ -1194,17 +1194,7 @@ void WorldProcessor::Update(
 
 	ReadBackAndProcessPlayerState();
 
-	if(wait_for_chunks_data_download_)
-	{
-		if(vk_device_.getEventStatus(*chunk_data_download_event_) == vk::Result::eEventSet)
-		{
-			Log::Info("Chunks data download finished");
-			vk_device_.resetEvent(*chunk_data_download_event_);
-			wait_for_chunks_data_download_= false;
-
-			// TODO - prevent world update until downloading isn't finished.
-		}
-	}
+	FinishChunksDownloading();
 
 	const RelativeWorldShiftChunks relative_shift
 	{
@@ -1946,6 +1936,54 @@ void WorldProcessor::DownloadChunks(TaskOrganizer& task_organizer)
 		};
 
 	task_organizer.ExecuteTask(task, task_func);
+}
+
+void WorldProcessor::FinishChunksDownloading()
+{
+	if(!wait_for_chunks_data_download_)
+		return;
+
+	if(vk_device_.getEventStatus(*chunk_data_download_event_) != vk::Result::eEventSet)
+		return;
+
+	Log::Info("Chunks data download finished");
+	vk_device_.resetEvent(*chunk_data_download_event_);
+	wait_for_chunks_data_download_= false;
+
+	// TODO - prevent world update until downloading isn't finished.
+
+	// Save downloaded chunks into the storage.
+
+	const RelativeWorldShiftChunks relative_shift
+	{
+		next_world_offset_[0] - world_offset_[0],
+		next_world_offset_[1] - world_offset_[1],
+	};
+
+	for(uint32_t y= 0; y < world_size_[1]; ++y)
+	for(uint32_t x= 0; x < world_size_[0]; ++x)
+	{
+		const int32_t old_pos[2]
+		{
+			int32_t(x) - relative_shift[0],
+			int32_t(y) - relative_shift[1],
+		};
+
+		if( old_pos[0] < 0 || old_pos[0] >= int32_t(world_size_[0]) ||
+			old_pos[1] < 0 || old_pos[1] >= int32_t(world_size_[1]))
+		{
+			uint32_t chunk_index= x + y * world_size_[0];
+			const uint32_t offset= chunk_index * c_chunk_volume;
+
+			chunks_storage_.SetChunk(
+				{
+					int32_t(x) + world_offset_[0],
+					int32_t(y) + world_offset_[1]
+				},
+				static_cast<const BlockType*>(chunk_data_load_buffer_mapped_) + offset,
+				static_cast<const uint8_t*>(chunk_auxiliar_data_load_buffer_mapped_) + offset);
+		}
+	}
 }
 
 void WorldProcessor::BuildPlayerWorldWindow(TaskOrganizer& task_organizer)

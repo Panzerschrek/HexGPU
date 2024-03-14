@@ -2006,7 +2006,6 @@ void WorldProcessor::FinishChunksDownloading(TaskOrganizer& task_organizer)
 	const auto task_func=
 		[&](const vk::CommandBuffer command_buffer)
 		{
-
 			for(uint32_t y= 0; y < world_size_[1]; ++y)
 			for(uint32_t x= 0; x < world_size_[0]; ++x)
 			{
@@ -2032,11 +2031,58 @@ void WorldProcessor::FinishChunksDownloading(TaskOrganizer& task_organizer)
 						chunk_auxiliar_data_load_buffer_.GetBuffer(),
 						chunk_auxiliar_data_buffers_[dst_buffer_index].GetBuffer(),
 						{ { offset, offset, c_chunk_volume }});
+
 				}
 			}
 		};
 
 	task_organizer.ExecuteTask(task, task_func);
+
+	// Perform initial light fill for loaded chunks.
+	TaskOrganizer::ComputeTaskParams initial_light_fill_task;
+	initial_light_fill_task.input_storage_buffers.push_back(chunk_data_buffers_[dst_buffer_index].GetBuffer());
+	initial_light_fill_task.output_storage_buffers.push_back(light_buffers_[dst_buffer_index].GetBuffer());
+
+	const auto initial_light_fill_task_func=
+		[this, dst_buffer_index](const vk::CommandBuffer command_buffer)
+		{
+			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *initial_light_fill_pipeline_.pipeline);
+
+			command_buffer.bindDescriptorSets(
+				vk::PipelineBindPoint::eCompute,
+				*initial_light_fill_pipeline_.pipeline_layout,
+				0u,
+				{initial_light_fill_descriptor_sets_[dst_buffer_index]},
+				{});
+
+			for(uint32_t y= 0; y < world_size_[1]; ++y)
+			for(uint32_t x= 0; x < world_size_[0]; ++x)
+			{
+				const uint32_t chunk_index= x + y * world_size_[0];
+				if(chunks_upate_kind_[chunk_index] == ChunkUpdateKind::Upload)
+				{
+					InitialLightFillUniforms uniforms;
+					uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+					uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+					uniforms.chunk_position[0]= int32_t(x);
+					uniforms.chunk_position[1]= int32_t(y);
+
+					command_buffer.pushConstants(
+						*initial_light_fill_pipeline_.pipeline_layout,
+						vk::ShaderStageFlagBits::eCompute,
+						0,
+						sizeof(InitialLightFillUniforms), static_cast<const void*>(&uniforms));
+
+					// Dispatch only 2D group - perform light fill for columns.
+					command_buffer.dispatch(
+						c_chunk_width / c_initial_light_fill_workgroup_size[0],
+						c_chunk_width / c_initial_light_fill_workgroup_size[1],
+						1);
+				}
+			}
+		};
+
+	task_organizer.ExecuteTask(initial_light_fill_task, initial_light_fill_task_func);
 }
 
 void WorldProcessor::BuildPlayerWorldWindow(TaskOrganizer& task_organizer)

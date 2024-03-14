@@ -702,6 +702,7 @@ WorldProcessor::WorldProcessor(
 			vk_device_,
 			global_descriptor_pool,
 			*world_blocks_external_update_queue_flush_pipeline_.descriptor_set_layout)}
+	, chunk_data_download_event_(vk_device_.createEventUnique(vk::EventCreateInfo()))
 	, world_offset_{-int32_t(world_size_[0] / 2u), -int32_t(world_size_[1] / 2u)}
 	, next_world_offset_(world_offset_)
 	, next_next_world_offset_(next_world_offset_)
@@ -1192,6 +1193,18 @@ void WorldProcessor::Update(
 	InitialFillBuffers(task_organizer);
 
 	ReadBackAndProcessPlayerState();
+
+	if(wait_for_chunks_data_download_)
+	{
+		if(vk_device_.getEventStatus(*chunk_data_download_event_) == vk::Result::eEventSet)
+		{
+			Log::Info("Chunks data download finished");
+			vk_device_.resetEvent(*chunk_data_download_event_);
+			wait_for_chunks_data_download_= false;
+
+			// TODO - prevent world update until downloading isn't finished.
+		}
+	}
 
 	const RelativeWorldShiftChunks relative_shift
 	{
@@ -1926,6 +1939,10 @@ void WorldProcessor::DownloadChunks(TaskOrganizer& task_organizer)
 						{ { offset, offset, c_chunk_volume }});
 				}
 			}
+
+			Log::Info("Queue chunks data downloading");
+			command_buffer.setEvent(*chunk_data_download_event_, vk::PipelineStageFlagBits::eTransfer);
+			wait_for_chunks_data_download_= true;
 		};
 
 	task_organizer.ExecuteTask(task, task_func);

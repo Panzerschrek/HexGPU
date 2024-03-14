@@ -24,6 +24,10 @@ else()
 	string(APPEND CMAKE_SHARED_LINKER_FLAGS_MINSIZEREL " -s -Wl,--gc-sections")
 endif()
 
+set(SNAPPY_BUILD_TESTS NO CACHE BOOL "")
+set(SNAPPY_BUILD_BENCHMARSK NO CACHE BOOL "")
+add_subdirectory(../snappy snappy)
+
 # Search dependencies.
 if(WIN32)
 	set(SDL2_INCLUDE_DIRS ${SDL2_DIR}/include)
@@ -132,4 +136,5 @@ target_link_libraries(
 			${SDL2_LIBRARIES}
 			${Vulkan_LIBRARIES}
 			ImGui
+			snappy
 	)

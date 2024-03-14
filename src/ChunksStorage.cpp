@@ -1,5 +1,6 @@
 #include "ChunksStorage.hpp"
 #include <Assert.hpp>
+#include "snappy.h"
 #include <cstring>
 
 namespace HexGPU
@@ -10,12 +11,12 @@ void ChunksStorage::SetChunk(
 	const BlockType* const blocks_data,
 	const uint8_t* const blocks_auxiliar_data)
 {
-	ChunkDataPtr& out_data= chunks_map_[chunk_coord];
-	if(out_data == nullptr)
-		out_data= std::make_unique<ChunkDataCombined>();
+	ChunkDataCompresed& out_data= chunks_map_[chunk_coord];
 
-	std::memcpy(out_data->blocks, blocks_data, c_chunk_volume);
-	std::memcpy(out_data->auxiliar_data, blocks_auxiliar_data, c_chunk_volume);
+	// TODO - check for correctness/possible errors.
+	// TODO - tune compression params.
+	snappy::Compress(reinterpret_cast<const char*>(blocks_data), c_chunk_volume, &out_data.blocks);
+	snappy::Compress(reinterpret_cast<const char*>(blocks_auxiliar_data), c_chunk_volume, &out_data.auxiliar_data);
 }
 
 bool ChunksStorage::GetChunk(
@@ -27,11 +28,18 @@ bool ChunksStorage::GetChunk(
 	if(it == chunks_map_.end())
 		return false;
 
-	const ChunkDataPtr& in_data= it->second;
-	HEX_ASSERT(in_data != nullptr);
+	const ChunkDataCompresed& in_data= it->second;
 
-	std::memcpy(blocks_data, in_data->blocks, c_chunk_volume);
-	std::memcpy(blocks_auxiliar_data, in_data->auxiliar_data, c_chunk_volume);
+	std::string uncompressed;
+
+	// TODO - avoid using intermediate string.
+	snappy::Uncompress(in_data.blocks.data(), in_data.blocks.size(), &uncompressed);
+	HEX_ASSERT(uncompressed.size() == c_chunk_volume);
+	std::memcpy(blocks_data, uncompressed.data(), c_chunk_volume);
+
+	snappy::Uncompress(in_data.blocks.data(), in_data.auxiliar_data.size(), &uncompressed);
+	HEX_ASSERT(uncompressed.size() == c_chunk_volume);
+	std::memcpy(blocks_auxiliar_data, uncompressed.data(), c_chunk_volume);
 
 	return true;
 }

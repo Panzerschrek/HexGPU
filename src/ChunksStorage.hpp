@@ -1,7 +1,6 @@
 #pragma once
 #include "Constants.hpp"
 #include "BlockType.hpp"
-#include <memory>
 #include <unordered_map>
 
 namespace HexGPU
@@ -24,13 +23,11 @@ public:
 	bool HasDataForChunk(ChunkCoord coord);
 
 private:
-	struct ChunkDataCombined
+	struct ChunkDataCompresed
 	{
-		BlockType blocks[c_chunk_volume];
-		uint8_t auxiliar_data[c_chunk_volume];
+		std::string blocks;
+		std::string auxiliar_data;
 	};
-
-	using ChunkDataPtr= std::unique_ptr<ChunkDataCombined>;
 
 	struct ChunkCoordHasher
 	{
@@ -44,7 +41,7 @@ private:
 	};
 
 private:
-	std::unordered_map<ChunkCoord, ChunkDataPtr, ChunkCoordHasher> chunks_map_;
+	std::unordered_map<ChunkCoord, ChunkDataCompresed, ChunkCoordHasher> chunks_map_;
 };
 
 } // namespace HexGPU

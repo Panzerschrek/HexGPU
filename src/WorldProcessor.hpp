@@ -63,6 +63,13 @@ public:
 	const PlayerState* GetLastKnownPlayerState() const;
 
 private:
+	// This struct must be identical to the same struct in GLSL code!
+	struct WorldGlobalState
+	{
+		float current_sky_color[4]{};
+		float current_sky_light_color[4]{};
+	};
+
 	// These constants must be the same in GLSL code!
 	static constexpr uint32_t c_player_world_window_size[3]{16, 16, 16};
 	static constexpr uint32_t c_player_world_window_volume= c_player_world_window_size[0] * c_player_world_window_size[1] * c_player_world_window_size[2];
@@ -174,6 +181,8 @@ private:
 	// Use double buffering for light update.
 	// On each step data is read from one of them and written into another.
 	const std::array<Buffer, 2> light_buffers_;
+
+	const Buffer world_global_state_buffer_;
 
 	const Buffer player_state_buffer_;
 	const Buffer world_blocks_external_update_queue_buffer_;

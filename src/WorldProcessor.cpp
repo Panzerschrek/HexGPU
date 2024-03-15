@@ -644,6 +644,10 @@ WorldProcessor::WorldProcessor(
 	, light_buffers_{
 		CreateLightBuffer(window_vulkan, world_size_),
 		CreateLightBuffer(window_vulkan, world_size_)}
+	, world_global_state_buffer_(
+		window_vulkan,
+		sizeof(WorldGlobalState),
+		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferSrc)
 	, player_state_buffer_(
 		window_vulkan,
 		sizeof(PlayerState),

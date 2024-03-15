@@ -1,11 +1,41 @@
 #include "ChunkDataCompressor.hpp"
 #include "Assert.hpp"
 #include "Constants.hpp"
+#include "Log.hpp"
 #include <snappy.h>
 #include <cstring>
 
 namespace HexGPU
 {
+
+namespace
+{
+
+bool UncompressRawBlocksArray(const std::string& in, char* const out)
+{
+	size_t uncompressed_length= 0;
+	if(!snappy::GetUncompressedLength(in.data(), in.size(), &uncompressed_length))
+	{
+		Log::Info("Can't gen uncompressed length");
+		return false;
+	}
+
+	if(uncompressed_length != c_chunk_volume)
+	{
+		Log::Info("Unexpected uncompressed length, expected ", c_chunk_volume, " got ", uncompressed_length);
+		return false;
+	}
+
+	if(!snappy::RawUncompress(in.data(), in.size(), out))
+	{
+		Log::Info("Uncompress failed");
+		return false;
+	}
+
+	return true;
+}
+
+} // namespace
 
 ChunkDataCompresed ChunkDataCompressor::Compress(
 	const BlockType* const blocks_data,
@@ -26,19 +56,17 @@ bool ChunkDataCompressor::Decompress(
 	BlockType* const blocks_data,
 	uint8_t* const blocks_auxiliar_data)
 {
-	// TODO - check for errors.
+	if(!UncompressRawBlocksArray(data_compressed.blocks, reinterpret_cast<char*>(blocks_data)))
+	{
+		Log::Info("Can't decompress blocks data");
+		return false;
+	}
 
-	std::string uncompressed;
-
-	// TODO - avoid using intermediate string.
-	snappy::Uncompress(data_compressed.blocks.data(), data_compressed.blocks.size(), &uncompressed);
-	HEX_ASSERT(uncompressed.size() == c_chunk_volume);
-	std::memcpy(blocks_data, uncompressed.data(), c_chunk_volume);
-
-	uncompressed.clear();
-	snappy::Uncompress(data_compressed.auxiliar_data.data(), data_compressed.auxiliar_data.size(), &uncompressed);
-	HEX_ASSERT(uncompressed.size() == c_chunk_volume);
-	std::memcpy(blocks_auxiliar_data, uncompressed.data(), c_chunk_volume);
+	if(!UncompressRawBlocksArray(data_compressed.auxiliar_data, reinterpret_cast<char*>(blocks_auxiliar_data)))
+	{
+		Log::Info("Can't decompress blocks auxiliar data");
+		return false;
+	}
 
 	return true;
 }

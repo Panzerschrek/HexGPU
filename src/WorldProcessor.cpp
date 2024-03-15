@@ -589,7 +589,7 @@ Buffer CreateChunkDataBuffer(WindowVulkan& window_vulkan, const WorldSizeChunks&
 	return Buffer(
 		window_vulkan,
 		c_chunk_volume * world_size[0] * world_size[1],
-		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
+		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc);
 }
 
 Buffer CreateLightBuffer(WindowVulkan& window_vulkan, const WorldSizeChunks& world_size)
@@ -598,6 +598,18 @@ Buffer CreateLightBuffer(WindowVulkan& window_vulkan, const WorldSizeChunks& wor
 		window_vulkan,
 		c_chunk_volume * world_size[0] * world_size[1],
 		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
+}
+
+Buffer CreateChunkDataLoadBuffer(WindowVulkan& window_vulkan, const WorldSizeChunks& world_size)
+{
+	return Buffer(
+		window_vulkan,
+		c_chunk_volume * world_size[0] * world_size[1],
+		vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc,
+		// Use host-cached memory, because its usage by the host is much faster then host-coherent memory.
+		// But the cost of this speed is the necessity to call InvalidateRanges/FlushRanges.
+		// TODO - add a workaround for systems without host-cached memory.
+		vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCached);
 }
 
 } // namespace
@@ -625,6 +637,10 @@ WorldProcessor::WorldProcessor(
 	, chunk_auxiliar_data_buffers_{
 		CreateChunkDataBuffer(window_vulkan, world_size_),
 		CreateChunkDataBuffer(window_vulkan, world_size_)}
+	, chunk_data_load_buffer_(CreateChunkDataLoadBuffer(window_vulkan, world_size_))
+	, chunk_data_load_buffer_mapped_(chunk_data_load_buffer_.Map(vk_device_))
+	, chunk_auxiliar_data_load_buffer_(CreateChunkDataLoadBuffer(window_vulkan, world_size_))
+	, chunk_auxiliar_data_load_buffer_mapped_(chunk_auxiliar_data_load_buffer_.Map(vk_device_))
 	, light_buffers_{
 		CreateLightBuffer(window_vulkan, world_size_),
 		CreateLightBuffer(window_vulkan, world_size_)}
@@ -689,6 +705,7 @@ WorldProcessor::WorldProcessor(
 			vk_device_,
 			global_descriptor_pool,
 			*world_blocks_external_update_queue_flush_pipeline_.descriptor_set_layout)}
+	, chunk_data_download_event_(vk_device_.createEventUnique(vk::EventCreateInfo()))
 	, world_offset_{-int32_t(world_size_[0] / 2u), -int32_t(world_size_[1] / 2u)}
 	, next_world_offset_(world_offset_)
 	, next_next_world_offset_(next_world_offset_)
@@ -1160,6 +1177,9 @@ WorldProcessor::WorldProcessor(
 
 WorldProcessor::~WorldProcessor()
 {
+	chunk_data_load_buffer_.Unmap(vk_device_);
+	chunk_auxiliar_data_load_buffer_.Unmap(vk_device_);
+
 	player_state_read_back_buffer_.Unmap(vk_device_);
 
 	// Sync before destruction.
@@ -1185,6 +1205,8 @@ void WorldProcessor::Update(
 
 	DetermineChunksUpdateKind(relative_shift);
 
+	FinishChunksDownloading(task_organizer);
+
 	// This frequency allows relatively fast world updates and still doesn't overload GPU too much.
 	const float c_update_frequency= 8.0f;
 
@@ -1199,8 +1221,7 @@ void WorldProcessor::Update(
 	else
 	{
 		// Continue updates of blocks and lighting.
-		const float prev_offset_within_tick= prev_tick_fractional - float(current_tick_);
-		HEX_ASSERT(prev_offset_within_tick <= 1.0f);
+		const float prev_offset_within_tick= std::min(1.0f, prev_tick_fractional - float(current_tick_));
 		const float cur_offset_within_tick= std::min(1.0f, cur_tick_fractional - float(current_tick_));
 		BuildCurrentFrameChunksToUpdateList(prev_offset_within_tick, cur_offset_within_tick);
 
@@ -1211,8 +1232,13 @@ void WorldProcessor::Update(
 		// Add a barier only at the beginning of next tick.
 	}
 
+	// Prevent finishing tick if chunks data downloading/uploading operations are not finished yer.
+	const bool is_time_to_switch_to_next_tick=
+		uint32_t(prev_tick_fractional) < uint32_t(cur_tick_fractional) &&
+		!wait_for_chunks_data_download_;
+
 	// Switch to the next tick (if necessary).
-	if(current_tick_ == 0 || uint32_t(prev_tick_fractional) < uint32_t(cur_tick_fractional))
+	if(current_tick_ == 0 || is_time_to_switch_to_next_tick)
 	{
 		world_offset_= next_world_offset_;
 		next_world_offset_= next_next_world_offset_;
@@ -1223,6 +1249,9 @@ void WorldProcessor::Update(
 		current_tick_fractional_= float(current_tick_);
 
 		BuildPlayerWorldWindow(task_organizer);
+
+		// Download (if necessary) chunks which are no longer inside the actuve area from the GPU.
+		DownloadChunks(task_organizer);
 	}
 	else
 		current_tick_fractional_= cur_tick_fractional;
@@ -1556,7 +1585,14 @@ void WorldProcessor::DetermineChunksUpdateKind(const RelativeWorldShiftChunks re
 			in_position[1] >= 0 && in_position[1] < int32_t(world_size_[1]))
 			chunks_upate_kind_[chunk_index]= ChunkUpdateKind::Update;
 		else
-			chunks_upate_kind_[chunk_index]= ChunkUpdateKind::Generate;
+		{
+			if(chunks_storage_.HasDataForChunk({
+				int32_t(x) + world_offset_[0] + int32_t(relative_world_shift[0]),
+				int32_t(y) + world_offset_[1] + int32_t(relative_world_shift[1])}))
+				chunks_upate_kind_[chunk_index]= ChunkUpdateKind::Upload;
+			else
+				chunks_upate_kind_[chunk_index]= ChunkUpdateKind::Generate;
+		}
 	}
 }
 
@@ -1852,6 +1888,261 @@ void WorldProcessor::GenerateWorld(
 					c_chunk_width / c_initial_light_fill_workgroup_size[0],
 					c_chunk_width / c_initial_light_fill_workgroup_size[1],
 					1);
+			}
+		};
+
+	task_organizer.ExecuteTask(initial_light_fill_task, initial_light_fill_task_func);
+}
+
+void WorldProcessor::DownloadChunks(TaskOrganizer& task_organizer)
+{
+	if(world_offset_ == next_world_offset_)
+		return;
+
+	const RelativeWorldShiftChunks relative_shift
+	{
+		next_world_offset_[0] - world_offset_[0],
+		next_world_offset_[1] - world_offset_[1],
+	};
+
+	const uint32_t src_buffer_index= GetSrcBufferIndex();
+
+	TaskOrganizer::TransferTaskParams task;
+	task.input_buffers.push_back(chunk_data_buffers_[src_buffer_index].GetBuffer());
+	task.input_buffers.push_back(chunk_auxiliar_data_buffers_[src_buffer_index].GetBuffer());
+	task.output_buffers.push_back(chunk_data_load_buffer_.GetBuffer());
+	task.output_buffers.push_back(chunk_auxiliar_data_load_buffer_.GetBuffer());
+
+	const auto task_func=
+		[this, relative_shift, src_buffer_index](const vk::CommandBuffer command_buffer)
+		{
+			for(uint32_t y= 0; y < world_size_[1]; ++y)
+			for(uint32_t x= 0; x < world_size_[0]; ++x)
+			{
+				const int32_t old_pos[2]
+				{
+					int32_t(x) - relative_shift[0],
+					int32_t(y) - relative_shift[1],
+				};
+
+				if( old_pos[0] < 0 || old_pos[0] >= int32_t(world_size_[0]) ||
+					old_pos[1] < 0 || old_pos[1] >= int32_t(world_size_[1]))
+				{
+					// Need to download this chunk.
+					const uint32_t chunk_index= x + y * world_size_[0];
+					const uint32_t offset= chunk_index * c_chunk_volume;
+
+					command_buffer.copyBuffer(
+						chunk_data_buffers_[src_buffer_index].GetBuffer(),
+						chunk_data_load_buffer_.GetBuffer(),
+						{ { offset, offset, c_chunk_volume }});
+
+					command_buffer.copyBuffer(
+						chunk_auxiliar_data_buffers_[src_buffer_index].GetBuffer(),
+						chunk_auxiliar_data_load_buffer_.GetBuffer(),
+						{ { offset, offset, c_chunk_volume }});
+				}
+			}
+
+			// Set the event at the end of transfer commands, to tell host that data is available.
+			// TODO - make sure this works properly
+			// and all data written into the buffer may be accessed by the host after this event is signaled.
+			command_buffer.setEvent(*chunk_data_download_event_, vk::PipelineStageFlagBits::eTransfer);
+			wait_for_chunks_data_download_= true;
+		};
+
+	task_organizer.ExecuteTask(task, task_func);
+}
+
+void WorldProcessor::FinishChunksDownloading(TaskOrganizer& task_organizer)
+{
+	if(!wait_for_chunks_data_download_)
+		return;
+
+	if(vk_device_.getEventStatus(*chunk_data_download_event_) != vk::Result::eEventSet)
+		return; // Not finished yet.
+
+	// GPU-side chunks data copying is finished - reset the event and process data obtained.
+	vk_device_.resetEvent(*chunk_data_download_event_);
+	wait_for_chunks_data_download_= false;
+
+	const RelativeWorldShiftChunks relative_shift
+	{
+		next_world_offset_[0] - world_offset_[0],
+		next_world_offset_[1] - world_offset_[1],
+	};
+
+	// Invalidate host caches for buffers memory before writing. This is needed for non-coherent memory.
+	std::vector<vk::MappedMemoryRange> mapped_memory_ranges;
+	for(uint32_t y= 0; y < world_size_[1]; ++y)
+	for(uint32_t x= 0; x < world_size_[0]; ++x)
+	{
+		const int32_t old_pos[2]
+		{
+			int32_t(x) - relative_shift[0],
+			int32_t(y) - relative_shift[1],
+		};
+
+		if( old_pos[0] < 0 || old_pos[0] >= int32_t(world_size_[0]) ||
+			old_pos[1] < 0 || old_pos[1] >= int32_t(world_size_[1]))
+		{
+			const uint32_t chunk_index= x + y * world_size_[0];
+			const uint32_t offset= chunk_index * c_chunk_volume;
+
+			mapped_memory_ranges.emplace_back(
+				chunk_data_load_buffer_.GetMemory(), offset, c_chunk_volume);
+
+			mapped_memory_ranges.emplace_back(
+				chunk_auxiliar_data_load_buffer_.GetMemory(), offset, c_chunk_volume);
+		}
+	}
+	vk_device_.invalidateMappedMemoryRanges(mapped_memory_ranges);
+
+	// Compress and save downloaded chunks into the storage.
+	// TODO - make this in background thread?
+	for(uint32_t y= 0; y < world_size_[1]; ++y)
+	for(uint32_t x= 0; x < world_size_[0]; ++x)
+	{
+		const int32_t old_pos[2]
+		{
+			int32_t(x) - relative_shift[0],
+			int32_t(y) - relative_shift[1],
+		};
+
+		if( old_pos[0] < 0 || old_pos[0] >= int32_t(world_size_[0]) ||
+			old_pos[1] < 0 || old_pos[1] >= int32_t(world_size_[1]))
+		{
+			const uint32_t chunk_index= x + y * world_size_[0];
+			const uint32_t offset= chunk_index * c_chunk_volume;
+
+			chunks_storage_.SetChunk(
+				{
+					int32_t(x) + world_offset_[0],
+					int32_t(y) + world_offset_[1]
+				},
+				chunk_data_compressor_.Compress(
+					static_cast<const BlockType*>(chunk_data_load_buffer_mapped_) + offset,
+					static_cast<const uint8_t*>(chunk_auxiliar_data_load_buffer_mapped_) + offset));
+		}
+	}
+
+	// Now we can upload chunks.
+	UploadChunks(task_organizer);
+}
+
+void WorldProcessor::UploadChunks(TaskOrganizer& task_organizer)
+{
+	// Decompress chunks first.
+	// TODO - make this in background thread?
+	std::vector<vk::MappedMemoryRange> written_mapped_memory_ranges;
+	for(uint32_t y= 0; y < world_size_[1]; ++y)
+	for(uint32_t x= 0; x < world_size_[0]; ++x)
+	{
+		const uint32_t chunk_index= x + y * world_size_[0];
+		if(chunks_upate_kind_[chunk_index] == ChunkUpdateKind::Upload)
+		{
+			const uint32_t offset= chunk_index * c_chunk_volume;
+
+			const ChunkDataCompresed* const chunk_data_compressed= chunks_storage_.GetChunk(
+				{
+					int32_t(x) + next_world_offset_[0],
+					int32_t(y) + next_world_offset_[1]
+				});
+
+			HEX_ASSERT(chunk_data_compressed != nullptr);
+			chunk_data_compressor_.Decompress(
+				*chunk_data_compressed,
+				static_cast<BlockType*>(chunk_data_load_buffer_mapped_) + offset,
+				static_cast<uint8_t*>(chunk_auxiliar_data_load_buffer_mapped_) + offset);
+
+			written_mapped_memory_ranges.emplace_back(
+				chunk_data_load_buffer_.GetMemory(), offset, c_chunk_volume);
+
+			written_mapped_memory_ranges.emplace_back(
+				chunk_auxiliar_data_load_buffer_.GetMemory(), offset, c_chunk_volume);
+		}
+	}
+
+	// Flush host writes into buffers memory. This is needed for non-coherent memory.
+	vk_device_.flushMappedMemoryRanges(written_mapped_memory_ranges);
+
+	// Schedule copying data from loading buffers to actual buffers.
+
+	const uint32_t dst_buffer_index= GetDstBufferIndex();
+
+	TaskOrganizer::TransferTaskParams task;
+	task.input_buffers.push_back(chunk_data_load_buffer_.GetBuffer());
+	task.input_buffers.push_back(chunk_auxiliar_data_load_buffer_.GetBuffer());
+	task.output_buffers.push_back(chunk_data_buffers_[dst_buffer_index].GetBuffer());
+	task.output_buffers.push_back(chunk_auxiliar_data_buffers_[dst_buffer_index].GetBuffer());
+
+	const auto task_func=
+		[this, dst_buffer_index](const vk::CommandBuffer command_buffer)
+		{
+			for(uint32_t y= 0; y < world_size_[1]; ++y)
+			for(uint32_t x= 0; x < world_size_[0]; ++x)
+			{
+				const uint32_t chunk_index= x + y * world_size_[0];
+				if(chunks_upate_kind_[chunk_index] == ChunkUpdateKind::Upload)
+				{
+					const uint32_t offset= chunk_index * c_chunk_volume;
+
+					command_buffer.copyBuffer(
+						chunk_data_load_buffer_.GetBuffer(),
+						chunk_data_buffers_[dst_buffer_index].GetBuffer(),
+						{ { offset, offset, c_chunk_volume }});
+
+					command_buffer.copyBuffer(
+						chunk_auxiliar_data_load_buffer_.GetBuffer(),
+						chunk_auxiliar_data_buffers_[dst_buffer_index].GetBuffer(),
+						{ { offset, offset, c_chunk_volume }});
+				}
+			}
+		};
+
+	task_organizer.ExecuteTask(task, task_func);
+
+	// Perform initial light fill for loaded chunks.
+	TaskOrganizer::ComputeTaskParams initial_light_fill_task;
+	initial_light_fill_task.input_storage_buffers.push_back(chunk_data_buffers_[dst_buffer_index].GetBuffer());
+	initial_light_fill_task.output_storage_buffers.push_back(light_buffers_[dst_buffer_index].GetBuffer());
+
+	const auto initial_light_fill_task_func=
+		[this, dst_buffer_index](const vk::CommandBuffer command_buffer)
+		{
+			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *initial_light_fill_pipeline_.pipeline);
+
+			command_buffer.bindDescriptorSets(
+				vk::PipelineBindPoint::eCompute,
+				*initial_light_fill_pipeline_.pipeline_layout,
+				0u,
+				{initial_light_fill_descriptor_sets_[dst_buffer_index]},
+				{});
+
+			for(uint32_t y= 0; y < world_size_[1]; ++y)
+			for(uint32_t x= 0; x < world_size_[0]; ++x)
+			{
+				const uint32_t chunk_index= x + y * world_size_[0];
+				if(chunks_upate_kind_[chunk_index] == ChunkUpdateKind::Upload)
+				{
+					InitialLightFillUniforms uniforms;
+					uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
+					uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+					uniforms.chunk_position[0]= int32_t(x);
+					uniforms.chunk_position[1]= int32_t(y);
+
+					command_buffer.pushConstants(
+						*initial_light_fill_pipeline_.pipeline_layout,
+						vk::ShaderStageFlagBits::eCompute,
+						0,
+						sizeof(InitialLightFillUniforms), static_cast<const void*>(&uniforms));
+
+					// Dispatch only 2D group - perform light fill for columns.
+					command_buffer.dispatch(
+						c_chunk_width / c_initial_light_fill_workgroup_size[0],
+						c_chunk_width / c_initial_light_fill_workgroup_size[1],
+						1);
+				}
 			}
 		};
 

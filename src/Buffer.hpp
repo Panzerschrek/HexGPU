@@ -17,6 +17,7 @@ public:
 	vk::DeviceSize GetSize() const;
 
 	vk::Buffer GetBuffer() const;
+	vk::DeviceMemory GetMemory() const;
 
 	void* Map(vk::Device vk_device) const;
 	void Unmap(vk::Device vk_device) const;

@@ -1,6 +1,7 @@
 #pragma once
 #include "BlockType.hpp"
 #include "Buffer.hpp"
+#include "ChunksStorage.hpp"
 #include "Keyboard.hpp"
 #include "Mouse.hpp"
 #include "Pipeline.hpp"
@@ -112,25 +113,36 @@ private:
 	{
 		Update,
 		Generate,
+		Upload,
 	};
 
 private:
 	void InitialFillBuffers(TaskOrganizer& task_organizer);
-	void InitialFillBuffersImpl();
+
 	void ReadBackAndProcessPlayerState();
+
 	void InitialGenerateWorld(TaskOrganizer& task_organizer);
+
 	void DetermineChunksUpdateKind(RelativeWorldShiftChunks relative_world_shift);
 	void BuildCurrentFrameChunksToUpdateList(float prev_offset_within_tick, float cur_offset_within_tick);
+
 	void UpdateWorldBlocks(TaskOrganizer& task_organizer, RelativeWorldShiftChunks relative_world_shift);
 	void UpdateLight(TaskOrganizer& task_organizer, RelativeWorldShiftChunks relative_world_shift);
 	void GenerateWorld(TaskOrganizer& task_organizer, RelativeWorldShiftChunks relative_world_shift);
+	void DownloadChunks(TaskOrganizer& task_organizer);
+
+	void FinishChunksDownloading(TaskOrganizer& task_organizer);
+	void UploadChunks(TaskOrganizer& task_organizer);
+
 	void BuildPlayerWorldWindow(TaskOrganizer& task_organizer);
+
 	void UpdatePlayer(
 		TaskOrganizer& task_organizer,
 		float time_delta_s,
 		KeyboardState keyboard_state,
 		MouseState mouse_state,
 		float aspect);
+
 	void FlushWorldBlocksExternalUpdateQueue(TaskOrganizer& task_organizer);
 
 	uint32_t GetSrcBufferIndex() const;
@@ -152,6 +164,12 @@ private:
 	// On each step data is read from one of them and written into another.
 	const std::array<Buffer, 2> chunk_data_buffers_;
 	const std::array<Buffer, 2> chunk_auxiliar_data_buffers_; // Buffer for additional data for some types of blocks.
+
+	// Buffer for chunk data downloading/uploading.
+	const Buffer chunk_data_load_buffer_;
+	void* const chunk_data_load_buffer_mapped_;
+	const Buffer chunk_auxiliar_data_load_buffer_;
+	void* const chunk_auxiliar_data_load_buffer_mapped_;
 
 	// Use double buffering for light update.
 	// On each step data is read from one of them and written into another.
@@ -189,6 +207,11 @@ private:
 	const ComputePipeline world_blocks_external_update_queue_flush_pipeline_;
 	const std::array<vk::DescriptorSet, 2> world_blocks_external_update_queue_flush_descriptor_sets_;
 
+	const vk::UniqueEvent chunk_data_download_event_;
+
+	ChunkDataCompressor chunk_data_compressor_;
+	ChunksStorage chunks_storage_;
+
 	WorldOffsetChunks world_offset_; // Current offset
 	WorldOffsetChunks next_world_offset_; // Offset which will be current at the start of the next tick
 	WorldOffsetChunks next_next_world_offset_; // Offset whic will be next at the start of the next tick
@@ -209,6 +232,8 @@ private:
 	std::vector<ChunkUpdateKind> chunks_upate_kind_;
 
 	std::optional<PlayerState> last_known_player_state_;
+
+	bool wait_for_chunks_data_download_= false;
 };
 
 } // namespace HexGPU

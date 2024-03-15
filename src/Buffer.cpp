@@ -43,6 +43,11 @@ vk::Buffer Buffer::GetBuffer() const
 	return *buffer_;
 }
 
+vk::DeviceMemory Buffer::GetMemory() const
+{
+	return *buffer_memory_;
+}
+
 void* Buffer::Map(const vk::Device vk_device) const
 {
 	void* ptr_mapped= nullptr;

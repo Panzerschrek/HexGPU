@@ -37,6 +37,7 @@ bool ChunksStorage::GetChunk(
 	HEX_ASSERT(uncompressed.size() == c_chunk_volume);
 	std::memcpy(blocks_data, uncompressed.data(), c_chunk_volume);
 
+	uncompressed.clear();
 	snappy::Uncompress(in_data.blocks.data(), in_data.auxiliar_data.size(), &uncompressed);
 	HEX_ASSERT(uncompressed.size() == c_chunk_volume);
 	std::memcpy(blocks_auxiliar_data, uncompressed.data(), c_chunk_volume);

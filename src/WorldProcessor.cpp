@@ -606,7 +606,10 @@ Buffer CreateChunkDataLoadBuffer(WindowVulkan& window_vulkan, const WorldSizeChu
 		window_vulkan,
 		c_chunk_volume * world_size[0] * world_size[1],
 		vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc,
-		vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+		// Use host-cached memory, because its usage by the host is much faster then host-coherent memory.
+		// But the cost of this speed is the necessity to call InvalidateRanges/FlushRanges.
+		// TODO - add a workaround for systems without host-cached memory.
+		vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCached);
 }
 
 } // namespace
@@ -1967,6 +1970,8 @@ void WorldProcessor::FinishChunksDownloading(TaskOrganizer& task_organizer)
 		next_world_offset_[1] - world_offset_[1],
 	};
 
+	// Invalidate host caches for buffers memory before writing. This is needed for non-coherent memory.
+	std::vector<vk::MappedMemoryRange> mapped_memory_ranges;
 	for(uint32_t y= 0; y < world_size_[1]; ++y)
 	for(uint32_t x= 0; x < world_size_[0]; ++x)
 	{
@@ -1982,7 +1987,33 @@ void WorldProcessor::FinishChunksDownloading(TaskOrganizer& task_organizer)
 			const uint32_t chunk_index= x + y * world_size_[0];
 			const uint32_t offset= chunk_index * c_chunk_volume;
 
-			Log::Info("Saving chunk ", int32_t(x) + world_offset_[0], ", ", int32_t(y) + world_offset_[1]);
+			mapped_memory_ranges.emplace_back(
+				chunk_data_load_buffer_.GetMemory(),
+				offset,
+				c_chunk_volume);
+
+			mapped_memory_ranges.emplace_back(
+				chunk_auxiliar_data_load_buffer_.GetMemory(),
+				offset,
+				c_chunk_volume);
+		}
+	}
+	vk_device_.invalidateMappedMemoryRanges(mapped_memory_ranges);
+
+	for(uint32_t y= 0; y < world_size_[1]; ++y)
+	for(uint32_t x= 0; x < world_size_[0]; ++x)
+	{
+		const int32_t old_pos[2]
+		{
+			int32_t(x) - relative_shift[0],
+			int32_t(y) - relative_shift[1],
+		};
+
+		if( old_pos[0] < 0 || old_pos[0] >= int32_t(world_size_[0]) ||
+			old_pos[1] < 0 || old_pos[1] >= int32_t(world_size_[1]))
+		{
+			const uint32_t chunk_index= x + y * world_size_[0];
+			const uint32_t offset= chunk_index * c_chunk_volume;
 
 			chunks_storage_.SetChunk(
 				{
@@ -2019,8 +2050,6 @@ void WorldProcessor::UploadChunks(TaskOrganizer& task_organizer)
 				{
 					const uint32_t offset= chunk_index * c_chunk_volume;
 
-					Log::Info("Loadig chunk ", int32_t(x) + next_world_offset_[0], ", ", int32_t(y) + next_world_offset_[1]);
-
 					chunks_storage_.GetChunk(
 						{
 							int32_t(x) + next_world_offset_[0],
@@ -2038,12 +2067,34 @@ void WorldProcessor::UploadChunks(TaskOrganizer& task_organizer)
 						chunk_auxiliar_data_load_buffer_.GetBuffer(),
 						chunk_auxiliar_data_buffers_[dst_buffer_index].GetBuffer(),
 						{ { offset, offset, c_chunk_volume }});
-
 				}
 			}
 		};
 
 	task_organizer.ExecuteTask(task, task_func);
+
+	// Flush host writes into buffers memory. This is needed for non-coherent memory.
+	std::vector<vk::MappedMemoryRange> mapped_memory_ranges;
+	for(uint32_t y= 0; y < world_size_[1]; ++y)
+	for(uint32_t x= 0; x < world_size_[0]; ++x)
+	{
+		const uint32_t chunk_index= x + y * world_size_[0];
+		if(chunks_upate_kind_[chunk_index] == ChunkUpdateKind::Upload)
+		{
+			const uint32_t offset= chunk_index * c_chunk_volume;
+
+			mapped_memory_ranges.emplace_back(
+				chunk_data_load_buffer_.GetMemory(),
+				offset,
+				c_chunk_volume);
+
+			mapped_memory_ranges.emplace_back(
+				chunk_auxiliar_data_load_buffer_.GetMemory(),
+				offset,
+				c_chunk_volume);
+		}
+	}
+	vk_device_.flushMappedMemoryRanges(mapped_memory_ranges);
 
 	// Perform initial light fill for loaded chunks.
 	TaskOrganizer::ComputeTaskParams initial_light_fill_task;

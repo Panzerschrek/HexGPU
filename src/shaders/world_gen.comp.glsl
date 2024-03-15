@@ -27,17 +27,17 @@ layout(binding= 0, std430) buffer chunks_data_buffer
 	uint8_t chunks_data[];
 };
 
-layout(binding= 1, std430) buffer chunk_gen_info_buffer
+layout(binding= 1, std430) readonly buffer chunk_gen_info_buffer
 {
 	ChunkGenInfo chunk_gen_infos[];
 };
 
-layout(binding= 2, std430) buffer structure_descriptions_buffer
+layout(binding= 2, std430) readonly buffer structure_descriptions_buffer
 {
 	StructureDescription structure_descriptions[];
 };
 
-layout(binding= 3, std430) buffer structures_data_buffer
+layout(binding= 3, std430) readonly buffer structures_data_buffer
 {
 	uint8_t structures_data[];
 };

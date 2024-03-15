@@ -21,7 +21,7 @@ layout(push_constant) uniform uniforms_block
 	uint reserved;
 };
 
-layout(binding= 0, std430) buffer chunks_data_input_buffer
+layout(binding= 0, std430) readonly buffer chunks_data_input_buffer
 {
 	uint8_t chunks_input_data[];
 };
@@ -31,7 +31,7 @@ layout(binding= 1, std430) buffer chunks_data_output_buffer
 	uint8_t chunks_output_data[];
 };
 
-layout(binding= 2, std430) buffer chunks_auxiliar_data_input_buffer
+layout(binding= 2, std430) readonly buffer chunks_auxiliar_data_input_buffer
 {
 	uint8_t chunks_auxiliar_input_data[];
 };

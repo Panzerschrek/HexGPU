@@ -30,12 +30,12 @@ layout(binding= 0, std430) buffer vertices_buffer
 	Quad quads[];
 };
 
-layout(binding= 1, std430) buffer chunks_data_buffer
+layout(binding= 1, std430) readonly buffer chunks_data_buffer
 {
 	uint8_t chunks_data[];
 };
 
-layout(binding= 2, std430) buffer chunk_light_buffer
+layout(binding= 2, std430) readonly buffer chunk_light_buffer
 {
 	uint8_t light_buffer[];
 };
@@ -45,7 +45,7 @@ layout(binding= 3, std430) buffer chunk_draw_info_buffer
 	ChunkDrawInfo chunk_draw_info[];
 };
 
-layout(binding= 4, std430) buffer chunks_auxiliar_data_buffer
+layout(binding= 4, std430) readonly buffer chunks_auxiliar_data_buffer
 {
 	uint8_t chunks_auxiliar_data[];
 };

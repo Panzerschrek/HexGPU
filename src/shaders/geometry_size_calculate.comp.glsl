@@ -12,7 +12,7 @@
 // If this is changed, corresponding C++ code must be changed too!
 layout(local_size_x= 4, local_size_y = 4, local_size_z= 8) in;
 
-layout(binding= 0, std430) buffer chunks_data_buffer
+layout(binding= 0, std430) readonly buffer chunks_data_buffer
 {
 	uint8_t chunks_data[];
 };

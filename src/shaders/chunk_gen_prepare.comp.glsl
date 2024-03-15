@@ -24,12 +24,12 @@ layout(binding= 0, std430) buffer chunk_gen_info_buffer
 	ChunkGenInfo chunk_gen_infos[];
 };
 
-layout(binding= 1, std430) buffer structure_descriptions_buffer
+layout(binding= 1, std430) readonly buffer structure_descriptions_buffer
 {
 	StructureDescription structure_descriptions[];
 };
 
-layout(binding= 2, std430) buffer tree_map_buffer
+layout(binding= 2, std430) readonly buffer tree_map_buffer
 {
 	TreeMap tree_map;
 };

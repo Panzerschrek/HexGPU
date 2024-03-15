@@ -12,7 +12,7 @@ layout(push_constant) uniform uniforms_block
 	ivec2 world_size_chunks;
 };
 
-layout(binding= 0, std430) buffer chunk_draw_info_buffer
+layout(binding= 0, std430) buffer readonly chunk_draw_info_buffer
 {
 	ChunkDrawInfo chunk_draw_info[];
 };

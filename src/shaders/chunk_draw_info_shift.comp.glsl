@@ -10,7 +10,7 @@ layout(push_constant) uniform uniforms_block
 	ivec2 chunks_shift; // Must be always non-negative!
 };
 
-layout(binding= 0, std430) buffer chunk_draw_info_input_buffer
+layout(binding= 0, std430) readonly buffer chunk_draw_info_input_buffer
 {
 	ChunkDrawInfo chunk_draw_info_input[];
 };

@@ -19,7 +19,7 @@ layout(push_constant) uniform uniforms_block
 	ivec2 world_offset_chunks;
 };
 
-layout(binding= 0, std430) buffer chunks_data_buffer
+layout(binding= 0, std430) readonly buffer chunks_data_buffer
 {
 	uint8_t chunks_data[];
 };
@@ -29,7 +29,7 @@ layout(binding= 1, std430) buffer player_world_window_buffer
 	PlayerWorldWindow player_world_window;
 };
 
-layout(binding= 2, std430) buffer player_state_buffer
+layout(binding= 2, std430) readonly buffer player_state_buffer
 {
 	PlayerState player_state;
 };

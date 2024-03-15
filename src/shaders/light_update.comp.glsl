@@ -18,12 +18,12 @@ layout(push_constant) uniform uniforms_block
 	ivec2 out_chunk_position;
 };
 
-layout(binding= 0, std430) buffer chunks_data_buffer
+layout(binding= 0, std430) readonly buffer chunks_data_buffer
 {
 	uint8_t chunks_data[];
 };
 
-layout(binding= 1, std430) buffer chunk_input_light_buffer
+layout(binding= 1, std430) readonly buffer chunk_input_light_buffer
 {
 	uint8_t input_light[];
 };

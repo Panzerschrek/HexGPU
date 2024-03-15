@@ -2,6 +2,7 @@
 #include "BlockType.hpp"
 #include "Buffer.hpp"
 #include "ChunksStorage.hpp"
+#include "DebugParams.hpp"
 #include "Keyboard.hpp"
 #include "Mouse.hpp"
 #include "Pipeline.hpp"
@@ -31,6 +32,14 @@ public:
 		BlockType build_block_type= BlockType::Air;
 	};
 
+	// This struct must be identical to the same struct in GLSL code!
+	struct WorldGlobalState
+	{
+		float sky_light_color[4]{};
+		float sky_color[4]{};
+		float sun_direction[4]{};
+	};
+
 public:
 	WorldProcessor(WindowVulkan& window_vulkan, vk::DescriptorPool global_descriptor_pool, Settings& settings);
 	~WorldProcessor();
@@ -40,7 +49,8 @@ public:
 		float time_delta_s,
 		KeyboardState keyboard_state,
 		MouseState mouse_state,
-		float aspect);
+		float aspect,
+		const DebugParams& debug_params);
 
 	vk::Buffer GetChunkDataBuffer(uint32_t index) const;
 	vk::DeviceSize GetChunkDataBufferSize() const;
@@ -52,6 +62,8 @@ public:
 	vk::DeviceSize GetLightDataBufferSize() const;
 
 	vk::Buffer GetPlayerStateBuffer() const;
+
+	vk::Buffer GetWorldGlobalStateBuffer() const;
 
 	WorldSizeChunks GetWorldSize() const;
 	WorldOffsetChunks GetWorldOffset() const;
@@ -126,6 +138,7 @@ private:
 	void DetermineChunksUpdateKind(RelativeWorldShiftChunks relative_world_shift);
 	void BuildCurrentFrameChunksToUpdateList(float prev_offset_within_tick, float cur_offset_within_tick);
 
+	void UpdateWorldGlobalState(TaskOrganizer& task_organizer, const DebugParams& debug_params);
 	void UpdateWorldBlocks(TaskOrganizer& task_organizer, RelativeWorldShiftChunks relative_world_shift);
 	void UpdateLight(TaskOrganizer& task_organizer, RelativeWorldShiftChunks relative_world_shift);
 	void GenerateWorld(TaskOrganizer& task_organizer, RelativeWorldShiftChunks relative_world_shift);
@@ -175,6 +188,8 @@ private:
 	// On each step data is read from one of them and written into another.
 	const std::array<Buffer, 2> light_buffers_;
 
+	const Buffer world_global_state_buffer_;
+
 	const Buffer player_state_buffer_;
 	const Buffer world_blocks_external_update_queue_buffer_;
 	const Buffer player_world_window_buffer_;
@@ -206,6 +221,9 @@ private:
 
 	const ComputePipeline world_blocks_external_update_queue_flush_pipeline_;
 	const std::array<vk::DescriptorSet, 2> world_blocks_external_update_queue_flush_descriptor_sets_;
+
+	const ComputePipeline world_global_state_update_pipeline_;
+	const vk::DescriptorSet world_global_state_update_descriptor_set_;
 
 	const vk::UniqueEvent chunk_data_download_event_;
 

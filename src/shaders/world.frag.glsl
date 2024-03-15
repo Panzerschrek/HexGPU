@@ -4,6 +4,12 @@
 
 #include "inc/world_common.glsl"
 #include "inc/world_rendering_constants.glsl"
+#include "inc/world_shader_uniforms.glsl"
+
+layout(binding= 0) uniform uniforms_block
+{
+	WorldShaderUniforms uniforms;
+};
 
 layout(binding= 1) uniform sampler2DArray texture_image;
 
@@ -21,6 +27,6 @@ void main()
 		discard;
 
 	// tex_value.rgb= vec3(0.5, 0.5, 0.5);
-	vec3 l= CombineLight(f_light.x * c_fire_light_color, f_light.y * c_sky_light_color, c_ambient_light_color);
+	vec3 l= CombineLight(f_light.x * c_fire_light_color, f_light.y * uniforms.sky_light_color.rgb, c_ambient_light_color);
 	out_color= vec4(l * tex_value.rgb, 1.0);
 }

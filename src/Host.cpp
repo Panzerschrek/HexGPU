@@ -124,6 +124,7 @@ bool Host::Loop()
 	DrawUI();
 	DrawCrosshair();
 	DrawDebugInfo();
+	DrawDebugParamsUI();
 
 	const vk::CommandBuffer command_buffer= window_vulkan_.BeginFrame();
 	task_organizer_.SetCommandBuffer(command_buffer);
@@ -133,7 +134,8 @@ bool Host::Loop()
 		dt_s_limited,
 		CreateKeyboardState(keys_state),
 		CreateMouseState(events),
-		CalculateAspect(window_vulkan_.GetViewportSize()));
+		CalculateAspect(window_vulkan_.GetViewportSize()),
+		debug_params_);
 
 	world_renderer_.PrepareFrame(task_organizer_);
 	build_prism_renderer_.PrepareFrame(task_organizer_);
@@ -284,6 +286,20 @@ void Host::DrawDebugInfo()
 		ImGui::Text("Player pos: %4.2f, %4.2f, %4.2f", player_state->pos[0], player_state->pos[1], player_state->pos[2]);
 
 	ImGui::End();
+}
+
+void Host::DrawDebugParamsUI()
+{
+	ImGui::SetNextWindowBgAlpha(0.25f);
+	ImGui::SetNextWindowSize({300.0f, 64.0f}, ImGuiCond_Appearing);
+	ImGui::SetNextWindowPos({float(window_vulkan_.GetViewportSize().width) - 300.0f, 128.0f}, ImGuiCond_Appearing);
+	ImGui::Begin("HexGPU debug params", nullptr);
+	{
+		ImGui::SliderFloat("Time of day", &debug_params_.time_of_day, 0.0f, 1.0f);
+	}
+
+	ImGui::End();
+
 }
 
 } // namespace HexGPU

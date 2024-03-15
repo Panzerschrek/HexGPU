@@ -24,6 +24,7 @@ private:
 	void DrawUI();
 	void DrawCrosshair();
 	void DrawDebugInfo();
+	void DrawDebugParamsUI();
 
 private:
 	using Clock= std::chrono::steady_clock;
@@ -44,6 +45,8 @@ private:
 	float accumulated_time_s_= 0.0f;
 
 	TicksCounter ticks_counter_;
+
+	DebugParams debug_params_;
 
 	bool quit_requested_= false;
 };

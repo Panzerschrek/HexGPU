@@ -1,6 +1,6 @@
 Here is the list of futures that needs to be implemented.
 The order represents importance and/or dependency.
-* Chunks save/load
+* Use file storage to save and load chunks data
 * Improved textures loading - use smaller staging buffer and free it at the end of the loading process
 * Biome-based world generation
 * Update light only after blocks update - in order to avoid black spots in places of removed blocks
@@ -8,12 +8,14 @@ The order represents importance and/or dependency.
 * Frustum-culling for chunks
 * Fire (that burns some blocks)
 * Player collision against the world
+* Save and load player state
 * More block types
 * Smooth lighting - average block light values at each vertex
 * More light source blocks
 * Use device-local memory almost everywhere
 * Anisotropy textures filtering
 * Run SPIR-V optimizer for compiled shaders
+* Use background thread for chunk data compression/decompression
 * Water blocks side polygons
 * Twostage water rendering - back faces than front faces, in order to achieve somewhat good transparency ordering
 * Underwater fog

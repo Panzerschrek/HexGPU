@@ -1385,6 +1385,11 @@ vk::Buffer WorldProcessor::GetPlayerStateBuffer() const
 	return player_state_buffer_.GetBuffer();
 }
 
+vk::Buffer WorldProcessor::GetWorldGlobalStateBuffer() const
+{
+	return world_global_state_buffer_.GetBuffer();
+}
+
 WorldSizeChunks WorldProcessor::GetWorldSize() const
 {
 	return world_size_;

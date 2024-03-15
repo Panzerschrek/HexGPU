@@ -31,6 +31,13 @@ public:
 		BlockType build_block_type= BlockType::Air;
 	};
 
+	// This struct must be identical to the same struct in GLSL code!
+	struct WorldGlobalState
+	{
+		float current_sky_color[4]{};
+		float current_sky_light_color[4]{};
+	};
+
 public:
 	WorldProcessor(WindowVulkan& window_vulkan, vk::DescriptorPool global_descriptor_pool, Settings& settings);
 	~WorldProcessor();
@@ -53,6 +60,8 @@ public:
 
 	vk::Buffer GetPlayerStateBuffer() const;
 
+	vk::Buffer GetWorldGlobalStateBuffer() const;
+
 	WorldSizeChunks GetWorldSize() const;
 	WorldOffsetChunks GetWorldOffset() const;
 
@@ -63,13 +72,6 @@ public:
 	const PlayerState* GetLastKnownPlayerState() const;
 
 private:
-	// This struct must be identical to the same struct in GLSL code!
-	struct WorldGlobalState
-	{
-		float current_sky_color[4]{};
-		float current_sky_light_color[4]{};
-	};
-
 	// These constants must be the same in GLSL code!
 	static constexpr uint32_t c_player_world_window_size[3]{16, 16, 16};
 	static constexpr uint32_t c_player_world_window_volume= c_player_world_window_size[0] * c_player_world_window_size[1] * c_player_world_window_size[2];

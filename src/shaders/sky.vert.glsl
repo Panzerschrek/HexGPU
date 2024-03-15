@@ -1,5 +1,9 @@
 #version 450
 
+#extension GL_GOOGLE_include_directive : require
+
+#include "inc/sky_shader_uniforms.glsl"
+
 // Use for sky mesh a pyramid with square base.
 
 const float c_skybox_half_size= 512.0;
@@ -31,7 +35,7 @@ const int c_sky_indeces[c_num_indices]= int[c_num_indices]
 
 layout(binding= 0) uniform uniforms_block_variable
 {
-	mat4 view_matrix;
+	SkyShaderUniforms uniforms;
 };
 
 layout(location= 0) out vec3 f_view_vec;
@@ -40,5 +44,5 @@ void main()
 {
 	vec3 pos= c_sky_vertices[c_sky_indeces[gl_VertexIndex]];
 	f_view_vec= pos;
-	gl_Position= view_matrix * vec4(pos, 1.0);
+	gl_Position= uniforms.view_matrix * vec4(pos, 1.0);
 }

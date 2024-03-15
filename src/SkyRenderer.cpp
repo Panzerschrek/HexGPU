@@ -9,9 +9,10 @@ namespace HexGPU
 namespace
 {
 
-struct DrawUniforms
+struct SkyShaderUniforms
 {
 	float view_matrix[16]{};
+	float current_sky_color[4]{};
 };
 
 GraphicsPipeline CreateSkyPipeline(
@@ -30,7 +31,7 @@ GraphicsPipeline CreateSkyPipeline(
 			0u,
 			vk::DescriptorType::eUniformBuffer,
 			1u,
-			vk::ShaderStageFlagBits::eVertex,
+			vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
 		},
 	};
 
@@ -151,7 +152,7 @@ SkyRenderer::SkyRenderer(
 	, world_processor_(world_processor)
 	, uniform_buffer_(
 		window_vulkan,
-		sizeof(DrawUniforms),
+		sizeof(SkyShaderUniforms),
 		vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst)
 	, pipeline_(
 		CreateSkyPipeline(
@@ -165,7 +166,7 @@ SkyRenderer::SkyRenderer(
 		const vk::DescriptorBufferInfo descriptor_uniform_buffer_info(
 			uniform_buffer_.GetBuffer(),
 			0u,
-			sizeof(DrawUniforms));
+			sizeof(SkyShaderUniforms));
 
 		vk_device_.updateDescriptorSets(
 			{
@@ -194,6 +195,7 @@ void SkyRenderer::PrepareFrame(TaskOrganizer& task_organizer)
 {
 	TaskOrganizer::TransferTaskParams task;
 	task.input_buffers.push_back(world_processor_.GetPlayerStateBuffer());
+	task.input_buffers.push_back(world_processor_.GetWorldGlobalStateBuffer());
 	task.output_buffers.push_back(uniform_buffer_.GetBuffer());
 
 	const auto task_func=
@@ -206,8 +208,20 @@ void SkyRenderer::PrepareFrame(TaskOrganizer& task_organizer)
 				{
 					{
 						offsetof(WorldProcessor::PlayerState, sky_matrix),
-						offsetof(DrawUniforms, view_matrix),
+						offsetof(SkyShaderUniforms, view_matrix),
 						sizeof(float) * 16
+					},
+				});
+
+			// Copy sky color.
+			command_buffer.copyBuffer(
+				world_processor_.GetWorldGlobalStateBuffer(),
+				uniform_buffer_.GetBuffer(),
+				{
+					{
+						offsetof(WorldProcessor::WorldGlobalState, current_sky_color),
+						offsetof(SkyShaderUniforms, current_sky_color),
+						sizeof(float) * 4
 					},
 				});
 		};

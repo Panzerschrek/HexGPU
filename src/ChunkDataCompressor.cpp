@@ -35,6 +35,16 @@ bool UncompressRawBlocksArray(const std::string& in, char* const out)
 	return true;
 }
 
+std::string CompressRawBlocksArray(const char* const in, std::string& temp_buffer)
+{
+	if(!snappy::Compress(in, c_chunk_volume, &temp_buffer))
+		Log::Info("Failed to compress");
+
+	// Create copy of the temp buffer.
+	// Reuse internal storage of the temp buffer for later usage.
+	return temp_buffer;
+}
+
 } // namespace
 
 ChunkDataCompresed ChunkDataCompressor::Compress(
@@ -43,10 +53,13 @@ ChunkDataCompresed ChunkDataCompressor::Compress(
 {
 	ChunkDataCompresed out_data;
 
-	// TODO - check for correctness/possible errors.
-	// TODO - tune compression params.
-	snappy::Compress(reinterpret_cast<const char*>(blocks_data), c_chunk_volume, &out_data.blocks);
-	snappy::Compress(reinterpret_cast<const char*>(blocks_auxiliar_data), c_chunk_volume, &out_data.auxiliar_data);
+	// Reuse temp buffer for compression, because "snappy" reserves a lot of memory inside it (more than uncompressed size)
+	// and we don't whant to return strings with too much memory reserved.
+	// Doing so we keep only this buffer with large storage and result buffers only of necessary size.
+	out_data.blocks=
+		CompressRawBlocksArray(reinterpret_cast<const char*>(blocks_data), temp_compress_buffer_);
+	out_data.auxiliar_data=
+		CompressRawBlocksArray(reinterpret_cast<const char*>(blocks_auxiliar_data), temp_compress_buffer_);
 
 	return out_data;
 }

@@ -22,6 +22,7 @@ public:
 	bool Decompress(const ChunkDataCompresed& data_compressed, BlockType* blocks_data, uint8_t* blocks_auxiliar_data);
 
 private:
+	std::string temp_compress_buffer_;
 };
 
 } // namespace HexGPU

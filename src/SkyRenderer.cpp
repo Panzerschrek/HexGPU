@@ -13,6 +13,7 @@ struct SkyShaderUniforms
 {
 	float view_matrix[16]{};
 	float current_sky_color[4]{};
+	float sun_direction[4]{};
 };
 
 GraphicsPipeline CreateSkyPipeline(
@@ -221,6 +222,18 @@ void SkyRenderer::PrepareFrame(TaskOrganizer& task_organizer)
 					{
 						offsetof(WorldProcessor::WorldGlobalState, current_sky_color),
 						offsetof(SkyShaderUniforms, current_sky_color),
+						sizeof(float) * 4
+					},
+				});
+
+			// Copy sun direction.
+			command_buffer.copyBuffer(
+				world_processor_.GetWorldGlobalStateBuffer(),
+				uniform_buffer_.GetBuffer(),
+				{
+					{
+						offsetof(WorldProcessor::WorldGlobalState, sun_direction),
+						offsetof(SkyShaderUniforms, sun_direction),
 						sizeof(float) * 4
 					},
 				});

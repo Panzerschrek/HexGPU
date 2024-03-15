@@ -37,6 +37,7 @@ public:
 	{
 		float current_sky_color[4]{};
 		float current_sky_light_color[4]{};
+		float sun_direction[4]{};
 	};
 
 public:

@@ -2032,6 +2032,42 @@ void WorldProcessor::FinishChunksDownloading(TaskOrganizer& task_organizer)
 
 void WorldProcessor::UploadChunks(TaskOrganizer& task_organizer)
 {
+	// Decompress chunks first.
+	// TODO - make this in background thread?
+	std::vector<vk::MappedMemoryRange> written_mapped_memory_ranges;
+	for(uint32_t y= 0; y < world_size_[1]; ++y)
+	for(uint32_t x= 0; x < world_size_[0]; ++x)
+	{
+		const uint32_t chunk_index= x + y * world_size_[0];
+		if(chunks_upate_kind_[chunk_index] == ChunkUpdateKind::Upload)
+		{
+			const uint32_t offset= chunk_index * c_chunk_volume;
+
+			const ChunkDataCompresed* const chunk_data_compressed= chunks_storage_.GetChunk(
+				{
+					int32_t(x) + next_world_offset_[0],
+					int32_t(y) + next_world_offset_[1]
+				});
+
+			HEX_ASSERT(chunk_data_compressed != nullptr);
+			chunk_data_compressor_.Decompress(
+				*chunk_data_compressed,
+				static_cast<BlockType*>(chunk_data_load_buffer_mapped_) + offset,
+				static_cast<uint8_t*>(chunk_auxiliar_data_load_buffer_mapped_) + offset);
+
+			written_mapped_memory_ranges.emplace_back(
+				chunk_data_load_buffer_.GetMemory(), offset, c_chunk_volume);
+
+			written_mapped_memory_ranges.emplace_back(
+				chunk_auxiliar_data_load_buffer_.GetMemory(), offset, c_chunk_volume);
+		}
+	}
+
+	// Flush host writes into buffers memory. This is needed for non-coherent memory.
+	vk_device_.flushMappedMemoryRanges(written_mapped_memory_ranges);
+
+	// Schedule copying data from loading buffers to actual buffers.
+
 	const uint32_t dst_buffer_index= GetDstBufferIndex();
 
 	TaskOrganizer::TransferTaskParams task;
@@ -2041,7 +2077,7 @@ void WorldProcessor::UploadChunks(TaskOrganizer& task_organizer)
 	task.output_buffers.push_back(chunk_auxiliar_data_buffers_[dst_buffer_index].GetBuffer());
 
 	const auto task_func=
-		[&](const vk::CommandBuffer command_buffer)
+		[this, dst_buffer_index](const vk::CommandBuffer command_buffer)
 		{
 			for(uint32_t y= 0; y < world_size_[1]; ++y)
 			for(uint32_t x= 0; x < world_size_[0]; ++x)
@@ -2050,18 +2086,6 @@ void WorldProcessor::UploadChunks(TaskOrganizer& task_organizer)
 				if(chunks_upate_kind_[chunk_index] == ChunkUpdateKind::Upload)
 				{
 					const uint32_t offset= chunk_index * c_chunk_volume;
-
-					const ChunkDataCompresed* const chunk_data_compressed= chunks_storage_.GetChunk(
-						{
-							int32_t(x) + next_world_offset_[0],
-							int32_t(y) + next_world_offset_[1]
-						});
-
-					HEX_ASSERT(chunk_data_compressed != nullptr);
-					chunk_data_compressor_.Decompress(
-						*chunk_data_compressed,
-						static_cast<BlockType*>(chunk_data_load_buffer_mapped_) + offset,
-						static_cast<uint8_t*>(chunk_auxiliar_data_load_buffer_mapped_) + offset);
 
 					command_buffer.copyBuffer(
 						chunk_data_load_buffer_.GetBuffer(),
@@ -2077,29 +2101,6 @@ void WorldProcessor::UploadChunks(TaskOrganizer& task_organizer)
 		};
 
 	task_organizer.ExecuteTask(task, task_func);
-
-	// Flush host writes into buffers memory. This is needed for non-coherent memory.
-	std::vector<vk::MappedMemoryRange> mapped_memory_ranges;
-	for(uint32_t y= 0; y < world_size_[1]; ++y)
-	for(uint32_t x= 0; x < world_size_[0]; ++x)
-	{
-		const uint32_t chunk_index= x + y * world_size_[0];
-		if(chunks_upate_kind_[chunk_index] == ChunkUpdateKind::Upload)
-		{
-			const uint32_t offset= chunk_index * c_chunk_volume;
-
-			mapped_memory_ranges.emplace_back(
-				chunk_data_load_buffer_.GetMemory(),
-				offset,
-				c_chunk_volume);
-
-			mapped_memory_ranges.emplace_back(
-				chunk_auxiliar_data_load_buffer_.GetMemory(),
-				offset,
-				c_chunk_volume);
-		}
-	}
-	vk_device_.flushMappedMemoryRanges(mapped_memory_ranges);
 
 	// Perform initial light fill for loaded chunks.
 	TaskOrganizer::ComputeTaskParams initial_light_fill_task;

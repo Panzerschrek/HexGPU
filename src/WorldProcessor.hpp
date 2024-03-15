@@ -2,6 +2,7 @@
 #include "BlockType.hpp"
 #include "Buffer.hpp"
 #include "ChunksStorage.hpp"
+#include "DebugParams.hpp"
 #include "Keyboard.hpp"
 #include "Mouse.hpp"
 #include "Pipeline.hpp"
@@ -47,7 +48,8 @@ public:
 		float time_delta_s,
 		KeyboardState keyboard_state,
 		MouseState mouse_state,
-		float aspect);
+		float aspect,
+		const DebugParams& debug_params);
 
 	vk::Buffer GetChunkDataBuffer(uint32_t index) const;
 	vk::DeviceSize GetChunkDataBufferSize() const;
@@ -135,7 +137,7 @@ private:
 	void DetermineChunksUpdateKind(RelativeWorldShiftChunks relative_world_shift);
 	void BuildCurrentFrameChunksToUpdateList(float prev_offset_within_tick, float cur_offset_within_tick);
 
-	void UpdateWorldGlobalState(TaskOrganizer& task_organizer);
+	void UpdateWorldGlobalState(TaskOrganizer& task_organizer, const DebugParams& debug_params);
 	void UpdateWorldBlocks(TaskOrganizer& task_organizer, RelativeWorldShiftChunks relative_world_shift);
 	void UpdateLight(TaskOrganizer& task_organizer, RelativeWorldShiftChunks relative_world_shift);
 	void GenerateWorld(TaskOrganizer& task_organizer, RelativeWorldShiftChunks relative_world_shift);

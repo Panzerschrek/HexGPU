@@ -147,7 +147,7 @@ struct WorldBlocksExternalUpdateQueueFlushUniforms
 
 struct WorldGlobalStateUpdateUniforms
 {
-	float dummy= 0.0f;
+	float time_of_daty= 0.0f;
 };
 
 WorldSizeChunks ReadWorldSize(Settings& settings)
@@ -1272,7 +1272,8 @@ void WorldProcessor::Update(
 	const float time_delta_s,
 	const KeyboardState keyboard_state,
 	const MouseState mouse_state,
-	const float aspect)
+	const float aspect,
+	const DebugParams& debug_params)
 {
 	InitialFillBuffers(task_organizer);
 
@@ -1332,7 +1333,7 @@ void WorldProcessor::Update(
 		BuildPlayerWorldWindow(task_organizer);
 
 		// Update world global state once in a tick.
-		UpdateWorldGlobalState(task_organizer);
+		UpdateWorldGlobalState(task_organizer, debug_params);
 
 		// Download (if necessary) chunks which are no longer inside the actuve area from the GPU.
 		DownloadChunks(task_organizer);
@@ -1709,17 +1710,18 @@ void WorldProcessor::BuildCurrentFrameChunksToUpdateList(
 		current_frame_chunks_to_update_list_.push_back({chunk_index % world_size_[0], chunk_index / world_size_[0]});
 }
 
-void WorldProcessor::UpdateWorldGlobalState(TaskOrganizer& task_organizer)
+void WorldProcessor::UpdateWorldGlobalState(TaskOrganizer& task_organizer, const DebugParams& debug_params)
 {
 	TaskOrganizer::ComputeTaskParams task;
 	task.input_output_storage_buffers.push_back(world_global_state_buffer_.GetBuffer());
 
 	const auto task_func=
-		[this](const vk::CommandBuffer command_buffer)
+		[this, &debug_params](const vk::CommandBuffer command_buffer)
 		{
 			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_global_state_update_pipeline_.pipeline);
 
 			WorldGlobalStateUpdateUniforms uniforms;
+			uniforms.time_of_daty= debug_params.time_of_day;
 
 			command_buffer.pushConstants(
 				*world_global_state_update_pipeline_.pipeline_layout,

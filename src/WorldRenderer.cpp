@@ -37,9 +37,10 @@ struct DrawIndirectBufferBuildUniforms
 	int32_t world_size_chunks[2];
 };
 
-struct DrawUniforms
+struct WorldShaderUniforms
 {
 	float view_matrix[16]{};
+	float sky_light_color[4]{};
 };
 
 struct WaterPushConstantsUniforms
@@ -145,7 +146,7 @@ WorldRenderer::WorldRenderer(
 		vk::BufferUsageFlagBits::eIndirectBuffer | vk::BufferUsageFlagBits::eStorageBuffer)
 	, uniform_buffer_(
 		window_vulkan,
-		sizeof(DrawUniforms),
+		sizeof(WorldShaderUniforms),
 		vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst)
 	, draw_indirect_buffer_build_pipeline_(CreateDrawIndirectBufferBuildPipeline(vk_device_))
 	, draw_indirect_buffer_build_descriptor_set_(
@@ -257,7 +258,7 @@ WorldRenderer::WorldRenderer(
 		const vk::DescriptorBufferInfo descriptor_uniform_buffer_info(
 			uniform_buffer_.GetBuffer(),
 			0u,
-			sizeof(DrawUniforms));
+			sizeof(WorldShaderUniforms));
 
 		const vk::DescriptorImageInfo descriptor_tex_info(
 			vk::Sampler(),
@@ -295,7 +296,7 @@ WorldRenderer::WorldRenderer(
 		const vk::DescriptorBufferInfo descriptor_uniform_buffer_info(
 			uniform_buffer_.GetBuffer(),
 			0u,
-			sizeof(DrawUniforms));
+			sizeof(WorldShaderUniforms));
 
 		const vk::DescriptorImageInfo descriptor_tex_info(
 			vk::Sampler(),
@@ -449,7 +450,7 @@ WorldRenderer::WorldDrawPipeline WorldRenderer::CreateWorldDrawPipeline(
 			DrawShaderBindings::uniform_buffer,
 			vk::DescriptorType::eUniformBuffer,
 			1u,
-			vk::ShaderStageFlagBits::eVertex,
+			vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
 		},
 		{
 			DrawShaderBindings::sampler,
@@ -615,7 +616,7 @@ WorldRenderer::WorldDrawPipeline WorldRenderer::CreateWorldWaterDrawPipeline(
 			WaterDrawShaderBindings::uniform_buffer,
 			vk::DescriptorType::eUniformBuffer,
 			1u,
-			vk::ShaderStageFlagBits::eVertex,
+			vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
 		},
 		{
 			WaterDrawShaderBindings::sampler,
@@ -752,6 +753,7 @@ void WorldRenderer::CopyViewMatrix(TaskOrganizer& task_organizer)
 {
 	TaskOrganizer::TransferTaskParams task;
 	task.input_buffers.push_back(world_processor_.GetPlayerStateBuffer());
+	task.input_buffers.push_back(world_processor_.GetWorldGlobalStateBuffer());
 	task.output_buffers.push_back(uniform_buffer_.GetBuffer());
 
 	const auto task_func=
@@ -764,8 +766,20 @@ void WorldRenderer::CopyViewMatrix(TaskOrganizer& task_organizer)
 				{
 					{
 						offsetof(WorldProcessor::PlayerState, blocks_matrix),
-						offsetof(DrawUniforms, view_matrix),
+						offsetof(WorldShaderUniforms, view_matrix),
 						sizeof(float) * 16
+					}
+				});
+
+			// Copy sky light color.
+			command_buffer.copyBuffer(
+				world_processor_.GetWorldGlobalStateBuffer(),
+				uniform_buffer_.GetBuffer(),
+				{
+					{
+						offsetof(WorldProcessor::WorldGlobalState, current_sky_light_color),
+						offsetof(WorldShaderUniforms, sky_light_color),
+						sizeof(float) * 4
 					}
 				});
 		};

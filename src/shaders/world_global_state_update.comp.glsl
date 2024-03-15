@@ -4,6 +4,7 @@
 
 #include "inc/constants.glsl"
 #include "inc/world_global_state.glsl"
+#include "inc/world_rendering_constants.glsl"
 
 layout(push_constant) uniform uniforms_block
 {
@@ -14,9 +15,6 @@ layout(binding= 0, std430) buffer world_global_state_buffer
 {
 	WorldGlobalState world_global_state;
 };
-
-const vec3 c_daytime_sky_color= vec3(1.0, 1.0, 1.5);
-const vec3 c_nighttime_sky_color= vec3(0.0, 0.0, 0.0);
 
 void main()
 {
@@ -37,4 +35,6 @@ void main()
 	world_global_state.current_sky_color= vec4(mix(c_nighttime_sky_color, c_daytime_sky_color, daynight_k), 0.0);
 
 	world_global_state.sun_direction= vec4(sun_direction, 0.0);
+
+	world_global_state.current_sky_light_color= vec4(mix(c_sky_light_nighttime_color, c_sky_light_daytime_color, daynight_k), 0.0);
 }

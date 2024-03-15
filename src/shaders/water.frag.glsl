@@ -4,10 +4,16 @@
 
 #include "inc/world_common.glsl"
 #include "inc/world_rendering_constants.glsl"
+#include "inc/world_shader_uniforms.glsl"
 
-layout(push_constant) uniform uniforms_block
+layout(push_constant) uniform push_uniforms_block
 {
 	float water_phase;
+};
+
+layout(binding= 0) uniform uniforms_block
+{
+	WorldShaderUniforms uniforms;
 };
 
 layout(binding= 1) uniform sampler2D texture_image;
@@ -26,6 +32,6 @@ void main()
 	if(tex_value.a < 0.5)
 		discard;
 
-	vec3 l= CombineLight(f_light.x * c_fire_light_color, f_light.y * c_sky_light_color, c_ambient_light_color);
+	vec3 l= CombineLight(f_light.x * c_fire_light_color, f_light.y * uniforms.sky_light_color.rgb, c_ambient_light_color);
 	out_color= vec4(l * tex_value.rgb, 0.5);
 }

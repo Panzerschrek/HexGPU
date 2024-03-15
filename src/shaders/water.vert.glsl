@@ -5,10 +5,11 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 
 #include "inc/world_rendering_constants.glsl"
+#include "inc/world_shader_uniforms.glsl"
 
 layout(binding= 0) uniform uniforms_block
 {
-	mat4 view_matrix;
+	WorldShaderUniforms uniforms;
 };
 
 layout(location=0) in vec3 pos;
@@ -27,5 +28,5 @@ void main()
 	f_light.y= float(uint(uint16_t(tex_coord.w)) >> 8) * c_light_scale;
 
 	vec3 pos_corrected= pos * vec3(1.0, 1.0, 1.0 / 256.0); // Rescale water height back.
-	gl_Position= view_matrix * vec4(pos_corrected, 1.0);
+	gl_Position= uniforms.view_matrix * vec4(pos_corrected, 1.0);
 }

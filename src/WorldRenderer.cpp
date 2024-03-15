@@ -777,7 +777,7 @@ void WorldRenderer::CopyViewMatrix(TaskOrganizer& task_organizer)
 				uniform_buffer_.GetBuffer(),
 				{
 					{
-						offsetof(WorldProcessor::WorldGlobalState, current_sky_light_color),
+						offsetof(WorldProcessor::WorldGlobalState, sky_light_color),
 						offsetof(WorldShaderUniforms, sky_light_color),
 						sizeof(float) * 4
 					}

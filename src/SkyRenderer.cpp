@@ -12,7 +12,7 @@ namespace
 struct SkyShaderUniforms
 {
 	float view_matrix[16]{};
-	float current_sky_color[4]{};
+	float sky_color[4]{};
 	float sun_direction[4]{};
 };
 
@@ -220,8 +220,8 @@ void SkyRenderer::PrepareFrame(TaskOrganizer& task_organizer)
 				uniform_buffer_.GetBuffer(),
 				{
 					{
-						offsetof(WorldProcessor::WorldGlobalState, current_sky_color),
-						offsetof(SkyShaderUniforms, current_sky_color),
+						offsetof(WorldProcessor::WorldGlobalState, sky_color),
+						offsetof(SkyShaderUniforms, sky_color),
 						sizeof(float) * 4
 					},
 				});

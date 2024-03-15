@@ -35,8 +35,8 @@ public:
 	// This struct must be identical to the same struct in GLSL code!
 	struct WorldGlobalState
 	{
-		float current_sky_color[4]{};
-		float current_sky_light_color[4]{};
+		float sky_light_color[4]{};
+		float sky_color[4]{};
 		float sun_direction[4]{};
 	};
 

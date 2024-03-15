@@ -20,7 +20,7 @@ void main()
 	vec3 view_vec_normalized= normalize(f_view_vec);
 	float l= (3.0 - view_vec_normalized.z) * 0.25;
 
-	vec3 sky_color= l * uniforms.current_sky_color.rgb;
+	vec3 sky_color= l * uniforms.sky_color.rgb;
 
 	// Use hyperbolic function for sun intensity.
 	float sun_dir_angle_cos= min(1.0, dot(view_vec_normalized, uniforms.sun_direction.xyz));

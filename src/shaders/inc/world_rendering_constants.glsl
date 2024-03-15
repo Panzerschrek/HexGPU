@@ -1,7 +1,7 @@
 const vec3 c_fire_light_color= vec3(1.4, 1.2, 0.8);
 const vec3 c_sky_light_daytime_color= vec3(0.95, 0.95, 1.0);
 const vec3 c_sky_light_nighttime_color= vec3(0.2, 0.2, 0.2);
-const vec3 c_ambient_light_color= vec3(0.06f, 0.06f, 0.06f);
+const vec3 c_ambient_light_color= vec3(0.06, 0.06, 0.06);
 
 const vec3 c_daytime_sky_color= vec3(1.0, 1.0, 1.5);
 const vec3 c_nighttime_sky_color= vec3(0.0, 0.0, 0.0);

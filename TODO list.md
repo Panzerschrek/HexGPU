@@ -28,11 +28,9 @@ The order represents importance and/or dependency.
 * Chunk vertices allocator - make it faster (remove linear complexity)
 * Plates (half-blocks)
 * Vertically-splitted half-blocks
-* Day-night cycle affecting sky brightness and sun direction
-* Day-night cycle affecting sky light brightness
+* Day-night cycle - change day time each tick
 * Clouds
 * Stars (at night)
 * Rain/snow
-* GUI
 * Pipe blocks for fast directional water transfer
 * Sparse chunk geometry update improvements - update area around player frequently, use direction of view, etc.

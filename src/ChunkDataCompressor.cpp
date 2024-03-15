@@ -36,7 +36,7 @@ bool ChunkDataCompressor::Decompress(
 	std::memcpy(blocks_data, uncompressed.data(), c_chunk_volume);
 
 	uncompressed.clear();
-	snappy::Uncompress(data_compressed.blocks.data(), data_compressed.auxiliar_data.size(), &uncompressed);
+	snappy::Uncompress(data_compressed.auxiliar_data.data(), data_compressed.auxiliar_data.size(), &uncompressed);
 	HEX_ASSERT(uncompressed.size() == c_chunk_volume);
 	std::memcpy(blocks_auxiliar_data, uncompressed.data(), c_chunk_volume);
 

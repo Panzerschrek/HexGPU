@@ -70,6 +70,11 @@ namespace WorldBlocksExternalUpdateQueueFlushShaderBindigns
 	const ShaderBindingIndex chunk_auxiliar_data_buffer= 2;
 }
 
+namespace WorldGlobalStateUpdateBindings
+{
+	const ShaderBindingIndex world_global_state_buffer= 0;
+}
+
 struct ChunkGenPrepareUniforms
 {
 	int32_t world_size_chunks[2]{};
@@ -138,6 +143,11 @@ struct WorldBlocksExternalUpdateQueueFlushUniforms
 {
 	int32_t world_size_chunks[2]{0, 0};
 	int32_t world_offset_chunks[2]{0, 0};
+};
+
+struct WorldGlobalStateUpdateUniforms
+{
+	float dummy= 0.0f;
 };
 
 WorldSizeChunks ReadWorldSize(Settings& settings)
@@ -584,6 +594,44 @@ ComputePipeline CreateWorldBlocksExternalUpdateQueueFlushPipeline(const vk::Devi
 	return pipeline;
 }
 
+ComputePipeline CreateWorldGlobalStateUpdatePipeline(const vk::Device vk_device)
+{
+	ComputePipeline pipeline;
+
+	pipeline.shader= CreateShader(vk_device, ShaderNames::world_global_state_update_comp);
+
+	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
+	{
+		{
+			WorldGlobalStateUpdateBindings::world_global_state_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+	};
+
+	pipeline.descriptor_set_layout= vk_device.createDescriptorSetLayoutUnique(
+		vk::DescriptorSetLayoutCreateInfo(
+			vk::DescriptorSetLayoutCreateFlags(),
+			uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
+
+	const vk::PushConstantRange push_constant_range(
+		vk::ShaderStageFlagBits::eCompute,
+		0u,
+		sizeof(WorldGlobalStateUpdateUniforms));
+
+	pipeline.pipeline_layout= vk_device.createPipelineLayoutUnique(
+		vk::PipelineLayoutCreateInfo(
+			vk::PipelineLayoutCreateFlags(),
+			1u, &*pipeline.descriptor_set_layout,
+			1u, &push_constant_range));
+
+	pipeline.pipeline= CreateComputePipeline(vk_device, *pipeline.shader, *pipeline.pipeline_layout);
+
+	return pipeline;
+}
+
 Buffer CreateChunkDataBuffer(WindowVulkan& window_vulkan, const WorldSizeChunks& world_size)
 {
 	return Buffer(
@@ -647,7 +695,7 @@ WorldProcessor::WorldProcessor(
 	, world_global_state_buffer_(
 		window_vulkan,
 		sizeof(WorldGlobalState),
-		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferSrc)
+		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst)
 	, player_state_buffer_(
 		window_vulkan,
 		sizeof(PlayerState),
@@ -709,6 +757,12 @@ WorldProcessor::WorldProcessor(
 			vk_device_,
 			global_descriptor_pool,
 			*world_blocks_external_update_queue_flush_pipeline_.descriptor_set_layout)}
+	, world_global_state_update_pipeline_(CreateWorldGlobalStateUpdatePipeline(vk_device_))
+	, world_global_state_update_descriptor_set_(
+		CreateDescriptorSet(
+			vk_device_,
+			global_descriptor_pool,
+			*world_global_state_update_pipeline_.descriptor_set_layout))
 	, chunk_data_download_event_(vk_device_.createEventUnique(vk::EventCreateInfo()))
 	, world_offset_{-int32_t(world_size_[0] / 2u), -int32_t(world_size_[1] / 2u)}
 	, next_world_offset_(world_offset_)
@@ -1177,6 +1231,29 @@ WorldProcessor::WorldProcessor(
 			},
 			{});
 	}
+
+	// Update world global state update descriptor set.
+	{
+		const vk::DescriptorBufferInfo descriptor_world_global_state_buffer_info(
+			world_global_state_buffer_.GetBuffer(),
+			0u,
+			world_global_state_buffer_.GetSize());
+
+		vk_device_.updateDescriptorSets(
+			{
+				{
+					world_global_state_update_descriptor_set_,
+					WorldGlobalStateUpdateBindings::world_global_state_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_world_global_state_buffer_info,
+					nullptr
+				},
+			},
+			{});
+	}
 }
 
 WorldProcessor::~WorldProcessor()
@@ -1253,6 +1330,9 @@ void WorldProcessor::Update(
 		current_tick_fractional_= float(current_tick_);
 
 		BuildPlayerWorldWindow(task_organizer);
+
+		// Update world global state once in a tick.
+		UpdateWorldGlobalState(task_organizer);
 
 		// Download (if necessary) chunks which are no longer inside the actuve area from the GPU.
 		DownloadChunks(task_organizer);
@@ -1344,6 +1424,7 @@ void WorldProcessor::InitialFillBuffers(TaskOrganizer& task_organizer)
 	task.output_buffers.push_back(world_blocks_external_update_queue_buffer_.GetBuffer());
 	task.output_buffers.push_back(player_world_window_buffer_.GetBuffer());
 	task.output_buffers.push_back(player_state_read_back_buffer_.GetBuffer());
+	task.output_buffers.push_back(world_global_state_buffer_.GetBuffer());
 
 	const auto task_func=
 		[this](const vk::CommandBuffer command_buffer)
@@ -1389,6 +1470,9 @@ void WorldProcessor::InitialFillBuffers(TaskOrganizer& task_organizer)
 
 			// Fill this buffer just to prevent some mistakes.
 			command_buffer.fillBuffer(player_state_read_back_buffer_.GetBuffer(), 0, player_state_read_back_buffer_.GetSize(), 0);
+
+			// Fill this buffer just to prevent some mistakes.
+			command_buffer.fillBuffer(world_global_state_buffer_.GetBuffer(), 0, world_global_state_buffer_.GetSize(), 0);
 		};
 
 	task_organizer.ExecuteTask(task, task_func);
@@ -1618,6 +1702,38 @@ void WorldProcessor::BuildCurrentFrameChunksToUpdateList(
 
 	for(uint32_t chunk_index= start_chunk_index; chunk_index < end_chunk_index; ++chunk_index)
 		current_frame_chunks_to_update_list_.push_back({chunk_index % world_size_[0], chunk_index / world_size_[0]});
+}
+
+void WorldProcessor::UpdateWorldGlobalState(TaskOrganizer& task_organizer)
+{
+	TaskOrganizer::ComputeTaskParams task;
+	task.input_output_storage_buffers.push_back(world_global_state_buffer_.GetBuffer());
+
+	const auto task_func=
+		[this](const vk::CommandBuffer command_buffer)
+		{
+			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_global_state_update_pipeline_.pipeline);
+
+			WorldGlobalStateUpdateUniforms uniforms;
+
+			command_buffer.pushConstants(
+				*world_global_state_update_pipeline_.pipeline_layout,
+				vk::ShaderStageFlagBits::eCompute,
+				0,
+				sizeof(WorldGlobalStateUpdateUniforms), static_cast<const void*>(&uniforms));
+
+			command_buffer.bindDescriptorSets(
+				vk::PipelineBindPoint::eCompute,
+				*world_global_state_update_pipeline_.pipeline_layout,
+				0u,
+				{world_global_state_update_descriptor_set_},
+				{});
+
+			// Distpatch single thread for world global state update.
+			command_buffer.dispatch(1, 1, 1);
+		};
+
+	task_organizer.ExecuteTask(task, task_func);
 }
 
 void WorldProcessor::UpdateWorldBlocks(

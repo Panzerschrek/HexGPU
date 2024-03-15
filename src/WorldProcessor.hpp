@@ -133,6 +133,7 @@ private:
 	void DetermineChunksUpdateKind(RelativeWorldShiftChunks relative_world_shift);
 	void BuildCurrentFrameChunksToUpdateList(float prev_offset_within_tick, float cur_offset_within_tick);
 
+	void UpdateWorldGlobalState(TaskOrganizer& task_organizer);
 	void UpdateWorldBlocks(TaskOrganizer& task_organizer, RelativeWorldShiftChunks relative_world_shift);
 	void UpdateLight(TaskOrganizer& task_organizer, RelativeWorldShiftChunks relative_world_shift);
 	void GenerateWorld(TaskOrganizer& task_organizer, RelativeWorldShiftChunks relative_world_shift);
@@ -215,6 +216,9 @@ private:
 
 	const ComputePipeline world_blocks_external_update_queue_flush_pipeline_;
 	const std::array<vk::DescriptorSet, 2> world_blocks_external_update_queue_flush_descriptor_sets_;
+
+	const ComputePipeline world_global_state_update_pipeline_;
+	const vk::DescriptorSet world_global_state_update_descriptor_set_;
 
 	const vk::UniqueEvent chunk_data_download_event_;
 

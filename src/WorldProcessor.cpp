@@ -1944,7 +1944,9 @@ void WorldProcessor::DownloadChunks(TaskOrganizer& task_organizer)
 				}
 			}
 
-			Log::Info("Queue chunks data downloading");
+			// Set the event at the end of transfer commands, to tell host that data is available.
+			// TODO - make sure this works properly
+			// and all data written into the buffer may be accessed by the host after this event is signaled.
 			command_buffer.setEvent(*chunk_data_download_event_, vk::PipelineStageFlagBits::eTransfer);
 			wait_for_chunks_data_download_= true;
 		};
@@ -1958,9 +1960,9 @@ void WorldProcessor::FinishChunksDownloading(TaskOrganizer& task_organizer)
 		return;
 
 	if(vk_device_.getEventStatus(*chunk_data_download_event_) != vk::Result::eEventSet)
-		return;
+		return; // Not finished yet.
 
-	Log::Info("Chunks data download finished");
+	// GPU-side chunks data copying is finished - reset the event and process data obtained.
 	vk_device_.resetEvent(*chunk_data_download_event_);
 	wait_for_chunks_data_download_= false;
 

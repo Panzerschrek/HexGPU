@@ -98,9 +98,11 @@ bool Host::Loop()
 	prev_tick_time_ = tick_start_time;
 
 	const float dt_s= float(dt.count()) * float(Clock::duration::period::num) / float(Clock::duration::period::den);
+	// Prevent too little or too much frame delta whic is used for world/physics simulation.
+	// This helps especially in debugging.
+	const float dt_s_limited= std::max(1.0f / 2048.0f, std::min(dt_s, 1.0f / 8.0f));
 
-	const float absoulte_time_s=
-		float((tick_start_time - init_time_).count()) * float(Clock::duration::period::num) / float(Clock::duration::period::den);
+	accumulated_time_s_+= dt_s_limited;
 
 	ticks_counter_.Tick();
 
@@ -128,7 +130,7 @@ bool Host::Loop()
 
 	world_processor_.Update(
 		task_organizer_,
-		dt_s,
+		dt_s_limited,
 		CreateKeyboardState(keys_state),
 		CreateMouseState(events),
 		CalculateAspect(window_vulkan_.GetViewportSize()));
@@ -146,11 +148,11 @@ bool Host::Loop()
 	graphics_task_params.viewport_size= window_vulkan_.GetViewportSize();
 
 	const auto graphics_task_func=
-		[this, absoulte_time_s](const vk::CommandBuffer command_buffer)
+		[this](const vk::CommandBuffer command_buffer)
 		{
 			world_renderer_.DrawOpaque(command_buffer);
 			sky_renderer_.Draw(command_buffer);
-			world_renderer_.DrawTransparent(command_buffer, absoulte_time_s);
+			world_renderer_.DrawTransparent(command_buffer, accumulated_time_s_);
 			build_prism_renderer_.Draw(command_buffer);
 
 			im_gui_wrapper_.EndFrame(command_buffer);

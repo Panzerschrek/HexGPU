@@ -41,6 +41,7 @@ private:
 
 	const Clock::time_point init_time_;
 	Clock::time_point prev_tick_time_;
+	float accumulated_time_s_= 0.0f;
 
 	TicksCounter ticks_counter_;
 

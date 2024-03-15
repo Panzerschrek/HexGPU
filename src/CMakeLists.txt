@@ -25,7 +25,7 @@ else()
 endif()
 
 #
-# Preparedependencies.
+# Prepare dependencies.
 #
 
 # snappy

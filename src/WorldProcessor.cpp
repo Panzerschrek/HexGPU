@@ -1999,7 +1999,7 @@ void WorldProcessor::FinishChunksDownloading(TaskOrganizer& task_organizer)
 	vk_device_.invalidateMappedMemoryRanges(mapped_memory_ranges);
 
 	// Compress and save downloaded chunks into the storage.
-	// TODO - make this in bacground thread?
+	// TODO - make this in background thread?
 	for(uint32_t y= 0; y < world_size_[1]; ++y)
 	for(uint32_t x= 0; x < world_size_[0]; ++x)
 	{

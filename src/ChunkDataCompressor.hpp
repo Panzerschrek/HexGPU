@@ -14,10 +14,10 @@ struct ChunkDataCompresed
 class ChunkDataCompressor
 {
 public:
-	// Imput arrays are both of "c_chunk_volume" size.
+	// Input arrays are both of "c_chunk_volume" size.
 	ChunkDataCompresed Compress(const BlockType* blocks_data, const uint8_t* blocks_auxiliar_data);
 
-	// Fills provided buffers.
+	// Fills provided buffers of "c_chunk_volume" size.
 	// Returns true on success.
 	bool Decompress(const ChunkDataCompresed& data_compressed, BlockType* blocks_data, uint8_t* blocks_auxiliar_data);
 

@@ -1221,8 +1221,7 @@ void WorldProcessor::Update(
 	else
 	{
 		// Continue updates of blocks and lighting.
-		const float prev_offset_within_tick= prev_tick_fractional - float(current_tick_);
-		HEX_ASSERT(prev_offset_within_tick <= 1.0f);
+		const float prev_offset_within_tick= std::min(1.0f, prev_tick_fractional - float(current_tick_));
 		const float cur_offset_within_tick= std::min(1.0f, cur_tick_fractional - float(current_tick_));
 		BuildCurrentFrameChunksToUpdateList(prev_offset_within_tick, cur_offset_within_tick);
 
@@ -1233,8 +1232,13 @@ void WorldProcessor::Update(
 		// Add a barier only at the beginning of next tick.
 	}
 
+	// Prevent finishing tick if chunks data downloading/uploading operations are not finished yer.
+	const bool is_time_to_switch_to_next_tick=
+		uint32_t(prev_tick_fractional) < uint32_t(cur_tick_fractional) &&
+		!wait_for_chunks_data_download_;
+
 	// Switch to the next tick (if necessary).
-	if(current_tick_ == 0 || uint32_t(prev_tick_fractional) < uint32_t(cur_tick_fractional))
+	if(current_tick_ == 0 || is_time_to_switch_to_next_tick)
 	{
 		world_offset_= next_world_offset_;
 		next_world_offset_= next_next_world_offset_;
@@ -1959,8 +1963,6 @@ void WorldProcessor::FinishChunksDownloading(TaskOrganizer& task_organizer)
 	Log::Info("Chunks data download finished");
 	vk_device_.resetEvent(*chunk_data_download_event_);
 	wait_for_chunks_data_download_= false;
-
-	// TODO - prevent world update until downloading isn't finished.
 
 	const RelativeWorldShiftChunks relative_shift
 	{

@@ -1962,8 +1962,6 @@ void WorldProcessor::FinishChunksDownloading(TaskOrganizer& task_organizer)
 
 	// TODO - prevent world update until downloading isn't finished.
 
-	// Save downloaded chunks into the storage.
-
 	const RelativeWorldShiftChunks relative_shift
 	{
 		next_world_offset_[0] - world_offset_[0],
@@ -1988,18 +1986,16 @@ void WorldProcessor::FinishChunksDownloading(TaskOrganizer& task_organizer)
 			const uint32_t offset= chunk_index * c_chunk_volume;
 
 			mapped_memory_ranges.emplace_back(
-				chunk_data_load_buffer_.GetMemory(),
-				offset,
-				c_chunk_volume);
+				chunk_data_load_buffer_.GetMemory(), offset, c_chunk_volume);
 
 			mapped_memory_ranges.emplace_back(
-				chunk_auxiliar_data_load_buffer_.GetMemory(),
-				offset,
-				c_chunk_volume);
+				chunk_auxiliar_data_load_buffer_.GetMemory(), offset, c_chunk_volume);
 		}
 	}
 	vk_device_.invalidateMappedMemoryRanges(mapped_memory_ranges);
 
+	// Compress and save downloaded chunks into the storage.
+	// TODO - make this in bacground thread?
 	for(uint32_t y= 0; y < world_size_[1]; ++y)
 	for(uint32_t x= 0; x < world_size_[0]; ++x)
 	{

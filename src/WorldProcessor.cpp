@@ -147,7 +147,7 @@ struct WorldBlocksExternalUpdateQueueFlushUniforms
 
 struct WorldGlobalStateUpdateUniforms
 {
-	float time_of_daty= 0.0f;
+	float time_of_day= 0.0f;
 };
 
 WorldSizeChunks ReadWorldSize(Settings& settings)
@@ -1721,7 +1721,7 @@ void WorldProcessor::UpdateWorldGlobalState(TaskOrganizer& task_organizer, const
 			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_global_state_update_pipeline_.pipeline);
 
 			WorldGlobalStateUpdateUniforms uniforms;
-			uniforms.time_of_daty= debug_params.time_of_day;
+			uniforms.time_of_day= debug_params.time_of_day;
 
 			command_buffer.pushConstants(
 				*world_global_state_update_pipeline_.pipeline_layout,

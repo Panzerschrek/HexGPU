@@ -209,6 +209,7 @@ private:
 
 	const vk::UniqueEvent chunk_data_download_event_;
 
+	ChunkDataCompressor chunk_data_compressor_;
 	ChunksStorage chunks_storage_;
 
 	WorldOffsetChunks world_offset_; // Current offset

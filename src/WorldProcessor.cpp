@@ -2020,8 +2020,9 @@ void WorldProcessor::FinishChunksDownloading(TaskOrganizer& task_organizer)
 					int32_t(x) + world_offset_[0],
 					int32_t(y) + world_offset_[1]
 				},
-				static_cast<const BlockType*>(chunk_data_load_buffer_mapped_) + offset,
-				static_cast<const uint8_t*>(chunk_auxiliar_data_load_buffer_mapped_) + offset);
+				chunk_data_compressor_.Compress(
+					static_cast<const BlockType*>(chunk_data_load_buffer_mapped_) + offset,
+					static_cast<const uint8_t*>(chunk_auxiliar_data_load_buffer_mapped_) + offset));
 		}
 	}
 
@@ -2050,11 +2051,15 @@ void WorldProcessor::UploadChunks(TaskOrganizer& task_organizer)
 				{
 					const uint32_t offset= chunk_index * c_chunk_volume;
 
-					chunks_storage_.GetChunk(
+					const ChunkDataCompresed* const chunk_data_compressed= chunks_storage_.GetChunk(
 						{
 							int32_t(x) + next_world_offset_[0],
 							int32_t(y) + next_world_offset_[1]
-						},
+						});
+
+					HEX_ASSERT(chunk_data_compressed != nullptr);
+					chunk_data_compressor_.Decompress(
+						*chunk_data_compressed,
 						static_cast<BlockType*>(chunk_data_load_buffer_mapped_) + offset,
 						static_cast<uint8_t*>(chunk_auxiliar_data_load_buffer_mapped_) + offset);
 

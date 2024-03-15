@@ -1,6 +1,5 @@
 #pragma once
-#include "Constants.hpp"
-#include "BlockType.hpp"
+#include "ChunkDataCompressor.hpp"
 #include <unordered_map>
 
 namespace HexGPU
@@ -13,22 +12,14 @@ public:
 	using ChunkCoord= std::array<int32_t, 2>;
 
 public:
-	// Input arrays are of size c_chunk_volume.
-	void SetChunk(ChunkCoord chunk_coord, const BlockType* blocks_data, const uint8_t* blocks_auxiliar_data);
+	void SetChunk(ChunkCoord chunk_coord, ChunkDataCompresed data_compressed);
 
-	// Returns true if found.
-	// Fills output arrays of size c_chunk_volume on success.
-	bool GetChunk(ChunkCoord coord, BlockType* blocks_data, uint8_t* blocks_auxiliar_data);
+	// returns non-null if has data for given chunk.
+	const ChunkDataCompresed* GetChunk(ChunkCoord coord);
 
 	bool HasDataForChunk(ChunkCoord coord);
 
 private:
-	struct ChunkDataCompresed
-	{
-		std::string blocks;
-		std::string auxiliar_data;
-	};
-
 	struct ChunkCoordHasher
 	{
 		size_t operator()(const ChunkCoord& coord) const

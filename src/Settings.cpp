@@ -107,29 +107,22 @@ std::string MakeQuotedString(const std::string& str)
 Settings::Settings(const std::string_view file_name)
 	: file_name_(file_name)
 {
-	std::string file_contents;
+	std::ifstream file(file_name_);
 
-	FILE* const file= std::fopen(file_name_.c_str(), "rb");
-	if(file == nullptr)
+	if(!file.is_open())
 	{
 		Log::Warning("Can't open file \"", file_name_, "\"");
 		return;
 	}
 
-	std::fseek(file, 0, SEEK_END);
-	const auto file_size= std::ftell(file);
-	file_contents.resize(file_size, '\0');
-	std::fseek(file, 0, SEEK_SET);
-	const auto fread_result= std::fread(file_contents.data(), 1, file_size, file);
-	(void)fread_result; // TODO - use it
-	std::fclose(file);
+	std::string line;
 
-	const char* s= file_contents.data();
-	const char* const s_end= file_contents.data() + file_contents.size();
-	while(s < s_end)
+	while(std::getline(file, line))
 	{
 		std::string str[2]; // key-value pair
 
+		const char* s= line.data();
+		const char* const s_end= line.data() + line.size();
 		for(size_t i= 0u; i < 2u; ++i)
 		{
 			while(s < s_end && std::isspace(*s))
@@ -169,8 +162,9 @@ Settings::Settings(const std::string_view file_name)
 
 Settings::~Settings()
 {
-	FILE* const file= std::fopen(file_name_.c_str(), "wb");
-	if(file == nullptr)
+	std::ofstream file(file_name_);
+
+	if(!file.is_open())
 	{
 		Log::Warning("Can't open file \"", file_name_, "\"");
 		return;
@@ -181,10 +175,12 @@ Settings::~Settings()
 		const std::string key= MakeQuotedString(map_value.first);
 		const std::string value= MakeQuotedString(map_value.second);
 
-		std::fprintf(file, "%s %s\r\n", key.c_str(), value.c_str());
+		file << key << " " << value << "\r\n";
 	}
 
-	std::fclose(file);
+	file.flush();
+	if(file.fail())
+		Log::Warning("Failed to flush file \"", file_name_, "\"");
 }
 
 std::string_view Settings::GetOrSetString(const std::string_view key, const std::string_view default_value)

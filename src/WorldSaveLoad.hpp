@@ -22,7 +22,7 @@ struct ChunkHeader
 
 struct FileHeader
 {
-	char id[16]{};
+	char id[8]{};
 	uint64_t version= 0;
 
 	// All chunks of this region.

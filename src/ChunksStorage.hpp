@@ -14,9 +14,17 @@ public:
 	using ChunkCoord= std::array<int32_t, 2>;
 
 public:
+	ChunksStorage();
+	~ChunksStorage();
+
+	// Set current area of the world.
+	// This may trigger regions loading and saving.
+	void SetActiveArea(ChunkCoord start, std::array<uint32_t, 2> size);
+
 	void SetChunk(ChunkCoord chunk_coord, ChunkDataCompresed data_compressed);
 
-	// returns non-null if has data for given chunk.
+	// Returns non-null if has data for given chunk.
+	// Result remains valid until next "SetActiveArea" call.
 	const ChunkDataCompresed* GetChunk(ChunkCoord chunk_coord) const;
 
 private:
@@ -44,7 +52,10 @@ private:
 	static bool SaveRegion(const Region& region, const std::string& file_name);
 	static std::optional<Region> LoadRegion(const std::string& file_name);
 
+	std::string GetRegionFilePath(RegionCoord region_coord);
+
 private:
+	const std::string world_dir_path_;
 	std::unordered_map<ChunkCoord, Region, RegionCoordHasher> regions_map_;
 };
 

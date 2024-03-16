@@ -6,6 +6,40 @@
 namespace HexGPU
 {
 
+ChunksStorage::ChunksStorage()
+	: world_dir_path_("world")
+{
+}
+
+ChunksStorage::~ChunksStorage()
+{
+	for(const auto& region_pair : regions_map_)
+		SaveRegion(region_pair.second, GetRegionFilePath(region_pair.first));
+}
+
+void ChunksStorage::SetActiveArea(const ChunkCoord start, const std::array<uint32_t, 2> size)
+{
+	const RegionCoord min_coord= GetRegionCoordForChunk(start);
+	const RegionCoord max_coord= GetRegionCoordForChunk({start[0] + int32_t(size[0]), start[1] + int32_t(size[1])});
+
+	// Load also regions at borders - in order to be ready to privide chunk data when it's already needed.
+	for(int32_t y= min_coord[1] - int32_t(c_world_region_size[1]); y < max_coord[1] + int32_t(c_world_region_size[1]); ++y)
+	for(int32_t x= min_coord[0] - int32_t(c_world_region_size[0]); x < max_coord[0] + int32_t(c_world_region_size[0]); ++x)
+	{
+		const RegionCoord region_coord{x, y};
+		if(regions_map_.count(region_coord) != 0)
+			continue; // Already loaded.
+
+		// This region isn't loaded yet - load it now.
+		// TODO - use bacgtround thread for regions loading.
+		auto load_result= LoadRegion(GetRegionFilePath(region_coord));
+		if(load_result != std::nullopt)
+			regions_map_.emplace(region_coord, std::move(*load_result));
+	}
+
+	// TODO - free regions outside active area.
+}
+
 void ChunksStorage::SetChunk(const ChunkCoord chunk_coord, ChunkDataCompresed data_compressed)
 {
 	// TODO - load region if necessary.
@@ -162,6 +196,19 @@ std::optional<ChunksStorage::Region> ChunksStorage::LoadRegion(const std::string
 	}
 
 	return result_region;
+}
+
+std::string ChunksStorage::GetRegionFilePath(const RegionCoord region_coord)
+{
+	std::string res;
+	res+= world_dir_path_;
+	res+= "/";
+	res+= "lon_";
+	res+= std::to_string(region_coord[0]);
+	res+= "_lat_";
+	res+= std::to_string(region_coord[1]);
+	res+= ".region";
+	return res;
 }
 
 } // namespace HexGPU

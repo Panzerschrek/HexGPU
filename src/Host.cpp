@@ -112,9 +112,9 @@ bool Host::Loop()
 	for(const SDL_Event& event : events)
 	{
 		if(event.type == SDL_QUIT)
-			quit_requested_= true;
+			return true;
 		if(event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)
-			quit_requested_= true;
+			return true;
 		if(event.type == SDL_KEYDOWN && event.key.keysym.scancode == SDL_SCANCODE_GRAVE)
 			show_debug_menus_= !show_debug_menus_;
 	}
@@ -191,7 +191,7 @@ bool Host::Loop()
 		std::this_thread::sleep_for(min_frame_duration - frame_dt);
 	}
 
-	return quit_requested_;
+	return false;
 }
 
 void Host::DrawFPS()

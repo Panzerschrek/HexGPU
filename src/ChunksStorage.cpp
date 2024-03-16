@@ -6,8 +6,8 @@
 namespace HexGPU
 {
 
-ChunksStorage::ChunksStorage()
-	: world_dir_path_("world")
+ChunksStorage::ChunksStorage(Settings& settings)
+	: world_dir_path_(settings.GetOrSetString("g_world_dir", "world"))
 {
 }
 

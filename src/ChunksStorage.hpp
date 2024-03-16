@@ -1,5 +1,6 @@
 #pragma once
 #include "ChunkDataCompressor.hpp"
+#include "Settings.hpp"
 #include "WorldSaveLoad.hpp"
 #include <array>
 #include <unordered_map>
@@ -14,7 +15,7 @@ public:
 	using ChunkCoord= std::array<int32_t, 2>;
 
 public:
-	ChunksStorage();
+	explicit ChunksStorage(Settings& settings);
 	~ChunksStorage();
 
 	// Set current area of the world.

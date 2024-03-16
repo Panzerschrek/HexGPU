@@ -13,6 +13,9 @@ HexGPU.cfg
 # Screenshotsh directory
 screenshots/
 
+# Default world data directory
+world/
+
 # Directory for other stuff
 other/
 

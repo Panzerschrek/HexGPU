@@ -764,6 +764,7 @@ WorldProcessor::WorldProcessor(
 			global_descriptor_pool,
 			*world_global_state_update_pipeline_.descriptor_set_layout))
 	, chunk_data_download_event_(vk_device_.createEventUnique(vk::EventCreateInfo()))
+	, chunks_storage_(settings)
 	, world_offset_{-int32_t(world_size_[0] / 2u), -int32_t(world_size_[1] / 2u)}
 	, next_world_offset_(world_offset_)
 	, next_next_world_offset_(next_world_offset_)

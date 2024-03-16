@@ -17,12 +17,15 @@ public:
 	void SetChunk(ChunkCoord chunk_coord, ChunkDataCompresed data_compressed);
 
 	// returns non-null if has data for given chunk.
-	const ChunkDataCompresed* GetChunk(ChunkCoord coord);
+	const ChunkDataCompresed* GetChunk(ChunkCoord chunk_coord) const;
 
-	bool HasDataForChunk(ChunkCoord coord);
+	bool HasDataForChunk(ChunkCoord chunk_coord);
 
 private:
-	struct ChunkCoordHasher
+	// Global coordinates of the first chunk.
+	using RegionCoord= std::array<int32_t, 2>;
+
+	struct RegionCoordHasher
 	{
 		size_t operator()(const ChunkCoord& coord) const
 		{
@@ -39,11 +42,12 @@ private:
 	};
 
 private:
+	static RegionCoord GetRegionCoordForChunk(ChunkCoord chunk_coord);
 	static bool SaveRegion(const Region& region, const std::string& file_name);
 	static std::optional<Region> LoadRegion(const std::string& file_name);
 
 private:
-	std::unordered_map<ChunkCoord, ChunkDataCompresed, ChunkCoordHasher> chunks_map_;
+	std::unordered_map<ChunkCoord, Region, RegionCoordHasher> regions_map_;
 };
 
 } // namespace HexGPU

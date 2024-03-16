@@ -1,5 +1,6 @@
 #include "ChunksStorage.hpp"
 #include "Log.hpp"
+#include "Math.hpp"
 #include <cstring>
 
 namespace HexGPU
@@ -7,21 +8,63 @@ namespace HexGPU
 
 void ChunksStorage::SetChunk(const ChunkCoord chunk_coord, ChunkDataCompresed data_compressed)
 {
-	chunks_map_[chunk_coord]= std::move(data_compressed);
+	// TODO - load region if necessary.
+	const RegionCoord region_coord= GetRegionCoordForChunk(chunk_coord);
+	Region& region= regions_map_[region_coord];
+
+	const int32_t coord_within_region[]
+	{
+		chunk_coord[0] - region_coord[0],
+		chunk_coord[1] - region_coord[1],
+	};
+	HEX_ASSERT(coord_within_region[0] >= 0 && coord_within_region[0] < int32_t(c_world_region_size[0]));
+	HEX_ASSERT(coord_within_region[1] >= 0 && coord_within_region[1] < int32_t(c_world_region_size[1]));
+
+	const uint32_t chunk_index=
+		uint32_t(coord_within_region[0]) + uint32_t(coord_within_region[1]) * c_world_region_size[0];
+
+	region.chunks[chunk_index]= std::move(data_compressed);
 }
 
-const ChunkDataCompresed* ChunksStorage::GetChunk(const ChunkCoord coord)
+const ChunkDataCompresed* ChunksStorage::GetChunk(const ChunkCoord chunk_coord) const
 {
-	const auto it= chunks_map_.find(coord);
-	if(it == chunks_map_.end())
+	const RegionCoord region_coord= GetRegionCoordForChunk(chunk_coord);
+	const auto it= regions_map_.find(region_coord);
+	if(it == regions_map_.end())
 		return nullptr;
 
-	return &it->second;
+	const Region& region= it->second;
+
+	const int32_t coord_within_region[]
+	{
+		chunk_coord[0] - region_coord[0],
+		chunk_coord[1] - region_coord[1],
+	};
+	HEX_ASSERT(coord_within_region[0] >= 0 && coord_within_region[0] < int32_t(c_world_region_size[0]));
+	HEX_ASSERT(coord_within_region[1] >= 0 && coord_within_region[1] < int32_t(c_world_region_size[1]));
+
+	const uint32_t chunk_index=
+		uint32_t(coord_within_region[0]) + uint32_t(coord_within_region[1]) * c_world_region_size[0];
+
+	const ChunkDataCompresed& chunk_data= region.chunks[chunk_index];
+	if(!chunk_data.blocks.empty() && !chunk_data.auxiliar_data.empty())
+		return &chunk_data;
+
+	return nullptr;
 }
 
-bool ChunksStorage::HasDataForChunk(const ChunkCoord coord)
+bool ChunksStorage::HasDataForChunk(const ChunkCoord chunk_coord)
 {
-	return chunks_map_.find(coord) != chunks_map_.end();
+	return GetChunk(chunk_coord) != nullptr;
+}
+
+ChunksStorage::RegionCoord ChunksStorage::GetRegionCoordForChunk(const ChunkCoord chunk_coord)
+{
+	RegionCoord res;
+	for(uint32_t i= 0; i < 2; ++i)
+		res[i]= EuclidianDiv(chunk_coord[i], int32_t(c_world_region_size[i])) * c_world_region_size[i];
+
+	return res;
 }
 
 bool ChunksStorage::SaveRegion(const Region& region, const std::string& file_name)

@@ -1,5 +1,6 @@
 #pragma once
 #include "ChunkDataCompressor.hpp"
+#include <array>
 #include <unordered_map>
 
 namespace HexGPU

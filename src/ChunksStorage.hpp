@@ -1,5 +1,6 @@
 #pragma once
 #include "ChunkDataCompressor.hpp"
+#include "WorldSaveLoad.hpp"
 #include <array>
 #include <unordered_map>
 
@@ -30,6 +31,11 @@ private:
 			else
 				return size_t(coord[0]) | (size_t(coord[1]) << 16);
 		}
+	};
+
+	struct Region
+	{
+		ChunkDataCompresed chunks[c_world_region_area];
 	};
 
 private:

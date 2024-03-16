@@ -6,4 +6,4 @@
 	url = https://github.com/ocornut/imgui.git
 [submodule "snappy"]
 	path = snappy
-	url = git@github.com:google/snappy.git
+	url = https://github.com/google/snappy.git

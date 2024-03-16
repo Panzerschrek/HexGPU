@@ -115,6 +115,8 @@ bool Host::Loop()
 			quit_requested_= true;
 		if(event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)
 			quit_requested_= true;
+		if(event.type == SDL_KEYDOWN && event.key.keysym.scancode == SDL_SCANCODE_GRAVE)
+			show_debug_menus_= !show_debug_menus_;
 	}
 
 	im_gui_wrapper_.ProcessEvents(events);
@@ -123,8 +125,11 @@ bool Host::Loop()
 	DrawFPS();
 	DrawUI();
 	DrawCrosshair();
-	DrawDebugInfo();
-	DrawDebugParamsUI();
+	if(show_debug_menus_)
+	{
+		DrawDebugInfo();
+		DrawDebugParamsUI();
+	}
 
 	const vk::CommandBuffer command_buffer= window_vulkan_.BeginFrame();
 	task_organizer_.SetCommandBuffer(command_buffer);
@@ -132,8 +137,8 @@ bool Host::Loop()
 	world_processor_.Update(
 		task_organizer_,
 		dt_s_limited,
-		CreateKeyboardState(keys_state),
-		CreateMouseState(events),
+		show_debug_menus_ ? 0 : CreateKeyboardState(keys_state),
+		show_debug_menus_ ? 0 : CreateMouseState(events),
 		CalculateAspect(window_vulkan_.GetViewportSize()),
 		debug_params_);
 

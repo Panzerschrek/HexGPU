@@ -48,6 +48,7 @@ private:
 
 	DebugParams debug_params_;
 
+	bool show_debug_menus_= false;
 	bool quit_requested_= false;
 };
 

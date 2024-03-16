@@ -23,8 +23,12 @@ void ChunksStorage::SetActiveArea(const ChunkCoord start, const std::array<uint3
 	const RegionCoord max_coord= GetRegionCoordForChunk({start[0] + int32_t(size[0]), start[1] + int32_t(size[1])});
 
 	// Load also regions at borders - in order to be ready to privide chunk data when it's already needed.
-	for(int32_t y= min_coord[1] - int32_t(c_world_region_size[1]); y < max_coord[1] + int32_t(c_world_region_size[1]); ++y)
-	for(int32_t x= min_coord[0] - int32_t(c_world_region_size[0]); x < max_coord[0] + int32_t(c_world_region_size[0]); ++x)
+	for(int32_t y= min_coord[1] - int32_t(c_world_region_size[1]);
+		y < max_coord[1] + int32_t(c_world_region_size[1]);
+		y+= int32_t(c_world_region_size[1]))
+	for(int32_t x= min_coord[0] - int32_t(c_world_region_size[0]);
+		x < max_coord[0] + int32_t(c_world_region_size[0]);
+		x+= int32_t(c_world_region_size[0]))
 	{
 		const RegionCoord region_coord{x, y};
 		if(regions_map_.count(region_coord) != 0)
@@ -101,7 +105,7 @@ bool ChunksStorage::SaveRegion(const Region& region, const std::string& file_nam
 	std::ofstream file(file_name, std::ios::binary);
 	if(!file.is_open())
 	{
-		Log::Info("Can't open file \"", file_name, "\"");
+		Log::Warning("Can't open file \"", file_name, "\"");
 		return false;
 	}
 
@@ -142,7 +146,7 @@ bool ChunksStorage::SaveRegion(const Region& region, const std::string& file_nam
 	file.flush();
 	if(file.fail())
 	{
-		Log::Info("Failed to flush region file!");
+		Log::Warning("Failed to flush region file!");
 		return false;
 	}
 
@@ -154,7 +158,7 @@ std::optional<ChunksStorage::Region> ChunksStorage::LoadRegion(const std::string
 	std::ifstream file(file_name, std::ios::binary);
 	if(!file.is_open())
 	{
-		Log::Info("Can't open file \"", file_name, "\"");
+		// No file found.
 		return std::nullopt;
 	}
 
@@ -163,13 +167,13 @@ std::optional<ChunksStorage::Region> ChunksStorage::LoadRegion(const std::string
 
 	if(std::memcmp(file_header.id, RegionFile::c_expected_id, sizeof(RegionFile::c_expected_id)) != 0)
 	{
-		Log::Info("File \"", file_name, "\" seems to be not a valid region file");
+		Log::Warning("File \"", file_name, "\" seems to be not a valid region file");
 		return std::nullopt;
 	}
 
 	if(file_header.version != RegionFile::c_expected_version)
 	{
-		Log::Info("Region file version mismatch, expected ", RegionFile::c_expected_version, ", got ", file_header.version);
+		Log::Warning("Region file version mismatch, expected ", RegionFile::c_expected_version, ", got ", file_header.version);
 		return std::nullopt;
 	}
 

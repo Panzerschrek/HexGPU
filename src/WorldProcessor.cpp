@@ -772,6 +772,8 @@ WorldProcessor::WorldProcessor(
 
 	Log::Info("World seed: ", world_seed_);
 
+	chunks_storage_.SetActiveArea(world_offset_, world_size_);
+
 	// Update chunk gen prepare descriptor set.
 	{
 		const vk::DescriptorBufferInfo descriptor_chunk_gen_info_buffer(

@@ -34,7 +34,7 @@ struct FileHeader
 
 static_assert(sizeof(FileHeader) == 16 + sizeof(ChunkHeader) * c_world_region_area, "Invalid size!");
 
-constexpr char c_expected_id[]= "HexRegio";
+constexpr char c_expected_id[8]{'H', 'e', 'x', 'R', 'e', 'g', 'i', 'o'};
 constexpr uint64_t c_expected_version= 31; // Change this each time format is changed.
 
 } // namespace RegionFile

@@ -1680,9 +1680,9 @@ void WorldProcessor::DetermineChunksUpdateKind(const RelativeWorldShiftChunks re
 			chunks_upate_kind_[chunk_index]= ChunkUpdateKind::Update;
 		else
 		{
-			if(chunks_storage_.HasDataForChunk({
+			if(chunks_storage_.GetChunk({
 				int32_t(x) + world_offset_[0] + int32_t(relative_world_shift[0]),
-				int32_t(y) + world_offset_[1] + int32_t(relative_world_shift[1])}))
+				int32_t(y) + world_offset_[1] + int32_t(relative_world_shift[1])}) != nullptr)
 				chunks_upate_kind_[chunk_index]= ChunkUpdateKind::Upload;
 			else
 				chunks_upate_kind_[chunk_index]= ChunkUpdateKind::Generate;

@@ -19,8 +19,6 @@ public:
 	// returns non-null if has data for given chunk.
 	const ChunkDataCompresed* GetChunk(ChunkCoord chunk_coord) const;
 
-	bool HasDataForChunk(ChunkCoord chunk_coord);
-
 private:
 	// Global coordinates of the first chunk.
 	using RegionCoord= std::array<int32_t, 2>;

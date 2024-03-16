@@ -53,11 +53,6 @@ const ChunkDataCompresed* ChunksStorage::GetChunk(const ChunkCoord chunk_coord) 
 	return nullptr;
 }
 
-bool ChunksStorage::HasDataForChunk(const ChunkCoord chunk_coord)
-{
-	return GetChunk(chunk_coord) != nullptr;
-}
-
 ChunksStorage::RegionCoord ChunksStorage::GetRegionCoordForChunk(const ChunkCoord chunk_coord)
 {
 	RegionCoord res;

@@ -39,6 +39,10 @@ private:
 	};
 
 private:
+	static bool SaveRegion(const Region& region, const std::string& file_name);
+	static std::optional<Region> LoadRegion(const std::string& file_name);
+
+private:
 	std::unordered_map<ChunkCoord, ChunkDataCompresed, ChunkCoordHasher> chunks_map_;
 };
 

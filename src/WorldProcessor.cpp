@@ -1302,7 +1302,7 @@ void WorldProcessor::Update(
 	const float cur_tick_fractional= current_tick_fractional_ + tick_delta_clamped;
 
 	if(current_tick_ == 0)
-		InitialGenerateWorld(task_organizer);
+		InitialFillWorld(task_organizer);
 	else
 	{
 		// Continue updates of blocks and lighting.
@@ -1528,9 +1528,9 @@ void WorldProcessor::ReadBackAndProcessPlayerState()
 	}
 }
 
-void WorldProcessor::InitialGenerateWorld(TaskOrganizer& task_organizer)
+void WorldProcessor::InitialFillWorld(TaskOrganizer& task_organizer)
 {
-	// Fill lists used by world generate function.
+	// Fill lists used by world generate/upload function.
 
 	chunks_upate_kind_.clear();
 	chunks_upate_kind_.resize(world_size_[0] * world_size_[1], ChunkUpdateKind::Generate);
@@ -1540,15 +1540,21 @@ void WorldProcessor::InitialGenerateWorld(TaskOrganizer& task_organizer)
 	for(uint32_t y= 0; y < world_size_[1]; ++y)
 	for(uint32_t x= 0; x < world_size_[0]; ++x)
 	{
-		const uint32_t chunk_index= x + y * world_size_[1];
-		chunks_upate_kind_[chunk_index]= ChunkUpdateKind::Generate;
+		const uint32_t chunk_index= x + y * world_size_[0];
+
+		if(chunks_storage_.GetChunk({int32_t(x) + world_offset_[0], int32_t(y) + world_offset_[1]}) != nullptr)
+			chunks_upate_kind_[chunk_index]= ChunkUpdateKind::Upload;
+		else
+			chunks_upate_kind_[chunk_index]= ChunkUpdateKind::Generate;
 
 		current_frame_chunks_to_update_list_.push_back({x, y});
 	}
 
-	// Trigger world generation.
-
+	// Trigger world generation - for chunks which do not exist in the storage.
 	GenerateWorld(task_organizer, {0, 0});
+
+	// Upload chunks existing in the storage.
+	UploadChunks(task_organizer);
 }
 
 void WorldProcessor::DetermineChunksUpdateKind(const RelativeWorldShiftChunks relative_world_shift)

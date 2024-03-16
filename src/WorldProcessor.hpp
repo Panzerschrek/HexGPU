@@ -133,7 +133,7 @@ private:
 
 	void ReadBackAndProcessPlayerState();
 
-	void InitialGenerateWorld(TaskOrganizer& task_organizer);
+	void InitialFillWorld(TaskOrganizer& task_organizer);
 
 	void DetermineChunksUpdateKind(RelativeWorldShiftChunks relative_world_shift);
 	void BuildCurrentFrameChunksToUpdateList(float prev_offset_within_tick, float cur_offset_within_tick);

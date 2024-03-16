@@ -1530,137 +1530,25 @@ void WorldProcessor::ReadBackAndProcessPlayerState()
 
 void WorldProcessor::InitialGenerateWorld(TaskOrganizer& task_organizer)
 {
-	TaskOrganizer::ComputeTaskParams chunk_gen_prepare_task;
-	chunk_gen_prepare_task.input_storage_buffers.push_back(structures_buffer_.GetDescriptionsBuffer());
-	chunk_gen_prepare_task.input_storage_buffers.push_back(tree_map_buffer_.GetBuffer());
-	chunk_gen_prepare_task.output_storage_buffers.push_back(chunk_gen_info_buffer_.GetBuffer());
+	// Fill lists used by world generate function.
 
-	const auto chunk_gen_prepare_task_func=
-		[this](const vk::CommandBuffer command_buffer)
-		{
-			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *chunk_gen_prepare_pipeline_.pipeline);
+	chunks_upate_kind_.clear();
+	chunks_upate_kind_.resize(world_size_[0] * world_size_[1], ChunkUpdateKind::Generate);
 
-			command_buffer.bindDescriptorSets(
-				vk::PipelineBindPoint::eCompute,
-				*chunk_gen_prepare_pipeline_.pipeline_layout,
-				0u,
-				{chunk_gen_prepare_descriptor_set_},
-				{});
+	current_frame_chunks_to_update_list_.clear();
 
-			for(uint32_t x= 0; x < world_size_[0]; ++x)
-			for(uint32_t y= 0; y < world_size_[1]; ++y)
-			{
-				ChunkGenPrepareUniforms uniforms;
-				uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
-				uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-				uniforms.chunk_position[0]= int32_t(x);
-				uniforms.chunk_position[1]= int32_t(y);
-				uniforms.chunk_global_position[0]= world_offset_[0] + int32_t(x);
-				uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(y);
-				uniforms.seed= world_seed_;
+	for(uint32_t y= 0; y < world_size_[1]; ++y)
+	for(uint32_t x= 0; x < world_size_[0]; ++x)
+	{
+		const uint32_t chunk_index= x + y * world_size_[1];
+		chunks_upate_kind_[chunk_index]= ChunkUpdateKind::Generate;
 
-				command_buffer.pushConstants(
-					*chunk_gen_prepare_pipeline_.pipeline_layout,
-					vk::ShaderStageFlagBits::eCompute,
-					0,
-					sizeof(ChunkGenPrepareUniforms), static_cast<const void*>(&uniforms));
+		current_frame_chunks_to_update_list_.push_back({x, y});
+	}
 
-				// For now perform single-threaded preparation.
-				command_buffer.dispatch(1, 1, 1);
-			}
-		};
+	// Trigger world generation.
 
-	task_organizer.ExecuteTask(chunk_gen_prepare_task, chunk_gen_prepare_task_func);
-
-	const uint32_t dst_buffer_index= GetDstBufferIndex();
-
-	TaskOrganizer::ComputeTaskParams world_gen_task;
-	world_gen_task.input_storage_buffers.push_back(chunk_gen_info_buffer_.GetBuffer());
-	world_gen_task.input_storage_buffers.push_back(structures_buffer_.GetDescriptionsBuffer());
-	world_gen_task.input_storage_buffers.push_back(structures_buffer_.GetDataBuffer());
-	world_gen_task.output_storage_buffers.push_back(chunk_data_buffers_[dst_buffer_index].GetBuffer());
-	world_gen_task.output_storage_buffers.push_back(chunk_auxiliar_data_buffers_[dst_buffer_index].GetBuffer());
-
-	const auto world_gen_task_func=
-		[this, dst_buffer_index](const vk::CommandBuffer command_buffer)
-		{
-			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_gen_pipeline_.pipeline);
-
-			command_buffer.bindDescriptorSets(
-				vk::PipelineBindPoint::eCompute,
-				*world_gen_pipeline_.pipeline_layout,
-				0u,
-				{world_gen_descriptor_sets_[dst_buffer_index]},
-				{});
-
-			for(uint32_t x= 0; x < world_size_[0]; ++x)
-			for(uint32_t y= 0; y < world_size_[1]; ++y)
-			{
-				WorldGenUniforms uniforms;
-				uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
-				uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-				uniforms.chunk_position[0]= int32_t(x);
-				uniforms.chunk_position[1]= int32_t(y);
-				uniforms.chunk_global_position[0]= world_offset_[0] + int32_t(x);
-				uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(y);
-				uniforms.seed= world_seed_;
-
-				command_buffer.pushConstants(
-					*world_gen_pipeline_.pipeline_layout,
-					vk::ShaderStageFlagBits::eCompute,
-					0,
-					sizeof(WorldGenUniforms), static_cast<const void*>(&uniforms));
-
-				// Dispatch only 2D group - perform generation for columns.
-				command_buffer.dispatch(
-					c_chunk_width / c_world_gen_workgroup_size[0],
-					c_chunk_width / c_world_gen_workgroup_size[1],
-					1);
-			}
-		};
-
-	task_organizer.ExecuteTask(world_gen_task, world_gen_task_func);
-
-	TaskOrganizer::ComputeTaskParams initial_light_fill_task;
-	initial_light_fill_task.input_storage_buffers.push_back(chunk_data_buffers_[dst_buffer_index].GetBuffer());
-	initial_light_fill_task.output_storage_buffers.push_back(light_buffers_[dst_buffer_index].GetBuffer());
-
-	const auto initial_light_fill_task_func=
-		[this, dst_buffer_index](const vk::CommandBuffer command_buffer)
-		{
-			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *initial_light_fill_pipeline_.pipeline);
-
-			command_buffer.bindDescriptorSets(
-				vk::PipelineBindPoint::eCompute,
-				*initial_light_fill_pipeline_.pipeline_layout,
-				0u,
-				{initial_light_fill_descriptor_sets_[dst_buffer_index]},
-				{});
-
-			for(uint32_t x= 0; x < world_size_[0]; ++x)
-			for(uint32_t y= 0; y < world_size_[1]; ++y)
-			{
-				InitialLightFillUniforms uniforms;
-				uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
-				uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-				uniforms.chunk_position[0]= int32_t(x);
-				uniforms.chunk_position[1]= int32_t(y);
-
-				command_buffer.pushConstants(
-					*initial_light_fill_pipeline_.pipeline_layout,
-					vk::ShaderStageFlagBits::eCompute,
-					0,
-					sizeof(InitialLightFillUniforms), static_cast<const void*>(&uniforms));
-
-				// Dispatch only 2D group - perform light fill for columns.
-				command_buffer.dispatch(
-					c_chunk_width / c_initial_light_fill_workgroup_size[0],
-					c_chunk_width / c_initial_light_fill_workgroup_size[1],
-					1);
-			}
-		};
-
-	task_organizer.ExecuteTask(initial_light_fill_task, initial_light_fill_task_func);
+	GenerateWorld(task_organizer, {0, 0});
 }
 
 void WorldProcessor::DetermineChunksUpdateKind(const RelativeWorldShiftChunks relative_world_shift)

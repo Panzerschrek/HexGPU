@@ -39,6 +39,11 @@ void ChunksStorage::SetActiveArea(const ChunkCoord start, const std::array<uint3
 		auto load_result= LoadRegion(GetRegionFilePath(region_coord));
 		if(load_result != std::nullopt)
 			regions_map_.emplace(region_coord, std::move(*load_result));
+		else
+		{
+			// Create empty region if can't load it.
+			regions_map_.emplace(region_coord, Region{});
+		}
 	}
 
 	// TODO - free regions outside active area.
@@ -66,6 +71,7 @@ void ChunksStorage::SetChunk(const ChunkCoord chunk_coord, ChunkDataCompresed da
 
 const ChunkDataCompresed* ChunksStorage::GetChunk(const ChunkCoord chunk_coord) const
 {
+	// TODO - load region if necessary.
 	const RegionCoord region_coord= GetRegionCoordForChunk(chunk_coord);
 	const auto it= regions_map_.find(region_coord);
 	if(it == regions_map_.end())

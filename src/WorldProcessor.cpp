@@ -1394,6 +1394,8 @@ void WorldProcessor::Update(
 		world_offset_= next_world_offset_;
 		next_world_offset_= next_next_world_offset_;
 
+		chunks_storage_.SetActiveArea(world_offset_, world_size_);
+
 		FlushWorldBlocksExternalUpdateQueue(task_organizer);
 
 		++current_tick_;

@@ -52,7 +52,7 @@ std::optional<Settings::RealType> StrToReal(const char* str)
 		}
 		if(str[0] < '0' || str[0] > '9')
 			return std::nullopt;
-		v*= 10.0;
+		v*= 10.0f;
 		v+= float(str[0] - '0');
 		++str;
 	}

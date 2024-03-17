@@ -240,7 +240,7 @@ void Host::DrawUI()
 		nullptr,
 		ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs);
 
-	ImGui::Text(text.c_str());
+	ImGui::Text("%s", text.c_str());
 
 	ImGui::End();
 

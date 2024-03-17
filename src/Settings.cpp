@@ -175,7 +175,7 @@ Settings::~Settings()
 		const std::string key= MakeQuotedString(map_value.first);
 		const std::string value= MakeQuotedString(map_value.second);
 
-		file << key << " " << value << "\r\n";
+		file << key << " " << value << "\n";
 	}
 
 	file.flush();

@@ -218,9 +218,20 @@ void Host::DrawFPS()
 
 void Host::DrawUI()
 {
+	const auto player_state= world_processor_.GetLastKnownPlayerState();
+	if(player_state == nullptr)
+		return;
+
+	ImGui::PushFont(im_gui_wrapper_.GetLargeFont());
+
+	const std::string text= std::string("build block: ") + BlockTypeToString(player_state->build_block_type);
+
+	const auto text_size= ImGui::CalcTextSize(text.c_str());
+	const auto padding= ImGui::GetStyle().WindowPadding;
+
 	ImGui::SetNextWindowPos({0.0f, float(window_vulkan_.GetViewportSize().height) - 64.0f});
 
-	ImGui::SetNextWindowSize({320.0f, 40.0f});
+	ImGui::SetNextWindowSize({text_size.x + padding.x * 2.0f, text_size.y + padding.y * 2.0f});
 
 	ImGui::SetNextWindowBgAlpha(0.25f);
 	ImGui::Begin(
@@ -228,17 +239,11 @@ void Host::DrawUI()
 		nullptr,
 		ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs);
 
-	const auto player_state= world_processor_.GetLastKnownPlayerState();
-
-	ImGui::PushFont(im_gui_wrapper_.GetLargeFont());
-
-	ImGui::Text(
-		"build block: %s",
-		player_state == nullptr ? "unknown" : BlockTypeToString(player_state->build_block_type));
-
-	ImGui::PopFont();
+	ImGui::Text(text.c_str());
 
 	ImGui::End();
+
+	ImGui::PopFont();
 }
 
 void Host::DrawCrosshair()

@@ -667,6 +667,8 @@ WorldProcessor::WorldProcessor(
 	const vk::DescriptorPool global_descriptor_pool,
 	Settings& settings)
 	: vk_device_(window_vulkan.GetVulkanDevice())
+	, command_pool_(window_vulkan.GetCommandPool())
+	, queue_(window_vulkan.GetQueue())
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, world_size_(ReadWorldSize(settings))
 	, world_seed_(int32_t(settings.GetOrSetInt("g_world_seed")))
@@ -1261,13 +1263,77 @@ WorldProcessor::WorldProcessor(
 
 WorldProcessor::~WorldProcessor()
 {
+	// Wait for all commands to be finished.
+	vk_device_.waitIdle();
+
+	// Download all chunk data in order to save it.
+
+	// Create one-time command buffer. TODO - avoid this?
+	const auto command_buffer= std::move(vk_device_.allocateCommandBuffersUnique(
+		vk::CommandBufferAllocateInfo(
+			command_pool_,
+			vk::CommandBufferLevel::ePrimary,
+			1u)).front());
+
+	command_buffer->begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
+
+	const uint32_t src_buffer_index= GetSrcBufferIndex();
+
+	// Copy all all contents of chunk data buffers.
+	command_buffer->copyBuffer(
+		chunk_data_buffers_[src_buffer_index].GetBuffer(),
+		chunk_data_load_buffer_.GetBuffer(),
+		{{0, 0, chunk_data_load_buffer_.GetSize()}});
+
+	command_buffer->copyBuffer(
+		chunk_auxiliar_data_buffers_[src_buffer_index].GetBuffer(),
+		chunk_auxiliar_data_load_buffer_.GetBuffer(),
+		{{0, 0, chunk_auxiliar_data_load_buffer_.GetSize()}});
+
+	command_buffer->end();
+
+	const vk::PipelineStageFlags wait_dst_stage_mask= vk::PipelineStageFlagBits::eTransfer;
+	const vk::SubmitInfo submit_info(
+		0u, nullptr,
+		&wait_dst_stage_mask,
+		1u, &*command_buffer,
+		0u, nullptr);
+
+	queue_.submit(submit_info, vk::Fence());
+
+	// Wait until all is finished.
+	queue_.waitIdle();
+
+	// Invalidate ranges before reading.
+	const vk::MappedMemoryRange mapped_memory_ranges[]
+	{
+		{chunk_data_load_buffer_.GetMemory(), 0, chunk_data_load_buffer_.GetSize()},
+		{chunk_auxiliar_data_load_buffer_.GetMemory(), 0, chunk_auxiliar_data_load_buffer_.GetSize()},
+	};
+	vk_device_.invalidateMappedMemoryRanges(uint32_t(std::size(mapped_memory_ranges)), mapped_memory_ranges);
+
+	// Compress and store chunks data.
+	for(uint32_t y= 0; y < world_size_[1]; ++y)
+	for(uint32_t x= 0; x < world_size_[0]; ++x)
+	{
+		const uint32_t chunk_index= x + y * world_size_[0];
+		const uint32_t offset= chunk_index * c_chunk_volume;
+
+		chunks_storage_.SetChunk(
+			{
+				int32_t(x) + world_offset_[0],
+				int32_t(y) + world_offset_[1]
+			},
+			chunk_data_compressor_.Compress(
+				static_cast<const BlockType*>(chunk_data_load_buffer_mapped_) + offset,
+				static_cast<const uint8_t*>(chunk_auxiliar_data_load_buffer_mapped_) + offset));
+	}
+
+	// Unmap remaining buffers.
 	chunk_data_load_buffer_.Unmap(vk_device_);
 	chunk_auxiliar_data_load_buffer_.Unmap(vk_device_);
 
 	player_state_read_back_buffer_.Unmap(vk_device_);
-
-	// Sync before destruction.
-	vk_device_.waitIdle();
 }
 
 void WorldProcessor::Update(

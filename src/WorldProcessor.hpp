@@ -163,6 +163,8 @@ private:
 
 private:
 	const vk::Device vk_device_;
+	const vk::CommandPool command_pool_;
+	const vk::Queue queue_;
 	const uint32_t queue_family_index_;
 
 	const WorldSizeChunks world_size_;

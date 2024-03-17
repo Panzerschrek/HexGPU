@@ -24,6 +24,7 @@ public:
 	vk::Extent2D GetViewportSize() const;
 	uint32_t GetQueueFamilyIndex() const;
 	vk::Queue GetQueue() const;
+	vk::CommandPool GetCommandPool() const;
 	vk::RenderPass GetRenderPass() const; // Render pass for rendering directly into screen.
 	vk::PhysicalDeviceMemoryProperties GetMemoryProperties() const;
 

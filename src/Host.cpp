@@ -185,7 +185,8 @@ bool Host::Loop()
 
 	// std::cout << "\rframe time: " << std::chrono::duration_cast<std::chrono::milliseconds>(frame_dt).count() << "ms" << std::endl;
 
-	const float max_fps= 120.0f;
+	const float max_fps= std::max(1.0f, std::min(settings_.GetReal("r_max_fps", 120.0f), 500.0f));
+	settings_.SetReal("r_max_fps", max_fps);
 
 	const std::chrono::milliseconds min_frame_duration(uint32_t(1000.0f / max_fps));
 	if(frame_dt <= min_frame_duration)

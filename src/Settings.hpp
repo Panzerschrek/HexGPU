@@ -18,7 +18,7 @@ public:
 
 public:
 	using IntType= int64_t;
-	using RealType= double;
+	using RealType= float;
 
 	std::string_view GetOrSetString(std::string_view key, std::string_view default_value= "");
 	IntType GetOrSetInt(std::string_view key, IntType default_value= 0);

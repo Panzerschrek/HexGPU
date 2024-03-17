@@ -115,6 +115,8 @@ bool Host::Loop()
 			return true;
 		if(event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE)
 			return true;
+		if(event.type == SDL_KEYDOWN && event.key.keysym.scancode == SDL_SCANCODE_ESCAPE)
+			return true;
 		if(event.type == SDL_KEYDOWN && event.key.keysym.scancode == SDL_SCANCODE_GRAVE)
 			show_debug_menus_= !show_debug_menus_;
 	}

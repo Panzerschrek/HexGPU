@@ -64,7 +64,7 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window, Settings& settings
 	const bool use_debug_extensions_and_layers= false;
 	#endif
 
-	const bool vsync= true;
+	const bool vsync= settings.GetOrSetInt("r_vsync", 1) != 0;
 
 	// Get vulkan extensiion, needed by SDL.
 	unsigned int extension_names_count= 0;

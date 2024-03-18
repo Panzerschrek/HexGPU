@@ -26,7 +26,7 @@ public:
 
 	// Returns non-null if has data for given chunk.
 	// Result remains valid until next "SetActiveArea" call.
-	const ChunkDataCompresed* GetChunk(ChunkCoord chunk_coord) const;
+	const ChunkDataCompresed* GetChunk(ChunkCoord chunk_coord);
 
 private:
 	// Global coordinates of the first chunk.
@@ -52,6 +52,8 @@ private:
 	static RegionCoord GetRegionCoordForChunk(ChunkCoord chunk_coord);
 	static bool SaveRegion(const Region& region, const std::string& file_name);
 	static std::optional<Region> LoadRegion(const std::string& file_name);
+
+	Region& EnsureRegionLoaded(RegionCoord region_coord);
 
 	std::string GetRegionFilePath(RegionCoord region_coord);
 

@@ -35,20 +35,7 @@ void ChunksStorage::SetActiveArea(const ChunkCoord start, const std::array<uint3
 	for(int32_t y= min_coord_extended[1]; y <= max_coord_extended[1]; y+= int32_t(c_world_region_size[1]))
 	for(int32_t x= min_coord_extended[0]; x <= max_coord_extended[0]; x+= int32_t(c_world_region_size[0]))
 	{
-		const RegionCoord region_coord{x, y};
-		if(regions_map_.count(region_coord) != 0)
-			continue; // Already loaded.
-
-		// This region isn't loaded yet - load it now.
-		// TODO - use bacgtround thread for regions loading.
-		auto load_result= LoadRegion(GetRegionFilePath(region_coord));
-		if(load_result != std::nullopt)
-			regions_map_.emplace(region_coord, std::move(*load_result));
-		else
-		{
-			// Create empty region if can't load it.
-			regions_map_.emplace(region_coord, Region{});
-		}
+		EnsureRegionLoaded({x, y});
 	}
 
 	// Free regions which are no longer inside active area.
@@ -76,9 +63,8 @@ void ChunksStorage::SetActiveArea(const ChunkCoord start, const std::array<uint3
 
 void ChunksStorage::SetChunk(const ChunkCoord chunk_coord, ChunkDataCompresed data_compressed)
 {
-	// TODO - load region if necessary.
 	const RegionCoord region_coord= GetRegionCoordForChunk(chunk_coord);
-	Region& region= regions_map_[region_coord];
+	Region& region= EnsureRegionLoaded(region_coord);
 
 	const int32_t coord_within_region[]
 	{
@@ -94,15 +80,10 @@ void ChunksStorage::SetChunk(const ChunkCoord chunk_coord, ChunkDataCompresed da
 	region.chunks[chunk_index]= std::move(data_compressed);
 }
 
-const ChunkDataCompresed* ChunksStorage::GetChunk(const ChunkCoord chunk_coord) const
+const ChunkDataCompresed* ChunksStorage::GetChunk(const ChunkCoord chunk_coord)
 {
-	// TODO - load region if necessary.
 	const RegionCoord region_coord= GetRegionCoordForChunk(chunk_coord);
-	const auto it= regions_map_.find(region_coord);
-	if(it == regions_map_.end())
-		return nullptr;
-
-	const Region& region= it->second;
+	Region& region= EnsureRegionLoaded(region_coord);
 
 	const int32_t coord_within_region[]
 	{
@@ -231,6 +212,24 @@ std::optional<ChunksStorage::Region> ChunksStorage::LoadRegion(const std::string
 	}
 
 	return result_region;
+}
+
+ChunksStorage::Region& ChunksStorage::EnsureRegionLoaded(const RegionCoord region_coord)
+{
+	if(const auto it= regions_map_.find(region_coord); it != regions_map_.end())
+		return it->second;
+
+	auto region_loaded= LoadRegion(GetRegionFilePath(region_coord));
+	if(region_loaded != std::nullopt)
+	{
+		// Insert region loading result.
+		return regions_map_.emplace(region_coord, std::move(*region_loaded)).first->second;
+	}
+	else
+	{
+		// Insert newly-created region.
+		return regions_map_.emplace(region_coord, Region{}).first->second;
+	}
 }
 
 std::string ChunksStorage::GetRegionFilePath(const RegionCoord region_coord)

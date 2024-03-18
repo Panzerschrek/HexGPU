@@ -96,6 +96,18 @@ void ProcessPlayerMoveInputs()
 
 void MovePlayer()
 {
+	const float c_deceleration= 20.0;
+
+	// Decelerate player.
+	{
+		float speed= length(player_state.velocity.xyz);
+		if(speed > 0.0)
+		{
+			float new_speed= max(0.0, speed - c_deceleration * time_delta_s);
+			player_state.velocity.xyz= player_state.velocity.xyz * (new_speed / speed);
+		}
+	}
+
 	// Apply velocity to position.
 	player_state.pos.xyz+= player_state.velocity.xyz * time_delta_s;
 }

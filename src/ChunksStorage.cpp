@@ -63,40 +63,12 @@ void ChunksStorage::SetActiveArea(const ChunkCoord start, const std::array<uint3
 
 void ChunksStorage::SetChunk(const ChunkCoord chunk_coord, ChunkDataCompresed data_compressed)
 {
-	const RegionCoord region_coord= GetRegionCoordForChunk(chunk_coord);
-	Region& region= EnsureRegionLoaded(region_coord);
-
-	const int32_t coord_within_region[]
-	{
-		chunk_coord[0] - region_coord[0],
-		chunk_coord[1] - region_coord[1],
-	};
-	HEX_ASSERT(coord_within_region[0] >= 0 && coord_within_region[0] < int32_t(c_world_region_size[0]));
-	HEX_ASSERT(coord_within_region[1] >= 0 && coord_within_region[1] < int32_t(c_world_region_size[1]));
-
-	const uint32_t chunk_index=
-		uint32_t(coord_within_region[0]) + uint32_t(coord_within_region[1]) * c_world_region_size[0];
-
-	region.chunks[chunk_index]= std::move(data_compressed);
+	GetChunkData(chunk_coord)= std::move(data_compressed);
 }
 
 const ChunkDataCompresed* ChunksStorage::GetChunk(const ChunkCoord chunk_coord)
 {
-	const RegionCoord region_coord= GetRegionCoordForChunk(chunk_coord);
-	Region& region= EnsureRegionLoaded(region_coord);
-
-	const int32_t coord_within_region[]
-	{
-		chunk_coord[0] - region_coord[0],
-		chunk_coord[1] - region_coord[1],
-	};
-	HEX_ASSERT(coord_within_region[0] >= 0 && coord_within_region[0] < int32_t(c_world_region_size[0]));
-	HEX_ASSERT(coord_within_region[1] >= 0 && coord_within_region[1] < int32_t(c_world_region_size[1]));
-
-	const uint32_t chunk_index=
-		uint32_t(coord_within_region[0]) + uint32_t(coord_within_region[1]) * c_world_region_size[0];
-
-	const ChunkDataCompresed& chunk_data= region.chunks[chunk_index];
+	const ChunkDataCompresed& chunk_data= GetChunkData(chunk_coord);
 	if(!chunk_data.blocks.empty() && !chunk_data.auxiliar_data.empty())
 		return &chunk_data;
 
@@ -212,6 +184,25 @@ std::optional<ChunksStorage::Region> ChunksStorage::LoadRegion(const std::string
 	}
 
 	return result_region;
+}
+
+ChunkDataCompresed& ChunksStorage::GetChunkData(const ChunkCoord chunk_coord)
+{
+	const RegionCoord region_coord= GetRegionCoordForChunk(chunk_coord);
+	Region& region= EnsureRegionLoaded(region_coord);
+
+	const int32_t coord_within_region[]
+	{
+		chunk_coord[0] - region_coord[0],
+		chunk_coord[1] - region_coord[1],
+	};
+	HEX_ASSERT(coord_within_region[0] >= 0 && coord_within_region[0] < int32_t(c_world_region_size[0]));
+	HEX_ASSERT(coord_within_region[1] >= 0 && coord_within_region[1] < int32_t(c_world_region_size[1]));
+
+	const uint32_t chunk_index=
+		uint32_t(coord_within_region[0]) + uint32_t(coord_within_region[1]) * c_world_region_size[0];
+
+	return region.chunks[chunk_index];
 }
 
 ChunksStorage::Region& ChunksStorage::EnsureRegionLoaded(const RegionCoord region_coord)

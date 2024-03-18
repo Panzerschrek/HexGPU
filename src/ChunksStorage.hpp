@@ -53,6 +53,9 @@ private:
 	static bool SaveRegion(const Region& region, const std::string& file_name);
 	static std::optional<Region> LoadRegion(const std::string& file_name);
 
+	// Finds region for given chunk and returns chunk data structure within this region.
+	ChunkDataCompresed& GetChunkData(ChunkCoord chunk_coord);
+
 	Region& EnsureRegionLoaded(RegionCoord region_coord);
 
 	std::string GetRegionFilePath(RegionCoord region_coord);

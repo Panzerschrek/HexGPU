@@ -146,7 +146,7 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window, Settings& settings
 
 	SDL_Vulkan_GetDrawableSize(system_window.GetSDLWindow(), reinterpret_cast<int*>(&viewport_size_.width), reinterpret_cast<int*>(&viewport_size_.height));
 
-	// Create physical device. Prefer usage of discrete GPU. TODO - allow user to select device.
+	// Create physical device. Prefer usage of discrete GPU.
 	const std::vector<vk::PhysicalDevice> physical_devices= instance_->enumeratePhysicalDevices();
 	vk::PhysicalDevice physical_device= physical_devices.front();
 	if(physical_devices.size() > 1u)

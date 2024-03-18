@@ -26,6 +26,7 @@ public:
 		float sky_matrix[16]{};
 		float pos[4]{};
 		float angles[4]{};
+		float velocity[4]{};
 		int32_t build_pos[4]{}; // component 3 - direction
 		int32_t destroy_pos[4]{};
 		int32_t next_player_world_window_offset[4]{};

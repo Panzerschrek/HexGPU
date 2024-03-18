@@ -214,7 +214,7 @@ void UpdateBuildPos()
 	const int c_num_steps= 64;
 
 	vec3 player_dir_normalized= CalculateCameraDirection(player_state.angles.xy);
-	vec3 cur_pos= player_state.pos.xyz;
+	vec3 cur_pos= vec3(player_state.pos.xy, player_state.pos.z + c_player_eyes_level);
 	vec3 step_vec= player_dir_normalized * (c_build_radius / float(c_num_steps));
 
 	ivec3 last_grid_pos= ivec3(-1, -1, -1);

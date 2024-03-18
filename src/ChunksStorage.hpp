@@ -1,5 +1,7 @@
 #pragma once
 #include "ChunkDataCompressor.hpp"
+#include "Settings.hpp"
+#include "WorldSaveLoad.hpp"
 #include <array>
 #include <unordered_map>
 
@@ -13,15 +15,24 @@ public:
 	using ChunkCoord= std::array<int32_t, 2>;
 
 public:
+	explicit ChunksStorage(Settings& settings);
+	~ChunksStorage();
+
+	// Set current area of the world.
+	// This may trigger regions loading and saving.
+	void SetActiveArea(ChunkCoord start, std::array<uint32_t, 2> size);
+
 	void SetChunk(ChunkCoord chunk_coord, ChunkDataCompresed data_compressed);
 
-	// returns non-null if has data for given chunk.
-	const ChunkDataCompresed* GetChunk(ChunkCoord coord);
-
-	bool HasDataForChunk(ChunkCoord coord);
+	// Returns non-null if has data for given chunk.
+	// Result remains valid until next "SetActiveArea" call.
+	const ChunkDataCompresed* GetChunk(ChunkCoord chunk_coord);
 
 private:
-	struct ChunkCoordHasher
+	// Global coordinates of the first chunk.
+	using RegionCoord= std::array<int32_t, 2>;
+
+	struct RegionCoordHasher
 	{
 		size_t operator()(const ChunkCoord& coord) const
 		{
@@ -32,8 +43,26 @@ private:
 		}
 	};
 
+	struct Region
+	{
+		ChunkDataCompresed chunks[c_world_region_area];
+	};
+
 private:
-	std::unordered_map<ChunkCoord, ChunkDataCompresed, ChunkCoordHasher> chunks_map_;
+	static RegionCoord GetRegionCoordForChunk(ChunkCoord chunk_coord);
+	static bool SaveRegion(const Region& region, const std::string& file_name);
+	static std::optional<Region> LoadRegion(const std::string& file_name);
+
+	// Finds region for given chunk and returns chunk data structure within this region.
+	ChunkDataCompresed& GetChunkData(ChunkCoord chunk_coord);
+
+	Region& EnsureRegionLoaded(RegionCoord region_coord);
+
+	std::string GetRegionFilePath(RegionCoord region_coord);
+
+private:
+	const std::string world_dir_path_;
+	std::unordered_map<ChunkCoord, Region, RegionCoordHasher> regions_map_;
 };
 
 } // namespace HexGPU

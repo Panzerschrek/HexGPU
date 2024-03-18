@@ -133,7 +133,7 @@ private:
 
 	void ReadBackAndProcessPlayerState();
 
-	void InitialGenerateWorld(TaskOrganizer& task_organizer);
+	void InitialFillWorld(TaskOrganizer& task_organizer);
 
 	void DetermineChunksUpdateKind(RelativeWorldShiftChunks relative_world_shift);
 	void BuildCurrentFrameChunksToUpdateList(float prev_offset_within_tick, float cur_offset_within_tick);
@@ -163,6 +163,8 @@ private:
 
 private:
 	const vk::Device vk_device_;
+	const vk::CommandPool command_pool_;
+	const vk::Queue queue_;
 	const uint32_t queue_family_index_;
 
 	const WorldSizeChunks world_size_;

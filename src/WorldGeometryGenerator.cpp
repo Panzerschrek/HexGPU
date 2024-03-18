@@ -1,7 +1,7 @@
 #include "WorldGeometryGenerator.hpp"
-#include "Assert.hpp"
 #include "Constants.hpp"
 #include "GlobalDescriptorPool.hpp"
+#include "Math.hpp"
 #include "ShaderList.hpp"
 #include "VulkanUtils.hpp"
 
@@ -82,15 +82,6 @@ const uint32_t c_allocation_unut_size_quads= 512;
 // Assuming that in worst cases (complex geometry) and taking allocator fragmentation into account
 // we need to have enough space for so much vertices.
 const uint32_t c_max_average_quads_per_chunk= 6144;
-
-int32_t EuclidianRemainder(const int32_t x, const int32_t y)
-{
-	HEX_ASSERT(y > 0);
-	const int32_t r = x % y;
-	const int32_t r_corrected= r >= 0 ? r : r + y;
-	HEX_ASSERT(r_corrected >= 0 && r_corrected < y);
-	return r_corrected;
-}
 
 uint32_t GetTotalVertexBufferQuads(const WorldSizeChunks& world_size)
 {

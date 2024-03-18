@@ -561,6 +561,11 @@ vk::Queue WindowVulkan::GetQueue() const
 	return queue_;
 }
 
+vk::CommandPool WindowVulkan::GetCommandPool() const
+{
+	return *command_pool_;
+}
+
 vk::RenderPass WindowVulkan::GetRenderPass() const
 {
 	return *render_pass_;

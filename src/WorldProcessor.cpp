@@ -667,6 +667,8 @@ WorldProcessor::WorldProcessor(
 	const vk::DescriptorPool global_descriptor_pool,
 	Settings& settings)
 	: vk_device_(window_vulkan.GetVulkanDevice())
+	, command_pool_(window_vulkan.GetCommandPool())
+	, queue_(window_vulkan.GetQueue())
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, world_size_(ReadWorldSize(settings))
 	, world_seed_(int32_t(settings.GetOrSetInt("g_world_seed")))
@@ -764,6 +766,7 @@ WorldProcessor::WorldProcessor(
 			global_descriptor_pool,
 			*world_global_state_update_pipeline_.descriptor_set_layout))
 	, chunk_data_download_event_(vk_device_.createEventUnique(vk::EventCreateInfo()))
+	, chunks_storage_(settings)
 	, world_offset_{-int32_t(world_size_[0] / 2u), -int32_t(world_size_[1] / 2u)}
 	, next_world_offset_(world_offset_)
 	, next_next_world_offset_(next_world_offset_)
@@ -771,6 +774,8 @@ WorldProcessor::WorldProcessor(
 	HEX_ASSERT(player_state_read_back_buffer_num_frames_ > 0);
 
 	Log::Info("World seed: ", world_seed_);
+
+	chunks_storage_.SetActiveArea(world_offset_, world_size_);
 
 	// Update chunk gen prepare descriptor set.
 	{
@@ -1258,13 +1263,77 @@ WorldProcessor::WorldProcessor(
 
 WorldProcessor::~WorldProcessor()
 {
+	// Wait for all commands to be finished.
+	vk_device_.waitIdle();
+
+	// Download all chunk data in order to save it.
+
+	// Create one-time command buffer. TODO - avoid this?
+	const auto command_buffer= std::move(vk_device_.allocateCommandBuffersUnique(
+		vk::CommandBufferAllocateInfo(
+			command_pool_,
+			vk::CommandBufferLevel::ePrimary,
+			1u)).front());
+
+	command_buffer->begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
+
+	const uint32_t src_buffer_index= GetSrcBufferIndex();
+
+	// Copy all all contents of chunk data buffers.
+	command_buffer->copyBuffer(
+		chunk_data_buffers_[src_buffer_index].GetBuffer(),
+		chunk_data_load_buffer_.GetBuffer(),
+		{{0, 0, chunk_data_load_buffer_.GetSize()}});
+
+	command_buffer->copyBuffer(
+		chunk_auxiliar_data_buffers_[src_buffer_index].GetBuffer(),
+		chunk_auxiliar_data_load_buffer_.GetBuffer(),
+		{{0, 0, chunk_auxiliar_data_load_buffer_.GetSize()}});
+
+	command_buffer->end();
+
+	const vk::PipelineStageFlags wait_dst_stage_mask= vk::PipelineStageFlagBits::eTransfer;
+	const vk::SubmitInfo submit_info(
+		0u, nullptr,
+		&wait_dst_stage_mask,
+		1u, &*command_buffer,
+		0u, nullptr);
+
+	queue_.submit(submit_info, vk::Fence());
+
+	// Wait until all is finished.
+	queue_.waitIdle();
+
+	// Invalidate ranges before reading.
+	const vk::MappedMemoryRange mapped_memory_ranges[]
+	{
+		{chunk_data_load_buffer_.GetMemory(), 0, chunk_data_load_buffer_.GetSize()},
+		{chunk_auxiliar_data_load_buffer_.GetMemory(), 0, chunk_auxiliar_data_load_buffer_.GetSize()},
+	};
+	vk_device_.invalidateMappedMemoryRanges(uint32_t(std::size(mapped_memory_ranges)), mapped_memory_ranges);
+
+	// Compress and store chunks data.
+	for(uint32_t y= 0; y < world_size_[1]; ++y)
+	for(uint32_t x= 0; x < world_size_[0]; ++x)
+	{
+		const uint32_t chunk_index= x + y * world_size_[0];
+		const uint32_t offset= chunk_index * c_chunk_volume;
+
+		chunks_storage_.SetChunk(
+			{
+				int32_t(x) + world_offset_[0],
+				int32_t(y) + world_offset_[1]
+			},
+			chunk_data_compressor_.Compress(
+				static_cast<const BlockType*>(chunk_data_load_buffer_mapped_) + offset,
+				static_cast<const uint8_t*>(chunk_auxiliar_data_load_buffer_mapped_) + offset));
+	}
+
+	// Unmap remaining buffers.
 	chunk_data_load_buffer_.Unmap(vk_device_);
 	chunk_auxiliar_data_load_buffer_.Unmap(vk_device_);
 
 	player_state_read_back_buffer_.Unmap(vk_device_);
-
-	// Sync before destruction.
-	vk_device_.waitIdle();
 }
 
 void WorldProcessor::Update(
@@ -1299,7 +1368,7 @@ void WorldProcessor::Update(
 	const float cur_tick_fractional= current_tick_fractional_ + tick_delta_clamped;
 
 	if(current_tick_ == 0)
-		InitialGenerateWorld(task_organizer);
+		InitialFillWorld(task_organizer);
 	else
 	{
 		// Continue updates of blocks and lighting.
@@ -1324,6 +1393,8 @@ void WorldProcessor::Update(
 	{
 		world_offset_= next_world_offset_;
 		next_world_offset_= next_next_world_offset_;
+
+		chunks_storage_.SetActiveArea(world_offset_, world_size_);
 
 		FlushWorldBlocksExternalUpdateQueue(task_organizer);
 
@@ -1525,139 +1596,33 @@ void WorldProcessor::ReadBackAndProcessPlayerState()
 	}
 }
 
-void WorldProcessor::InitialGenerateWorld(TaskOrganizer& task_organizer)
+void WorldProcessor::InitialFillWorld(TaskOrganizer& task_organizer)
 {
-	TaskOrganizer::ComputeTaskParams chunk_gen_prepare_task;
-	chunk_gen_prepare_task.input_storage_buffers.push_back(structures_buffer_.GetDescriptionsBuffer());
-	chunk_gen_prepare_task.input_storage_buffers.push_back(tree_map_buffer_.GetBuffer());
-	chunk_gen_prepare_task.output_storage_buffers.push_back(chunk_gen_info_buffer_.GetBuffer());
+	// Fill lists used by world generate/upload function.
 
-	const auto chunk_gen_prepare_task_func=
-		[this](const vk::CommandBuffer command_buffer)
-		{
-			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *chunk_gen_prepare_pipeline_.pipeline);
+	chunks_upate_kind_.clear();
+	chunks_upate_kind_.resize(world_size_[0] * world_size_[1], ChunkUpdateKind::Generate);
 
-			command_buffer.bindDescriptorSets(
-				vk::PipelineBindPoint::eCompute,
-				*chunk_gen_prepare_pipeline_.pipeline_layout,
-				0u,
-				{chunk_gen_prepare_descriptor_set_},
-				{});
+	current_frame_chunks_to_update_list_.clear();
 
-			for(uint32_t x= 0; x < world_size_[0]; ++x)
-			for(uint32_t y= 0; y < world_size_[1]; ++y)
-			{
-				ChunkGenPrepareUniforms uniforms;
-				uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
-				uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-				uniforms.chunk_position[0]= int32_t(x);
-				uniforms.chunk_position[1]= int32_t(y);
-				uniforms.chunk_global_position[0]= world_offset_[0] + int32_t(x);
-				uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(y);
-				uniforms.seed= world_seed_;
+	for(uint32_t y= 0; y < world_size_[1]; ++y)
+	for(uint32_t x= 0; x < world_size_[0]; ++x)
+	{
+		const uint32_t chunk_index= x + y * world_size_[0];
 
-				command_buffer.pushConstants(
-					*chunk_gen_prepare_pipeline_.pipeline_layout,
-					vk::ShaderStageFlagBits::eCompute,
-					0,
-					sizeof(ChunkGenPrepareUniforms), static_cast<const void*>(&uniforms));
+		if(chunks_storage_.GetChunk({int32_t(x) + world_offset_[0], int32_t(y) + world_offset_[1]}) != nullptr)
+			chunks_upate_kind_[chunk_index]= ChunkUpdateKind::Upload;
+		else
+			chunks_upate_kind_[chunk_index]= ChunkUpdateKind::Generate;
 
-				// For now perform single-threaded preparation.
-				command_buffer.dispatch(1, 1, 1);
-			}
-		};
+		current_frame_chunks_to_update_list_.push_back({x, y});
+	}
 
-	task_organizer.ExecuteTask(chunk_gen_prepare_task, chunk_gen_prepare_task_func);
+	// Trigger world generation - for chunks which do not exist in the storage.
+	GenerateWorld(task_organizer, {0, 0});
 
-	const uint32_t dst_buffer_index= GetDstBufferIndex();
-
-	TaskOrganizer::ComputeTaskParams world_gen_task;
-	world_gen_task.input_storage_buffers.push_back(chunk_gen_info_buffer_.GetBuffer());
-	world_gen_task.input_storage_buffers.push_back(structures_buffer_.GetDescriptionsBuffer());
-	world_gen_task.input_storage_buffers.push_back(structures_buffer_.GetDataBuffer());
-	world_gen_task.output_storage_buffers.push_back(chunk_data_buffers_[dst_buffer_index].GetBuffer());
-	world_gen_task.output_storage_buffers.push_back(chunk_auxiliar_data_buffers_[dst_buffer_index].GetBuffer());
-
-	const auto world_gen_task_func=
-		[this, dst_buffer_index](const vk::CommandBuffer command_buffer)
-		{
-			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *world_gen_pipeline_.pipeline);
-
-			command_buffer.bindDescriptorSets(
-				vk::PipelineBindPoint::eCompute,
-				*world_gen_pipeline_.pipeline_layout,
-				0u,
-				{world_gen_descriptor_sets_[dst_buffer_index]},
-				{});
-
-			for(uint32_t x= 0; x < world_size_[0]; ++x)
-			for(uint32_t y= 0; y < world_size_[1]; ++y)
-			{
-				WorldGenUniforms uniforms;
-				uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
-				uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-				uniforms.chunk_position[0]= int32_t(x);
-				uniforms.chunk_position[1]= int32_t(y);
-				uniforms.chunk_global_position[0]= world_offset_[0] + int32_t(x);
-				uniforms.chunk_global_position[1]= world_offset_[1] + int32_t(y);
-				uniforms.seed= world_seed_;
-
-				command_buffer.pushConstants(
-					*world_gen_pipeline_.pipeline_layout,
-					vk::ShaderStageFlagBits::eCompute,
-					0,
-					sizeof(WorldGenUniforms), static_cast<const void*>(&uniforms));
-
-				// Dispatch only 2D group - perform generation for columns.
-				command_buffer.dispatch(
-					c_chunk_width / c_world_gen_workgroup_size[0],
-					c_chunk_width / c_world_gen_workgroup_size[1],
-					1);
-			}
-		};
-
-	task_organizer.ExecuteTask(world_gen_task, world_gen_task_func);
-
-	TaskOrganizer::ComputeTaskParams initial_light_fill_task;
-	initial_light_fill_task.input_storage_buffers.push_back(chunk_data_buffers_[dst_buffer_index].GetBuffer());
-	initial_light_fill_task.output_storage_buffers.push_back(light_buffers_[dst_buffer_index].GetBuffer());
-
-	const auto initial_light_fill_task_func=
-		[this, dst_buffer_index](const vk::CommandBuffer command_buffer)
-		{
-			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *initial_light_fill_pipeline_.pipeline);
-
-			command_buffer.bindDescriptorSets(
-				vk::PipelineBindPoint::eCompute,
-				*initial_light_fill_pipeline_.pipeline_layout,
-				0u,
-				{initial_light_fill_descriptor_sets_[dst_buffer_index]},
-				{});
-
-			for(uint32_t x= 0; x < world_size_[0]; ++x)
-			for(uint32_t y= 0; y < world_size_[1]; ++y)
-			{
-				InitialLightFillUniforms uniforms;
-				uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
-				uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
-				uniforms.chunk_position[0]= int32_t(x);
-				uniforms.chunk_position[1]= int32_t(y);
-
-				command_buffer.pushConstants(
-					*initial_light_fill_pipeline_.pipeline_layout,
-					vk::ShaderStageFlagBits::eCompute,
-					0,
-					sizeof(InitialLightFillUniforms), static_cast<const void*>(&uniforms));
-
-				// Dispatch only 2D group - perform light fill for columns.
-				command_buffer.dispatch(
-					c_chunk_width / c_initial_light_fill_workgroup_size[0],
-					c_chunk_width / c_initial_light_fill_workgroup_size[1],
-					1);
-			}
-		};
-
-	task_organizer.ExecuteTask(initial_light_fill_task, initial_light_fill_task_func);
+	// Upload chunks existing in the storage.
+	UploadChunks(task_organizer);
 }
 
 void WorldProcessor::DetermineChunksUpdateKind(const RelativeWorldShiftChunks relative_world_shift)
@@ -1680,9 +1645,9 @@ void WorldProcessor::DetermineChunksUpdateKind(const RelativeWorldShiftChunks re
 			chunks_upate_kind_[chunk_index]= ChunkUpdateKind::Update;
 		else
 		{
-			if(chunks_storage_.HasDataForChunk({
+			if(chunks_storage_.GetChunk({
 				int32_t(x) + world_offset_[0] + int32_t(relative_world_shift[0]),
-				int32_t(y) + world_offset_[1] + int32_t(relative_world_shift[1])}))
+				int32_t(y) + world_offset_[1] + int32_t(relative_world_shift[1])}) != nullptr)
 				chunks_upate_kind_[chunk_index]= ChunkUpdateKind::Upload;
 			else
 				chunks_upate_kind_[chunk_index]= ChunkUpdateKind::Generate;

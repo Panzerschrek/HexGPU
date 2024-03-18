@@ -20,15 +20,20 @@ ChunksStorage::~ChunksStorage()
 void ChunksStorage::SetActiveArea(const ChunkCoord start, const std::array<uint32_t, 2> size)
 {
 	const RegionCoord min_coord= GetRegionCoordForChunk(start);
-	const RegionCoord max_coord= GetRegionCoordForChunk({start[0] + int32_t(size[0]), start[1] + int32_t(size[1])});
+	const RegionCoord max_coord= GetRegionCoordForChunk(
+		{start[0] + int32_t(size[0]) - 1, start[1] + int32_t(size[1]) - 1});
 
-	// Load also regions at borders - in order to be ready to privide chunk data when it's already needed.
-	for(int32_t y= min_coord[1] - int32_t(c_world_region_size[1]);
-		y < max_coord[1] + int32_t(c_world_region_size[1]);
-		y+= int32_t(c_world_region_size[1]))
-	for(int32_t x= min_coord[0] - int32_t(c_world_region_size[0]);
-		x < max_coord[0] + int32_t(c_world_region_size[0]);
-		x+= int32_t(c_world_region_size[0]))
+	// Load also regions at borders - in order to be ready to provide chunk data when it's already needed.
+	const RegionCoord min_coord_extended{
+		min_coord[0] - int32_t(c_world_region_size[0]),
+		min_coord[1] - int32_t(c_world_region_size[1]) };
+
+	const RegionCoord max_coord_extended{
+		max_coord[0] + int32_t(c_world_region_size[0]),
+		max_coord[1] + int32_t(c_world_region_size[1]) };
+
+	for(int32_t y= min_coord_extended[1]; y <= max_coord_extended[1]; y+= int32_t(c_world_region_size[1]))
+	for(int32_t x= min_coord_extended[0]; x <= max_coord_extended[0]; x+= int32_t(c_world_region_size[0]))
 	{
 		const RegionCoord region_coord{x, y};
 		if(regions_map_.count(region_coord) != 0)
@@ -46,7 +51,27 @@ void ChunksStorage::SetActiveArea(const ChunkCoord start, const std::array<uint3
 		}
 	}
 
-	// TODO - free regions outside active area.
+	// Free regions which are no longer inside active area.
+	for(auto it= regions_map_.begin(); it != regions_map_.end();)
+	{
+		const RegionCoord& region_coord= it->first;
+
+		const bool inside=
+			region_coord[0] >= min_coord_extended[0] && region_coord[0] <= max_coord_extended[0] &&
+			region_coord[1] >= min_coord_extended[1] && region_coord[1] <= max_coord_extended[1];
+
+		if(inside)
+		{
+			// Keep this region and continue iteration.
+			++it;
+		}
+		else
+		{
+			// Save this region, erase it from regions container and continue iteration.
+			SaveRegion(it->second, GetRegionFilePath(region_coord));
+			it= regions_map_.erase(it);
+		}
+	}
 }
 
 void ChunksStorage::SetChunk(const ChunkCoord chunk_coord, ChunkDataCompresed data_compressed)

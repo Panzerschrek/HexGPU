@@ -169,7 +169,7 @@ std::optional<ChunksStorage::Region> ChunksStorage::LoadRegion(const std::string
 	for(uint32_t i= 0; i < c_world_region_area; ++i)
 	{
 		const RegionFile::ChunkHeader& chunk_header= file_header.chunks[i];
-		if(chunk_header.block_data_size != 0 && chunk_header.block_data_size != 0)
+		if(chunk_header.block_data_size != 0 && chunk_header.auxiliar_data_size != 0)
 		{
 			ChunkDataCompresed& chunk_data= result_region.chunks[i];
 

@@ -127,7 +127,55 @@ void MovePlayer()
 			player_state.velocity.xyz= player_state.velocity.xyz * (new_speed / speed);
 		}
 	}
+}
 
+void CollidePlayerAgainstWorld()
+{
+	ivec3 grid_pos= ivec3(GetHexogonCoord(player_state.pos.xy), int(floor(player_state.pos.z)));
+
+	ivec3 pos_in_window= grid_pos - player_world_window.offset.xyz;
+
+	float player_min_z= player_state.pos.z;
+	float player_max_z= player_state.pos.z + c_player_height;
+
+	player_state.pos.w= 9999.0;
+
+	// TODO - tune this.
+	for(int dx= -2; dx <= 2; ++dx)
+	for(int dy= -2; dy <= 2; ++dy)
+	for(int dz= -2; dz <= 2; ++dz)
+	{
+		ivec3 block_pos_in_window= pos_in_window + ivec3(dx, dy, dz);
+		if(!IsPosInsidePlayerWorldWindow(block_pos_in_window))
+			continue;
+
+		uint8_t block_type= player_world_window.window_data[GetAddressOfBlockInPlayerWorldWindow(block_pos_in_window)];
+		if(block_type == c_block_type_air)
+			continue;
+
+		ivec3 block_global_coord= block_pos_in_window + player_world_window.offset.xyz;
+
+		float block_z= float(block_global_coord.z);
+
+		if(player_max_z <= block_z || player_min_z >= block_z + 1.0)
+			continue;
+
+		// TODO - check for collision of real hexagon instead.
+
+		const float block_radius= 1.0 / sqrt(3.0);
+		vec2 block_center=
+			vec2(
+				float(block_global_coord.x) * c_space_scale_x + block_radius,
+				float(block_global_coord.y) + 1.0 - 0.5 * float(block_global_coord.x & 1));
+
+		vec2 vec_to_center= player_state.pos.xy - block_center;
+		float dist= length(vec_to_center);
+		if(dist < block_radius + c_player_radius)
+		{
+			// TODO - tune player position.
+			player_state.pos.w= dist;
+		}
+	}
 }
 
 void UpdateBuildBlockType()
@@ -294,6 +342,7 @@ void main()
 	ProcessPlayerRotateInputs();
 	ProcessPlayerMoveInputs();
 	MovePlayer();
+	CollidePlayerAgainstWorld();
 
 	UpdateBuildBlockType();
 

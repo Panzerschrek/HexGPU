@@ -36,10 +36,15 @@ layout(binding= 3, std430) buffer player_world_window_buffer
 	PlayerWorldWindow player_world_window;
 };
 
+// Player movement constants.
+const float c_angle_speed= 1.0;
+const float c_acceleration= 80.0;
+const float c_deceleration= 40.0;
+const float c_max_speed= 5.0;
+const float c_max_sprint_speed= 20.0;
+
 void ProcessPlayerRotateInputs()
 {
-	const float c_angle_speed= 1.0;
-
 	if((keyboard_state & c_key_mask_rotate_left) != 0)
 		player_state.angles.x+= time_delta_s * c_angle_speed;
 	if((keyboard_state & c_key_mask_rotate_right) != 0)
@@ -60,8 +65,6 @@ void ProcessPlayerRotateInputs()
 
 void ProcessPlayerMoveInputs()
 {
-	const float c_acceleration= 40.0;
-
 	vec3 forward_vector= vec3(-sin(player_state.angles.x), +cos(player_state.angles.x), 0.0);
 	vec3 left_vector= vec3(cos(player_state.angles.x), sin(player_state.angles.x), 0.0);
 
@@ -79,8 +82,19 @@ void ProcessPlayerMoveInputs()
 	const float move_vector_length= length(move_vector);
 	if(move_vector_length > 0.0)
 	{
+		move_vector/= move_vector_length;
+
 		// Increate velocity if acceleration is applied.
-		player_state.velocity.xyz+= c_acceleration * move_vector * (time_delta_s / move_vector_length);
+		// Limit maximum velocity.
+		float max_speed= (keyboard_state & c_key_mask_sprint) != 0 ? c_max_sprint_speed : c_max_speed;
+
+		float velocity_projection_to_move_vector= dot(move_vector, player_state.velocity.xyz);
+		if(velocity_projection_to_move_vector < max_speed)
+		{
+			float max_can_add= max_speed - velocity_projection_to_move_vector;
+			player_state.velocity.xyz+= move_vector * min(c_acceleration * time_delta_s, max_can_add);
+		}
+
 	}
 
 	float move_up_vector= 0.0;
@@ -96,9 +110,11 @@ void ProcessPlayerMoveInputs()
 
 void MovePlayer()
 {
-	const float c_deceleration= 20.0;
+	// Apply velocity to position.
+	player_state.pos.xyz+= player_state.velocity.xyz * time_delta_s;
 
 	// Decelerate player.
+	// Do this only after applying velocity to position.
 	{
 		float speed= length(player_state.velocity.xyz);
 		if(speed > 0.0)
@@ -108,8 +124,6 @@ void MovePlayer()
 		}
 	}
 
-	// Apply velocity to position.
-	player_state.pos.xyz+= player_state.velocity.xyz * time_delta_s;
 }
 
 void UpdateBuildBlockType()

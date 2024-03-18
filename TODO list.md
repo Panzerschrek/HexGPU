@@ -1,6 +1,6 @@
 Here is the list of futures that needs to be implemented.
 The order represents importance and/or dependency.
-* Use file storage to save and load chunks data
+* Load world region files in background thread
 * Improved textures loading - use smaller staging buffer and free it at the end of the loading process
 * Biome-based world generation
 * Update light only after blocks update - in order to avoid black spots in places of removed blocks

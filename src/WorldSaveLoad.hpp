@@ -5,7 +5,7 @@ namespace HexGPU
 {
 
 // Size of region in chunks.
-// This is'nt square because chunks aren't square and we try to keep real region size square.
+// This isn't square because chunks aren't square and we try to keep real region size square.
 constexpr uint32_t c_world_region_size[2]{14, 12};
 constexpr uint32_t c_world_region_area= c_world_region_size[0] * c_world_region_size[1];
 

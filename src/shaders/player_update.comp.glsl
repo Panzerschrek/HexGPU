@@ -43,6 +43,10 @@ const float c_deceleration= 40.0;
 const float c_max_speed= 5.0;
 const float c_max_sprint_speed= 20.0;
 
+const float c_player_radius= 0.25 * 0.9; // 90% of block side
+const float c_player_eyes_level= 1.67;
+const float c_player_height= 1.75;
+
 void ProcessPlayerRotateInputs()
 {
 	if((keyboard_state & c_key_mask_rotate_left) != 0)
@@ -269,7 +273,7 @@ void UpdatePlayerMatrices()
 
 	player_state.blocks_matrix=
 		rotation_and_perspective *
-		MateTranslateMatrix(-player_state.pos.xyz) *
+		MateTranslateMatrix(-vec3(player_state.pos.xy, player_state.pos.z + c_player_eyes_level) ) *
 		MakeScaleMatrix(vec3(0.5 / sqrt(3.0), 0.5, 1.0));
 
 	// Do not upply translation to sky matrix - always keep player in the center of the sky mesh.

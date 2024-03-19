@@ -129,7 +129,11 @@ vec3 CollidePlayerAgainstWorld(vec3 old_pos, vec3 new_pos)
 
 	vec3 move_ray= new_pos - old_pos;
 	float move_ray_length= length(move_ray);
-	float move_ray_length_limited= move_ray_length;
+
+	// Find closest contact point.
+	CollisionDetectionResult result;
+	result.normal= vec3(0.0, 0.0, 1.0);
+	result.move_dist= move_ray_length;
 
 	// TODO - tune this.
 	for(int dx= -2; dx <= 2; ++dx)
@@ -146,13 +150,37 @@ vec3 CollidePlayerAgainstWorld(vec3 old_pos, vec3 new_pos)
 
 		ivec3 block_global_coord= block_pos_in_window + player_world_window.offset.xyz;
 
-		move_ray_length_limited=
-			min(
-				move_ray_length_limited,
-				CollideCylinderWithBlock(old_pos, new_pos, c_player_radius, c_player_height, block_global_coord));
+		CollisionDetectionResult block_collision_result=
+			CollideCylinderWithBlock(old_pos, new_pos, c_player_radius, c_player_height, block_global_coord);
+		if(block_collision_result.move_dist < result.move_dist)
+		{
+			result.move_dist= block_collision_result.move_dist;
+			result.normal= block_collision_result.normal;
+		}
 	}
 
-	return old_pos + move_ray * max(0.0, move_ray_length_limited / move_ray_length);
+	if(result.move_dist >= move_ray_length)
+		return new_pos;
+
+	vec3 intersection_pos= old_pos + move_ray * (result.move_dist / move_ray_length);
+
+	float move_inside_length= move_ray_length - result.move_dist;
+	if(move_inside_length > 0.0)
+	{
+		vec3 move_inside_vec= move_ray * (move_inside_length / move_ray_length);
+
+		// Clamp movement inside a surface by its normal.
+		float move_inside_vec_normal_dot= dot(move_inside_vec, result.normal);
+		if(move_inside_vec_normal_dot < 0.0)
+		{
+			vec3 move_inside_clamped= move_inside_vec - result.normal * move_inside_vec_normal_dot;
+			return intersection_pos + move_inside_clamped;
+		}
+		else
+			return intersection_pos;
+	}
+	else
+		return intersection_pos;
 }
 
 void MovePlayer()

@@ -41,8 +41,14 @@ bool GetEdgeCicleIntersection(vec2 center, float radius, vec2 v0, vec2 v1, out v
 	return true;
 }
 
-// Returns maximum move distance from old to new position.
-float CollideCylinderWithBlock(
+struct CollisionDetectionResult
+{
+	vec3 normal;
+	float move_dist;
+};
+
+// Returns closest contact point and normal for it.
+CollisionDetectionResult CollideCylinderWithBlock(
 	vec3 old_cylinder_pos,
 	vec3 cylinder_pos,
 	float cylinder_radius,
@@ -53,9 +59,6 @@ float CollideCylinderWithBlock(
 
 	float min_z= float(block_coord.z) - cylinder_height;
 	float max_z= float(block_coord.z) + 1.0;
-
-	if(cylinder_pos.z <= min_z || cylinder_pos.z >= max_z)
-		return length(cylinder_pos - old_cylinder_pos); // No correction is required.
 
 	const float block_radius= 1.0 / sqrt(3.0);
 
@@ -68,13 +71,18 @@ float CollideCylinderWithBlock(
 	float total_radius= cylinder_radius + block_radius;
 
 	vec3 move_ray= cylinder_pos - old_cylinder_pos;
-	float min_move_ray_dot= dot(move_ray, move_ray);
-	if(min_move_ray_dot == 0.0)
-		return 0.0;
+
+	CollisionDetectionResult result;
+	result.normal= vec3(0.0, 0.0, 1.0);
+	result.move_dist= dot(move_ray, move_ray);
+	if(result.move_dist == 0.0)
+		return result;
 
 	// Find closest intersection point to old pos.
 
 	// Find intersection with upper block side.
+	if(old_cylinder_pos.z > (min_z + max_z) * 0.5 &&
+		move_ray.z < 0.0)
 	{
 		vec3 intersection_point;
 		vec4 upper_plane= vec4(0.0, 0.0, 1.0, -max_z);
@@ -84,11 +92,20 @@ float CollideCylinderWithBlock(
 			float dist= length(vec_to_center);
 
 			if(dist < total_radius)
-				min_move_ray_dot= min(min_move_ray_dot, dot(move_ray, intersection_point - old_cylinder_pos));
+			{
+				float d= dot(move_ray, intersection_point - old_cylinder_pos);
+				if(d < result.move_dist)
+				{
+					result.move_dist= d;
+					result.normal= upper_plane.xyz;
+				}
+			}
 		}
 	}
 
 	// Find intersection with lower block side.
+	if(old_cylinder_pos.z < (min_z + max_z) * 0.5 &&
+		move_ray.z > 0.0)
 	{
 		vec3 intersection_point;
 		vec4 lower_plane= vec4(0.0, 0.0, -1.0, min_z);
@@ -98,11 +115,19 @@ float CollideCylinderWithBlock(
 			float dist= length(vec_to_center);
 
 			if(dist < total_radius)
-				min_move_ray_dot= min(min_move_ray_dot, dot(move_ray, intersection_point - old_cylinder_pos));
+			{
+				float d= dot(move_ray, intersection_point - old_cylinder_pos);
+				if(d < result.move_dist)
+				{
+					result.move_dist= d;
+					result.normal= lower_plane.xyz;
+				}
+			}
 		}
 	}
 
 	// Find intersection with cylinder.
+	if(length(block_center - old_cylinder_pos.xy) > total_radius)
 	{
 		vec2 intersection_point;
 		if(GetEdgeCicleIntersection(
@@ -118,10 +143,16 @@ float CollideCylinderWithBlock(
 			{
 				float xy_partial_dist= length(intersection_point - old_cylinder_pos.xy);
 				vec3 vec_to_intersection_point= move_ray * (xy_partial_dist / xy_dist);
-				min_move_ray_dot= min(min_move_ray_dot, dot(move_ray, vec_to_intersection_point));
+				float d= dot(move_ray, vec_to_intersection_point);
+				if(d < result.move_dist)
+				{
+					result.move_dist= d;
+					result.normal= vec3(normalize(intersection_point - block_center), 0.0);
+				}
 			}
 		}
 	}
 
-	return min_move_ray_dot / length(move_ray);
+	result.move_dist/= length(move_ray);
+	return result;
 }

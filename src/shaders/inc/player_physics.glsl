@@ -127,6 +127,7 @@ CollisionDetectionResult CollideCylinderWithBlock(
 	}
 
 	// Find intersection with cylinder.
+	if(cylinder_pos.z > min_z && cylinder_pos.z < max_z)
 	{
 		vec2 intersection_point;
 		if(GetEdgeCicleIntersection(

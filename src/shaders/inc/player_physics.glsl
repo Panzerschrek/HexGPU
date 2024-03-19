@@ -41,7 +41,7 @@ bool GetEdgeCicleIntersection(vec2 center, float radius, vec2 v0, vec2 v1, out v
 	return true;
 }
 
-vec3 CollideCycilderWithBlock(
+vec3 CollideCylinderWithBlock(
 	vec3 old_cylinder_pos,
 	vec3 cylinder_pos,
 	float cylinder_radius,

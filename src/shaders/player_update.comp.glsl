@@ -141,7 +141,7 @@ vec3 CollidePlayerAgainstWorld(vec3 old_pos, vec3 new_pos)
 
 		float block_z= float(block_global_coord.z);
 
-		pos_corrected= CollideCycilderWithBlock(old_pos, new_pos, c_player_radius, c_player_height, block_global_coord);
+		pos_corrected= CollideCylinderWithBlock(old_pos, new_pos, c_player_radius, c_player_height, block_global_coord);
 	}
 
 	return pos_corrected;

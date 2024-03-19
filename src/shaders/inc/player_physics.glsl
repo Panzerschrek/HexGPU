@@ -82,10 +82,13 @@ CollisionDetectionResult CollideCylinderWithBlock(
 	// Make it slightly less to fix some edge cases.
 	float top_circles_radius= total_radius - 0.01;
 
+	// Give planes some thickness in order to allow push-back only in some range and avoid push-back by the opposite block plane.
+	float planes_thickness= 0.4;
+
 	// Find closest intersection point to old pos.
 
 	// Find intersection with upper block side.
-	if(old_cylinder_pos.z > (min_z + max_z) * 0.5 && move_ray.z < 0.0)
+	if(old_cylinder_pos.z > max_z - planes_thickness && move_ray.z < 0.0)
 	{
 		vec3 intersection_point;
 		vec4 upper_plane= vec4(0.0, 0.0, 1.0, -max_z);
@@ -107,7 +110,7 @@ CollisionDetectionResult CollideCylinderWithBlock(
 	}
 
 	// Find intersection with lower block side.
-	if(old_cylinder_pos.z < (min_z + max_z) * 0.5 && move_ray.z > 0.0)
+	if(old_cylinder_pos.z < min_z + planes_thickness && move_ray.z > 0.0)
 	{
 		vec3 intersection_point;
 		vec4 lower_plane= vec4(0.0, 0.0, -1.0, min_z);

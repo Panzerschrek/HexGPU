@@ -78,6 +78,9 @@ CollisionDetectionResult CollideCylinderWithBlock(
 	if(result.move_dist == 0.0)
 		return result;
 
+	// Make it slightly less to fix some edge cases.
+	float top_crcles_radius= total_radius - 0.01;
+
 	// Find closest intersection point to old pos.
 
 	// Find intersection with upper block side.
@@ -91,7 +94,7 @@ CollisionDetectionResult CollideCylinderWithBlock(
 			vec2 vec_to_center= intersection_point.xy - block_center;
 			float dist= length(vec_to_center);
 
-			if(dist < total_radius)
+			if(dist < top_crcles_radius)
 			{
 				float d= dot(move_ray, intersection_point - old_cylinder_pos);
 				if(d < result.move_dist)
@@ -114,7 +117,7 @@ CollisionDetectionResult CollideCylinderWithBlock(
 			vec2 vec_to_center= intersection_point.xy - block_center;
 			float dist= length(vec_to_center);
 
-			if(dist < total_radius)
+			if(dist < top_crcles_radius)
 			{
 				float d= dot(move_ray, intersection_point - old_cylinder_pos);
 				if(d < result.move_dist)

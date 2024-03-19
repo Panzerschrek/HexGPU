@@ -135,10 +135,11 @@ vec3 CollidePlayerAgainstWorld(vec3 old_pos, vec3 new_pos)
 	result.normal= vec3(0.0, 0.0, 1.0);
 	result.move_dist= move_ray_length;
 
-	// TODO - tune this.
-	for(int dx= -2; dx <= 2; ++dx)
-	for(int dy= -2; dy <= 2; ++dy)
-	for(int dz= -2; dz <= 2; ++dz)
+	// Check only nearby blocks.
+	// Increase this volume if player radius bacomes bigger.
+	for(int dx= -1; dx <= 1; ++dx)
+	for(int dy= -1; dy <= 1; ++dy)
+	for(int dz= -1; dz <= 2; ++dz)
 	{
 		ivec3 block_pos_in_window= pos_in_window + ivec3(dx, dy, dz);
 		if(!IsPosInsidePlayerWorldWindow(block_pos_in_window))
@@ -173,6 +174,7 @@ vec3 CollidePlayerAgainstWorld(vec3 old_pos, vec3 new_pos)
 		float move_inside_vec_normal_dot= dot(move_inside_vec, result.normal);
 		if(move_inside_vec_normal_dot < 0.0)
 		{
+			// TODO - clamp also speed.
 			vec3 move_inside_clamped= move_inside_vec - result.normal * move_inside_vec_normal_dot;
 			return intersection_pos + move_inside_clamped;
 		}

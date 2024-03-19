@@ -169,8 +169,14 @@ void MovePlayer()
 		float speed= length(player_state.velocity.xyz);
 		if(speed > 0.0)
 		{
-			float new_speed= max(0.0, speed - c_deceleration * time_delta_s);
-			player_state.velocity.xyz= player_state.velocity.xyz * (new_speed / speed);
+			float decelearion= c_deceleration * time_delta_s;
+			if(decelearion >= speed)
+				player_state.velocity.xyz= vec3(0.0, 0.0, 0.0);
+			else
+			{
+				float new_speed= speed - decelearion;
+				player_state.velocity.xyz= player_state.velocity.xyz * (new_speed / speed);
+			}
 		}
 	}
 }

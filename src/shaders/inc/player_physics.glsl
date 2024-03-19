@@ -55,20 +55,21 @@ CollisionDetectionResult CollideCylinderWithBlock(
 	float cylinder_height,
 	ivec3 block_coord)
 {
-	// Collapse cylinder into point and extend block by cylinder dimensions.
+	// For now approximate block as cylinder.
 
-	float min_z= float(block_coord.z) - cylinder_height;
-	float max_z= float(block_coord.z) + 1.0;
+	// Collapse cylinder into point and extend block by cylinder dimensions.
+	// Doing so we simplify cylinder to cylinder collision to point to point collision.
 
 	const float block_radius= 1.0 / sqrt(3.0);
+	float total_radius= cylinder_radius + block_radius;
 
-	// For now approximate block as cylinder.
 	vec2 block_center=
 		vec2(
 			float(block_coord.x) * c_space_scale_x + block_radius,
 			float(block_coord.y) + 1.0 - 0.5 * float(block_coord.x & 1));
 
-	float total_radius= cylinder_radius + block_radius;
+	float min_z= float(block_coord.z) - cylinder_height;
+	float max_z= float(block_coord.z) + 1.0;
 
 	vec3 move_ray= cylinder_pos - old_cylinder_pos;
 
@@ -79,13 +80,12 @@ CollisionDetectionResult CollideCylinderWithBlock(
 		return result;
 
 	// Make it slightly less to fix some edge cases.
-	float top_crcles_radius= total_radius - 0.01;
+	float top_circles_radius= total_radius - 0.01;
 
 	// Find closest intersection point to old pos.
 
 	// Find intersection with upper block side.
-	if(old_cylinder_pos.z > (min_z + max_z) * 0.5 &&
-		move_ray.z < 0.0)
+	if(old_cylinder_pos.z > (min_z + max_z) * 0.5 && move_ray.z < 0.0)
 	{
 		vec3 intersection_point;
 		vec4 upper_plane= vec4(0.0, 0.0, 1.0, -max_z);
@@ -94,7 +94,7 @@ CollisionDetectionResult CollideCylinderWithBlock(
 			vec2 vec_to_center= intersection_point.xy - block_center;
 			float dist= length(vec_to_center);
 
-			if(dist < top_crcles_radius)
+			if(dist < top_circles_radius)
 			{
 				float d= dot(move_ray, intersection_point - old_cylinder_pos);
 				if(d < result.move_dist)
@@ -107,8 +107,7 @@ CollisionDetectionResult CollideCylinderWithBlock(
 	}
 
 	// Find intersection with lower block side.
-	if(old_cylinder_pos.z < (min_z + max_z) * 0.5 &&
-		move_ray.z > 0.0)
+	if(old_cylinder_pos.z < (min_z + max_z) * 0.5 && move_ray.z > 0.0)
 	{
 		vec3 intersection_point;
 		vec4 lower_plane= vec4(0.0, 0.0, -1.0, min_z);
@@ -117,7 +116,7 @@ CollisionDetectionResult CollideCylinderWithBlock(
 			vec2 vec_to_center= intersection_point.xy - block_center;
 			float dist= length(vec_to_center);
 
-			if(dist < top_crcles_radius)
+			if(dist < top_circles_radius)
 			{
 				float d= dot(move_ray, intersection_point - old_cylinder_pos);
 				if(d < result.move_dist)

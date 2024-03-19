@@ -41,7 +41,8 @@ bool GetEdgeCicleIntersection(vec2 center, float radius, vec2 v0, vec2 v1, out v
 	return true;
 }
 
-vec3 CollideCylinderWithBlock(
+// Returns maximum move distance from old to new position.
+float CollideCylinderWithBlock(
 	vec3 old_cylinder_pos,
 	vec3 cylinder_pos,
 	float cylinder_radius,
@@ -54,10 +55,7 @@ vec3 CollideCylinderWithBlock(
 	float max_z= float(block_coord.z) + 1.0;
 
 	if(cylinder_pos.z <= min_z || cylinder_pos.z >= max_z)
-		return cylinder_pos; // No correction is required.
-
-	if(old_cylinder_pos == cylinder_pos)
-		return cylinder_pos;
+		return length(cylinder_pos - old_cylinder_pos); // No correction is required.
 
 	const float block_radius= 1.0 / sqrt(3.0);
 
@@ -71,6 +69,9 @@ vec3 CollideCylinderWithBlock(
 
 	vec3 move_ray= cylinder_pos - old_cylinder_pos;
 	float min_move_ray_dot= dot(move_ray, move_ray);
+	if(min_move_ray_dot == 0.0)
+		return 0.0;
+
 	// Find closest intersection point to old pos.
 
 	// Find intersection with upper block side.
@@ -122,5 +123,5 @@ vec3 CollideCylinderWithBlock(
 		}
 	}
 
-	return old_cylinder_pos + move_ray * (max(0.0, min_move_ray_dot) / dot(move_ray, move_ray));
+	return min_move_ray_dot / length(move_ray);
 }

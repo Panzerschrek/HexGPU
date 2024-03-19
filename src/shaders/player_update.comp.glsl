@@ -127,7 +127,9 @@ vec3 CollidePlayerAgainstWorld(vec3 old_pos, vec3 new_pos)
 	float player_min_z= new_pos.z;
 	float player_max_z= new_pos.z + c_player_height;
 
-	vec3 pos_corrected= new_pos;
+	vec3 move_ray= new_pos - old_pos;
+	float move_ray_length= length(move_ray);
+	float move_ray_length_limited= move_ray_length;
 
 	// TODO - tune this.
 	for(int dx= -2; dx <= 2; ++dx)
@@ -144,12 +146,13 @@ vec3 CollidePlayerAgainstWorld(vec3 old_pos, vec3 new_pos)
 
 		ivec3 block_global_coord= block_pos_in_window + player_world_window.offset.xyz;
 
-		float block_z= float(block_global_coord.z);
-
-		pos_corrected= CollideCylinderWithBlock(old_pos, new_pos, c_player_radius, c_player_height, block_global_coord);
+		move_ray_length_limited=
+			min(
+				move_ray_length_limited,
+				CollideCylinderWithBlock(old_pos, new_pos, c_player_radius, c_player_height, block_global_coord));
 	}
 
-	return pos_corrected;
+	return old_pos + move_ray * max(0.0, move_ray_length_limited / move_ray_length);
 }
 
 void MovePlayer()

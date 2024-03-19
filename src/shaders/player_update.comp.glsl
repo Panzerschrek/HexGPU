@@ -46,7 +46,7 @@ const float c_max_sprint_speed= 20.0;
 const float c_max_vertical_speed= 10.0;
 
 const float c_player_radius= 0.25 * 0.9; // 90% of block side
-const float c_player_eyes_level= 1.67;
+const float c_player_eyes_level= 1.65;
 const float c_player_height= 1.75;
 
 void ProcessPlayerRotateInputs()
@@ -338,7 +338,7 @@ void PushUpdateIntoQueue(WorldBlockExternalUpdate update)
 
 void UpdatePlayerMatrices()
 {
-	const float z_near= 0.125;
+	const float z_near= 0.075; // TODO - calculate it based on FOV and nearby colliders.
 	const float z_far= 2048.0;
 	const float fov_deg= 75.0;
 

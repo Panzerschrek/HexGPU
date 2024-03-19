@@ -9,6 +9,7 @@
 #include "inc/keyboard.glsl"
 #include "inc/matrix.glsl"
 #include "inc/mouse.glsl"
+#include "inc/player_physics.glsl"
 #include "inc/player_state.glsl"
 #include "inc/player_world_window.glsl"
 #include "inc/world_blocks_external_update_queue.glsl"
@@ -112,33 +113,16 @@ void ProcessPlayerMoveInputs()
 	player_state.velocity.z+= c_acceleration * move_up_vector * time_delta_s;
 }
 
-void MovePlayer()
+vec3 CollidePlayerAgainstWorld(vec3 old_pos, vec3 new_pos)
 {
-	// Apply velocity to position.
-	player_state.pos.xyz+= player_state.velocity.xyz * time_delta_s;
-
-	// Decelerate player.
-	// Do this only after applying velocity to position.
-	{
-		float speed= length(player_state.velocity.xyz);
-		if(speed > 0.0)
-		{
-			float new_speed= max(0.0, speed - c_deceleration * time_delta_s);
-			player_state.velocity.xyz= player_state.velocity.xyz * (new_speed / speed);
-		}
-	}
-}
-
-void CollidePlayerAgainstWorld()
-{
-	ivec3 grid_pos= ivec3(GetHexogonCoord(player_state.pos.xy), int(floor(player_state.pos.z)));
+	ivec3 grid_pos= ivec3(GetHexogonCoord(new_pos.xy), int(floor(new_pos.z)));
 
 	ivec3 pos_in_window= grid_pos - player_world_window.offset.xyz;
 
-	float player_min_z= player_state.pos.z;
-	float player_max_z= player_state.pos.z + c_player_height;
+	float player_min_z= new_pos.z;
+	float player_max_z= new_pos.z + c_player_height;
 
-	player_state.pos.w= 9999.0;
+	vec3 pos_corrected= new_pos;
 
 	// TODO - tune this.
 	for(int dx= -2; dx <= 2; ++dx)
@@ -157,23 +141,28 @@ void CollidePlayerAgainstWorld()
 
 		float block_z= float(block_global_coord.z);
 
-		if(player_max_z <= block_z || player_min_z >= block_z + 1.0)
-			continue;
+		pos_corrected= CollideCycilderWithBlock(old_pos, new_pos, c_player_radius, c_player_height, block_global_coord);
+	}
 
-		// TODO - check for collision of real hexagon instead.
+	return pos_corrected;
+}
 
-		const float block_radius= 1.0 / sqrt(3.0);
-		vec2 block_center=
-			vec2(
-				float(block_global_coord.x) * c_space_scale_x + block_radius,
-				float(block_global_coord.y) + 1.0 - 0.5 * float(block_global_coord.x & 1));
+void MovePlayer()
+{
+	// Apply velocity to position.
+	vec3 new_pos= player_state.pos.xyz + player_state.velocity.xyz * time_delta_s;
 
-		vec2 vec_to_center= player_state.pos.xy - block_center;
-		float dist= length(vec_to_center);
-		if(dist < block_radius + c_player_radius)
+	// Perform collisions.
+	player_state.pos.xyz= CollidePlayerAgainstWorld(player_state.pos.xyz, new_pos);
+
+	// Decelerate player.
+	// Do this only after applying velocity to position.
+	{
+		float speed= length(player_state.velocity.xyz);
+		if(speed > 0.0)
 		{
-			// TODO - tune player position.
-			player_state.pos.w= dist;
+			float new_speed= max(0.0, speed - c_deceleration * time_delta_s);
+			player_state.velocity.xyz= player_state.velocity.xyz * (new_speed / speed);
 		}
 	}
 }
@@ -342,7 +331,6 @@ void main()
 	ProcessPlayerRotateInputs();
 	ProcessPlayerMoveInputs();
 	MovePlayer();
-	CollidePlayerAgainstWorld();
 
 	UpdateBuildBlockType();
 

@@ -189,7 +189,9 @@ void MovePlayer()
 	vec3 new_pos= player_state.pos.xyz + player_state.velocity.xyz * time_delta_s;
 
 	// Perform collisions.
-	player_state.pos.xyz= CollidePlayerAgainstWorld(player_state.pos.xyz, new_pos);
+	for(int i= 0; i < 4; ++i)
+		new_pos= CollidePlayerAgainstWorld(player_state.pos.xyz, new_pos);
+	player_state.pos.xyz= new_pos;
 
 	// Decelerate player.
 	// Do this only after applying velocity to position.

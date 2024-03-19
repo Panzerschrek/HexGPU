@@ -3,6 +3,7 @@
 #include "Settings.hpp"
 #include "WorldSaveLoad.hpp"
 #include <array>
+#include <optional>
 #include <unordered_map>
 
 namespace HexGPU

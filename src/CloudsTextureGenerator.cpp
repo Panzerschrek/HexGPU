@@ -9,10 +9,10 @@ namespace HexGPU
 namespace
 {
 
-const uint32_t c_texture_size_log2= 7; // This must match size in generation shader!
+const uint32_t c_texture_size_log2= 8; // This must match size in generation shader!
 const uint32_t c_texture_size= 1 << c_texture_size_log2;
 
-const uint32_t c_num_mips= c_texture_size_log2 - 2; // TODO - make mips
+const uint32_t c_num_mips= c_texture_size_log2 - 2;
 
 namespace CloudsTextureGenPipelineBindings
 {

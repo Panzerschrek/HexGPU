@@ -14,7 +14,7 @@ void main()
 {
 	ivec2 texel_coord= ivec2(gl_GlobalInvocationID.xy);
 
-	const int size_log2= 7; // This must match texture size in C++ code!
+	const int size_log2= 8; // This must match texture size in C++ code!
 
 	const int octaves= 3;
 

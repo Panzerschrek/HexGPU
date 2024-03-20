@@ -27,7 +27,7 @@ void main()
 
 	float horizon_fade_factor= smoothstep(0.0, horizon_level, z_adjusted);
 
-	const vec2 tc_scale= vec2(c_space_scale_x, 1.0) / 8.0;
+	const vec2 tc_scale= vec2(c_space_scale_x, 1.0) / 16.0;
 
 	float tex_value= HexagonFetch(texture_image, tc * tc_scale).r;
 

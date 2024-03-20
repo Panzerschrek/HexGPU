@@ -11,8 +11,8 @@ namespace
 
 namespace CloudsShaderBindings
 {
-	ShaderBindingIndex uniforms_buffer= 0;
-	ShaderBindingIndex texture_sampler= 1;
+	const ShaderBindingIndex uniforms_buffer= 0;
+	const ShaderBindingIndex texture_sampler= 1;
 }
 
 struct SkyShaderUniforms
@@ -207,7 +207,7 @@ SkyRenderer::SkyRenderer(
 
 		const vk::DescriptorImageInfo descriptor_tex_info(
 			vk::Sampler(),
-			textures_generator_.GetImageView(),
+			textures_generator_.GetCloudsImageView(),
 			vk::ImageLayout::eShaderReadOnlyOptimal);
 
 		vk_device_.updateDescriptorSets(
@@ -298,6 +298,7 @@ void SkyRenderer::PrepareFrame(TaskOrganizer& task_organizer)
 void SkyRenderer::CollectFrameInputs(TaskOrganizer::GraphicsTaskParams& out_task_params)
 {
 	out_task_params.uniform_buffers.push_back(uniform_buffer_.GetBuffer());
+	out_task_params.input_images.push_back(textures_generator_.GetCloudsImageInfo());
 }
 
 void SkyRenderer::Draw(const vk::CommandBuffer command_buffer)

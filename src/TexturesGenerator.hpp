@@ -13,8 +13,8 @@ public:
 
 	void PrepareFrame(TaskOrganizer& task_organizer);
 
-	vk::ImageView GetImageView() const;
-	TaskOrganizer::ImageInfo GetImageInfo() const;
+	vk::ImageView GetCloudsImageView() const;
+	TaskOrganizer::ImageInfo GetCloudsImageInfo() const;
 
 private:
 	const vk::Device vk_device_;

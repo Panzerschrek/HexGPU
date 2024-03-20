@@ -61,7 +61,7 @@ TexturesGenerator::TexturesGenerator(WindowVulkan& window_vulkan)
 		vk::ImageViewCreateInfo(
 			vk::ImageViewCreateFlags(),
 			*image_,
-			vk::ImageViewType::e2DArray,
+			vk::ImageViewType::e2D,
 			vk::Format::eR8G8B8A8Unorm,
 			vk::ComponentMapping(),
 			vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, 0u, 1u)));
@@ -135,7 +135,7 @@ void TexturesGenerator::PrepareFrame(TaskOrganizer& task_organizer)
 
 	TaskOrganizer::TransferTaskParams task;
 	task.input_buffers.push_back(*staging_buffer_);
-	task.output_images.push_back(GetImageInfo());
+	task.output_images.push_back(GetCloudsImageInfo());
 
 	const auto task_func=
 		[this](const vk::CommandBuffer command_buffer)
@@ -167,12 +167,12 @@ void TexturesGenerator::PrepareFrame(TaskOrganizer& task_organizer)
 	task_organizer.ExecuteTask(task, task_func);
 }
 
-vk::ImageView TexturesGenerator::GetImageView() const
+vk::ImageView TexturesGenerator::GetCloudsImageView() const
 {
 	return image_view_.get();
 }
 
-TaskOrganizer::ImageInfo TexturesGenerator::GetImageInfo() const
+TaskOrganizer::ImageInfo TexturesGenerator::GetCloudsImageInfo() const
 {
 	TaskOrganizer::ImageInfo info;
 	info.image= *image_;

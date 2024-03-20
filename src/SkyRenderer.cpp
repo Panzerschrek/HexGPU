@@ -158,7 +158,7 @@ SkyRenderer::SkyRenderer(
 	: vk_device_(window_vulkan.GetVulkanDevice())
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, world_processor_(world_processor)
-	, textures_generator_(window_vulkan, global_descriptor_pool)
+	, clouds_texture_generator_(window_vulkan, global_descriptor_pool)
 	, uniform_buffer_(
 		window_vulkan,
 		sizeof(SkyShaderUniforms),
@@ -208,7 +208,7 @@ SkyRenderer::SkyRenderer(
 
 		const vk::DescriptorImageInfo descriptor_tex_info(
 			vk::Sampler(),
-			textures_generator_.GetCloudsImageView(),
+			clouds_texture_generator_.GetCloudsImageView(),
 			vk::ImageLayout::eShaderReadOnlyOptimal);
 
 		vk_device_.updateDescriptorSets(
@@ -246,7 +246,7 @@ SkyRenderer::~SkyRenderer()
 
 void SkyRenderer::PrepareFrame(TaskOrganizer& task_organizer)
 {
-	textures_generator_.PrepareFrame(task_organizer);
+	clouds_texture_generator_.PrepareFrame(task_organizer);
 
 	TaskOrganizer::TransferTaskParams task;
 	task.input_buffers.push_back(world_processor_.GetPlayerStateBuffer());
@@ -311,7 +311,7 @@ void SkyRenderer::PrepareFrame(TaskOrganizer& task_organizer)
 void SkyRenderer::CollectFrameInputs(TaskOrganizer::GraphicsTaskParams& out_task_params)
 {
 	out_task_params.uniform_buffers.push_back(uniform_buffer_.GetBuffer());
-	out_task_params.input_images.push_back(textures_generator_.GetCloudsImageInfo());
+	out_task_params.input_images.push_back(clouds_texture_generator_.GetImageInfo());
 }
 
 void SkyRenderer::Draw(const vk::CommandBuffer command_buffer)

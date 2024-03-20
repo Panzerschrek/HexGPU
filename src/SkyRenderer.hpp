@@ -1,6 +1,6 @@
 #pragma once
+#include "CloudsTextureGenerator.hpp"
 #include "WorldProcessor.hpp"
-#include "TexturesGenerator.hpp"
 
 namespace HexGPU
 {
@@ -38,7 +38,7 @@ private:
 	const uint32_t queue_family_index_;
 	const WorldProcessor& world_processor_;
 
-	TexturesGenerator textures_generator_;
+	CloudsTextureGenerator clouds_texture_generator_;
 
 	const Buffer uniform_buffer_;
 

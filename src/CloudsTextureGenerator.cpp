@@ -1,4 +1,4 @@
-#include "TexturesGenerator.hpp"
+#include "CloudsTextureGenerator.hpp"
 #include "GlobalDescriptorPool.hpp"
 #include "ShaderList.hpp"
 #include "VulkanUtils.hpp"
@@ -13,9 +13,6 @@ const uint32_t c_texture_size_log2= 7;
 const uint32_t c_texture_size= 1 << c_texture_size_log2;
 
 const uint32_t c_num_mips= 1; // TODO - make mips
-
-// Add extra padding (use 3/2 instead of 4/3).
-const uint32_t c_texture_num_texels_with_mips= c_texture_size * c_texture_size * 3 / 2;
 
 namespace CloudsTextureGenPipelineBindings
 {
@@ -55,15 +52,39 @@ ComputePipeline CreateCloudsTextureGenPipeline(const vk::Device vk_device)
 	return pipeline;
 }
 
+vk::UniqueDeviceMemory AllocateAndBindImageMemory(const vk::Image image, const WindowVulkan& window_vulkan)
+{
+	const auto vk_device= window_vulkan.GetVulkanDevice();
+
+	const auto memory_properties= window_vulkan.GetMemoryProperties();
+
+	const vk::MemoryRequirements memory_requirements= vk_device.getImageMemoryRequirements(image);
+
+	vk::MemoryAllocateInfo memory_allocate_info(memory_requirements.size);
+	for(uint32_t j= 0u; j < memory_properties.memoryTypeCount; ++j)
+	{
+		if((memory_requirements.memoryTypeBits & (1u << j)) != 0 &&
+			(memory_properties.memoryTypes[j].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
+		{
+			memory_allocate_info.memoryTypeIndex= j;
+			break;
+		}
+	}
+
+	auto image_memory= vk_device.allocateMemoryUnique(memory_allocate_info);
+	vk_device.bindImageMemory(image, *image_memory, 0u);
+
+	return image_memory;
+}
 
 } // namespace
 
-TexturesGenerator::TexturesGenerator(WindowVulkan& window_vulkan, const vk::DescriptorPool global_descriptor_pool)
+CloudsTextureGenerator::CloudsTextureGenerator(WindowVulkan& window_vulkan, const vk::DescriptorPool global_descriptor_pool)
 	: vk_device_(window_vulkan.GetVulkanDevice())
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
-	, clouds_texture_gen_pipeline_(CreateCloudsTextureGenPipeline(vk_device_))
-	, clouds_texture_gen_descriptor_set_(
-		CreateDescriptorSet(vk_device_, global_descriptor_pool, *clouds_texture_gen_pipeline_.descriptor_set_layout))
+	, gen_pipeline_(CreateCloudsTextureGenPipeline(vk_device_))
+	, gen_descriptor_set_(
+		CreateDescriptorSet(vk_device_, global_descriptor_pool, *gen_pipeline_.descriptor_set_layout))
 	, image_(vk_device_.createImageUnique(
 		vk::ImageCreateInfo(
 			vk::ImageCreateFlags(),
@@ -78,38 +99,16 @@ TexturesGenerator::TexturesGenerator(WindowVulkan& window_vulkan, const vk::Desc
 			vk::SharingMode::eExclusive,
 			0u, nullptr,
 			vk::ImageLayout::eUndefined)))
-{
-	const auto memory_properties= window_vulkan.GetMemoryProperties();
-
-	// Allocate image memory.
-	{
-		const vk::MemoryRequirements memory_requirements= vk_device_.getImageMemoryRequirements(*image_);
-
-		vk::MemoryAllocateInfo memory_allocate_info(memory_requirements.size);
-		for(uint32_t j= 0u; j < memory_properties.memoryTypeCount; ++j)
-		{
-			if((memory_requirements.memoryTypeBits & (1u << j)) != 0 &&
-				(memory_properties.memoryTypes[j].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
-			{
-				memory_allocate_info.memoryTypeIndex= j;
-				break;
-			}
-		}
-
-		image_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);
-		vk_device_.bindImageMemory(*image_, *image_memory_, 0u);
-	}
-
-	// Create image view.
-	image_view_= vk_device_.createImageViewUnique(
+	, image_memory_(AllocateAndBindImageMemory(*image_, window_vulkan))
+	, image_view_(vk_device_.createImageViewUnique(
 		vk::ImageViewCreateInfo(
 			vk::ImageViewCreateFlags(),
 			*image_,
 			vk::ImageViewType::e2D,
 			vk::Format::eR8Unorm,
 			vk::ComponentMapping(),
-			vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, 0u, 1u)));
-
+			vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, 0u, 1u))))
+{
 	// Update clouds texture gen descriptor set.
 	{
 		const vk::DescriptorImageInfo descriptor_tex_info(
@@ -120,7 +119,7 @@ TexturesGenerator::TexturesGenerator(WindowVulkan& window_vulkan, const vk::Desc
 		vk_device_.updateDescriptorSets(
 			{
 				{
-					clouds_texture_gen_descriptor_set_,
+					gen_descriptor_set_,
 					CloudsTextureGenPipelineBindings::out_image,
 					0u,
 					1u,
@@ -134,33 +133,32 @@ TexturesGenerator::TexturesGenerator(WindowVulkan& window_vulkan, const vk::Desc
 	}
 }
 
-TexturesGenerator::~TexturesGenerator()
+CloudsTextureGenerator::~CloudsTextureGenerator()
 {
 	// Sync before destruction.
 	vk_device_.waitIdle();
 }
 
-void TexturesGenerator::PrepareFrame(TaskOrganizer& task_organizer)
+void CloudsTextureGenerator::PrepareFrame(TaskOrganizer& task_organizer)
 {
-	// Copy buffer into the image after ininitialization, because we need a command buffer.
-
-	if(textures_generated_)
+	// Perform texture generation if not done this yet.
+	if(generated_)
 		return;
-	textures_generated_= true;
+	generated_= true;
 
 	TaskOrganizer::ComputeTaskParams task;
-	task.output_images.push_back(GetCloudsImageInfo());
+	task.output_images.push_back(GetImageInfo());
 
 	const auto task_func=
 		[this](const vk::CommandBuffer command_buffer)
 		{
-			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *clouds_texture_gen_pipeline_.pipeline);
+			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *gen_pipeline_.pipeline);
 
 			command_buffer.bindDescriptorSets(
 				vk::PipelineBindPoint::eCompute,
-				*clouds_texture_gen_pipeline_.pipeline_layout,
+				*gen_pipeline_.pipeline_layout,
 				0u,
-				{clouds_texture_gen_descriptor_set_},
+				{gen_descriptor_set_},
 				{});
 
 
@@ -176,12 +174,12 @@ void TexturesGenerator::PrepareFrame(TaskOrganizer& task_organizer)
 	task_organizer.ExecuteTask(task, task_func);
 }
 
-vk::ImageView TexturesGenerator::GetCloudsImageView() const
+vk::ImageView CloudsTextureGenerator::GetCloudsImageView() const
 {
 	return image_view_.get();
 }
 
-TaskOrganizer::ImageInfo TexturesGenerator::GetCloudsImageInfo() const
+TaskOrganizer::ImageInfo CloudsTextureGenerator::GetImageInfo() const
 {
 	TaskOrganizer::ImageInfo info;
 	info.image= *image_;

@@ -31,5 +31,13 @@ void main()
 
 	float tex_value= HexagonFetch(texture_image, tc * tc_scale).r;
 
-	out_color= vec4(vec3(tex_value * uniforms.sky_color.a), 0.5 * horizon_fade_factor);
+	float clouds_edge= uniforms.clouds_color.a;
+
+	float clouds_brightness= tex_value * 0.2 + 0.8;
+
+	float alpha= smoothstep(clouds_edge - 0.1, clouds_edge + 0.1, tex_value);
+
+	out_color=
+		vec4(uniforms.clouds_color.rgb * clouds_brightness,
+		alpha * horizon_fade_factor);
 }

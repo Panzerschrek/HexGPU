@@ -37,8 +37,9 @@ void main()
 
 	world_global_state.sky_light_color= vec4(mix(c_sky_light_nighttime_color, c_sky_light_daytime_color, daynight_k), 0.0);
 
-	world_global_state.sky_color= vec4(mix(c_nighttime_sky_color, c_daytime_sky_color, daynight_k), daynight_k);
+	world_global_state.sky_color= vec4(mix(c_nighttime_sky_color, c_daytime_sky_color, daynight_k), 0.0);
 
 	world_global_state.sun_direction= vec4(sun_direction, 0.0);
 
+	world_global_state.clouds_color= vec4(1.0, 1.0, 1.0, 0.5);
 }

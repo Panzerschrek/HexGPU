@@ -2,6 +2,7 @@ Here is the list of futures that needs to be implemented.
 The order represents importance and/or dependency.
 * Load world region files in background thread
 * Improved textures loading - use smaller staging buffer and free it at the end of the loading process
+* Procedure textures - generate them rather than loading from files
 * Biome-based world generation
 * Update light only after blocks update - in order to avoid black spots in places of removed blocks
 * Grass logic improvements - disappers slower, become yellow, require water or sunlight to grow, etc.
@@ -31,7 +32,6 @@ The order represents importance and/or dependency.
 * Plates (half-blocks)
 * Vertically-splitted half-blocks
 * Day-night cycle - change day time each tick
-* Clouds
 * Stars (at night)
 * Rain/snow
 * Pipe blocks for fast directional water transfer

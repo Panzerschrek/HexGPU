@@ -21,7 +21,7 @@ void main()
 {
 	vec3 view_vec_normalized= normalize(f_view_vec);
 
-	vec2 tc= view_vec_normalized.xy / (abs(view_vec_normalized.z) + 0.05);
+	vec2 tc= view_vec_normalized.xy / (abs(view_vec_normalized.z + 0.2) + 0.05);
 
 	const vec2 tc_scale= vec2(c_space_scale_x, 1.0) / 8.0;
 

@@ -23,6 +23,11 @@ struct SkyShaderUniforms
 	float clouds_color[4]{};
 };
 
+struct CloudsUniforms
+{
+	float tex_coord_shift[2]{};
+};
+
 GraphicsPipeline CreateSkyPipeline(
 	const vk::Device vk_device,
 	const vk::Extent2D viewport_size,
@@ -300,10 +305,10 @@ void SkyRenderer::CollectFrameInputs(TaskOrganizer::GraphicsTaskParams& out_task
 	out_task_params.input_images.push_back(clouds_texture_generator_.GetImageInfo());
 }
 
-void SkyRenderer::Draw(const vk::CommandBuffer command_buffer)
+void SkyRenderer::Draw(const vk::CommandBuffer command_buffer, const float time_s)
 {
 	DrawSkybox(command_buffer);
-	DrawClouds(command_buffer);
+	DrawClouds(command_buffer, time_s);
 }
 
 void SkyRenderer::DrawSkybox(const vk::CommandBuffer command_buffer)
@@ -322,7 +327,7 @@ void SkyRenderer::DrawSkybox(const vk::CommandBuffer command_buffer)
 	command_buffer.draw(c_num_vertices, 1u, 0u, 0u);
 }
 
-void SkyRenderer::DrawClouds(const vk::CommandBuffer command_buffer)
+void SkyRenderer::DrawClouds(const vk::CommandBuffer command_buffer, const float time_s)
 {
 	command_buffer.bindDescriptorSets(
 		vk::PipelineBindPoint::eGraphics,
@@ -332,6 +337,16 @@ void SkyRenderer::DrawClouds(const vk::CommandBuffer command_buffer)
 		{});
 
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *clouds_pipeline_.pipeline);
+
+	CloudsUniforms uniforms;
+	uniforms.tex_coord_shift[0]= -time_s / 320.0f;
+	uniforms.tex_coord_shift[1]= 0.0f;
+
+	command_buffer.pushConstants(
+		*clouds_pipeline_.pipeline_layout,
+		vk::ShaderStageFlagBits::eFragment,
+		0,
+		sizeof(CloudsUniforms), static_cast<const void*>(&uniforms));
 
 	const uint32_t c_num_vertices= 4u * 3u; // This must match the corresponding constant in GLSL code!
 
@@ -391,12 +406,17 @@ SkyRenderer::CloudsPipeline SkyRenderer::CreateCloudsPipeline(
 				vk::DescriptorSetLayoutCreateFlags(),
 				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
 
+	const vk::PushConstantRange push_constant_range(
+		vk::ShaderStageFlagBits::eFragment,
+		0u,
+		sizeof(CloudsUniforms));
+
 	pipeline.pipeline_layout=
 		vk_device.createPipelineLayoutUnique(
 			vk::PipelineLayoutCreateInfo(
 				vk::PipelineLayoutCreateFlags(),
 				1u, &*pipeline.descriptor_set_layout,
-				0u, nullptr));
+				1u, &push_constant_range));
 
 	const vk::PipelineShaderStageCreateInfo shader_stage_create_info[2]
 	{

@@ -16,7 +16,7 @@ public:
 
 	void PrepareFrame(TaskOrganizer& task_organizer);
 	void CollectFrameInputs(TaskOrganizer::GraphicsTaskParams& out_task_params);
-	void Draw(vk::CommandBuffer command_buffer);
+	void Draw(vk::CommandBuffer command_buffer, float time_s);
 
 private:
 	struct CloudsPipeline : public GraphicsPipeline
@@ -26,7 +26,7 @@ private:
 
 private:
 	void DrawSkybox(vk::CommandBuffer command_buffer);
-	void DrawClouds(vk::CommandBuffer command_buffer);
+	void DrawClouds(vk::CommandBuffer command_buffer, float time_s);
 
 	static CloudsPipeline CreateCloudsPipeline(
 		vk::Device vk_device,

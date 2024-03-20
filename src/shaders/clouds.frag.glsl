@@ -6,6 +6,11 @@
 #include "inc/sky_shader_uniforms.glsl"
 #include "inc/world_common.glsl"
 
+layout(push_constant) uniform uniforms_block
+{
+	vec2 tex_coord_shift;
+};
+
 layout(binding= 0) uniform uniforms_block_variable
 {
 	SkyShaderUniforms uniforms;
@@ -29,7 +34,7 @@ void main()
 
 	const vec2 tc_scale= vec2(c_space_scale_x, 1.0) / 16.0;
 
-	float tex_value= HexagonFetch(texture_image, tc * tc_scale).r;
+	float tex_value= HexagonFetch(texture_image, tc * tc_scale + tex_coord_shift).r;
 
 	float clouds_edge= uniforms.clouds_color.a;
 

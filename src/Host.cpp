@@ -160,7 +160,7 @@ bool Host::Loop()
 		[this](const vk::CommandBuffer command_buffer)
 		{
 			world_renderer_.DrawOpaque(command_buffer);
-			sky_renderer_.Draw(command_buffer);
+			sky_renderer_.Draw(command_buffer, accumulated_time_s_);
 			world_renderer_.DrawTransparent(command_buffer, accumulated_time_s_);
 			build_prism_renderer_.Draw(command_buffer);
 

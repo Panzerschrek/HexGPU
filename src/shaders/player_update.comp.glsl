@@ -44,6 +44,7 @@ const float c_deceleration= 40.0;
 const float c_max_speed= 5.0;
 const float c_max_sprint_speed= 20.0;
 const float c_max_vertical_speed= 10.0;
+const float c_max_vertical_sprint_speed= 20.0;
 
 const float c_player_radius= 0.25 * 0.9; // 90% of block side
 const float c_player_eyes_level= 1.65;
@@ -110,12 +111,15 @@ void ProcessPlayerMoveInputs()
 	if((keyboard_state & c_key_mask_fly_down) != 0)
 		move_up_vector-= 1.0;
 
+	float max_vertical_speed=
+		(keyboard_state & c_key_mask_sprint) != 0 ? c_max_vertical_sprint_speed : c_max_vertical_speed;
+
 	// Increate vertical velocity if acceleration is applied.
 	player_state.velocity.z+= c_acceleration * move_up_vector * time_delta_s;
-	if(player_state.velocity.z > c_max_vertical_speed)
-		player_state.velocity.z= c_max_vertical_speed;
-	else if(player_state.velocity.z < -c_max_vertical_speed)
-		player_state.velocity.z= -c_max_vertical_speed;
+	if(player_state.velocity.z > max_vertical_speed)
+		player_state.velocity.z= max_vertical_speed;
+	else if(player_state.velocity.z < -max_vertical_speed)
+		player_state.velocity.z= -max_vertical_speed;
 }
 
 vec3 CollidePlayerAgainstWorld(vec3 old_pos, vec3 new_pos)

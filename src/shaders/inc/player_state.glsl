@@ -5,6 +5,7 @@ struct PlayerState
 	mat4 sky_matrix;
 	vec4 pos;
 	vec4 angles; // azimuth, elevation
+	vec4 velocity;
 	// Use vec4 for proper padding
 	// positions are global
 	ivec4 build_pos; // .w - direction

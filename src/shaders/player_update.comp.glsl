@@ -9,6 +9,7 @@
 #include "inc/keyboard.glsl"
 #include "inc/matrix.glsl"
 #include "inc/mouse.glsl"
+#include "inc/player_physics.glsl"
 #include "inc/player_state.glsl"
 #include "inc/player_world_window.glsl"
 #include "inc/world_blocks_external_update_queue.glsl"
@@ -36,46 +37,21 @@ layout(binding= 3, std430) buffer player_world_window_buffer
 	PlayerWorldWindow player_world_window;
 };
 
-void MovePlayer()
+// Player movement constants.
+const float c_angle_speed= 1.0;
+const float c_acceleration= 80.0;
+const float c_deceleration= 40.0;
+const float c_max_speed= 5.0;
+const float c_max_sprint_speed= 20.0;
+const float c_max_vertical_speed= 10.0;
+const float c_max_vertical_sprint_speed= 20.0;
+
+const float c_player_radius= 0.25 * 0.9; // 90% of block side
+const float c_player_eyes_level= 1.65;
+const float c_player_height= 1.75;
+
+void ProcessPlayerRotateInputs()
 {
-	const float c_walk_speed= 4.0;
-	const float c_sprint_speed= 16.0;
-	const float c_angle_speed= 1.0;
-
-	const float c_jump_speed= 0.8 * c_walk_speed;
-	const float c_sprint_jump_speed= 0.8 * c_sprint_speed;
-
-	float speed= c_walk_speed;
-	float jump_speed= c_jump_speed;
-	if((keyboard_state & c_key_mask_sprint) != 0)
-	{
-		speed= c_sprint_speed;
-		jump_speed= c_sprint_jump_speed;
-	}
-
-	vec3 forward_vector= vec3(-sin(player_state.angles.x), +cos(player_state.angles.x), 0.0);
-	vec3 left_vector= vec3(cos(player_state.angles.x), sin(player_state.angles.x), 0.0);
-
-	vec3 move_vector= vec3(0.0, 0.0, 0.0);
-
-	if((keyboard_state & c_key_mask_forward) != 0)
-		move_vector+= forward_vector;
-	if((keyboard_state & c_key_mask_backward) != 0)
-		move_vector-= forward_vector;
-	if((keyboard_state & c_key_mask_step_left) != 0)
-		move_vector+= left_vector;
-	if((keyboard_state & c_key_mask_step_right) != 0)
-		move_vector-= left_vector;
-
-	const float move_vector_length= length(move_vector);
-	if(move_vector_length > 0.0)
-		player_state.pos.xyz+= move_vector * (time_delta_s * speed / move_vector_length);
-
-	if((keyboard_state & c_key_mask_fly_up) != 0)
-		player_state.pos.z+= time_delta_s * jump_speed;
-	if((keyboard_state & c_key_mask_fly_down) != 0)
-		player_state.pos.z-= time_delta_s * jump_speed;
-
 	if((keyboard_state & c_key_mask_rotate_left) != 0)
 		player_state.angles.x+= time_delta_s * c_angle_speed;
 	if((keyboard_state & c_key_mask_rotate_right) != 0)
@@ -92,6 +68,153 @@ void MovePlayer()
 		player_state.angles.x+= 2.0 * c_pi;
 
 	player_state.angles.y= max(-0.5 * c_pi, min(player_state.angles.y, +0.5 * c_pi));
+}
+
+void ProcessPlayerMoveInputs()
+{
+	vec3 forward_vector= vec3(-sin(player_state.angles.x), +cos(player_state.angles.x), 0.0);
+	vec3 left_vector= vec3(cos(player_state.angles.x), sin(player_state.angles.x), 0.0);
+
+	vec3 move_vector= vec3(0.0, 0.0, 0.0);
+
+	if((keyboard_state & c_key_mask_forward) != 0)
+		move_vector+= forward_vector;
+	if((keyboard_state & c_key_mask_backward) != 0)
+		move_vector-= forward_vector;
+	if((keyboard_state & c_key_mask_step_left) != 0)
+		move_vector+= left_vector;
+	if((keyboard_state & c_key_mask_step_right) != 0)
+		move_vector-= left_vector;
+
+	const float move_vector_length= length(move_vector);
+	if(move_vector_length > 0.0)
+	{
+		move_vector/= move_vector_length;
+
+		// Increate velocity if acceleration is applied.
+		// Limit maximum velocity.
+		float max_speed= (keyboard_state & c_key_mask_sprint) != 0 ? c_max_sprint_speed : c_max_speed;
+
+		float velocity_projection_to_move_vector= dot(move_vector, player_state.velocity.xyz);
+		if(velocity_projection_to_move_vector < max_speed)
+		{
+			float max_can_add= max_speed - velocity_projection_to_move_vector;
+			player_state.velocity.xyz+= move_vector * min(c_acceleration * time_delta_s, max_can_add);
+		}
+
+	}
+
+	float move_up_vector= 0.0;
+
+	if((keyboard_state & c_key_mask_fly_up) != 0)
+		move_up_vector+= 1.0;
+	if((keyboard_state & c_key_mask_fly_down) != 0)
+		move_up_vector-= 1.0;
+
+	float max_vertical_speed=
+		(keyboard_state & c_key_mask_sprint) != 0 ? c_max_vertical_sprint_speed : c_max_vertical_speed;
+
+	// Increate vertical velocity if acceleration is applied.
+	player_state.velocity.z+= c_acceleration * move_up_vector * time_delta_s;
+	if(player_state.velocity.z > max_vertical_speed)
+		player_state.velocity.z= max_vertical_speed;
+	else if(player_state.velocity.z < -max_vertical_speed)
+		player_state.velocity.z= -max_vertical_speed;
+}
+
+vec3 CollidePlayerAgainstWorld(vec3 old_pos, vec3 new_pos)
+{
+	ivec3 grid_pos= ivec3(GetHexogonCoord(new_pos.xy), int(floor(new_pos.z)));
+
+	ivec3 pos_in_window= grid_pos - player_world_window.offset.xyz;
+
+	float player_min_z= new_pos.z;
+	float player_max_z= new_pos.z + c_player_height;
+
+	vec3 move_ray= new_pos - old_pos;
+	float move_ray_length= length(move_ray);
+
+	// Find closest contact point.
+	CollisionDetectionResult result;
+	result.normal= vec3(0.0, 0.0, 1.0);
+	result.move_dist= move_ray_length;
+
+	// Check only nearby blocks.
+	// Increase this volume if player radius bacomes bigger.
+	for(int dx= -1; dx <= 1; ++dx)
+	for(int dy= -1; dy <= 1; ++dy)
+	for(int dz= -1; dz <= 2; ++dz)
+	{
+		ivec3 block_pos_in_window= pos_in_window + ivec3(dx, dy, dz);
+		if(!IsPosInsidePlayerWorldWindow(block_pos_in_window))
+			continue;
+
+		uint8_t block_type= player_world_window.window_data[GetAddressOfBlockInPlayerWorldWindow(block_pos_in_window)];
+		if(c_block_optical_density_table[uint(block_type)] == c_optical_density_air)
+			continue;
+
+		ivec3 block_global_coord= block_pos_in_window + player_world_window.offset.xyz;
+
+		CollisionDetectionResult block_collision_result=
+			CollideCylinderWithBlock(old_pos, new_pos, c_player_radius, c_player_height, block_global_coord);
+		if(block_collision_result.move_dist < result.move_dist)
+		{
+			result.move_dist= block_collision_result.move_dist;
+			result.normal= block_collision_result.normal;
+		}
+	}
+
+	if(result.move_dist >= move_ray_length)
+		return new_pos;
+
+	vec3 intersection_pos= old_pos + move_ray * (result.move_dist / move_ray_length);
+
+	float move_inside_length= move_ray_length - result.move_dist;
+	if(move_inside_length > 0.0)
+	{
+		vec3 move_inside_vec= move_ray * (move_inside_length / move_ray_length);
+
+		// Clamp movement inside a surface by its normal.
+		float move_inside_vec_normal_dot= dot(move_inside_vec, result.normal);
+		if(move_inside_vec_normal_dot < 0.0)
+		{
+			// TODO - clamp also speed.
+			vec3 move_inside_clamped= move_inside_vec - result.normal * move_inside_vec_normal_dot;
+			return intersection_pos + move_inside_clamped;
+		}
+		else
+			return intersection_pos;
+	}
+	else
+		return intersection_pos;
+}
+
+void MovePlayer()
+{
+	// Apply velocity to position.
+	vec3 new_pos= player_state.pos.xyz + player_state.velocity.xyz * time_delta_s;
+
+	// Perform collisions.
+	for(int i= 0; i < 4; ++i)
+		new_pos= CollidePlayerAgainstWorld(player_state.pos.xyz, new_pos);
+	player_state.pos.xyz= new_pos;
+
+	// Decelerate player.
+	// Do this only after applying velocity to position.
+	{
+		float speed= length(player_state.velocity.xyz);
+		if(speed > 0.0)
+		{
+			float decelearion= c_deceleration * time_delta_s;
+			if(decelearion >= speed)
+				player_state.velocity.xyz= vec3(0.0, 0.0, 0.0);
+			else
+			{
+				float new_speed= speed - decelearion;
+				player_state.velocity.xyz= player_state.velocity.xyz * (new_speed / speed);
+			}
+		}
+	}
 }
 
 void UpdateBuildBlockType()
@@ -178,7 +301,7 @@ void UpdateBuildPos()
 	const int c_num_steps= 64;
 
 	vec3 player_dir_normalized= CalculateCameraDirection(player_state.angles.xy);
-	vec3 cur_pos= player_state.pos.xyz;
+	vec3 cur_pos= vec3(player_state.pos.xy, player_state.pos.z + c_player_eyes_level);
 	vec3 step_vec= player_dir_normalized * (c_build_radius / float(c_num_steps));
 
 	ivec3 last_grid_pos= ivec3(-1, -1, -1);
@@ -221,7 +344,7 @@ void PushUpdateIntoQueue(WorldBlockExternalUpdate update)
 
 void UpdatePlayerMatrices()
 {
-	const float z_near= 0.125;
+	const float z_near= 0.075; // TODO - calculate it based on FOV and nearby colliders.
 	const float z_far= 2048.0;
 	const float fov_deg= 75.0;
 
@@ -237,7 +360,7 @@ void UpdatePlayerMatrices()
 
 	player_state.blocks_matrix=
 		rotation_and_perspective *
-		MateTranslateMatrix(-player_state.pos.xyz) *
+		MateTranslateMatrix(-vec3(player_state.pos.xy, player_state.pos.z + c_player_eyes_level) ) *
 		MakeScaleMatrix(vec3(0.5 / sqrt(3.0), 0.5, 1.0));
 
 	// Do not upply translation to sky matrix - always keep player in the center of the sky mesh.
@@ -255,7 +378,10 @@ void UpdateNextPlayerWorldWindowOffset()
 
 void main()
 {
+	ProcessPlayerRotateInputs();
+	ProcessPlayerMoveInputs();
 	MovePlayer();
+
 	UpdateBuildBlockType();
 
 	UpdateBuildPos();

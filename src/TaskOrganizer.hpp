@@ -47,6 +47,7 @@ public:
 		std::vector<vk::Buffer> output_storage_buffers;
 		// Buffers which are both input and output. Do not list them in input and/or output lists!
 		std::vector<vk::Buffer> input_output_storage_buffers;
+		std::vector<ImageInfo> output_images;
 	};
 
 	// Task type for a batch of draw commands within single render pass.
@@ -86,6 +87,10 @@ public:
 	void ExecuteTask(const GraphicsTaskParams& params, const TaskFunc& func);
 	void ExecuteTask(const TransferTaskParams& params, const TaskFunc& func);
 
+	// Generate mips based on mip #0 up to maximum mip.
+	// Image should be created with TransferDst and TransferSrc flags.
+	void GenerateImageMips(const ImageInfo& image_info, vk::Extent2D image_size);
+
 private:
 	enum struct BufferUsage : uint8_t
 	{
@@ -110,8 +115,8 @@ private:
 		GraphicsSrc,
 		TransferDst,
 		TransferSrc,
+		ComputeDst,
 		// TODO - add GraphicsDst for render pass output images.
-		// TODO - add usages for compute shaders.
 	};
 
 	struct ImageSyncInfo

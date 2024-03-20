@@ -17,6 +17,7 @@ void TaskOrganizer::SetCommandBuffer(vk::CommandBuffer command_buffer)
 void TaskOrganizer::ExecuteTask(const ComputeTaskParams& params, const TaskFunc& func)
 {
 	std::vector<vk::BufferMemoryBarrier> buffer_barriers;
+	std::vector<vk::ImageMemoryBarrier> image_barriers;
 	vk::PipelineStageFlags src_pipeline_stage_flags;
 	vk::PipelineStageFlags dst_pipeline_stage_flags;
 	bool require_barrier_for_write_after_read_sync= false;
@@ -74,20 +75,40 @@ void TaskOrganizer::ExecuteTask(const ComputeTaskParams& params, const TaskFunc&
 		}
 	}
 
-	if(!buffer_barriers.empty() || require_barrier_for_write_after_read_sync)
+	for(const ImageInfo& image_info : params.output_images)
+	{
+		if(GetLastImageUsage(image_info.image) != ImageUsage::ComputeDst)
+		{
+			const auto sync_info= GetSyncInfoForLastImageUsage(image_info.image);
+			image_barriers.emplace_back(
+				sync_info.access_flags, vk::AccessFlagBits::eShaderWrite,
+				sync_info.layout, vk::ImageLayout::eGeneral,
+				queue_family_index_, queue_family_index_,
+				image_info.image,
+				vk::ImageSubresourceRange(image_info.asppect_flags, 0u, image_info.num_mips, 0u, image_info.num_layers));
+
+			src_pipeline_stage_flags|= sync_info.pipeline_stage_flags;
+			dst_pipeline_stage_flags|= vk::PipelineStageFlagBits::eComputeShader;
+		}
+	}
+
+	if(!buffer_barriers.empty() || !image_barriers.empty() || require_barrier_for_write_after_read_sync)
 		command_buffer_.pipelineBarrier(
 			src_pipeline_stage_flags,
 			dst_pipeline_stage_flags,
 			vk::DependencyFlags(),
 			{},
 			buffer_barriers,
-			{});
+			image_barriers);
 
 	func(command_buffer_);
 
 	UpdateLastBuffersUsage(params.input_storage_buffers, BufferUsage::ComputeShaderSrc);
 	UpdateLastBuffersUsage(params.output_storage_buffers, BufferUsage::ComputeShaderDst);
 	UpdateLastBuffersUsage(params.input_output_storage_buffers, BufferUsage::ComputeShaderDst);
+
+	for(const ImageInfo& image_info : params.output_images)
+		UpdateLastImageUsage(image_info.image, ImageUsage::ComputeDst);
 }
 
 void TaskOrganizer::ExecuteTask(const GraphicsTaskParams& params, const TaskFunc& func)
@@ -270,7 +291,7 @@ void TaskOrganizer::ExecuteTask(const TransferTaskParams& params, const TaskFunc
 		}
 	}
 
-	for(const ImageInfo image_info : params.output_images)
+	for(const ImageInfo& image_info : params.output_images)
 	{
 		if(GetLastImageUsage(image_info.image) != ImageUsage::TransferDst)
 		{
@@ -305,6 +326,96 @@ void TaskOrganizer::ExecuteTask(const TransferTaskParams& params, const TaskFunc
 		UpdateLastImageUsage(image_info.image, ImageUsage::TransferSrc);
 	for(const ImageInfo& image_info : params.output_images)
 		UpdateLastImageUsage(image_info.image, ImageUsage::TransferDst);
+}
+
+void TaskOrganizer::GenerateImageMips(const ImageInfo& image_info, const vk::Extent2D image_size)
+{
+	// First transfer the whole image to TransferSrcOptimal layout.
+	if(GetLastImageUsage(image_info.image) != ImageUsage::TransferSrc)
+	{
+		const auto sync_info= GetSyncInfoForLastImageUsage(image_info.image);
+		const vk::ImageMemoryBarrier image_barrier(
+			sync_info.access_flags, vk::AccessFlagBits::eTransferRead,
+			sync_info.layout, vk::ImageLayout::eTransferSrcOptimal,
+			queue_family_index_, queue_family_index_,
+			image_info.image,
+			vk::ImageSubresourceRange(image_info.asppect_flags, 0u, image_info.num_mips, 0u, image_info.num_layers));
+
+		command_buffer_.pipelineBarrier(
+			sync_info.pipeline_stage_flags,
+			 vk::PipelineStageFlagBits::eTransfer,
+			vk::DependencyFlags(),
+			0u, nullptr,
+			0u, nullptr,
+			1u, &image_barrier);
+	}
+
+	// Pefrom blitting for mip chain.
+	for(uint32_t i= 1; i < image_info.num_mips; ++i)
+	{
+		// Transfer destination mip to TransferDstOptimal layout.
+		{
+			const vk::ImageMemoryBarrier image_barrier(
+				vk::AccessFlagBits(), vk::AccessFlagBits::eTransferWrite,
+				vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal,
+				queue_family_index_, queue_family_index_,
+				image_info.image,
+				vk::ImageSubresourceRange(image_info.asppect_flags, i, 1, 0u, image_info.num_layers));
+
+			command_buffer_.pipelineBarrier(
+				vk::PipelineStageFlagBits(),
+				vk::PipelineStageFlagBits::eTransfer,
+				vk::DependencyFlags(),
+				0u, nullptr,
+				0u, nullptr,
+				1u, &image_barrier);
+		}
+
+		// Perform blitting with linear interpolation.
+		// This effectively avegages pixels in 2x2 block.
+
+		const vk::ImageBlit image_blit(
+			vk::ImageSubresourceLayers(image_info.asppect_flags, i - 1, 0u, image_info.num_layers),
+			{
+				vk::Offset3D(0, 0, 0),
+				vk::Offset3D(image_size.width >> (i - 1), image_size.height >> (i - 1), 1),
+			},
+			vk::ImageSubresourceLayers(image_info.asppect_flags, i, 0u, image_info.num_layers),
+			{
+				vk::Offset3D(0, 0, 0),
+				vk::Offset3D(image_size.width >> i, image_size.height >> i, 1),
+			});
+
+		command_buffer_.blitImage(
+			image_info.image,
+			vk::ImageLayout::eTransferSrcOptimal,
+			image_info.image,
+			vk::ImageLayout::eTransferDstOptimal,
+			1u, &image_blit,
+			vk::Filter::eLinear);
+
+		// Transfer this mip to TransferSrcOptimal layout.
+		{
+			const vk::ImageMemoryBarrier image_barrier(
+				vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eTransferRead,
+				vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eTransferSrcOptimal,
+				queue_family_index_, queue_family_index_,
+				image_info.image,
+				vk::ImageSubresourceRange(image_info.asppect_flags, i, 1, 0u, image_info.num_layers));
+
+			command_buffer_.pipelineBarrier(
+				vk::PipelineStageFlagBits::eTransfer,
+				vk::PipelineStageFlagBits::eTransfer,
+				vk::DependencyFlags(),
+				0u, nullptr,
+				0u, nullptr,
+				1u, &image_barrier);
+		}
+	}
+
+	// At the end of the mip chain generation all image mips should be in TransferSrc layout.
+	// Mark this as image TransferSrc usage.
+	UpdateLastImageUsage(image_info.image, ImageUsage::TransferSrc);
 }
 
 void TaskOrganizer::UpdateLastBuffersUsage(const std::vector<vk::Buffer> buffers, const BufferUsage usage)
@@ -468,6 +579,8 @@ TaskOrganizer::ImageSyncInfo TaskOrganizer::GetSyncInfoForImageUsage(const Image
 		return {vk::AccessFlagBits::eTransferWrite, vk::PipelineStageFlagBits::eTransfer, vk::ImageLayout::eTransferDstOptimal};
 	case ImageUsage::TransferSrc:
 		return {vk::AccessFlagBits::eTransferRead, vk::PipelineStageFlagBits::eTransfer, vk::ImageLayout::eTransferSrcOptimal};
+	case ImageUsage::ComputeDst:
+		return {vk::AccessFlagBits::eShaderWrite, vk::PipelineStageFlagBits::eComputeShader, vk::ImageLayout::eGeneral};
 	};
 
 	HEX_ASSERT(false);

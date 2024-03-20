@@ -160,7 +160,7 @@ bool Host::Loop()
 		[this](const vk::CommandBuffer command_buffer)
 		{
 			world_renderer_.DrawOpaque(command_buffer);
-			sky_renderer_.Draw(command_buffer);
+			sky_renderer_.Draw(command_buffer, accumulated_time_s_);
 			world_renderer_.DrawTransparent(command_buffer, accumulated_time_s_);
 			build_prism_renderer_.Draw(command_buffer);
 
@@ -304,11 +304,12 @@ void Host::DrawDebugInfo()
 void Host::DrawDebugParamsUI()
 {
 	ImGui::SetNextWindowBgAlpha(0.25f);
-	ImGui::SetNextWindowSize({300.0f, 64.0f}, ImGuiCond_Appearing);
-	ImGui::SetNextWindowPos({float(window_vulkan_.GetViewportSize().width) - 300.0f, 128.0f}, ImGuiCond_Appearing);
+	ImGui::SetNextWindowSize({450.0f, 300.0f}, ImGuiCond_Appearing);
+	ImGui::SetNextWindowPos({float(window_vulkan_.GetViewportSize().width) - 450.0f, 128.0f}, ImGuiCond_Appearing);
 	ImGui::Begin("HexGPU debug params", nullptr);
 	{
 		ImGui::SliderFloat("Time of day", &debug_params_.time_of_day, 0.0f, 1.0f);
+		ImGui::SliderFloat("Rain intensity", &debug_params_.rain_intensity, 0.0f, 1.0f);
 	}
 
 	ImGui::End();

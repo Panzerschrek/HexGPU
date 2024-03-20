@@ -268,7 +268,7 @@ void SkyRenderer::PrepareFrame(TaskOrganizer& task_organizer)
 					},
 				});
 
-			// Copy sky color.
+			// Copy various params from global world state.
 			command_buffer.copyBuffer(
 				world_processor_.GetWorldGlobalStateBuffer(),
 				uniform_buffer_.GetBuffer(),
@@ -278,25 +278,11 @@ void SkyRenderer::PrepareFrame(TaskOrganizer& task_organizer)
 						offsetof(SkyShaderUniforms, sky_color),
 						sizeof(float) * 4
 					},
-				});
-
-			// Copy sun direction.
-			command_buffer.copyBuffer(
-				world_processor_.GetWorldGlobalStateBuffer(),
-				uniform_buffer_.GetBuffer(),
-				{
 					{
 						offsetof(WorldProcessor::WorldGlobalState, sun_direction),
 						offsetof(SkyShaderUniforms, sun_direction),
 						sizeof(float) * 4
 					},
-				});
-
-			// Copy clouds color.
-			command_buffer.copyBuffer(
-				world_processor_.GetWorldGlobalStateBuffer(),
-				uniform_buffer_.GetBuffer(),
-				{
 					{
 						offsetof(WorldProcessor::WorldGlobalState, clouds_color),
 						offsetof(SkyShaderUniforms, clouds_color),
@@ -331,7 +317,7 @@ void SkyRenderer::DrawSkybox(const vk::CommandBuffer command_buffer)
 
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *skybox_pipeline_.pipeline);
 
-	const uint32_t c_num_vertices= 6u * 3u; // This must match the corresponding contant in GLSL code!
+	const uint32_t c_num_vertices= 6u * 3u; // This must match the corresponding constant in GLSL code!
 
 	command_buffer.draw(c_num_vertices, 1u, 0u, 0u);
 }
@@ -347,7 +333,7 @@ void SkyRenderer::DrawClouds(const vk::CommandBuffer command_buffer)
 
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *clouds_pipeline_.pipeline);
 
-	const uint32_t c_num_vertices= 4u * 3u; // This must match the corresponding contant in GLSL code!
+	const uint32_t c_num_vertices= 4u * 3u; // This must match the corresponding constant in GLSL code!
 
 	command_buffer.draw(c_num_vertices, 1u, 0u, 0u);
 }

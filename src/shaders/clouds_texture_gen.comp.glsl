@@ -14,16 +14,16 @@ void main()
 {
 	ivec2 texel_coord= ivec2(gl_GlobalInvocationID.xy);
 
-	int size_log2= 7; // TODO - provide an uniform?
+	const int size_log2= 7; // This must match texture size in C++ code!
 
-	const int c_octaves= 3;
+	const int octaves= 3;
 
 	int scaler= 0;
-	for(int i= 0; i < c_octaves; ++i)
+	for(int i= 0; i < octaves; ++i)
 		scaler+= 65536 >> i;
 
 	int noise_val=
-		hex_TriangularInterpolatedOctaveNoiseWraped(texel_coord.x, texel_coord.y, 0, c_octaves, size_log2);
+		hex_TriangularInterpolatedOctaveNoiseWraped(texel_coord.x, texel_coord.y, 0, octaves, size_log2);
 
 	float brightness= float(noise_val) / float(scaler);
 	vec4 color= vec4(brightness, 0.0, 0.0, 0.0);

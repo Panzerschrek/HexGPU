@@ -9,7 +9,7 @@ namespace HexGPU
 namespace
 {
 
-const uint32_t c_texture_size_log2= 7;
+const uint32_t c_texture_size_log2= 7; // This must match size in generation shader!
 const uint32_t c_texture_size= 1 << c_texture_size_log2;
 
 const uint32_t c_num_mips= 1; // TODO - make mips
@@ -160,7 +160,6 @@ void CloudsTextureGenerator::PrepareFrame(TaskOrganizer& task_organizer)
 				0u,
 				{gen_descriptor_set_},
 				{});
-
 
 			// This constant should match workgroup size in shader!
 			constexpr uint32_t c_workgroup_size[]{8, 16, 1};

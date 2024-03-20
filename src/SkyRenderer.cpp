@@ -338,7 +338,6 @@ void SkyRenderer::DrawClouds(const vk::CommandBuffer command_buffer)
 	command_buffer.draw(c_num_vertices, 1u, 0u, 0u);
 }
 
-
 SkyRenderer::CloudsPipeline SkyRenderer::CreateCloudsPipeline(
 	const vk::Device vk_device,
 	const vk::Extent2D viewport_size,

@@ -117,7 +117,6 @@ private:
 		TransferSrc,
 		ComputeDst,
 		// TODO - add GraphicsDst for render pass output images.
-		// TODO - add usages for compute shaders.
 	};
 
 	struct ImageSyncInfo

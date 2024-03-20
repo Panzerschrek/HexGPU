@@ -75,7 +75,7 @@ void TaskOrganizer::ExecuteTask(const ComputeTaskParams& params, const TaskFunc&
 		}
 	}
 
-	for(const ImageInfo image_info : params.output_images)
+	for(const ImageInfo& image_info : params.output_images)
 	{
 		if(GetLastImageUsage(image_info.image) != ImageUsage::ComputeDst)
 		{
@@ -91,7 +91,6 @@ void TaskOrganizer::ExecuteTask(const ComputeTaskParams& params, const TaskFunc&
 			dst_pipeline_stage_flags|= vk::PipelineStageFlagBits::eComputeShader;
 		}
 	}
-
 
 	if(!buffer_barriers.empty() || !image_barriers.empty() || require_barrier_for_write_after_read_sync)
 		command_buffer_.pipelineBarrier(
@@ -292,7 +291,7 @@ void TaskOrganizer::ExecuteTask(const TransferTaskParams& params, const TaskFunc
 		}
 	}
 
-	for(const ImageInfo image_info : params.output_images)
+	for(const ImageInfo& image_info : params.output_images)
 	{
 		if(GetLastImageUsage(image_info.image) != ImageUsage::TransferDst)
 		{

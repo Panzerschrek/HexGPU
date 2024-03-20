@@ -42,5 +42,6 @@ void main()
 
 	world_global_state.sun_direction= vec4(sun_direction, 0.0);
 
-	world_global_state.clouds_color= vec4(1.0, 1.0, 1.0, 1.0 - (rain_intensity * 0.7 + 0.25));
+	world_global_state.clouds_color.rgb= mix(c_nightime_clouds_color, c_daytime_clouds_color, daynight_k);
+	world_global_state.clouds_color.a= 1.0 - (rain_intensity * 0.7 + 0.25);
 }

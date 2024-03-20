@@ -7,7 +7,6 @@ The order represents importance and/or dependency.
 * Grass logic improvements - disappers slower, become yellow, require water or sunlight to grow, etc.
 * Frustum-culling for chunks
 * Fire (that burns some blocks)
-* Player collision against the world
 * Save and load player state
 * More block types
 * Smooth lighting - average block light values at each vertex
@@ -21,6 +20,10 @@ The order represents importance and/or dependency.
 * Underwater fog
 * Evaporate water from blocks with low level and no input/output flow (randomly)
 * Increase water level in non-full water blocks under the sky when it's raining
+* Player physics - add gravity
+* Player physics - perform proper cylinder to hex-prism collision
+* Player physics - fix some edge cases with multiple block collision
+* Player physics - limit velocity vector on collisions
 * Configurable textures config
 * Trees generation with variable density
 * Procedural tree models

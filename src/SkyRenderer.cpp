@@ -440,7 +440,7 @@ SkyRenderer::CloudsPipeline SkyRenderer::CreateCloudsPipeline(
 		vk::PolygonMode::eFill,
 		vk::CullModeFlagBits::eBack, // Use back-face culling.
 		vk::FrontFace::eCounterClockwise,
-		VK_TRUE, -1.0f, 0.0f, -1.0f, // Depth bias
+		VK_FALSE, 0.0f, 0.0f, 0.0f,
 		1.0f);
 
 	const vk::PipelineMultisampleStateCreateInfo pipeline_multisample_state_create_info;
@@ -448,7 +448,7 @@ SkyRenderer::CloudsPipeline SkyRenderer::CreateCloudsPipeline(
 	const vk::PipelineDepthStencilStateCreateInfo pipeline_depth_state_create_info(
 		vk::PipelineDepthStencilStateCreateFlags(),
 		VK_TRUE,
-		VK_TRUE,
+		VK_FALSE, // Do not bother writing depth.
 		vk::CompareOp::eLess,
 		VK_FALSE,
 		VK_FALSE,

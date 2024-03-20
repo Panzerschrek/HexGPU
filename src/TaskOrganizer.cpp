@@ -376,12 +376,12 @@ void TaskOrganizer::GenerateImageMips(const ImageInfo& image_info, const vk::Ext
 		// This effectively avegages pixels in 2x2 block.
 
 		const vk::ImageBlit image_blit(
-			vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, i - 1, 0u, image_info.num_layers),
+			vk::ImageSubresourceLayers(image_info.asppect_flags, i - 1, 0u, image_info.num_layers),
 			{
 				vk::Offset3D(0, 0, 0),
 				vk::Offset3D(image_size.width >> (i - 1), image_size.height >> (i - 1), 1),
 			},
-			vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, i, 0u, image_info.num_layers),
+			vk::ImageSubresourceLayers(image_info.asppect_flags, i, 0u, image_info.num_layers),
 			{
 				vk::Offset3D(0, 0, 0),
 				vk::Offset3D(image_size.width >> i, image_size.height >> i, 1),

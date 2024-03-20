@@ -87,6 +87,8 @@ public:
 	void ExecuteTask(const GraphicsTaskParams& params, const TaskFunc& func);
 	void ExecuteTask(const TransferTaskParams& params, const TaskFunc& func);
 
+	// Generate mips based on mip #0 up to maximum mip.
+	// Image should be created with TransferDst and TransferSrc flags.
 	void GenerateImageMips(const ImageInfo& image_info, vk::Extent2D image_size);
 
 private:

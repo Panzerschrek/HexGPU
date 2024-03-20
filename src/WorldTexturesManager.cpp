@@ -15,8 +15,7 @@ const uint32_t c_num_mips= c_texture_size_log2 - 2; // Ignore last two mips for 
 
 constexpr uint32_t c_num_layers= uint32_t(std::size(c_block_textures_table));
 
-// Add extra padding (use 3/2 instead of 4/3).
-const uint32_t c_texture_num_texels_with_mips= c_texture_size * c_texture_size * 3 / 2;
+const uint32_t c_texture_num_texels= c_texture_size * c_texture_size;
 
 } // namespace
 
@@ -33,7 +32,7 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 			c_num_layers,
 			vk::SampleCountFlagBits::e1,
 			vk::ImageTiling::eOptimal,
-			vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
+			vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc,
 			vk::SharingMode::eExclusive,
 			0u, nullptr,
 			vk::ImageLayout::eUndefined)))
@@ -81,9 +80,8 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 			vk::ComponentMapping(),
 			vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, c_water_image_index, 1u)));
 
-	// Create staging buffer.
-	// For now create it with size of whole texture (with mips and extra padding).
-	const uint32_t buffer_data_size= c_num_layers * c_texture_num_texels_with_mips * sizeof(PixelType) * 2;
+	// Create staging buffer. For now create it with size of whole texture.
+	const uint32_t buffer_data_size= c_num_layers * c_texture_num_texels * sizeof(PixelType);
 	{
 		staging_buffer_=
 			vk_device_.createBufferUnique(
@@ -119,19 +117,8 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 	uint32_t dst_image_index= 0;
 	for(const char* const texture_file : c_block_textures_table)
 	{
-		PixelType* dst= static_cast<PixelType*>(staging_buffer_mapped) + dst_image_index * c_texture_num_texels_with_mips;
+		PixelType* dst= static_cast<PixelType*>(staging_buffer_mapped) + dst_image_index * c_texture_num_texels;
 		LoadImageWithExpectedSize((std::string("textures/") + texture_file).c_str(), c_texture_size, c_texture_size, dst);
-
-		for(uint32_t mip= 1; mip < c_num_mips; ++mip)
-		{
-			const uint32_t current_size= c_texture_size >> mip;
-			const uint32_t prev_size= current_size << 1;
-
-			PixelType* const mip_dst= dst + prev_size * prev_size;
-			RGBA8_GetMip(reinterpret_cast<const uint8_t*>(dst), reinterpret_cast<uint8_t*>(mip_dst), prev_size, prev_size);
-
-			dst= mip_dst;
-		}
 
 		++dst_image_index;
 	}
@@ -147,7 +134,7 @@ WorldTexturesManager::~WorldTexturesManager()
 
 void WorldTexturesManager::PrepareFrame(TaskOrganizer& task_organizer)
 {
-	// Copy buffer into the image after ininitialization, because we need a command buffer.
+	// Copy buffer into the image after ininitialization.
 
 	if(textures_loaded_)
 		return;
@@ -162,32 +149,26 @@ void WorldTexturesManager::PrepareFrame(TaskOrganizer& task_organizer)
 		{
 			for(uint32_t dst_image_index= 0; dst_image_index < c_num_layers; ++dst_image_index)
 			{
-				uint32_t offset= dst_image_index * c_texture_num_texels_with_mips * uint32_t(sizeof(PixelType));
-
-				for(uint32_t mip= 0; mip < c_num_mips; ++mip)
-				{
-					const uint32_t current_size= c_texture_size >> mip;
-
-					command_buffer.copyBufferToImage(
-						*staging_buffer_,
-						*image_,
-						vk::ImageLayout::eTransferDstOptimal,
+				command_buffer.copyBufferToImage(
+					*staging_buffer_,
+					*image_,
+					vk::ImageLayout::eTransferDstOptimal,
+					{
 						{
-							{
-								offset,
-								current_size, current_size,
-								vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, mip, dst_image_index, 1u),
-								vk::Offset3D(0, 0, 0),
-								vk::Extent3D(current_size, current_size, 1u)
-							}
-						});
-
-					offset+= current_size * current_size * uint32_t(sizeof(PixelType));
-				}
+							dst_image_index * c_texture_num_texels * uint32_t(sizeof(PixelType)),
+							c_texture_size, c_texture_size,
+							vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0, dst_image_index, 1u),
+							vk::Offset3D(0, 0, 0),
+							vk::Extent3D(c_texture_size, c_texture_size, 1u)
+						}
+					});
 			}
 		};
 
 	task_organizer.ExecuteTask(task, task_func);
+
+	// Generate mips.
+	task_organizer.GenerateImageMips(GetImageInfo(), vk::Extent2D(c_texture_size, c_texture_size));
 }
 
 vk::ImageView WorldTexturesManager::GetImageView() const

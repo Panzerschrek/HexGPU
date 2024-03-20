@@ -13,7 +13,7 @@ layout(binding= 1) uniform sampler2D texture_image;
 
 layout(location= 0) in vec3 f_view_vec;
 
-layout(location=  0) out vec4 out_color;
+layout(location= 0) out vec4 out_color;
 
 void main()
 {
@@ -23,5 +23,5 @@ void main()
 
 	vec3 tex_value= texture(texture_image, cloud_coord).xyz;
 
-	out_color= vec4(tex_value, 0.2);
+	out_color= vec4(tex_value, 0.5);
 }

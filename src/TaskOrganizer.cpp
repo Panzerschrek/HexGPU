@@ -17,6 +17,7 @@ void TaskOrganizer::SetCommandBuffer(vk::CommandBuffer command_buffer)
 void TaskOrganizer::ExecuteTask(const ComputeTaskParams& params, const TaskFunc& func)
 {
 	std::vector<vk::BufferMemoryBarrier> buffer_barriers;
+	std::vector<vk::ImageMemoryBarrier> image_barriers;
 	vk::PipelineStageFlags src_pipeline_stage_flags;
 	vk::PipelineStageFlags dst_pipeline_stage_flags;
 	bool require_barrier_for_write_after_read_sync= false;
@@ -74,20 +75,41 @@ void TaskOrganizer::ExecuteTask(const ComputeTaskParams& params, const TaskFunc&
 		}
 	}
 
-	if(!buffer_barriers.empty() || require_barrier_for_write_after_read_sync)
+	for(const ImageInfo image_info : params.output_images)
+	{
+		if(GetLastImageUsage(image_info.image) != ImageUsage::ComputeDst)
+		{
+			const auto sync_info= GetSyncInfoForLastImageUsage(image_info.image);
+			image_barriers.emplace_back(
+				sync_info.access_flags, vk::AccessFlagBits::eShaderWrite,
+				sync_info.layout, vk::ImageLayout::eGeneral,
+				queue_family_index_, queue_family_index_,
+				image_info.image,
+				vk::ImageSubresourceRange(image_info.asppect_flags, 0u, image_info.num_mips, 0u, image_info.num_layers));
+
+			src_pipeline_stage_flags|= sync_info.pipeline_stage_flags;
+			dst_pipeline_stage_flags|= vk::PipelineStageFlagBits::eComputeShader;
+		}
+	}
+
+
+	if(!buffer_barriers.empty() || !image_barriers.empty() || require_barrier_for_write_after_read_sync)
 		command_buffer_.pipelineBarrier(
 			src_pipeline_stage_flags,
 			dst_pipeline_stage_flags,
 			vk::DependencyFlags(),
 			{},
 			buffer_barriers,
-			{});
+			image_barriers);
 
 	func(command_buffer_);
 
 	UpdateLastBuffersUsage(params.input_storage_buffers, BufferUsage::ComputeShaderSrc);
 	UpdateLastBuffersUsage(params.output_storage_buffers, BufferUsage::ComputeShaderDst);
 	UpdateLastBuffersUsage(params.input_output_storage_buffers, BufferUsage::ComputeShaderDst);
+
+	for(const ImageInfo& image_info : params.output_images)
+		UpdateLastImageUsage(image_info.image, ImageUsage::ComputeDst);
 }
 
 void TaskOrganizer::ExecuteTask(const GraphicsTaskParams& params, const TaskFunc& func)
@@ -468,6 +490,8 @@ TaskOrganizer::ImageSyncInfo TaskOrganizer::GetSyncInfoForImageUsage(const Image
 		return {vk::AccessFlagBits::eTransferWrite, vk::PipelineStageFlagBits::eTransfer, vk::ImageLayout::eTransferDstOptimal};
 	case ImageUsage::TransferSrc:
 		return {vk::AccessFlagBits::eTransferRead, vk::PipelineStageFlagBits::eTransfer, vk::ImageLayout::eTransferSrcOptimal};
+	case ImageUsage::ComputeDst:
+		return {vk::AccessFlagBits::eShaderWrite, vk::PipelineStageFlagBits::eComputeShader, vk::ImageLayout::eGeneral};
 	};
 
 	HEX_ASSERT(false);

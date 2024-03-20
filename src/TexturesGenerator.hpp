@@ -28,10 +28,7 @@ private:
 	vk::UniqueImageView image_view_;
 	vk::UniqueDeviceMemory image_memory_;
 
-	vk::UniqueBuffer staging_buffer_;
-	vk::UniqueDeviceMemory staging_buffer_memory_;
-
-	bool textures_loaded_= false;
+	bool textures_generated_= false;
 };
 
 } // namespace HexGPU

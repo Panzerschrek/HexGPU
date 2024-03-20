@@ -2,10 +2,13 @@
 
 #extension GL_GOOGLE_include_directive : require
 
-layout(binding= 0, rgba8ui) uniform writeonly uimage2D out_image;
-
+layout(binding= 0, rgba8) uniform writeonly image2D out_image;
 
 void main()
 {
-	imageStore(out_image, ivec2(gl_GlobalInvocationID.xy), ivec4(255, 0, 255, 128));
+	ivec2 texel_coord= ivec2(gl_GlobalInvocationID.xy);
+
+	vec4 color= vec4(fract(vec2(texel_coord) / 16.0), 0.0, 0.5);
+
+	imageStore(out_image, texel_coord, color);
 }

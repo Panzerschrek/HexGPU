@@ -47,6 +47,7 @@ public:
 		std::vector<vk::Buffer> output_storage_buffers;
 		// Buffers which are both input and output. Do not list them in input and/or output lists!
 		std::vector<vk::Buffer> input_output_storage_buffers;
+		std::vector<ImageInfo> output_images;
 	};
 
 	// Task type for a batch of draw commands within single render pass.
@@ -110,6 +111,7 @@ private:
 		GraphicsSrc,
 		TransferDst,
 		TransferSrc,
+		ComputeDst,
 		// TODO - add GraphicsDst for render pass output images.
 		// TODO - add usages for compute shaders.
 	};

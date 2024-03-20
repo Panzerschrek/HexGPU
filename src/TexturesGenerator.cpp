@@ -163,7 +163,14 @@ void TexturesGenerator::PrepareFrame(TaskOrganizer& task_organizer)
 				{clouds_texture_gen_descriptor_set_},
 				{});
 
-			command_buffer.dispatch(c_texture_size, c_texture_size, 1);
+
+			// This constant should match workgroup size in shader!
+			constexpr uint32_t c_workgroup_size[]{8, 16, 1};
+			static_assert(c_texture_size % c_workgroup_size[0] == 0, "Wrong workgroup size!");
+			static_assert(c_texture_size % c_workgroup_size[1] == 0, "Wrong workgroup size!");
+			static_assert(c_workgroup_size[2] == 1, "Wrong workgroup size!");
+
+			command_buffer.dispatch(c_texture_size / c_workgroup_size[0], c_texture_size / c_workgroup_size[1], 1);
 		};
 
 	task_organizer.ExecuteTask(task, task_func);

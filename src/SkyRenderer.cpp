@@ -376,7 +376,7 @@ SkyRenderer::CloudsPipeline SkyRenderer::CreateCloudsPipeline(
 			CloudsShaderBindings::uniforms_buffer,
 			vk::DescriptorType::eUniformBuffer,
 			1u,
-			vk::ShaderStageFlagBits::eVertex,
+			vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
 		},
 		{
 			CloudsShaderBindings::texture_sampler,

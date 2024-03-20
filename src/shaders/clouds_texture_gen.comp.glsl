@@ -26,7 +26,7 @@ void main()
 		hex_TriangularInterpolatedOctaveNoiseWraped(texel_coord.x, texel_coord.y, 0, c_octaves, size_log2);
 
 	float brightness= float(noise_val) / float(scaler);
-	vec4 color= vec4(brightness, brightness, brightness, 0.5);
+	vec4 color= vec4(brightness, 0.0, 0.0, 0.0);
 
 	imageStore(out_image, texel_coord, color);
 }

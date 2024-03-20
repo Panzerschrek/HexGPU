@@ -68,7 +68,7 @@ TexturesGenerator::TexturesGenerator(WindowVulkan& window_vulkan, const vk::Desc
 		vk::ImageCreateInfo(
 			vk::ImageCreateFlags(),
 			vk::ImageType::e2D,
-			vk::Format::eR8G8B8A8Unorm,
+			vk::Format::eR8Unorm,
 			vk::Extent3D(c_texture_size, c_texture_size, 1u),
 			c_num_mips,
 			1u,
@@ -106,7 +106,7 @@ TexturesGenerator::TexturesGenerator(WindowVulkan& window_vulkan, const vk::Desc
 			vk::ImageViewCreateFlags(),
 			*image_,
 			vk::ImageViewType::e2D,
-			vk::Format::eR8G8B8A8Unorm,
+			vk::Format::eR8Unorm,
 			vk::ComponentMapping(),
 			vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, 0u, 1u)));
 

@@ -25,7 +25,7 @@ void main()
 
 	const vec2 tc_scale= vec2(c_space_scale_x, 1.0) / 8.0;
 
-	vec4 tex_value= HexagonFetch(texture_image, tc * tc_scale);
+	float tex_value= HexagonFetch(texture_image, tc * tc_scale).r;
 
-	out_color= vec4(tex_value.rgb * uniforms.sky_color.a, 0.5);
+	out_color= vec4(vec3(tex_value * uniforms.sky_color.a), 0.5);
 }

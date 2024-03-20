@@ -12,7 +12,7 @@ namespace
 const uint32_t c_texture_size_log2= 7; // This must match size in generation shader!
 const uint32_t c_texture_size= 1 << c_texture_size_log2;
 
-const uint32_t c_num_mips= 1; // TODO - make mips
+const uint32_t c_num_mips= c_texture_size_log2 - 2; // TODO - make mips
 
 namespace CloudsTextureGenPipelineBindings
 {
@@ -95,7 +95,7 @@ CloudsTextureGenerator::CloudsTextureGenerator(WindowVulkan& window_vulkan, cons
 			1u,
 			vk::SampleCountFlagBits::e1,
 			vk::ImageTiling::eOptimal,
-			vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage,
+			vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage,
 			vk::SharingMode::eExclusive,
 			0u, nullptr,
 			vk::ImageLayout::eUndefined)))
@@ -171,6 +171,8 @@ void CloudsTextureGenerator::PrepareFrame(TaskOrganizer& task_organizer)
 		};
 
 	task_organizer.ExecuteTask(task, task_func);
+
+	task_organizer.GenerateImageMips(GetImageInfo(), vk::Extent2D(c_texture_size, c_texture_size));
 }
 
 vk::ImageView CloudsTextureGenerator::GetCloudsImageView() const

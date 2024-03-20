@@ -329,6 +329,96 @@ void TaskOrganizer::ExecuteTask(const TransferTaskParams& params, const TaskFunc
 		UpdateLastImageUsage(image_info.image, ImageUsage::TransferDst);
 }
 
+void TaskOrganizer::GenerateImageMips(const ImageInfo& image_info, const vk::Extent2D image_size)
+{
+	// First transfer the whole image to TransferSrcOptimal layout.
+	if(GetLastImageUsage(image_info.image) != ImageUsage::TransferSrc)
+	{
+		const auto sync_info= GetSyncInfoForLastImageUsage(image_info.image);
+		const vk::ImageMemoryBarrier image_barrier(
+			sync_info.access_flags, vk::AccessFlagBits::eTransferRead,
+			sync_info.layout, vk::ImageLayout::eTransferSrcOptimal,
+			queue_family_index_, queue_family_index_,
+			image_info.image,
+			vk::ImageSubresourceRange(image_info.asppect_flags, 0u, image_info.num_mips, 0u, image_info.num_layers));
+
+		command_buffer_.pipelineBarrier(
+			sync_info.pipeline_stage_flags,
+			 vk::PipelineStageFlagBits::eTransfer,
+			vk::DependencyFlags(),
+			0u, nullptr,
+			0u, nullptr,
+			1u, &image_barrier);
+	}
+
+	// Pefrom blitting for mip chain.
+	for(uint32_t i= 1; i < image_info.num_mips; ++i)
+	{
+		// Transfer destination mip to TransferDstOptimal layout.
+		{
+			const vk::ImageMemoryBarrier image_barrier(
+				vk::AccessFlagBits(), vk::AccessFlagBits::eTransferWrite,
+				vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal,
+				queue_family_index_, queue_family_index_,
+				image_info.image,
+				vk::ImageSubresourceRange(image_info.asppect_flags, i, 1, 0u, image_info.num_layers));
+
+			command_buffer_.pipelineBarrier(
+				vk::PipelineStageFlagBits(),
+				vk::PipelineStageFlagBits::eTransfer,
+				vk::DependencyFlags(),
+				0u, nullptr,
+				0u, nullptr,
+				1u, &image_barrier);
+		}
+
+		// Perform blitting with linear interpolation.
+		// This effectively avegages pixels in 2x2 block.
+
+		const vk::ImageBlit image_blit(
+			vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, i - 1, 0u, image_info.num_layers),
+			{
+				vk::Offset3D(0, 0, 0),
+				vk::Offset3D(image_size.width >> (i - 1), image_size.height >> (i - 1), 1),
+			},
+			vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, i, 0u, image_info.num_layers),
+			{
+				vk::Offset3D(0, 0, 0),
+				vk::Offset3D(image_size.width >> i, image_size.height >> i, 1),
+			});
+
+		command_buffer_.blitImage(
+			image_info.image,
+			vk::ImageLayout::eTransferSrcOptimal,
+			image_info.image,
+			vk::ImageLayout::eTransferDstOptimal,
+			1u, &image_blit,
+			vk::Filter::eLinear);
+
+		// Transfer this mip to TransferSrcOptimal layout.
+		{
+			const vk::ImageMemoryBarrier image_barrier(
+				vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eTransferRead,
+				vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eTransferSrcOptimal,
+				queue_family_index_, queue_family_index_,
+				image_info.image,
+				vk::ImageSubresourceRange(image_info.asppect_flags, i, 1, 0u, image_info.num_layers));
+
+			command_buffer_.pipelineBarrier(
+				vk::PipelineStageFlagBits::eTransfer,
+				vk::PipelineStageFlagBits::eTransfer,
+				vk::DependencyFlags(),
+				0u, nullptr,
+				0u, nullptr,
+				1u, &image_barrier);
+		}
+	}
+
+	// At the end of the mip chain generation all image mips should be in TransferSrc layout.
+	// Mark this as image TransferSrc usage.
+	UpdateLastImageUsage(image_info.image, ImageUsage::TransferSrc);
+}
+
 void TaskOrganizer::UpdateLastBuffersUsage(const std::vector<vk::Buffer> buffers, const BufferUsage usage)
 {
 	for(const vk::Buffer buffer : buffers)

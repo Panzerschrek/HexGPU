@@ -87,6 +87,8 @@ public:
 	void ExecuteTask(const GraphicsTaskParams& params, const TaskFunc& func);
 	void ExecuteTask(const TransferTaskParams& params, const TaskFunc& func);
 
+	void GenerateImageMips(const ImageInfo& image_info, vk::Extent2D image_size);
+
 private:
 	enum struct BufferUsage : uint8_t
 	{

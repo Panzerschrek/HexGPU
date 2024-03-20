@@ -1,5 +1,6 @@
 #pragma once
 #include "WorldProcessor.hpp"
+#include "TexturesGenerator.hpp"
 
 namespace HexGPU
 {
@@ -18,20 +19,33 @@ public:
 	void Draw(vk::CommandBuffer command_buffer);
 
 private:
+	struct CloudsPipeline : public GraphicsPipeline
+	{
+		vk::UniqueSampler texture_sampler;
+	};
+
+private:
 	void DrawSkybox(vk::CommandBuffer command_buffer);
 	void DrawClouds(vk::CommandBuffer command_buffer);
+
+	static CloudsPipeline CreateCloudsPipeline(
+		vk::Device vk_device,
+		vk::Extent2D viewport_size,
+		vk::RenderPass render_pass);
 
 private:
 	const vk::Device vk_device_;
 	const uint32_t queue_family_index_;
 	const WorldProcessor& world_processor_;
 
+	TexturesGenerator textures_generator_;
+
 	const Buffer uniform_buffer_;
 
 	const GraphicsPipeline skybox_pipeline_;
 	const vk::DescriptorSet skybox_descriptor_set_;
 
-	const GraphicsPipeline clouds_pipeline_;
+	const CloudsPipeline clouds_pipeline_;
 	const vk::DescriptorSet clouds_descriptor_set_;
 };
 

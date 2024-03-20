@@ -9,6 +9,12 @@ namespace HexGPU
 namespace
 {
 
+namespace CloudsShaderBindings
+{
+	ShaderBindingIndex uniforms_buffer= 0;
+	ShaderBindingIndex texture_sampler= 1;
+}
+
 struct SkyShaderUniforms
 {
 	float view_matrix[16]{};
@@ -142,24 +148,241 @@ GraphicsPipeline CreateSkyPipeline(
 	return pipeline;
 }
 
+} // namespace
 
-GraphicsPipeline CreateCloudsPipeline(
+SkyRenderer::SkyRenderer(
+	WindowVulkan& window_vulkan,
+	const WorldProcessor& world_processor,
+	const vk::DescriptorPool global_descriptor_pool)
+	: vk_device_(window_vulkan.GetVulkanDevice())
+	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
+	, world_processor_(world_processor)
+	, textures_generator_(window_vulkan)
+	, uniform_buffer_(
+		window_vulkan,
+		sizeof(SkyShaderUniforms),
+		vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst)
+	, skybox_pipeline_(
+		CreateSkyPipeline(
+			window_vulkan.GetVulkanDevice(),
+			window_vulkan.GetViewportSize(),
+			window_vulkan.GetRenderPass()))
+	, skybox_descriptor_set_(CreateDescriptorSet(vk_device_, global_descriptor_pool, *skybox_pipeline_.descriptor_set_layout))
+	, clouds_pipeline_(
+		CreateCloudsPipeline(
+			window_vulkan.GetVulkanDevice(),
+			window_vulkan.GetViewportSize(),
+			window_vulkan.GetRenderPass()))
+	, clouds_descriptor_set_(CreateDescriptorSet(vk_device_, global_descriptor_pool, *clouds_pipeline_.descriptor_set_layout))
+{
+	// Update skybox descriptor set.
+	{
+		const vk::DescriptorBufferInfo descriptor_uniform_buffer_info(
+			uniform_buffer_.GetBuffer(),
+			0u,
+			sizeof(SkyShaderUniforms));
+
+		vk_device_.updateDescriptorSets(
+			{
+				{
+					skybox_descriptor_set_,
+					0u,
+					0u,
+					1u,
+					vk::DescriptorType::eUniformBuffer,
+					nullptr,
+					&descriptor_uniform_buffer_info,
+					nullptr
+				},
+			},
+			{});
+	}
+
+	// Update clouds descriptor set.
+	{
+		const vk::DescriptorBufferInfo descriptor_uniform_buffer_info(
+			uniform_buffer_.GetBuffer(),
+			0u,
+			sizeof(SkyShaderUniforms));
+
+		const vk::DescriptorImageInfo descriptor_tex_info(
+			vk::Sampler(),
+			textures_generator_.GetImageView(),
+			vk::ImageLayout::eShaderReadOnlyOptimal);
+
+		vk_device_.updateDescriptorSets(
+			{
+				{
+					clouds_descriptor_set_,
+					CloudsShaderBindings::uniforms_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eUniformBuffer,
+					nullptr,
+					&descriptor_uniform_buffer_info,
+					nullptr
+				},
+				{
+					clouds_descriptor_set_,
+					CloudsShaderBindings::texture_sampler,
+					0u,
+					1u,
+					vk::DescriptorType::eCombinedImageSampler,
+					&descriptor_tex_info,
+					nullptr,
+					nullptr
+				},
+			},
+			{});
+	}
+}
+
+SkyRenderer::~SkyRenderer()
+{
+	// Sync before destruction
+	vk_device_.waitIdle();
+}
+
+void SkyRenderer::PrepareFrame(TaskOrganizer& task_organizer)
+{
+	textures_generator_.PrepareFrame(task_organizer);
+
+	TaskOrganizer::TransferTaskParams task;
+	task.input_buffers.push_back(world_processor_.GetPlayerStateBuffer());
+	task.input_buffers.push_back(world_processor_.GetWorldGlobalStateBuffer());
+	task.output_buffers.push_back(uniform_buffer_.GetBuffer());
+
+	const auto task_func=
+		[this](const vk::CommandBuffer command_buffer)
+		{
+			// Copy view matrix.
+			command_buffer.copyBuffer(
+				world_processor_.GetPlayerStateBuffer(),
+				uniform_buffer_.GetBuffer(),
+				{
+					{
+						offsetof(WorldProcessor::PlayerState, sky_matrix),
+						offsetof(SkyShaderUniforms, view_matrix),
+						sizeof(float) * 16
+					},
+				});
+
+			// Copy sky color.
+			command_buffer.copyBuffer(
+				world_processor_.GetWorldGlobalStateBuffer(),
+				uniform_buffer_.GetBuffer(),
+				{
+					{
+						offsetof(WorldProcessor::WorldGlobalState, sky_color),
+						offsetof(SkyShaderUniforms, sky_color),
+						sizeof(float) * 4
+					},
+				});
+
+			// Copy sun direction.
+			command_buffer.copyBuffer(
+				world_processor_.GetWorldGlobalStateBuffer(),
+				uniform_buffer_.GetBuffer(),
+				{
+					{
+						offsetof(WorldProcessor::WorldGlobalState, sun_direction),
+						offsetof(SkyShaderUniforms, sun_direction),
+						sizeof(float) * 4
+					},
+				});
+		};
+
+	task_organizer.ExecuteTask(task, task_func);
+}
+
+void SkyRenderer::CollectFrameInputs(TaskOrganizer::GraphicsTaskParams& out_task_params)
+{
+	out_task_params.uniform_buffers.push_back(uniform_buffer_.GetBuffer());
+}
+
+void SkyRenderer::Draw(const vk::CommandBuffer command_buffer)
+{
+	DrawSkybox(command_buffer);
+	DrawClouds(command_buffer);
+}
+
+void SkyRenderer::DrawSkybox(const vk::CommandBuffer command_buffer)
+{
+	command_buffer.bindDescriptorSets(
+		vk::PipelineBindPoint::eGraphics,
+		*skybox_pipeline_.pipeline_layout,
+		0u,
+		{skybox_descriptor_set_},
+		{});
+
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *skybox_pipeline_.pipeline);
+
+	const uint32_t c_num_vertices= 6u * 3u; // This must match the corresponding contant in GLSL code!
+
+	command_buffer.draw(c_num_vertices, 1u, 0u, 0u);
+}
+
+void SkyRenderer::DrawClouds(const vk::CommandBuffer command_buffer)
+{
+	command_buffer.bindDescriptorSets(
+		vk::PipelineBindPoint::eGraphics,
+		*clouds_pipeline_.pipeline_layout,
+		0u,
+		{clouds_descriptor_set_},
+		{});
+
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *clouds_pipeline_.pipeline);
+
+	const uint32_t c_num_vertices= 4u * 3u; // This must match the corresponding contant in GLSL code!
+
+	command_buffer.draw(c_num_vertices, 1u, 0u, 0u);
+}
+
+
+SkyRenderer::CloudsPipeline SkyRenderer::CreateCloudsPipeline(
 	const vk::Device vk_device,
 	const vk::Extent2D viewport_size,
 	const vk::RenderPass render_pass)
 {
-	GraphicsPipeline pipeline;
+	CloudsPipeline pipeline;
 
 	pipeline.shader_vert= CreateShader(vk_device, ShaderNames::clouds_vert);
 	pipeline.shader_frag= CreateShader(vk_device, ShaderNames::clouds_frag);
 
+	pipeline.texture_sampler=
+		vk_device.createSamplerUnique(
+			vk::SamplerCreateInfo(
+				vk::SamplerCreateFlags(),
+				vk::Filter::eLinear,
+				vk::Filter::eLinear,
+				vk::SamplerMipmapMode::eLinear,
+				vk::SamplerAddressMode::eRepeat,
+				vk::SamplerAddressMode::eRepeat,
+				vk::SamplerAddressMode::eRepeat,
+				0.0f,
+				VK_FALSE, // anisotropy
+				1.0f, // anisotropy level
+				VK_FALSE,
+				vk::CompareOp::eNever,
+				0.0f,
+				100.0f,
+				vk::BorderColor::eFloatTransparentBlack,
+				VK_FALSE));
+
 	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
 	{
 		{
-			0u,
+			CloudsShaderBindings::uniforms_buffer,
 			vk::DescriptorType::eUniformBuffer,
 			1u,
 			vk::ShaderStageFlagBits::eVertex,
+		},
+		{
+			CloudsShaderBindings::texture_sampler,
+			vk::DescriptorType::eCombinedImageSampler,
+			1u,
+			vk::ShaderStageFlagBits::eFragment,
+			&*pipeline.texture_sampler,
 		},
 	};
 
@@ -267,178 +490,6 @@ GraphicsPipeline CreateCloudsPipeline(
 				0u)));
 
 	return pipeline;
-}
-
-} // namespace
-
-SkyRenderer::SkyRenderer(
-	WindowVulkan& window_vulkan,
-	const WorldProcessor& world_processor,
-	const vk::DescriptorPool global_descriptor_pool)
-	: vk_device_(window_vulkan.GetVulkanDevice())
-	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
-	, world_processor_(world_processor)
-	, uniform_buffer_(
-		window_vulkan,
-		sizeof(SkyShaderUniforms),
-		vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst)
-	, skybox_pipeline_(
-		CreateSkyPipeline(
-			window_vulkan.GetVulkanDevice(),
-			window_vulkan.GetViewportSize(),
-			window_vulkan.GetRenderPass()))
-	, skybox_descriptor_set_(CreateDescriptorSet(vk_device_, global_descriptor_pool, *skybox_pipeline_.descriptor_set_layout))
-	, clouds_pipeline_(
-		CreateCloudsPipeline(
-			window_vulkan.GetVulkanDevice(),
-			window_vulkan.GetViewportSize(),
-			window_vulkan.GetRenderPass()))
-	, clouds_descriptor_set_(CreateDescriptorSet(vk_device_, global_descriptor_pool, *clouds_pipeline_.descriptor_set_layout))
-{
-	// Update skybox descriptor set.
-	{
-		const vk::DescriptorBufferInfo descriptor_uniform_buffer_info(
-			uniform_buffer_.GetBuffer(),
-			0u,
-			sizeof(SkyShaderUniforms));
-
-		vk_device_.updateDescriptorSets(
-			{
-				{
-					skybox_descriptor_set_,
-					0u,
-					0u,
-					1u,
-					vk::DescriptorType::eUniformBuffer,
-					nullptr,
-					&descriptor_uniform_buffer_info,
-					nullptr
-				},
-			},
-			{});
-	}
-
-	// Update clouds descriptor set.
-	{
-		const vk::DescriptorBufferInfo descriptor_uniform_buffer_info(
-			uniform_buffer_.GetBuffer(),
-			0u,
-			sizeof(SkyShaderUniforms));
-
-		vk_device_.updateDescriptorSets(
-			{
-				{
-					clouds_descriptor_set_,
-					0u,
-					0u,
-					1u,
-					vk::DescriptorType::eUniformBuffer,
-					nullptr,
-					&descriptor_uniform_buffer_info,
-					nullptr
-				},
-			},
-			{});
-	}
-}
-
-SkyRenderer::~SkyRenderer()
-{
-	// Sync before destruction
-	vk_device_.waitIdle();
-}
-
-void SkyRenderer::PrepareFrame(TaskOrganizer& task_organizer)
-{
-	TaskOrganizer::TransferTaskParams task;
-	task.input_buffers.push_back(world_processor_.GetPlayerStateBuffer());
-	task.input_buffers.push_back(world_processor_.GetWorldGlobalStateBuffer());
-	task.output_buffers.push_back(uniform_buffer_.GetBuffer());
-
-	const auto task_func=
-		[this](const vk::CommandBuffer command_buffer)
-		{
-			// Copy view matrix.
-			command_buffer.copyBuffer(
-				world_processor_.GetPlayerStateBuffer(),
-				uniform_buffer_.GetBuffer(),
-				{
-					{
-						offsetof(WorldProcessor::PlayerState, sky_matrix),
-						offsetof(SkyShaderUniforms, view_matrix),
-						sizeof(float) * 16
-					},
-				});
-
-			// Copy sky color.
-			command_buffer.copyBuffer(
-				world_processor_.GetWorldGlobalStateBuffer(),
-				uniform_buffer_.GetBuffer(),
-				{
-					{
-						offsetof(WorldProcessor::WorldGlobalState, sky_color),
-						offsetof(SkyShaderUniforms, sky_color),
-						sizeof(float) * 4
-					},
-				});
-
-			// Copy sun direction.
-			command_buffer.copyBuffer(
-				world_processor_.GetWorldGlobalStateBuffer(),
-				uniform_buffer_.GetBuffer(),
-				{
-					{
-						offsetof(WorldProcessor::WorldGlobalState, sun_direction),
-						offsetof(SkyShaderUniforms, sun_direction),
-						sizeof(float) * 4
-					},
-				});
-		};
-
-	task_organizer.ExecuteTask(task, task_func);
-}
-
-void SkyRenderer::CollectFrameInputs(TaskOrganizer::GraphicsTaskParams& out_task_params)
-{
-	out_task_params.uniform_buffers.push_back(uniform_buffer_.GetBuffer());
-}
-
-void SkyRenderer::Draw(const vk::CommandBuffer command_buffer)
-{
-	DrawSkybox(command_buffer);
-	DrawClouds(command_buffer);
-}
-
-void SkyRenderer::DrawSkybox(const vk::CommandBuffer command_buffer)
-{
-	command_buffer.bindDescriptorSets(
-		vk::PipelineBindPoint::eGraphics,
-		*skybox_pipeline_.pipeline_layout,
-		0u,
-		{skybox_descriptor_set_},
-		{});
-
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *skybox_pipeline_.pipeline);
-
-	const uint32_t c_num_vertices= 6u * 3u; // This must match the corresponding contant in GLSL code!
-
-	command_buffer.draw(c_num_vertices, 1u, 0u, 0u);
-}
-
-void SkyRenderer::DrawClouds(const vk::CommandBuffer command_buffer)
-{
-	command_buffer.bindDescriptorSets(
-		vk::PipelineBindPoint::eGraphics,
-		*clouds_pipeline_.pipeline_layout,
-		0u,
-		{clouds_descriptor_set_},
-		{});
-
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *clouds_pipeline_.pipeline);
-
-	const uint32_t c_num_vertices= 4u * 3u; // This must match the corresponding contant in GLSL code!
-
-	command_buffer.draw(c_num_vertices, 1u, 0u, 0u);
 }
 
 } // namespace HexGPU

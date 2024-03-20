@@ -9,10 +9,11 @@ layout(binding= 0) uniform uniforms_block_variable
 	SkyShaderUniforms uniforms;
 };
 
+layout(binding= 1) uniform sampler2D texture_image;
+
 layout(location= 0) in vec3 f_view_vec;
 
 layout(location=  0) out vec4 out_color;
-
 
 void main()
 {
@@ -20,5 +21,7 @@ void main()
 
 	vec2 cloud_coord= view_vec_normalized.xy / (abs(view_vec_normalized.z) + 0.05);
 
-	out_color= vec4(fract(cloud_coord), 0.0, 0.5);
+	vec3 tex_value= texture(texture_image, cloud_coord).xyz;
+
+	out_color= vec4(tex_value, 0.2);
 }

@@ -150,7 +150,7 @@ vec3 CollidePlayerAgainstWorld(vec3 old_pos, vec3 new_pos)
 			continue;
 
 		uint8_t block_type= player_world_window.window_data[GetAddressOfBlockInPlayerWorldWindow(block_pos_in_window)];
-		if(block_type == c_block_type_air)
+		if(c_block_optical_density_table[uint(block_type)] == c_optical_density_air)
 			continue;
 
 		ivec3 block_global_coord= block_pos_in_window + player_world_window.offset.xyz;

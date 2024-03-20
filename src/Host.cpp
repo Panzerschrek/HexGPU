@@ -304,11 +304,12 @@ void Host::DrawDebugInfo()
 void Host::DrawDebugParamsUI()
 {
 	ImGui::SetNextWindowBgAlpha(0.25f);
-	ImGui::SetNextWindowSize({300.0f, 64.0f}, ImGuiCond_Appearing);
+	ImGui::SetNextWindowSize({300.0f, 96.0f}, ImGuiCond_Appearing);
 	ImGui::SetNextWindowPos({float(window_vulkan_.GetViewportSize().width) - 300.0f, 128.0f}, ImGuiCond_Appearing);
 	ImGui::Begin("HexGPU debug params", nullptr);
 	{
 		ImGui::SliderFloat("Time of day", &debug_params_.time_of_day, 0.0f, 1.0f);
+		ImGui::SliderFloat("Rain intensity", &debug_params_.rain_intensity, 0.0f, 1.0f);
 	}
 
 	ImGui::End();

@@ -18,14 +18,21 @@ public:
 	void Draw(vk::CommandBuffer command_buffer);
 
 private:
+	void DrawSkybox(vk::CommandBuffer command_buffer);
+	void DrawClouds(vk::CommandBuffer command_buffer);
+
+private:
 	const vk::Device vk_device_;
 	const uint32_t queue_family_index_;
 	const WorldProcessor& world_processor_;
 
 	const Buffer uniform_buffer_;
 
-	const GraphicsPipeline pipeline_;
-	const vk::DescriptorSet descriptor_set_;
+	const GraphicsPipeline skybox_pipeline_;
+	const vk::DescriptorSet skybox_descriptor_set_;
+
+	const GraphicsPipeline clouds_pipeline_;
+	const vk::DescriptorSet clouds_descriptor_set_;
 };
 
 } // namespace HexGPU

@@ -2,7 +2,9 @@
 
 #extension GL_GOOGLE_include_directive : require
 
+#include "inc/constants.glsl"
 #include "inc/sky_shader_uniforms.glsl"
+#include "inc/world_common.glsl"
 
 layout(binding= 0) uniform uniforms_block_variable
 {
@@ -19,9 +21,11 @@ void main()
 {
 	vec3 view_vec_normalized= normalize(f_view_vec);
 
-	vec2 cloud_coord= view_vec_normalized.xy / (abs(view_vec_normalized.z) + 0.05);
+	vec2 tc= view_vec_normalized.xy / (abs(view_vec_normalized.z) + 0.05);
 
-	vec3 tex_value= texture(texture_image, cloud_coord).xyz;
+	const vec2 tc_scale= vec2(c_space_scale_x, 1.0) / 8.0;
 
-	out_color= vec4(tex_value, 0.5);
+	vec4 tex_value= HexagonFetch(texture_image, tc * tc_scale);
+
+	out_color= vec4(tex_value.rgb, 0.5);
 }

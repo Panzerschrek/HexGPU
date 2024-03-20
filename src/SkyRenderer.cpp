@@ -157,7 +157,7 @@ SkyRenderer::SkyRenderer(
 	: vk_device_(window_vulkan.GetVulkanDevice())
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, world_processor_(world_processor)
-	, textures_generator_(window_vulkan)
+	, textures_generator_(window_vulkan, global_descriptor_pool)
 	, uniform_buffer_(
 		window_vulkan,
 		sizeof(SkyShaderUniforms),

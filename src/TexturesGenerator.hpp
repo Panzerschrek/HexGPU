@@ -1,5 +1,6 @@
 #pragma once
 #include "TaskOrganizer.hpp"
+#include "Pipeline.hpp"
 #include "WindowVulkan.hpp"
 
 namespace HexGPU
@@ -8,7 +9,7 @@ namespace HexGPU
 class TexturesGenerator
 {
 public:
-	explicit TexturesGenerator(WindowVulkan& window_vulkan);
+	TexturesGenerator(WindowVulkan& window_vulkan, vk::DescriptorPool global_descriptor_pool);
 	~TexturesGenerator();
 
 	void PrepareFrame(TaskOrganizer& task_organizer);
@@ -19,6 +20,9 @@ public:
 private:
 	const vk::Device vk_device_;
 	const uint32_t queue_family_index_;
+
+	const ComputePipeline clouds_texture_gen_pipeline_;
+	const vk::DescriptorSet clouds_texture_gen_descriptor_set_;
 
 	const vk::UniqueImage image_;
 	vk::UniqueImageView image_view_;

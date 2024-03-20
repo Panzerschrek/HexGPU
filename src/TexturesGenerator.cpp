@@ -1,5 +1,8 @@
 #include "TexturesGenerator.hpp"
+#include "GlobalDescriptorPool.hpp"
 #include "Image.hpp"
+#include "ShaderList.hpp"
+#include "VulkanUtils.hpp"
 
 namespace HexGPU
 {
@@ -15,11 +18,53 @@ const uint32_t c_num_mips= c_texture_size_log2 - 2; // Ignore last two mips for 
 // Add extra padding (use 3/2 instead of 4/3).
 const uint32_t c_texture_num_texels_with_mips= c_texture_size * c_texture_size * 3 / 2;
 
+namespace CloudsTextureGenPipelineBindings
+{
+	const ShaderBindingIndex out_image= 0;
+}
+
+ComputePipeline CreateCloudsTextureGenPipeline(const vk::Device vk_device)
+{
+	ComputePipeline pipeline;
+
+	pipeline.shader= CreateShader(vk_device, ShaderNames::clouds_texture_gen_comp);
+
+	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
+	{
+		{
+			CloudsTextureGenPipelineBindings::out_image,
+			vk::DescriptorType::eStorageImage,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+	};
+
+	pipeline.descriptor_set_layout= vk_device.createDescriptorSetLayoutUnique(
+		vk::DescriptorSetLayoutCreateInfo(
+			vk::DescriptorSetLayoutCreateFlags(),
+			uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
+
+	pipeline.pipeline_layout= vk_device.createPipelineLayoutUnique(
+		vk::PipelineLayoutCreateInfo(
+			vk::PipelineLayoutCreateFlags(),
+			1u, &*pipeline.descriptor_set_layout,
+			0u, nullptr));
+
+	pipeline.pipeline= CreateComputePipeline(vk_device, *pipeline.shader, *pipeline.pipeline_layout);
+
+	return pipeline;
+}
+
+
 } // namespace
 
-TexturesGenerator::TexturesGenerator(WindowVulkan& window_vulkan)
+TexturesGenerator::TexturesGenerator(WindowVulkan& window_vulkan, const vk::DescriptorPool global_descriptor_pool)
 	: vk_device_(window_vulkan.GetVulkanDevice())
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
+	, clouds_texture_gen_pipeline_(CreateCloudsTextureGenPipeline(vk_device_))
+	, clouds_texture_gen_descriptor_set_(
+		CreateDescriptorSet(vk_device_, global_descriptor_pool, *clouds_texture_gen_pipeline_.descriptor_set_layout))
 	, image_(vk_device_.createImageUnique(
 		vk::ImageCreateInfo(
 			vk::ImageCreateFlags(),
@@ -30,7 +75,7 @@ TexturesGenerator::TexturesGenerator(WindowVulkan& window_vulkan)
 			1u,
 			vk::SampleCountFlagBits::e1,
 			vk::ImageTiling::eOptimal,
-			vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
+			vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage,
 			vk::SharingMode::eExclusive,
 			0u, nullptr,
 			vk::ImageLayout::eUndefined)))
@@ -117,6 +162,29 @@ TexturesGenerator::TexturesGenerator(WindowVulkan& window_vulkan)
 	}
 
 	vk_device_.unmapMemory(*staging_buffer_memory_);
+
+	// Update clouds texture gen descriptor set.
+	{
+		const vk::DescriptorImageInfo descriptor_tex_info(
+			vk::Sampler(),
+			*image_view_,
+			vk::ImageLayout::eGeneral);
+
+		vk_device_.updateDescriptorSets(
+			{
+				{
+					clouds_texture_gen_descriptor_set_,
+					CloudsTextureGenPipelineBindings::out_image,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageImage,
+					&descriptor_tex_info,
+					nullptr,
+					nullptr
+				},
+			},
+			{});
+	}
 }
 
 TexturesGenerator::~TexturesGenerator()
@@ -140,6 +208,7 @@ void TexturesGenerator::PrepareFrame(TaskOrganizer& task_organizer)
 	const auto task_func=
 		[this](const vk::CommandBuffer command_buffer)
 		{
+		/*
 			uint32_t offset= 0u;
 
 			for(uint32_t mip= 0; mip < c_num_mips; ++mip)
@@ -161,7 +230,18 @@ void TexturesGenerator::PrepareFrame(TaskOrganizer& task_organizer)
 					});
 
 				offset+= current_size * current_size * uint32_t(sizeof(PixelType));
-			}
+			}*/
+
+			command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *clouds_texture_gen_pipeline_.pipeline);
+
+			command_buffer.bindDescriptorSets(
+				vk::PipelineBindPoint::eCompute,
+				*clouds_texture_gen_pipeline_.pipeline_layout,
+				0u,
+				{clouds_texture_gen_descriptor_set_},
+				{});
+
+			command_buffer.dispatch(c_texture_size, c_texture_size, 1);
 		};
 
 	task_organizer.ExecuteTask(task, task_func);

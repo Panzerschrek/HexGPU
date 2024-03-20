@@ -132,6 +132,9 @@ void main()
 						continue; // Allow replacing only air with foliage.
 
 					chunks_data[column_offset + z]= block_type;
+
+					if(block_type == c_block_type_foliage)
+						chunks_auxiliar_data[column_offset + z]= uint8_t(c_max_foliage_factor);
 				}
 			}
 		}

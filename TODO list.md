@@ -27,7 +27,6 @@ The order represents importance and/or dependency.
 * Configurable textures config
 * Trees generation with variable density
 * Procedural tree models
-* Foliage blocks logic - disapper if there is no tree block nearby
 * Chunk vertices allocator - make it faster (remove linear complexity)
 * Plates (half-blocks)
 * Vertically-splitted half-blocks

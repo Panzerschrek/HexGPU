@@ -368,6 +368,77 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 		if(!(block_above_type == c_block_type_air || block_above_type == c_block_type_foliage))
 			return u8vec2(c_block_type_soil, 0);
 	}
+	else if(block_type == c_block_type_foliage)
+	{
+		// Foliage block - propagate special number with name "foliage factor".
+		// This propagation is similar to light propagation.
+		// Foliage blocks near to wood blocks has maximum foliage factor.
+		// Other foliage blocks have maximum foliage factor of adjacent blocks minus one.
+
+		int max_adjacent_foliage_factor= 0;
+		for(int i= 0; i < 6; ++i)
+		{
+			int adjacent_block_address= adjacent_columns[i] + z;
+			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
+			if(adjacent_block_type == c_block_type_wood)
+				max_adjacent_foliage_factor= c_max_foliage_factor;
+			else if(adjacent_block_type == c_block_type_foliage)
+			{
+				int adjacent_foliage_factor= int(chunks_auxiliar_input_data[adjacent_block_address]);
+				max_adjacent_foliage_factor= max(max_adjacent_foliage_factor, adjacent_foliage_factor);
+			}
+		}
+
+		if(z < c_chunk_height - 1)
+		{
+			int adjacent_block_address= column_address + z + 1;
+			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
+			if(adjacent_block_type == c_block_type_wood)
+				max_adjacent_foliage_factor= c_max_foliage_factor;
+			else if(adjacent_block_type == c_block_type_foliage)
+			{
+				int adjacent_foliage_factor= int(chunks_auxiliar_input_data[adjacent_block_address]);
+				max_adjacent_foliage_factor= max(max_adjacent_foliage_factor, adjacent_foliage_factor);
+			}
+		}
+		if(z > 0)
+		{
+			int adjacent_block_address= column_address + z - 1;
+			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
+			if(adjacent_block_type == c_block_type_wood)
+				max_adjacent_foliage_factor= c_max_foliage_factor;
+			else if(adjacent_block_type == c_block_type_foliage)
+			{
+				int adjacent_foliage_factor= int(chunks_auxiliar_input_data[adjacent_block_address]);
+				max_adjacent_foliage_factor= max(max_adjacent_foliage_factor, adjacent_foliage_factor);
+			}
+		}
+
+		int this_block_foliage_factor= max(0, max_adjacent_foliage_factor - 1);
+
+		const int border_size= c_max_foliage_factor + 2;
+		if( block_x <= border_size || block_x >= max_coord.x - border_size &&
+			block_y <= border_size || block_y >= max_coord.y - border_size)
+		{
+			// A workaround for world edges.
+			// Force set foliage factor to maximum for blocks on world edges,
+			// in order to prevent this block and adjacent blocks from disappearing.
+			// This may happen, if corresponding wood block is outside current loaded world.
+			this_block_foliage_factor= c_max_foliage_factor;
+		}
+
+		if(this_block_foliage_factor == 0)
+		{
+			// Randomly convert foliage with factor 0 into air.
+
+			// TODO - use global coord for noise.
+			int block_rand= hex_Noise3(block_x, block_y, z, int(current_tick));
+			if((block_rand & 31) == 0)
+				return u8vec2(c_block_type_air, uint8_t(0));
+		}
+
+		return u8vec2(block_type, uint8_t(this_block_foliage_factor));
+	}
 
 	// Common case when block type isn't chanhed.
 	return u8vec2(block_type, chunks_auxiliar_input_data[column_address + z]);

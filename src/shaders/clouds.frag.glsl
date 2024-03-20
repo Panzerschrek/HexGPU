@@ -21,11 +21,15 @@ void main()
 {
 	vec3 view_vec_normalized= normalize(f_view_vec);
 
-	vec2 tc= view_vec_normalized.xy / (abs(view_vec_normalized.z + 0.2) + 0.05);
+	const float horizon_level= 0.2;
+	float z_adjusted= view_vec_normalized.z + horizon_level;
+	vec2 tc= view_vec_normalized.xy / (abs(z_adjusted) + 0.05);
+
+	float horizon_fade_factor= smoothstep(0.0, horizon_level, z_adjusted);
 
 	const vec2 tc_scale= vec2(c_space_scale_x, 1.0) / 8.0;
 
 	float tex_value= HexagonFetch(texture_image, tc * tc_scale).r;
 
-	out_color= vec4(vec3(tex_value * uniforms.sky_color.a), 0.5);
+	out_color= vec4(vec3(tex_value * uniforms.sky_color.a), 0.5 * horizon_fade_factor);
 }

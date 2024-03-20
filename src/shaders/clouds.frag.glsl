@@ -27,5 +27,5 @@ void main()
 
 	vec4 tex_value= HexagonFetch(texture_image, tc * tc_scale);
 
-	out_color= vec4(tex_value.rgb, 0.5);
+	out_color= vec4(tex_value.rgb * uniforms.sky_color.a, 0.5);
 }

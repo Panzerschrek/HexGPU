@@ -41,7 +41,7 @@ void main()
 
 	ivec2 centers[3]= ivec2[3](ivec2(15, 15), ivec2(15, 16), ivec2(16, 15));
 
-	int dists[3]= int[3](HexDist(texel_coord.yx, centers[0]), HexDist(texel_coord.yx, centers[1]), HexDist(texel_coord.yx, centers[2]));
+	int dists[3]= int[3](HexDist(texel_coord, centers[0]), HexDist(texel_coord, centers[1]), HexDist(texel_coord, centers[2]));
 	int min_dist= min(dists[0], min(dists[1], dists[2]));
 
 	float dist_fract= float(min_dist & 1);
@@ -50,6 +50,7 @@ void main()
 	vec3 ring_color= mix(c_color_dark, c_color_light, dist_fract);
 
 	vec4 color= vec4(is_bark ? c_color_bark : ring_color, 1.0);
+	//color= vec4(vec2(texel_coord) / 128.0, 0.0, 1.0);
 
 	imageStore(out_image, texel_coord, color);
 }

@@ -90,8 +90,13 @@ void ChunksStorage::SetActiveArea(const ChunkCoord start, const std::array<uint3
 	// Can start the task.
 	HEX_ASSERT(!regions_loading_future_.valid());
 
+	// std::async seems to be a dumb wrapper over std::thread creation.
+	// For now it's fine.
+	// But it may be too expensive to create a new thread for each loading task.
+	// So, consider using some thread pool library in the future.
+
 	regions_loading_future_= std::async(
-		std::launch::async,
+		std::launch::async, // Start execution immideately in a background thread.
 		[this, regions_to_load= std::move(regions_to_load)]
 		{
 			LoadedRegionsList loaded_regions;

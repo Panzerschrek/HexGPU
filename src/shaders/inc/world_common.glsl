@@ -1,31 +1,29 @@
 const float c_hexagon_fetch_lod_edge= 0.5;
 
-ivec2 GetHexagonTexCoordY(vec2 tex_coord)
+ivec2 GetHexagonTexCoord(vec2 tex_coord)
 {
 	vec2 tex_coord_dransformed;
 	vec2 tex_coord_transformed_floor;
 	ivec2 nearest_cell;
 	vec2 d;
 
-	tex_coord_dransformed.y= tex_coord.x;
+	tex_coord_dransformed.x= tex_coord.x;
+	tex_coord_transformed_floor.x= floor(tex_coord_dransformed.x);
+	nearest_cell.x= int(tex_coord_transformed_floor.x);
+	d.x= tex_coord_dransformed.x - tex_coord_transformed_floor.x;
+
+	tex_coord_dransformed.y= tex_coord.y - 0.5 * float((nearest_cell.x ^ 1) & 1);
 	tex_coord_transformed_floor.y= floor(tex_coord_dransformed.y);
 	nearest_cell.y= int(tex_coord_transformed_floor.y);
 	d.y= tex_coord_dransformed.y - tex_coord_transformed_floor.y;
 
-	tex_coord_dransformed.x= tex_coord.y - 0.5 * float((nearest_cell.y ^ 1) & 1);
-	tex_coord_transformed_floor.x= floor( tex_coord_dransformed.x );
-	nearest_cell.x= int( tex_coord_transformed_floor.x );
-	d.x= tex_coord_dransformed.x - tex_coord_transformed_floor.x;
-
-	if(d.x > 0.5 + 1.5 * d.y)
-		return ivec2(nearest_cell.x + ((nearest_cell.y ^ 1) & 1), nearest_cell.y - 1).yx;
-
+	if(d.y > 0.5 + 1.5 * d.x)
+		return ivec2(nearest_cell.x - 1, nearest_cell.y + ((nearest_cell.x ^ 1) & 1));
 	else
-	if(d.x < 0.5 - 1.5 * d.y)
-		return ivec2(nearest_cell.x - (nearest_cell.y & 1), nearest_cell.y - 1).yx;
-
+	if(d.y < 0.5 - 1.5 * d.x)
+		return ivec2(nearest_cell.x - 1, nearest_cell.y - (nearest_cell.x & 1));
 	else
-		return nearest_cell.yx;
+		return nearest_cell;
 }
 
 vec4 HexagonFetch(in sampler2DArray tex, vec3 tex_coord)
@@ -40,7 +38,7 @@ vec4 HexagonFetch(in sampler2DArray tex, vec3 tex_coord)
 		return texelFetch(
 			tex,
 			ivec3(
-				mod(GetHexagonTexCoordY(tex_coord.xy * vec2(tex_size) - vec2(0.0, 0.0)), tex_size),
+				mod(GetHexagonTexCoord(tex_coord.xy * vec2(tex_size)), tex_size),
 				texture_layer),
 			0);
 	}
@@ -58,7 +56,7 @@ vec4 HexagonFetch(in sampler2D tex, vec2 tex_coord)
 
 		return texelFetch(
 			tex,
-			ivec2(mod(GetHexagonTexCoordY(tex_coord * vec2(tex_size) - vec2(0.0, 0.0)), tex_size)),
+			ivec2(mod(GetHexagonTexCoord(tex_coord * vec2(tex_size)), tex_size)),
 			0);
 	}
 	else

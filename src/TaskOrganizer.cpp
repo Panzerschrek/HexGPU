@@ -363,7 +363,7 @@ void TaskOrganizer::GenerateImageMips(const ImageInfo& image_info, const vk::Ext
 				vk::ImageSubresourceRange(image_info.asppect_flags, i, 1, 0u, image_info.num_layers));
 
 			command_buffer_.pipelineBarrier(
-				vk::PipelineStageFlagBits(),
+				vk::PipelineStageFlagBits::eBottomOfPipe,
 				vk::PipelineStageFlagBits::eTransfer,
 				vk::DependencyFlags(),
 				0u, nullptr,

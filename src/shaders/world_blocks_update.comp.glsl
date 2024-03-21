@@ -417,7 +417,7 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 		int this_block_foliage_factor= max(0, max_adjacent_foliage_factor - 1);
 
 		const int border_size= c_max_foliage_factor + 2;
-		if( block_x <= border_size || block_x >= max_coord.x - border_size &&
+		if( block_x <= border_size || block_x >= max_coord.x - border_size ||
 			block_y <= border_size || block_y >= max_coord.y - border_size)
 		{
 			// A workaround for world edges.

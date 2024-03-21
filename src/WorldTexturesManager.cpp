@@ -1,7 +1,7 @@
 #include "WorldTexturesManager.hpp"
 #include "GlobalDescriptorPool.hpp"
+#include "Image.hpp"
 #include "ShaderList.hpp"
-#include "TexturesTable.hpp"
 #include "VulkanUtils.hpp"
 
 namespace HexGPU
@@ -19,8 +19,6 @@ const uint32_t c_texture_size_log2= 8;
 const uint32_t c_texture_size= 1 << c_texture_size_log2;
 
 const uint32_t c_num_mips= c_texture_size_log2 - 2; // Ignore last two mips for simplicity.
-
-constexpr uint32_t c_num_layers= uint32_t(std::size(c_block_textures_table));
 
 const uint32_t c_texture_num_texels= c_texture_size * c_texture_size;
 
@@ -187,7 +185,7 @@ void WorldTexturesManager::PrepareFrame(TaskOrganizer& task_organizer)
 	const auto generate_task_func=
 		[this](const vk::CommandBuffer command_buffer)
 		{
-			for(size_t i= 0; i < 1; ++i)
+			for(size_t i= 0; i < c_num_layers; ++i)
 			{
 				command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *texture_gen_pipelines_.pipelines[i].pipeline);
 
@@ -264,9 +262,24 @@ WorldTexturesManager::TextureGenPipelines WorldTexturesManager::CreatePipelines(
 			1u, &*pipelines.descriptor_set_layout,
 			0u, nullptr));
 
-	for(uint32_t i= 0; i < 1; ++i)
+	static constexpr ShaderNames gen_shader_table[c_num_layers]
 	{
-		pipelines.pipelines[i].shader= CreateShader(vk_device, ShaderNames::clouds_texture_gen_comp);
+		ShaderNames::texture_gen_bricks_comp,
+		ShaderNames::texture_gen_bricks_comp,
+		ShaderNames::texture_gen_bricks_comp,
+		ShaderNames::texture_gen_bricks_comp,
+		ShaderNames::texture_gen_bricks_comp,
+		ShaderNames::texture_gen_bricks_comp,
+		ShaderNames::texture_gen_bricks_comp,
+		ShaderNames::texture_gen_bricks_comp,
+		ShaderNames::texture_gen_bricks_comp,
+		ShaderNames::texture_gen_bricks_comp,
+		ShaderNames::texture_gen_bricks_comp,
+	};
+
+	for(uint32_t i= 0; i < c_num_layers; ++i)
+	{
+		pipelines.pipelines[i].shader= CreateShader(vk_device, gen_shader_table[i]);
 		pipelines.pipelines[i].pipeline=
 			CreateComputePipeline(vk_device, *pipelines.pipelines[i].shader, *pipelines.pipeline_layout);
 

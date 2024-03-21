@@ -1,7 +1,7 @@
 #pragma once
 #include "TaskOrganizer.hpp"
+#include "TexturesTable.hpp"
 #include "WindowVulkan.hpp"
-#include "Image.hpp"
 
 namespace HexGPU
 {
@@ -19,6 +19,8 @@ public:
 	TaskOrganizer::ImageInfo GetImageInfo() const;
 
 private:
+	static constexpr uint32_t c_num_layers= uint32_t(std::size(c_block_textures_table));
+
 	struct TextureGenPipelineData
 	{
 		vk::UniqueShaderModule shader;
@@ -31,7 +33,7 @@ private:
 	{
 		vk::UniqueDescriptorSetLayout descriptor_set_layout;
 		vk::UniquePipelineLayout pipeline_layout;
-		std::array<TextureGenPipelineData, 1> pipelines;
+		std::array<TextureGenPipelineData, c_num_layers> pipelines;
 	};
 
 private:

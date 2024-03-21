@@ -58,6 +58,7 @@ private:
 	static RegionCoord GetRegionCoordForChunk(ChunkCoord chunk_coord);
 	static bool SaveRegion(const Region& region, const std::string& file_name);
 	static std::optional<Region> LoadRegion(const std::string& file_name);
+	static Region LoadOrCreateNewRegion(const std::string& file_name);
 
 	// Finds region for given chunk and returns chunk data structure within this region.
 	ChunkDataCompresed& GetChunkData(ChunkCoord chunk_coord);
@@ -68,6 +69,7 @@ private:
 
 	void TakeRegionsLoadingTaskResultIfReady();
 	void EnsureRegionsLoadingTaskFinished();
+	void PopulateRegionsMap(LoadedRegionsListPtr loaded_regions);
 
 private:
 	const std::string world_dir_path_;

@@ -94,22 +94,10 @@ void ChunksStorage::SetActiveArea(const ChunkCoord start, const std::array<uint3
 		std::launch::async,
 		[this, regions_to_load= std::move(regions_to_load)]
 		{
-			Log::Info("Run async: ", std::this_thread::get_id());
-
 			LoadedRegionsList loaded_regions;
 			loaded_regions.reserve(regions_to_load.size());
 			for(const RegionCoord& region_coord : regions_to_load)
-			{
-				Log::Info("Trying to load region ", region_coord[0], ", ", region_coord[1]);
-				auto region_loaded= LoadRegion(GetRegionFilePath(region_coord));
-				if(region_loaded != std::nullopt)
-					loaded_regions.emplace_back(region_coord, std::move(*region_loaded));
-				else
-				{
-					// Create new region.
-					loaded_regions.emplace_back(region_coord, Region());
-				}
-			}
+				loaded_regions.emplace_back(region_coord, LoadOrCreateNewRegion(GetRegionFilePath(region_coord)));
 
 			return std::make_shared<LoadedRegionsList>(std::move(loaded_regions));
 		});
@@ -240,6 +228,15 @@ std::optional<ChunksStorage::Region> ChunksStorage::LoadRegion(const std::string
 	return result_region;
 }
 
+ChunksStorage::Region ChunksStorage::LoadOrCreateNewRegion(const std::string& file_name)
+{
+	auto region_opt= LoadRegion(file_name);
+	if(region_opt != std::nullopt)
+		return std::move(*region_opt);
+
+	return Region();
+}
+
 ChunkDataCompresed& ChunksStorage::GetChunkData(const ChunkCoord chunk_coord)
 {
 	const RegionCoord region_coord= GetRegionCoordForChunk(chunk_coord);
@@ -275,18 +272,7 @@ ChunksStorage::Region& ChunksStorage::EnsureRegionLoaded(const RegionCoord regio
 	}
 
 	// Fallback - synchronously load the region or create new.
-
-	auto region_loaded= LoadRegion(GetRegionFilePath(region_coord));
-	if(region_loaded != std::nullopt)
-	{
-		// Insert region loading result.
-		return regions_map_.emplace(region_coord, std::move(*region_loaded)).first->second;
-	}
-	else
-	{
-		// Insert newly-created region.
-		return regions_map_.emplace(region_coord, Region{}).first->second;
-	}
+	return regions_map_.emplace(region_coord, LoadOrCreateNewRegion(GetRegionFilePath(region_coord))).first->second;
 }
 
 std::string ChunksStorage::GetRegionFilePath(const RegionCoord region_coord) const
@@ -311,11 +297,7 @@ void ChunksStorage::TakeRegionsLoadingTaskResultIfReady()
 	if(status != std::future_status::ready)
 		return;
 
-	for(auto& loaded_region : *regions_loading_future_.get())
-	{
-		HEX_ASSERT(regions_map_.count(loaded_region.first) == 0);
-		regions_map_.emplace(loaded_region.first, std::move(loaded_region.second));
-	}
+	PopulateRegionsMap(regions_loading_future_.get());
 
 	// Reset future to indicate it's unactive.
 	regions_loading_future_= RegionsLoadingFuture();
@@ -329,15 +311,22 @@ void ChunksStorage::EnsureRegionsLoadingTaskFinished()
 
 	regions_loading_future_.wait();
 
-	for(auto& loaded_region : *regions_loading_future_.get())
-	{
-		HEX_ASSERT(regions_map_.count(loaded_region.first) == 0);
-		regions_map_.emplace(loaded_region.first, std::move(loaded_region.second));
-	}
+	PopulateRegionsMap(regions_loading_future_.get());
 
 	// Reset future to indicate it's unactive.
 	regions_loading_future_= RegionsLoadingFuture();
 	HEX_ASSERT(!regions_loading_future_.valid());
+}
+
+void ChunksStorage::PopulateRegionsMap(const LoadedRegionsListPtr loaded_regions)
+{
+	HEX_ASSERT(loaded_regions != nullptr);
+
+	for(auto& loaded_region : *loaded_regions)
+	{
+		HEX_ASSERT(regions_map_.count(loaded_region.first) == 0);
+		regions_map_.emplace(loaded_region.first, std::move(loaded_region.second));
+	}
 }
 
 } // namespace HexGPU

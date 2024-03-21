@@ -1,6 +1,5 @@
 Here is the list of futures that needs to be implemented.
 The order represents importance and/or dependency.
-* Load world region files in background thread
 * Improved textures loading - use smaller staging buffer and free it at the end of the loading process
 * Procedure textures - generate them rather than loading from files
 * Biome-based world generation

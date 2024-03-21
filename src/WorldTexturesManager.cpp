@@ -14,10 +14,10 @@ namespace TextureGenShaderBindings
 	const ShaderBindingIndex out_image= 0;
 }
 
-const uint32_t c_texture_size_log2= 8;
+const uint32_t c_texture_size_log2= 7;
 const uint32_t c_texture_size= 1 << c_texture_size_log2;
 
-const uint32_t c_num_mips= c_texture_size_log2 - 2; // Ignore last two mips for simplicity.
+const uint32_t c_num_mips= c_texture_size_log2 - 1; // Ignore last mip for simplicity.
 
 const uint32_t c_texture_num_texels= c_texture_size * c_texture_size;
 

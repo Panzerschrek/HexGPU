@@ -76,16 +76,16 @@ const uint c_num_textures= 11;
 const u8vec2 c_texture_property_table[c_num_textures]=
 	u8vec2[c_num_textures]
 (
-	u8vec2(3, 0), // brick.jpg
-	u8vec2(2, 0), // fire.jpg
-	u8vec2(3, 0), // grass2.jpg
-	u8vec2(4, 0), // leaves3.png
+	u8vec2(1, 0), // brick.jpg
+	u8vec2(1, 0), // fire.jpg
+	u8vec2(1, 0), // grass2.jpg
+	u8vec2(1, 0), // leaves3.png
 	u8vec2(1, 0), // sand.jpg
-	u8vec2(4, 0), // soil.jpg
-	u8vec2(4, 1), // spherical_block_2.png
-	u8vec2(3, 0), // stone.jpg
-	u8vec2(4, 0), // wood.jpg
-	u8vec2(4, 1), // wood-end.jpg
+	u8vec2(1, 0), // soil.jpg
+	u8vec2(1, 1), // spherical_block_2.png
+	u8vec2(1, 0), // stone.jpg
+	u8vec2(1, 0), // wood.jpg
+	u8vec2(1, 1), // wood-end.jpg
 	u8vec2(1, 0)  // water2.png
 );
 

@@ -85,7 +85,7 @@ const u8vec2 c_texture_property_table[c_num_textures]=
 	u8vec2(1, 1), // spherical_block_2.png
 	u8vec2(1, 0), // stone.jpg
 	u8vec2(1, 0), // wood.jpg
-	u8vec2(1, 0), // wood-end.jpg
+	u8vec2(1, 1), // wood-end.jpg
 	u8vec2(1, 0)  // water2.png
 );
 

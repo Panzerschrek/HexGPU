@@ -145,3 +145,8 @@ target_link_libraries(
 			ImGui
 			snappy
 	)
+
+if(NOT WIN32)
+	# pthread library is required for std::async.
+	target_link_libraries(HexGPU PRIVATE pthread)
+endif()

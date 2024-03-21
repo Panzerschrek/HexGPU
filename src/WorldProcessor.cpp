@@ -2157,6 +2157,9 @@ void WorldProcessor::UploadChunks(TaskOrganizer& task_organizer)
 		}
 	}
 
+	if(written_mapped_memory_ranges.empty())
+		return; // No chunks to upload.
+
 	// Flush host writes into buffers memory. This is needed for non-coherent memory.
 	vk_device_.flushMappedMemoryRanges(written_mapped_memory_ranges);
 

@@ -5,6 +5,7 @@
 #include <array>
 #include <optional>
 #include <unordered_map>
+#include <future>
 
 namespace HexGPU
 {
@@ -49,6 +50,10 @@ private:
 		ChunkDataCompresed chunks[c_world_region_area];
 	};
 
+	using LoadedRegionsList= std::vector<std::pair<RegionCoord, Region>>;
+	using LoadedRegionsListPtr= std::shared_ptr<LoadedRegionsList>; // Use shared_ptr, because future::get returns copy, which is expensive
+	using RegionsLoadingFuture= std::future<LoadedRegionsListPtr>;
+
 private:
 	static RegionCoord GetRegionCoordForChunk(ChunkCoord chunk_coord);
 	static bool SaveRegion(const Region& region, const std::string& file_name);
@@ -59,11 +64,16 @@ private:
 
 	Region& EnsureRegionLoaded(RegionCoord region_coord);
 
-	std::string GetRegionFilePath(RegionCoord region_coord);
+	std::string GetRegionFilePath(RegionCoord region_coord) const;
+
+	void TakeRegionsLoadingTaskResultIfReady();
+	void EnsureRegionsLoadingTaskFinished();
 
 private:
 	const std::string world_dir_path_;
 	std::unordered_map<ChunkCoord, Region, RegionCoordHasher> regions_map_;
+
+	RegionsLoadingFuture regions_loading_future_;
 };
 
 } // namespace HexGPU

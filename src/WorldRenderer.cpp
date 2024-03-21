@@ -135,7 +135,7 @@ WorldRenderer::WorldRenderer(
 	, world_processor_(world_processor)
 	, world_size_(world_processor.GetWorldSize())
 	, geometry_generator_(window_vulkan, world_processor, global_descriptor_pool)
-	, world_textures_manager_(window_vulkan)
+	, world_textures_manager_(window_vulkan, global_descriptor_pool)
 	, draw_indirect_buffer_(
 		window_vulkan,
 		world_size_[0] * world_size_[1] * uint32_t(sizeof(vk::DrawIndexedIndirectCommand)),

@@ -1,12 +1,19 @@
 #include "WorldTexturesManager.hpp"
+#include "GlobalDescriptorPool.hpp"
+#include "ShaderList.hpp"
 #include "TexturesTable.hpp"
-#include "Image.hpp"
+#include "VulkanUtils.hpp"
 
 namespace HexGPU
 {
 
 namespace
 {
+
+namespace TextureGenShaderBindings
+{
+	const ShaderBindingIndex out_image= 0;
+}
 
 const uint32_t c_texture_size_log2= 8;
 const uint32_t c_texture_size= 1 << c_texture_size_log2;
@@ -17,9 +24,33 @@ constexpr uint32_t c_num_layers= uint32_t(std::size(c_block_textures_table));
 
 const uint32_t c_texture_num_texels= c_texture_size * c_texture_size;
 
+vk::UniqueDeviceMemory AllocateAndBindImageMemory(const vk::Image image, const WindowVulkan& window_vulkan)
+{
+	const auto vk_device= window_vulkan.GetVulkanDevice();
+
+	const auto memory_properties= window_vulkan.GetMemoryProperties();
+
+	const vk::MemoryRequirements memory_requirements= vk_device.getImageMemoryRequirements(image);
+
+	vk::MemoryAllocateInfo memory_allocate_info(memory_requirements.size);
+	for(uint32_t j= 0u; j < memory_properties.memoryTypeCount; ++j)
+	{
+		if((memory_requirements.memoryTypeBits & (1u << j)) != 0 &&
+			(memory_properties.memoryTypes[j].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
+		{
+			memory_allocate_info.memoryTypeIndex= j;
+			break;
+		}
+	}
+
+	auto image_memory= vk_device.allocateMemoryUnique(memory_allocate_info);
+	vk_device.bindImageMemory(image, *image_memory, 0u);
+
+	return image_memory;
+}
 } // namespace
 
-WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
+WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan, const vk::DescriptorPool global_descriptor_pool)
 	: vk_device_(window_vulkan.GetVulkanDevice())
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, image_(vk_device_.createImageUnique(
@@ -32,32 +63,13 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 			c_num_layers,
 			vk::SampleCountFlagBits::e1,
 			vk::ImageTiling::eOptimal,
-			vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc,
+			vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc,
 			vk::SharingMode::eExclusive,
 			0u, nullptr,
 			vk::ImageLayout::eUndefined)))
+	, image_memory_(AllocateAndBindImageMemory(*image_, window_vulkan))
+	, texture_gen_pipelines_(CreatePipelines(vk_device_, global_descriptor_pool, *image_))
 {
-	const auto memory_properties= window_vulkan.GetMemoryProperties();
-
-	// Allocate image memory.
-	{
-		const vk::MemoryRequirements memory_requirements= vk_device_.getImageMemoryRequirements(*image_);
-
-		vk::MemoryAllocateInfo memory_allocate_info(memory_requirements.size);
-		for(uint32_t j= 0u; j < memory_properties.memoryTypeCount; ++j)
-		{
-			if((memory_requirements.memoryTypeBits & (1u << j)) != 0 &&
-				(memory_properties.memoryTypes[j].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
-			{
-				memory_allocate_info.memoryTypeIndex= j;
-				break;
-			}
-		}
-
-		image_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);
-		vk_device_.bindImageMemory(*image_, *image_memory_, 0u);
-	}
-
 	// Create image view.
 	image_view_= vk_device_.createImageViewUnique(
 		vk::ImageViewCreateInfo(
@@ -83,6 +95,8 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan)
 	// Create staging buffer. For now create it with size of whole texture.
 	const uint32_t buffer_data_size= c_num_layers * c_texture_num_texels * sizeof(PixelType);
 	{
+		const auto memory_properties= window_vulkan.GetMemoryProperties();
+
 		staging_buffer_=
 			vk_device_.createBufferUnique(
 				vk::BufferCreateInfo(
@@ -167,6 +181,35 @@ void WorldTexturesManager::PrepareFrame(TaskOrganizer& task_organizer)
 
 	task_organizer.ExecuteTask(task, task_func);
 
+	TaskOrganizer::ComputeTaskParams generate_task;
+	generate_task.output_images.push_back(GetImageInfo());
+
+	const auto generate_task_func=
+		[this](const vk::CommandBuffer command_buffer)
+		{
+			for(size_t i= 0; i < 1; ++i)
+			{
+				command_buffer.bindPipeline(vk::PipelineBindPoint::eCompute, *texture_gen_pipelines_.pipelines[i].pipeline);
+
+				command_buffer.bindDescriptorSets(
+					vk::PipelineBindPoint::eCompute,
+					*texture_gen_pipelines_.pipeline_layout,
+					0u,
+					{texture_gen_pipelines_.pipelines[i].descriptor_set},
+					{});
+
+				// This constant should match workgroup size in shader!
+				constexpr uint32_t c_workgroup_size[]{8, 16, 1};
+				static_assert(c_texture_size % c_workgroup_size[0] == 0, "Wrong workgroup size!");
+				static_assert(c_texture_size % c_workgroup_size[1] == 0, "Wrong workgroup size!");
+				static_assert(c_workgroup_size[2] == 1, "Wrong workgroup size!");
+
+				command_buffer.dispatch(c_texture_size / c_workgroup_size[0], c_texture_size / c_workgroup_size[1], 1);
+			}
+		};
+
+	task_organizer.ExecuteTask(generate_task, generate_task_func);
+
 	// Generate mips.
 	task_organizer.GenerateImageMips(GetImageInfo(), vk::Extent2D(c_texture_size, c_texture_size));
 }
@@ -190,6 +233,79 @@ TaskOrganizer::ImageInfo WorldTexturesManager::GetImageInfo() const
 	info.num_layers= c_num_layers;
 
 	return info;
+}
+
+WorldTexturesManager::TextureGenPipelines WorldTexturesManager::CreatePipelines(
+	const vk::Device vk_device,
+	const vk::DescriptorPool global_descriptor_pool,
+	const vk::Image image)
+{
+	TextureGenPipelines pipelines;
+
+	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
+	{
+		{
+			TextureGenShaderBindings::out_image,
+			vk::DescriptorType::eStorageImage,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+	};
+
+	pipelines.descriptor_set_layout= vk_device.createDescriptorSetLayoutUnique(
+		vk::DescriptorSetLayoutCreateInfo(
+			vk::DescriptorSetLayoutCreateFlags(),
+			uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
+
+	pipelines.pipeline_layout= vk_device.createPipelineLayoutUnique(
+		vk::PipelineLayoutCreateInfo(
+			vk::PipelineLayoutCreateFlags(),
+			1u, &*pipelines.descriptor_set_layout,
+			0u, nullptr));
+
+	for(uint32_t i= 0; i < 1; ++i)
+	{
+		pipelines.pipelines[i].shader= CreateShader(vk_device, ShaderNames::clouds_texture_gen_comp);
+		pipelines.pipelines[i].pipeline=
+			CreateComputePipeline(vk_device, *pipelines.pipelines[i].shader, *pipelines.pipeline_layout);
+
+		pipelines.pipelines[i].descriptor_set= CreateDescriptorSet(
+			vk_device,
+			global_descriptor_pool,
+			*pipelines.descriptor_set_layout);
+
+		pipelines.pipelines[i].image_layer_view= vk_device.createImageViewUnique(
+		vk::ImageViewCreateInfo(
+			vk::ImageViewCreateFlags(),
+			image,
+			vk::ImageViewType::e2D,
+			vk::Format::eR8G8B8A8Unorm,
+			vk::ComponentMapping(),
+			vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, i, 1u)));
+
+		const vk::DescriptorImageInfo descriptor_tex_info(
+			vk::Sampler(),
+			*pipelines.pipelines[i].image_layer_view,
+			vk::ImageLayout::eGeneral);
+
+		vk_device.updateDescriptorSets(
+			{
+				{
+					pipelines.pipelines[i].descriptor_set,
+					TextureGenShaderBindings::out_image,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageImage,
+					&descriptor_tex_info,
+					nullptr,
+					nullptr
+				},
+			},
+			{});
+	}
+
+	return pipelines;
 }
 
 } // namespace HexGPU

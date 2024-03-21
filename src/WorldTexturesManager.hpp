@@ -47,16 +47,13 @@ private:
 	const uint32_t queue_family_index_;
 
 	const vk::UniqueImage image_;
-	vk::UniqueImageView image_view_;
-	vk::UniqueImageView water_image_view_;
-	vk::UniqueDeviceMemory image_memory_;
+	const vk::UniqueDeviceMemory image_memory_;
+	const vk::UniqueImageView image_view_;
+	const vk::UniqueImageView water_image_view_;
 
 	const TextureGenPipelines texture_gen_pipelines_;
 
-	vk::UniqueBuffer staging_buffer_;
-	vk::UniqueDeviceMemory staging_buffer_memory_;
-
-	bool textures_loaded_= false;
+	bool textures_generated_= false;
 };
 
 } // namespace HexGPU

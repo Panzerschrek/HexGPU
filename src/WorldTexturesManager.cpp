@@ -194,7 +194,7 @@ WorldTexturesManager::TextureGenPipelines WorldTexturesManager::CreatePipelines(
 		ShaderNames::texture_gen_bricks_comp,
 		ShaderNames::texture_gen_bricks_comp,
 		ShaderNames::texture_gen_bricks_comp,
-		ShaderNames::texture_gen_bricks_comp,
+		ShaderNames::texture_gen_water_comp,
 	};
 
 	for(uint32_t i= 0; i < c_num_layers; ++i)

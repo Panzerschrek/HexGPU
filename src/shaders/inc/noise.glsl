@@ -174,22 +174,6 @@ int hex_TriangularInterpolatedNoiseDefault(int x, int y, int seed, int shift)
 	return hex_TriangularInterpolatedNoise(x, y, seed, shift, 0xFFFFFFFF);
 }
 
-int hex_TriangularInterpolatedOctaveNoiseWraped(int x, int y, int seed, int octaves, int size_log2)
-{
-	int r= 0;
-	for(int i= 0; i < octaves; ++i)
-	{
-		int shift= octaves - i - 1;
-		r+= hex_TriangularInterpolatedNoise(
-			x, y,
-			seed,
-			shift,
-			(1 << (size_log2 - shift)) - 1) >> i;
-	}
-
-	return r;
-}
-
 int hex_TextureOctaveNoiseWraped(int x, int y, int seed, int octaves, int size_log2)
 {
 	//Correct Y to make result smoother.

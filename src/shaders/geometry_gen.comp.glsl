@@ -136,18 +136,16 @@ void main()
 				? c_block_texture_table[int(block_value)].r
 				: c_block_texture_table[int(block_value_up)].g;
 
-		u8vec2 tex_property= c_texture_property_table[uint(tex_index)];
-		int tex_scale= tex_property.x;
-		ivec2 tc_base= tex_property.y == 1 ? ivec2(0, 0) : tex_scale * ivec2(base_x, base_y);
+		ivec2 tc_base= ivec2(base_x, base_y);
 
 		int16_t light= RepackAndScaleLight(light_buffer[optical_density > optical_density_up ? block_address : block_address_up], 272);
 
-		v[0].tex_coord= i16vec4(int16_t(tc_base.x + 1 * tex_scale), int16_t(tc_base.y + 0 * tex_scale), tex_index, light);
-		v[1].tex_coord= i16vec4(int16_t(tc_base.x + 3 * tex_scale), int16_t(tc_base.y + 0 * tex_scale), tex_index, light);
-		v[2].tex_coord= i16vec4(int16_t(tc_base.x + 4 * tex_scale), int16_t(tc_base.y + 1 * tex_scale), tex_index, light);
-		v[3].tex_coord= i16vec4(int16_t(tc_base.x + 0 * tex_scale), int16_t(tc_base.y + 1 * tex_scale), tex_index, light);
-		v[4].tex_coord= i16vec4(int16_t(tc_base.x + 3 * tex_scale), int16_t(tc_base.y + 2 * tex_scale), tex_index, light);
-		v[5].tex_coord= i16vec4(int16_t(tc_base.x + 1 * tex_scale), int16_t(tc_base.y + 2 * tex_scale), tex_index, light);
+		v[0].tex_coord= i16vec4(int16_t(tc_base.x + 1), int16_t(tc_base.y + 0), tex_index, light);
+		v[1].tex_coord= i16vec4(int16_t(tc_base.x + 3), int16_t(tc_base.y + 0), tex_index, light);
+		v[2].tex_coord= i16vec4(int16_t(tc_base.x + 4), int16_t(tc_base.y + 1), tex_index, light);
+		v[3].tex_coord= i16vec4(int16_t(tc_base.x + 0), int16_t(tc_base.y + 1), tex_index, light);
+		v[4].tex_coord= i16vec4(int16_t(tc_base.x + 3), int16_t(tc_base.y + 2), tex_index, light);
+		v[5].tex_coord= i16vec4(int16_t(tc_base.x + 1), int16_t(tc_base.y + 2), tex_index, light);
 
 		// Create quads from hexagon vertices. Two vertices are shared.
 		Quad quad_south, quad_north;
@@ -187,16 +185,14 @@ void main()
 
 		int16_t tex_index= c_block_texture_table[optical_density < optical_density_north ? int(block_value) : int(block_value_north)].b;
 
-		u8vec2 tex_property= c_texture_property_table[uint(tex_index)];
-		int tex_scale= tex_property.x;
-		ivec2 tc_base= tex_property.y == 1 ? ivec2(0, 0) : tex_scale * ivec2(base_tc_x, z * 2);
+		ivec2 tc_base= ivec2(base_tc_x, z * 2);
 
 		int16_t light= RepackAndScaleLight(light_buffer[optical_density > optical_density_north ? block_address : block_address_north], 267);
 
-		v[0].tex_coord= i16vec4(int16_t(tc_base.x + 2 * tex_scale), int16_t(tc_base.y + 0 * tex_scale), tex_index, light);
-		v[1].tex_coord= i16vec4(int16_t(tc_base.x + 2 * tex_scale), int16_t(tc_base.y + 2 * tex_scale), tex_index, light);
-		v[2].tex_coord= i16vec4(int16_t(tc_base.x + 0 * tex_scale), int16_t(tc_base.y + 2 * tex_scale), tex_index, light);
-		v[3].tex_coord= i16vec4(int16_t(tc_base.x + 0 * tex_scale), int16_t(tc_base.y + 0 * tex_scale), tex_index, light);
+		v[0].tex_coord= i16vec4(int16_t(tc_base.x + 2), int16_t(tc_base.y + 0), tex_index, light);
+		v[1].tex_coord= i16vec4(int16_t(tc_base.x + 2), int16_t(tc_base.y + 2), tex_index, light);
+		v[2].tex_coord= i16vec4(int16_t(tc_base.x + 0), int16_t(tc_base.y + 2), tex_index, light);
+		v[3].tex_coord= i16vec4(int16_t(tc_base.x + 0), int16_t(tc_base.y + 0), tex_index, light);
 
 		Quad quad;
 		quad.vertices[1]= v[1];
@@ -228,16 +224,14 @@ void main()
 
 		int16_t tex_index= c_block_texture_table[optical_density < optical_density_north_east ? int(block_value) : int(block_value_north_east)].b;
 
-		u8vec2 tex_property= c_texture_property_table[uint(tex_index)];
-		int tex_scale= tex_property.x;
-		ivec2 tc_base= tex_property.y == 1 ? ivec2(0, 0) : tex_scale * ivec2(base_tc_x, z * 2);
+		ivec2 tc_base= ivec2(base_tc_x, z * 2);
 
 		int16_t light= RepackAndScaleLight(light_buffer[optical_density > optical_density_north_east ? block_address : block_address_north_east], 262);
 
-		v[0].tex_coord= i16vec4(int16_t(tc_base.x + 4 * tex_scale), int16_t(tc_base.y + 0 * tex_scale), tex_index, light);
-		v[1].tex_coord= i16vec4(int16_t(tc_base.x + 4 * tex_scale), int16_t(tc_base.y + 2 * tex_scale), tex_index, light);
-		v[2].tex_coord= i16vec4(int16_t(tc_base.x + 2 * tex_scale), int16_t(tc_base.y + 2 * tex_scale), tex_index, light);
-		v[3].tex_coord= i16vec4(int16_t(tc_base.x + 2 * tex_scale), int16_t(tc_base.y + 0 * tex_scale), tex_index, light);
+		v[0].tex_coord= i16vec4(int16_t(tc_base.x + 4), int16_t(tc_base.y + 0), tex_index, light);
+		v[1].tex_coord= i16vec4(int16_t(tc_base.x + 4), int16_t(tc_base.y + 2), tex_index, light);
+		v[2].tex_coord= i16vec4(int16_t(tc_base.x + 2), int16_t(tc_base.y + 2), tex_index, light);
+		v[3].tex_coord= i16vec4(int16_t(tc_base.x + 2), int16_t(tc_base.y + 0), tex_index, light);
 
 		Quad quad;
 		quad.vertices[1]= v[1];
@@ -268,16 +262,14 @@ void main()
 
 		int16_t tex_index= c_block_texture_table[optical_density < optical_density_south_east ? int(block_value) : int(block_value_south_east)].b;
 
-		u8vec2 tex_property= c_texture_property_table[uint(tex_index)];
-		int tex_scale= tex_property.x;
-		ivec2 tc_base= tex_property.y == 1 ? ivec2(0, 0) : tex_scale * ivec2(base_tc_x, z * 2);
+		ivec2 tc_base= ivec2(base_tc_x, z * 2);
 
 		int16_t light= RepackAndScaleLight(light_buffer[optical_density > optical_density_south_east ? block_address : block_address_south_east], 257);
 
-		v[0].tex_coord= i16vec4(int16_t(tc_base.x + 2 * tex_scale), int16_t(tc_base.y + 0 * tex_scale), tex_index, light);
-		v[1].tex_coord= i16vec4(int16_t(tc_base.x + 2 * tex_scale), int16_t(tc_base.y + 2 * tex_scale), tex_index, light);
-		v[2].tex_coord= i16vec4(int16_t(tc_base.x + 4 * tex_scale), int16_t(tc_base.y + 2 * tex_scale), tex_index, light);
-		v[3].tex_coord= i16vec4(int16_t(tc_base.x + 4 * tex_scale), int16_t(tc_base.y + 0 * tex_scale), tex_index, light);
+		v[0].tex_coord= i16vec4(int16_t(tc_base.x + 2), int16_t(tc_base.y + 0), tex_index, light);
+		v[1].tex_coord= i16vec4(int16_t(tc_base.x + 2), int16_t(tc_base.y + 2), tex_index, light);
+		v[2].tex_coord= i16vec4(int16_t(tc_base.x + 4), int16_t(tc_base.y + 2), tex_index, light);
+		v[3].tex_coord= i16vec4(int16_t(tc_base.x + 4), int16_t(tc_base.y + 0), tex_index, light);
 
 		Quad quad;
 		quad.vertices[1]= v[1];
@@ -383,18 +375,17 @@ void main()
 
 		const uint tex_index= uint(c_block_texture_table[uint(c_block_type_water)].x);
 
-		const int tex_scale= int(c_texture_property_table[tex_index].x);
-		ivec2 tc_base= tex_scale * ivec2(base_x, base_y);
+		ivec2 tc_base= ivec2(base_x, base_y);
 
 		// Use light of this block.
 		int16_t light= RepackAndScaleLight(light_buffer[block_address], 272);
 
-		v[0].tex_coord= i16vec4(int16_t(tc_base.x + 1 * tex_scale), int16_t(tc_base.y + 0 * tex_scale), tex_index, light);
-		v[1].tex_coord= i16vec4(int16_t(tc_base.x + 3 * tex_scale), int16_t(tc_base.y + 0 * tex_scale), tex_index, light);
-		v[2].tex_coord= i16vec4(int16_t(tc_base.x + 4 * tex_scale), int16_t(tc_base.y + 1 * tex_scale), tex_index, light);
-		v[3].tex_coord= i16vec4(int16_t(tc_base.x + 0 * tex_scale), int16_t(tc_base.y + 1 * tex_scale), tex_index, light);
-		v[4].tex_coord= i16vec4(int16_t(tc_base.x + 3 * tex_scale), int16_t(tc_base.y + 2 * tex_scale), tex_index, light);
-		v[5].tex_coord= i16vec4(int16_t(tc_base.x + 1 * tex_scale), int16_t(tc_base.y + 2 * tex_scale), tex_index, light);
+		v[0].tex_coord= i16vec4(int16_t(tc_base.x + 1), int16_t(tc_base.y + 0), tex_index, light);
+		v[1].tex_coord= i16vec4(int16_t(tc_base.x + 3), int16_t(tc_base.y + 0), tex_index, light);
+		v[2].tex_coord= i16vec4(int16_t(tc_base.x + 4), int16_t(tc_base.y + 1), tex_index, light);
+		v[3].tex_coord= i16vec4(int16_t(tc_base.x + 0), int16_t(tc_base.y + 1), tex_index, light);
+		v[4].tex_coord= i16vec4(int16_t(tc_base.x + 3), int16_t(tc_base.y + 2), tex_index, light);
+		v[5].tex_coord= i16vec4(int16_t(tc_base.x + 1), int16_t(tc_base.y + 2), tex_index, light);
 
 		// Create quads from hexagon vertices. Two vertices are shared.
 		Quad quad_south, quad_north;

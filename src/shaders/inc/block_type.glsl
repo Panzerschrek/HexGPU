@@ -72,23 +72,6 @@ const i16vec3 c_block_texture_table[c_num_block_types]=
 // If this changed, TexturesTable.hpp" must be changed too!
 const uint c_num_textures= 11;
 
-// "x" - scale, "y" per-block flag.
-const u8vec2 c_texture_property_table[c_num_textures]=
-	u8vec2[c_num_textures]
-(
-	u8vec2(1, 0), // brick.jpg
-	u8vec2(1, 0), // fire.jpg
-	u8vec2(1, 0), // grass2.jpg
-	u8vec2(1, 0), // leaves3.png
-	u8vec2(1, 0), // sand.jpg
-	u8vec2(1, 0), // soil.jpg
-	u8vec2(1, 0), // spherical_block_2.png
-	u8vec2(1, 0), // stone.jpg
-	u8vec2(1, 0), // wood.jpg
-	u8vec2(1, 0), // wood-end.jpg
-	u8vec2(1, 0)  // water2.png
-);
-
 // If this changed, C++ code must be changed too!
 const uint8_t c_direction_up= uint8_t(0);
 const uint8_t c_direction_down= uint8_t(1);

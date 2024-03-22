@@ -21,9 +21,9 @@ int HexDiagonalDist(ivec2 from, ivec2 to)
 	return max(abs(diff.x) + abs(diff.y), max(abs(diff.y) + abs(diff.z), abs(diff.z) + abs(diff.x)));
 }
 
-vec3 c_color_dark= vec3(0.56, 0.53, 0.44);
-vec3 c_color_light= vec3(0.73, 0.68, 0.55);
-vec3 c_color_bark= vec3(0.47, 0.35, 0.18);
+vec3 c_color_dark= vec3(0.60, 0.55, 0.40);
+vec3 c_color_light= vec3(0.80, 0.75, 0.60);
+vec3 c_color_bark= vec3(0.31, 0.20, 0.14);
 
 void main()
 {

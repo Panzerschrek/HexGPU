@@ -190,7 +190,7 @@ WorldTexturesManager::TextureGenPipelines WorldTexturesManager::CreatePipelines(
 		ShaderNames::texture_gen_bricks_comp,
 		ShaderNames::texture_gen_sand_comp,
 		ShaderNames::texture_gen_soil_comp,
-		ShaderNames::texture_gen_bricks_comp,
+		ShaderNames::texture_gen_spherical_block_comp,
 		ShaderNames::texture_gen_stone_comp,
 		ShaderNames::texture_gen_wood_comp,
 		ShaderNames::texture_gen_wood_end_comp,

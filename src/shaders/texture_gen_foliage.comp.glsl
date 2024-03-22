@@ -7,7 +7,7 @@
 
 const vec3 c_foliage_base_color= vec3(0.20, 0.52, 0.13);
 
-const int c_cell_size_log2= 3;
+const int c_cell_size_log2= 2;
 const int c_cell_size= 1 << c_cell_size_log2;
 const int c_num_cells_log2= c_texture_size_log2 - c_cell_size_log2;
 
@@ -66,7 +66,7 @@ VoronoiPatternResult VoronoiPattern(ivec2 texel_coord, int seed_offset)
 	VoronoiPatternResult result;
 
 	float min_dist_diff= abs(second_min_dist - min_dist);
-	result.edge_factor= smoothstep(0.0, 3.0 / float(c_cell_size), min_dist_diff);
+	result.edge_factor= smoothstep(0.0, 1.75 / float(c_cell_size), min_dist_diff);
 
 	vec4 closest_cell_noise= vec4(
 		float(hex_Noise2(closest_cell_coord.x, closest_cell_coord.y, 8765 + seed_offset)),

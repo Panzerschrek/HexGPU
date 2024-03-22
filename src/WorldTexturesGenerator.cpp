@@ -172,21 +172,6 @@ WorldTexturesGenerator::TextureGenPipelines WorldTexturesGenerator::CreatePipeli
 			1u, &*pipelines.descriptor_set_layout,
 			0u, nullptr));
 
-	static constexpr ShaderNames gen_shader_table[c_num_layers]
-	{
-		ShaderNames::texture_gen_bricks_comp,
-		ShaderNames::texture_gen_fire_stone_comp,
-		ShaderNames::texture_gen_grass_comp,
-		ShaderNames::texture_gen_bricks_comp,
-		ShaderNames::texture_gen_sand_comp,
-		ShaderNames::texture_gen_soil_comp,
-		ShaderNames::texture_gen_spherical_block_comp,
-		ShaderNames::texture_gen_stone_comp,
-		ShaderNames::texture_gen_wood_comp,
-		ShaderNames::texture_gen_wood_end_comp,
-		ShaderNames::texture_gen_water_comp,
-	};
-
 	for(uint32_t i= 0; i < c_num_layers; ++i)
 	{
 		pipelines.pipelines[i].shader= CreateShader(vk_device, gen_shader_table[i]);

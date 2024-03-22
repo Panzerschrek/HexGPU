@@ -25,7 +25,7 @@ private:
 		ShaderNames::texture_gen_bricks_comp,
 		ShaderNames::texture_gen_fire_stone_comp,
 		ShaderNames::texture_gen_grass_comp,
-		ShaderNames::texture_gen_bricks_comp,
+		ShaderNames::texture_gen_foliage_comp,
 		ShaderNames::texture_gen_sand_comp,
 		ShaderNames::texture_gen_soil_comp,
 		ShaderNames::texture_gen_spherical_block_comp,

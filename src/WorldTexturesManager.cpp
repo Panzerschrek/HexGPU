@@ -185,7 +185,7 @@ WorldTexturesManager::TextureGenPipelines WorldTexturesManager::CreatePipelines(
 	static constexpr ShaderNames gen_shader_table[c_num_layers]
 	{
 		ShaderNames::texture_gen_bricks_comp,
-		ShaderNames::texture_gen_bricks_comp,
+		ShaderNames::texture_gen_fire_stone_comp,
 		ShaderNames::texture_gen_grass_comp,
 		ShaderNames::texture_gen_bricks_comp,
 		ShaderNames::texture_gen_sand_comp,

@@ -69,9 +69,6 @@ const i16vec3 c_block_texture_table[c_num_block_types]=
 	i16vec3( 4,  4,  4)  // sand
 );
 
-// If this changed, TexturesTable.hpp" must be changed too!
-const uint c_num_textures= 11;
-
 // If this changed, C++ code must be changed too!
 const uint8_t c_direction_up= uint8_t(0);
 const uint8_t c_direction_down= uint8_t(1);

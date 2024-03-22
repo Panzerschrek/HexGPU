@@ -23,7 +23,7 @@ void main()
 		scaler+= 65536 >> i;
 
 	int noise_val=
-		hex_TriangularInterpolatedOctaveNoiseWraped(texel_coord.x, texel_coord.y, 0, octaves, size_log2);
+		hex_TextureOctaveNoiseWraped(texel_coord.x, texel_coord.y, 0, octaves, size_log2);
 
 	float brightness= float(noise_val) / float(scaler);
 	vec4 color= vec4(brightness, 0.0, 0.0, 0.0);

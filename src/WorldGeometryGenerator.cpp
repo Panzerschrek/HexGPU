@@ -764,8 +764,21 @@ void WorldGeometryGenerator::BuildChunksToUpdateList()
 		const uint32_t update_period= 64;
 		const uint32_t update_period_fast= 4;
 
-		const uint32_t center_x= world_size_[0] / 2;
-		const uint32_t center_y= world_size_[1] / 2;
+		uint32_t center_x= world_size_[0] / 2;
+		uint32_t center_y= world_size_[1] / 2;
+
+		if(const auto player_state= world_processor_.GetLastKnownPlayerState())
+		{
+			// If player position is available, calculate center chunk based on player position.
+			const int32_t chunk_global_coord[]
+			{
+				int32_t(std::floor(player_state->pos[0] / c_space_scale_x)) >> int32_t(c_chunk_width_log2),
+				int32_t(std::floor(player_state->pos[1])) >> int32_t(c_chunk_width_log2),
+			};
+			center_x= uint32_t(std::max(0, chunk_global_coord[0] - world_offset_[0]));
+			center_y= uint32_t(std::max(0, chunk_global_coord[1] - world_offset_[1]));
+		}
+
 		const uint32_t center_radius= 1;
 
 		for(uint32_t y= 0; y < world_size_[1]; ++y)

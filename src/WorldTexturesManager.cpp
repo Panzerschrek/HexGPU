@@ -186,7 +186,7 @@ WorldTexturesManager::TextureGenPipelines WorldTexturesManager::CreatePipelines(
 	{
 		ShaderNames::texture_gen_bricks_comp,
 		ShaderNames::texture_gen_bricks_comp,
-		ShaderNames::texture_gen_bricks_comp,
+		ShaderNames::texture_gen_grass_comp,
 		ShaderNames::texture_gen_bricks_comp,
 		ShaderNames::texture_gen_sand_comp,
 		ShaderNames::texture_gen_soil_comp,

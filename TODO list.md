@@ -1,7 +1,5 @@
 Here is the list of futures that needs to be implemented.
 The order represents importance and/or dependency.
-* Improved textures loading - use smaller staging buffer and free it at the end of the loading process
-* Procedure textures - generate them rather than loading from files
 * Biome-based world generation
 * Update light only after blocks update - in order to avoid black spots in places of removed blocks
 * Grass logic improvements - disappers slower, become yellow, require water or sunlight to grow, etc.
@@ -24,7 +22,6 @@ The order represents importance and/or dependency.
 * Player physics - perform proper cylinder to hex-prism collision
 * Player physics - fix some edge cases with multiple block collision
 * Player physics - limit velocity vector on collisions
-* Configurable textures config
 * Trees generation with variable density
 * Procedural tree models
 * Chunk vertices allocator - make it faster (remove linear complexity)

@@ -29,22 +29,34 @@ void main()
 {
 	ivec2 texel_coord= ivec2(gl_GlobalInvocationID.xy);
 
-	// TODO - fill the whole texture.
+	const int c_cell_size_log2= c_texture_size_log2 - 2;
+	const int c_cell_size= 1 << c_cell_size_log2;
 
-	ivec2 centers[3]= ivec2[3](ivec2(21, 16), ivec2(21, 15), ivec2(20, 15));
-	int dists[3]= int[3](
-		HexDiagonalDist(texel_coord, centers[0]),
-		HexDiagonalDist(texel_coord, centers[1]),
-		HexDiagonalDist(texel_coord, centers[2]));
+	int column= texel_coord.x >> c_cell_size_log2;
+	int y_shifted= texel_coord.y + (c_cell_size >> 1) - ((column & 1) << (c_cell_size_log2 - 1));
+	int row= y_shifted >> c_cell_size_log2;
 
-	int min_dist= min(dists[0], min(dists[1], dists[2]));
+	ivec2 center_offsets[3]= ivec2[3](ivec2(1, 1), ivec2(1, 0), ivec2(0, 0));
+
+	ivec2 centers[3]= ivec2[3](
+		ivec2(column << c_cell_size_log2, row << c_cell_size_log2),
+		ivec2((column - 1) << c_cell_size_log2, (row << c_cell_size_log2) + (c_cell_size >> 1)),
+		ivec2((column - 1) << c_cell_size_log2, (row << c_cell_size_log2) - (c_cell_size >> 1)));
+
+	const ivec2 cell_center= ivec2(20, 15);
+
+	int min_dist= 65536;
+	for(int i= 0; i < 3; ++i)
+		for(int j= 0; j < 3; ++j)
+			min_dist= min(min_dist, HexDiagonalDist(ivec2(texel_coord.x, y_shifted), centers[i] + center_offsets[j] + cell_center));
+
 	float dist_fract= float(min_dist % 5) / 4.0;
 	bool is_bark= min_dist > 29;
 
+	// TODO -add some noise.
 	vec3 ring_color= mix(c_color_dark, c_color_light, dist_fract);
 
 	vec4 color= vec4(is_bark ? c_color_bark : ring_color, 1.0);
-	//color= vec4(vec2(texel_coord) / 128.0, 0.0, 1.0);
 
 	imageStore(out_image, texel_coord, color);
 }

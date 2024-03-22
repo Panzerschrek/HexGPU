@@ -5,7 +5,7 @@
 #include "inc/noise.glsl"
 #include "inc/texture_gen_common.glsl"
 
-const vec3 c_foliage_base_color= vec3(0.30, 0.70, 0.30);
+const vec3 c_foliage_base_color= vec3(0.20, 0.52, 0.13);
 
 const int c_cell_size_log2= 3;
 const int c_cell_size= 1 << c_cell_size_log2;
@@ -14,7 +14,7 @@ const int c_num_cells_log2= c_texture_size_log2 - c_cell_size_log2;
 struct VoronoiPatternResult
 {
 	float edge_factor;
-	float cell_brightness;
+	vec3 cell_color;
 };
 
 VoronoiPatternResult VoronoiPattern(ivec2 texel_coord, int seed_offset)
@@ -68,8 +68,15 @@ VoronoiPatternResult VoronoiPattern(ivec2 texel_coord, int seed_offset)
 	float min_dist_diff= abs(second_min_dist - min_dist);
 	result.edge_factor= smoothstep(0.0, 3.0 / float(c_cell_size), min_dist_diff);
 
-	int closest_cell_noise= hex_Noise2(closest_cell_coord.x, closest_cell_coord.y, 8765 + seed_offset);
-	result.cell_brightness= float(closest_cell_noise) / 65536.0 * 0.25 + 0.75;
+	vec4 closest_cell_noise= vec4(
+		float(hex_Noise2(closest_cell_coord.x, closest_cell_coord.y, 8765 + seed_offset)),
+		float(hex_Noise2(closest_cell_coord.x, closest_cell_coord.y, 8766 + seed_offset)),
+		float(hex_Noise2(closest_cell_coord.x, closest_cell_coord.y, 8767 + seed_offset)),
+		float(hex_Noise2(closest_cell_coord.x, closest_cell_coord.y, 8768 + seed_offset))) * (1.0 / 65536.0);
+
+	result.cell_color=
+		c_foliage_base_color * (float(closest_cell_noise.w) * 0.25 + 0.75) +
+		vec3(closest_cell_noise.rgb) * 0.1;
 
 	return result;
 }
@@ -81,8 +88,8 @@ void main()
 	VoronoiPatternResult background_pattern= VoronoiPattern(texel_coord, 0);
 	VoronoiPatternResult foreground_pattern= VoronoiPattern(texel_coord + ivec2(c_cell_size >> 1), 1);
 
-	vec4 background_color= vec4(c_foliage_base_color * background_pattern.cell_brightness * 0.5, background_pattern.edge_factor);
-	vec4 foreground_color= vec4(c_foliage_base_color * foreground_pattern.cell_brightness, foreground_pattern.edge_factor);
+	vec4 background_color= vec4(background_pattern.cell_color * 0.5, background_pattern.edge_factor);
+	vec4 foreground_color= vec4(foreground_pattern.cell_color, foreground_pattern.edge_factor);
 	vec4 color= mix(background_color, foreground_color, foreground_color.a);
 
 	imageStore(out_image, texel_coord, color);

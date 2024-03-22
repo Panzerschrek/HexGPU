@@ -189,3 +189,22 @@ int hex_TriangularInterpolatedOctaveNoiseWraped(int x, int y, int seed, int octa
 
 	return r;
 }
+
+int hex_TextureOctaveNoiseWraped(int x, int y, int seed, int octaves, int size_log2)
+{
+	//Correct Y to make result smoother.
+	y -= (x & 1);
+
+	int r= 0;
+	for(int i= 0; i < octaves; ++i)
+	{
+		int shift= octaves - i - 1;
+		r+= hex_TriangularInterpolatedNoise(
+			y, x, // Swap X and Y
+			seed,
+			shift,
+			(1 << (size_log2 - shift)) - 1) >> i;
+	}
+
+	return r;
+}

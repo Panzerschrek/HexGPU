@@ -3,17 +3,10 @@
 #extension GL_GOOGLE_include_directive : require
 
 #include "inc/noise.glsl"
-
-// maxComputeWorkGroupInvocations is at least 128.
-// If this is changed, corresponding C++ code must be changed too!
-layout(local_size_x= 8, local_size_y = 16, local_size_z= 1) in;
-
-layout(binding= 0, rgba8) uniform writeonly image2D out_image;
+#include "inc/texture_gen_common.glsl"
 
 const vec4 c_color_a= vec4(0.17, 0.06, 0.06, 1.0);
 const vec4 c_color_b= vec4(0.36, 0.29, 0.25, 1.0);
-
-const int c_texture_size_log2= 7; // This must match texture size in C++ code!
 
 void main()
 {

@@ -4,14 +4,7 @@
 
 #include "inc/constants.glsl"
 #include "inc/noise.glsl"
-
-// maxComputeWorkGroupInvocations is at least 128.
-// If this is changed, corresponding C++ code must be changed too!
-layout(local_size_x= 8, local_size_y = 16, local_size_z= 1) in;
-
-layout(binding= 0, rgba8) uniform writeonly image2D out_image;
-
-const int c_texture_size_log2= 7; // This must match texture size in C++ code!
+#include "inc/texture_gen_common.glsl"
 
 vec3 c_color_dark= vec3(0.22, 0.12, 0.06);
 vec3 c_color_light= vec3(0.40, 0.27, 0.22);

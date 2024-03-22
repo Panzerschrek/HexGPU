@@ -1,6 +1,5 @@
-#include "WorldTexturesManager.hpp"
+#include "WorldTexturesGenerator.hpp"
 #include "GlobalDescriptorPool.hpp"
-#include "ShaderList.hpp"
 #include "VulkanUtils.hpp"
 
 namespace HexGPU
@@ -13,15 +12,6 @@ namespace TextureGenShaderBindings
 {
 	const ShaderBindingIndex out_image= 0;
 }
-
-const uint32_t c_texture_size_log2= 7;
-const uint32_t c_texture_size= 1 << c_texture_size_log2;
-
-const uint32_t c_num_mips= c_texture_size_log2 - 1; // Ignore last mip for simplicity.
-
-const uint32_t c_texture_num_texels= c_texture_size * c_texture_size;
-
-const uint32_t c_water_image_index= 10;
 
 vk::UniqueDeviceMemory AllocateAndBindImageMemory(const vk::Image image, const WindowVulkan& window_vulkan)
 {
@@ -49,7 +39,7 @@ vk::UniqueDeviceMemory AllocateAndBindImageMemory(const vk::Image image, const W
 }
 } // namespace
 
-WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan, const vk::DescriptorPool global_descriptor_pool)
+WorldTexturesGenerator::WorldTexturesGenerator(WindowVulkan& window_vulkan, const vk::DescriptorPool global_descriptor_pool)
 	: vk_device_(window_vulkan.GetVulkanDevice())
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, image_(vk_device_.createImageUnique(
@@ -87,13 +77,13 @@ WorldTexturesManager::WorldTexturesManager(WindowVulkan& window_vulkan, const vk
 {
 }
 
-WorldTexturesManager::~WorldTexturesManager()
+WorldTexturesGenerator::~WorldTexturesGenerator()
 {
 	// Sync before destruction.
 	vk_device_.waitIdle();
 }
 
-void WorldTexturesManager::PrepareFrame(TaskOrganizer& task_organizer)
+void WorldTexturesGenerator::PrepareFrame(TaskOrganizer& task_organizer)
 {
 	if(textures_generated_)
 		return;
@@ -132,17 +122,17 @@ void WorldTexturesManager::PrepareFrame(TaskOrganizer& task_organizer)
 	task_organizer.GenerateImageMips(GetImageInfo(), vk::Extent2D(c_texture_size, c_texture_size));
 }
 
-vk::ImageView WorldTexturesManager::GetImageView() const
+vk::ImageView WorldTexturesGenerator::GetImageView() const
 {
 	return image_view_.get();
 }
 
-vk::ImageView WorldTexturesManager::GetWaterImageView() const
+vk::ImageView WorldTexturesGenerator::GetWaterImageView() const
 {
 	return water_image_view_.get();
 }
 
-TaskOrganizer::ImageInfo WorldTexturesManager::GetImageInfo() const
+TaskOrganizer::ImageInfo WorldTexturesGenerator::GetImageInfo() const
 {
 	TaskOrganizer::ImageInfo info;
 	info.image= *image_;
@@ -153,7 +143,7 @@ TaskOrganizer::ImageInfo WorldTexturesManager::GetImageInfo() const
 	return info;
 }
 
-WorldTexturesManager::TextureGenPipelines WorldTexturesManager::CreatePipelines(
+WorldTexturesGenerator::TextureGenPipelines WorldTexturesGenerator::CreatePipelines(
 	const vk::Device vk_device,
 	const vk::DescriptorPool global_descriptor_pool,
 	const vk::Image image)

@@ -2,7 +2,7 @@
 #include "Pipeline.hpp"
 #include "Buffer.hpp"
 #include "WorldGeometryGenerator.hpp"
-#include "WorldTexturesManager.hpp"
+#include "WorldTexturesGenerator.hpp"
 
 namespace HexGPU
 {
@@ -50,7 +50,7 @@ private:
 	const WorldSizeChunks world_size_;
 
 	WorldGeometryGenerator geometry_generator_;
-	WorldTexturesManager world_textures_manager_;
+	WorldTexturesGenerator textures_generator_;
 
 	const Buffer draw_indirect_buffer_;
 	const Buffer water_draw_indirect_buffer_;

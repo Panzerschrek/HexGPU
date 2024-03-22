@@ -135,7 +135,7 @@ WorldRenderer::WorldRenderer(
 	, world_processor_(world_processor)
 	, world_size_(world_processor.GetWorldSize())
 	, geometry_generator_(window_vulkan, world_processor, global_descriptor_pool)
-	, world_textures_manager_(window_vulkan, global_descriptor_pool)
+	, textures_generator_(window_vulkan, global_descriptor_pool)
 	, draw_indirect_buffer_(
 		window_vulkan,
 		world_size_[0] * world_size_[1] * uint32_t(sizeof(vk::DrawIndexedIndirectCommand)),
@@ -262,7 +262,7 @@ WorldRenderer::WorldRenderer(
 
 		const vk::DescriptorImageInfo descriptor_tex_info(
 			vk::Sampler(),
-			world_textures_manager_.GetImageView(),
+			textures_generator_.GetImageView(),
 			vk::ImageLayout::eShaderReadOnlyOptimal);
 
 		vk_device_.updateDescriptorSets(
@@ -300,7 +300,7 @@ WorldRenderer::WorldRenderer(
 
 		const vk::DescriptorImageInfo descriptor_tex_info(
 			vk::Sampler(),
-			world_textures_manager_.GetWaterImageView(),
+			textures_generator_.GetWaterImageView(),
 			vk::ImageLayout::eShaderReadOnlyOptimal);
 
 		vk_device_.updateDescriptorSets(
@@ -338,7 +338,7 @@ WorldRenderer::~WorldRenderer()
 
 void WorldRenderer::PrepareFrame(TaskOrganizer& task_organizer)
 {
-	world_textures_manager_.PrepareFrame(task_organizer);
+	textures_generator_.PrepareFrame(task_organizer);
 	geometry_generator_.Update(task_organizer);
 	BuildDrawIndirectBuffer(task_organizer);
 	CopyViewMatrix(task_organizer);
@@ -351,7 +351,7 @@ void WorldRenderer::CollectFrameInputs(TaskOrganizer::GraphicsTaskParams& out_ta
 	out_task_params.index_buffers.push_back(*index_buffer_);
 	out_task_params.vertex_buffers.push_back(geometry_generator_.GetVertexBuffer());
 	out_task_params.uniform_buffers.push_back(uniform_buffer_.GetBuffer());
-	out_task_params.input_images.push_back(world_textures_manager_.GetImageInfo());
+	out_task_params.input_images.push_back(textures_generator_.GetImageInfo());
 }
 
 void WorldRenderer::DrawOpaque(const vk::CommandBuffer command_buffer)

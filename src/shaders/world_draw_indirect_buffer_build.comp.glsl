@@ -62,7 +62,7 @@ void main()
 		{
 			vec3 vertex_offset= vec3(float(x * c_chunk_width) * c_space_scale_x, float(y * c_chunk_width), float(z * c_chunk_height));
 			vec3 vertex_coord= chunk_start_coord + vertex_offset;
-			if(dot(vec4(chunk_start_coord, 1.0), player_state.frustum_planes[i]) > 0.0)
+			if(dot(vec4(vertex_coord, 1.0), player_state.frustum_planes[i]) > 0.0)
 				++num_vertices_behind_the_plane;
 		}
 

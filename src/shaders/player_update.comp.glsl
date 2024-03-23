@@ -52,7 +52,7 @@ const float c_player_radius= 0.25 * 0.9; // 90% of block side
 const float c_player_eyes_level= 1.65;
 const float c_player_height= 1.75;
 
-const float c_fov_degrees= 75.0;
+const float c_fov_y= radians(75.0);
 
 void ProcessPlayerRotateInputs()
 {
@@ -341,12 +341,8 @@ void UpdatePlayerMatrices()
 	const float z_near= 0.075; // TODO - calculate it based on FOV and nearby colliders.
 	const float z_far= 2048.0;
 
-	const float fov= radians(c_fov_degrees);
-
-	float fov_y= fov;
-
 	mat4 rotation_and_perspective=
-		MakePerspectiveProjectionMatrix(aspect, fov, z_near, z_far) *
+		MakePerspectiveProjectionMatrix(aspect, c_fov_y, z_near, z_far) *
 		MakePerspectiveChangeBasisMatrix() *
 		MakeRotationXMatrix(-player_state.angles.y) *
 		MakeRotationZMatrix(-player_state.angles.x);
@@ -367,7 +363,7 @@ void UpdatePlayerFrustumPlanes()
 
 	vec3 front_plane_normal= rotation_matrix * vec3(0.0, -1.0, 0.0);
 
-	float half_fov_y= radians(c_fov_degrees) * 0.5;
+	float half_fov_y= c_fov_y * 0.5;
 	vec3 upper_plane_normal= rotation_matrix * vec3(0.0, -sin(half_fov_y),  cos(half_fov_y));
 	vec3 lower_plane_normal= rotation_matrix * vec3(0.0, -sin(half_fov_y), -cos(half_fov_y));
 

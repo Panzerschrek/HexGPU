@@ -20,6 +20,7 @@ layout(push_constant) uniform uniforms_block
 	float time_delta_s;
 	uint keyboard_state;
 	uint mouse_state;
+	vec2 mouse_move;
 	uint8_t selected_block_type;
 };
 
@@ -53,6 +54,8 @@ const float c_player_height= 1.75;
 
 void ProcessPlayerRotateInputs()
 {
+	player_state.angles.xy+= mouse_move;
+
 	if((keyboard_state & c_key_mask_rotate_left) != 0)
 		player_state.angles.x+= time_delta_s * c_angle_speed;
 	if((keyboard_state & c_key_mask_rotate_right) != 0)

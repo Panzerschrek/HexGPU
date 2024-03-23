@@ -67,7 +67,8 @@ For now all controls are fixed:
 * Space - fly up
 * C - fly down
 * Shift - sprint
-* ↑, ↓, ←, → - rotate camera (for now there is no mouse movement)
+* ↑, ↓, ←, → - rotate camera
+* Mouse motion - rotate camera
 * Mouse left button - destroy
 * Mouse right button - build
 * E - toggle block selection menu
@@ -88,3 +89,5 @@ Some configuration params:
 * "g_world_size_x", "g_world_size_y" - world size (in chunks). Increase this to have bigger view distance, but this may affect performance.
 * "g_world_seed" - set to some number to change world generator seed
 * "g_world_dir" - change it to directory where world data should be saved
+* "in_mouse_speed" - mouse sensitivity
+* "in_invert_mouse_y" - 0 to normal mouse mode, 1 to invert mouse y axis

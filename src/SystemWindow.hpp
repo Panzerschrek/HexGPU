@@ -18,6 +18,8 @@ public:
 	std::vector<SDL_Event> ProcessEvents();
 	std::vector<bool> GetKeyboardState();
 
+	void SetMouseCaptured(bool captured);
+
 private:
 	SDL_Window* window_= nullptr;
 };

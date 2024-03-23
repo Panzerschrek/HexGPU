@@ -137,6 +137,7 @@ struct PlayerUpdateUniforms
 	float time_delta_s= 0.0f;
 	KeyboardState keyboard_state= 0;
 	MouseState mouse_state= 0;
+	float mouse_move[2]{};
 	BlockType selected_block_type= BlockType::Air;
 };
 
@@ -1344,6 +1345,7 @@ void WorldProcessor::Update(
 	const float time_delta_s,
 	const KeyboardState keyboard_state,
 	const MouseState mouse_state,
+	const std::array<float, 2> mouse_move,
 	const BlockType selected_block_type,
 	const float aspect,
 	const DebugParams& debug_params)
@@ -1418,7 +1420,7 @@ void WorldProcessor::Update(
 
 	// Run player update independent on world update - every frame.
 	// This is needed in order to make player movement and rotation smooth.
-	UpdatePlayer(task_organizer, time_delta_s, keyboard_state, mouse_state, selected_block_type, aspect);
+	UpdatePlayer(task_organizer, time_delta_s, keyboard_state, mouse_state, mouse_move, selected_block_type, aspect);
 
 	++current_frame_;
 }
@@ -2305,6 +2307,7 @@ void WorldProcessor::UpdatePlayer(
 	const float time_delta_s,
 	const KeyboardState keyboard_state,
 	const MouseState mouse_state,
+	const std::array<float, 2> mouse_move,
 	const BlockType selected_block_type,
 	const float aspect)
 {
@@ -2314,6 +2317,8 @@ void WorldProcessor::UpdatePlayer(
 	player_update_uniforms.keyboard_state= keyboard_state;
 	player_update_uniforms.mouse_state= mouse_state;
 	player_update_uniforms.selected_block_type= selected_block_type;
+	player_update_uniforms.mouse_move[0]= mouse_move[0];
+	player_update_uniforms.mouse_move[1]= mouse_move[1];
 
 	TaskOrganizer::ComputeTaskParams player_update_task;
 	player_update_task.input_output_storage_buffers.push_back(player_state_buffer_.GetBuffer());

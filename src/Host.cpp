@@ -72,6 +72,27 @@ MouseState CreateMouseState(const std::vector<SDL_Event>& events)
 	return mouse_state;
 }
 
+std::array<float, 2> GetMouseMove(const std::vector<SDL_Event>& events, Settings& settings)
+{
+	const float mouse_speed= std::max(1.0f, std::min(settings.GetReal("in_mouse_speed", 4.0f), 16.0f));
+	settings.SetReal("in_mouse_speed", mouse_speed);
+
+	const bool invert_mouse_y= settings.GetOrSetInt("in_invert_mouse_y", 0) != 0;
+
+	std::array<float, 2> move{0.0f, 0.0f};
+
+	for(const SDL_Event& event : events)
+	{
+		if(event.type == SDL_MOUSEMOTION)
+		{
+			move[0]-= float(event.motion.xrel) * (mouse_speed / 1024.0f);
+			move[1]-= float(event.motion.yrel) * (mouse_speed / 1024.0f) * (invert_mouse_y ? -1.0f : 1.0f);
+		}
+	}
+
+	return move;
+}
+
 } // namespace
 
 Host::Host()
@@ -142,14 +163,18 @@ bool Host::Loop()
 		DrawDebugParamsUI();
 	}
 
+	const bool game_has_focus= !show_debug_menus_ && !blocks_selection_menu_active_;
+	system_window_.SetMouseCaptured(game_has_focus);
+
 	const vk::CommandBuffer command_buffer= window_vulkan_.BeginFrame();
 	task_organizer_.SetCommandBuffer(command_buffer);
 
 	world_processor_.Update(
 		task_organizer_,
 		dt_s_limited,
-		show_debug_menus_ ? 0 : CreateKeyboardState(keys_state),
-		show_debug_menus_ ? 0 : CreateMouseState(events),
+		game_has_focus ? CreateKeyboardState(keys_state) : 0,
+		game_has_focus ? CreateMouseState(events) : 0,
+		game_has_focus ? GetMouseMove(events, settings_) : std::array<float, 2>{0.0f, 0.0f},
 		selected_block_type_,
 		CalculateAspect(window_vulkan_.GetViewportSize()),
 		debug_params_);

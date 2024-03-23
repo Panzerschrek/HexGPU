@@ -74,4 +74,9 @@ std::vector<bool> SystemWindow::GetKeyboardState()
 	return result;
 }
 
+void SystemWindow::SetMouseCaptured(const bool captured)
+{
+	SDL_SetRelativeMouseMode(captured ? SDL_TRUE : SDL_FALSE);
+}
+
 } // namespace HexGPU

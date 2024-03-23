@@ -195,7 +195,7 @@ WorldRenderer::WorldRenderer(
 			0u,
 			water_draw_indirect_buffer_.GetSize());
 
-		const vk::DescriptorBufferInfo descriptorplayer_state_buffer_info(
+		const vk::DescriptorBufferInfo descriptor_player_state_buffer_info(
 			world_processor.GetPlayerStateBuffer(),
 			0u,
 			sizeof(WorldProcessor::PlayerState));
@@ -239,7 +239,7 @@ WorldRenderer::WorldRenderer(
 					1u,
 					vk::DescriptorType::eStorageBuffer,
 					nullptr,
-					&descriptorplayer_state_buffer_info,
+					&descriptor_player_state_buffer_info,
 					nullptr
 				},
 			},

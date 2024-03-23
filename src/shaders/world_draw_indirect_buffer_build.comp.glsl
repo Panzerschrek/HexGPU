@@ -51,7 +51,7 @@ bool IsChunkVisible(ivec2 chunk_global_coord)
 	for(int i= 0; i < 5; ++i)
 	{
 		// Approximate chunk as box.
-		int num_vertices_behind_the_plane= 0;
+		int num_vertices_behind_plane= 0;
 		for(int dx= 0; dx < 2; ++dx)
 		for(int dy= 0; dy < 2; ++dy)
 		for(int dz= 0; dz < 2; ++dz)
@@ -62,10 +62,10 @@ bool IsChunkVisible(ivec2 chunk_global_coord)
 				float(dz * c_chunk_height));
 			vec3 vertex_coord= chunk_start_coord + vertex_offset;
 			if(dot(vec4(vertex_coord, 1.0), player_state.frustum_planes[i]) > 0.0)
-				++num_vertices_behind_the_plane;
+				++num_vertices_behind_plane;
 		}
 
-		if(num_vertices_behind_the_plane == 8)
+		if(num_vertices_behind_plane == 8)
 			return false; // Totally clipped by this plane.
 	}
 

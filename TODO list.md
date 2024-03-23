@@ -3,7 +3,6 @@ The order represents importance and/or dependency.
 * Biome-based world generation
 * Update light only after blocks update - in order to avoid black spots in places of removed blocks
 * Grass logic improvements - disappers slower, become yellow, require water or sunlight to grow, etc.
-* Frustum-culling for chunks
 * Fire (that burns some blocks)
 * Save and load player state
 * More block types

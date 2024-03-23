@@ -58,6 +58,7 @@ ImGuiWrapper::ImGuiWrapper(
 
 	io.Fonts->AddFontDefault();
 
+	medium_font_= io.Fonts->AddFontFromFileTTF("fonts/plastic_bag.otf", 20);
 	large_font_= io.Fonts->AddFontFromFileTTF("fonts/plastic_bag.otf", 24);
 }
 
@@ -67,6 +68,11 @@ ImGuiWrapper::~ImGuiWrapper()
 	ImGui_ImplVulkan_Shutdown();
 	ImGui_ImplSDL2_Shutdown();
 	ImGui::DestroyContext(context_);
+}
+
+ImFont* ImGuiWrapper::GetMediumFont() const
+{
+	return medium_font_;
 }
 
 ImFont* ImGuiWrapper::GetLargeFont() const

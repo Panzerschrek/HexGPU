@@ -55,6 +55,7 @@ public:
 		float time_delta_s,
 		KeyboardState keyboard_state,
 		MouseState mouse_state,
+		BlockType selected_block_type, // Air if no selection.
 		float aspect,
 		const DebugParams& debug_params);
 
@@ -160,6 +161,7 @@ private:
 		float time_delta_s,
 		KeyboardState keyboard_state,
 		MouseState mouse_state,
+		BlockType selected_block_type,
 		float aspect);
 
 	void FlushWorldBlocksExternalUpdateQueue(TaskOrganizer& task_organizer);

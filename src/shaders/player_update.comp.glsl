@@ -20,6 +20,7 @@ layout(push_constant) uniform uniforms_block
 	float time_delta_s;
 	uint keyboard_state;
 	uint mouse_state;
+	uint8_t selected_block_type;
 };
 
 layout(binding= 1, std430) buffer player_state_buffer
@@ -219,20 +220,8 @@ void MovePlayer()
 
 void UpdateBuildBlockType()
 {
-	if((mouse_state & c_mouse_mask_wheel_up_clicked) != 0)
-	{
-		++player_state.build_block_type;
-	}
-	if((mouse_state & c_mouse_mask_wheel_down_clicked) != 0)
-	{
-		if(player_state.build_block_type - 1 == int(c_block_type_air))
-			player_state.build_block_type= uint8_t(c_num_block_types - 1);
-		else
-			--player_state.build_block_type;
-	}
-
-	if(player_state.build_block_type <= 0 || player_state.build_block_type >= c_num_block_types)
-		player_state.build_block_type= c_block_type_spherical_block;
+	if(selected_block_type != c_block_type_air)
+		player_state.build_block_type= selected_block_type;
 }
 
 uint8_t GetBuildDirection(ivec3 last_grid_pos, ivec3 grid_pos)

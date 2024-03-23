@@ -16,6 +16,7 @@ public:
 		WindowVulkan& window_vulkan);
 	~ImGuiWrapper();
 
+	ImFont* GetMediumFont() const;
 	ImFont* GetLargeFont() const;
 
 	void ProcessEvents(const std::vector<SDL_Event>& events);
@@ -30,6 +31,7 @@ private:
 	const vk::UniqueDescriptorPool descriptor_pool_;
 	ImGuiContext* const context_;
 
+	ImFont* medium_font_= nullptr;
 	ImFont* large_font_= nullptr;
 };
 

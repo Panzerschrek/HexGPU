@@ -120,6 +120,8 @@ bool Host::Loop()
 			return true;
 		if(event.type == SDL_KEYDOWN && event.key.keysym.scancode == SDL_SCANCODE_GRAVE)
 			show_debug_menus_= !show_debug_menus_;
+		if(event.type == SDL_KEYDOWN && event.key.keysym.scancode == SDL_SCANCODE_E)
+			blocks_selection_menu_active_= !blocks_selection_menu_active_;
 	}
 
 	im_gui_wrapper_.ProcessEvents(events);
@@ -127,6 +129,12 @@ bool Host::Loop()
 
 	DrawFPS();
 	DrawUI();
+
+	if(blocks_selection_menu_active_)
+		DrawBlockSelectionUI();
+	else
+		selected_block_type_= BlockType::Air;
+
 	DrawCrosshair();
 	if(show_debug_menus_)
 	{
@@ -142,6 +150,7 @@ bool Host::Loop()
 		dt_s_limited,
 		show_debug_menus_ ? 0 : CreateKeyboardState(keys_state),
 		show_debug_menus_ ? 0 : CreateMouseState(events),
+		selected_block_type_,
 		CalculateAspect(window_vulkan_.GetViewportSize()),
 		debug_params_);
 
@@ -242,6 +251,43 @@ void Host::DrawUI()
 		ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs);
 
 	ImGui::Text("%s", text.c_str());
+
+	ImGui::End();
+
+	ImGui::PopFont();
+}
+
+void Host::DrawBlockSelectionUI()
+{
+	const auto font= im_gui_wrapper_.GetMediumFont();
+	const auto& style= ImGui::GetStyle();
+
+	const uint32_t num_block_types_shown= uint32_t(BlockType::NumBlockTypes) - 1;
+
+	const float window_height=
+		style.WindowPadding.y * 2.0f +
+		(font->FontSize + style.ItemSpacing.y) * float(num_block_types_shown + 1);
+
+	ImGui::PushFont(font);
+
+	ImGui::SetNextWindowPos({128.0f, 64.0f});
+
+	ImGui::SetNextWindowSize({200.0f, window_height});
+
+	ImGui::SetNextWindowBgAlpha(0.25f);
+	ImGui::Begin(
+		"Block select",
+		nullptr,
+		ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
+
+	for(size_t i= 1; i < size_t(BlockType::NumBlockTypes); ++i)
+	{
+		if(ImGui::SmallButton(BlockTypeToString(BlockType(i))))
+		{
+			selected_block_type_= BlockType(i);
+			blocks_selection_menu_active_= false; // Deactivete block selection menu when block is selected.
+		}
+	}
 
 	ImGui::End();
 

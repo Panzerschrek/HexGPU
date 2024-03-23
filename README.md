@@ -70,7 +70,7 @@ For now all controls are fixed:
 * ↑, ↓, ←, → - rotate camera (for now there is no mouse movement)
 * Mouse left button - destroy
 * Mouse right button - build
-* Mouse wheel - change build block type
+* E - toggle block selection menu
 * ~ - toggle debug menus
 * ESC - exit
 

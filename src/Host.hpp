@@ -22,6 +22,7 @@ private:
 
 	void DrawFPS();
 	void DrawUI();
+	void DrawBlockSelectionUI();
 	void DrawCrosshair();
 	void DrawDebugInfo();
 	void DrawDebugParamsUI();
@@ -50,6 +51,9 @@ private:
 	DebugParams debug_params_;
 
 	bool show_debug_menus_= false;
+
+	bool blocks_selection_menu_active_= false;
+	BlockType selected_block_type_= BlockType::Air;
 };
 
 } // namespace HexGPU

@@ -364,6 +364,8 @@ void UpdatePlayerFrustumPlanes()
 {
 	mat3 rotation_matrix= mat3(MakeRotationZMatrix(player_state.angles.x)) * mat3(MakeRotationXMatrix(player_state.angles.y));
 
+	vec3 front_plane_normal= rotation_matrix * vec3(0.0, -1.0, 0.0);
+
 	float half_fov_y= radians(c_fov_degrees) * 0.5;
 
 	vec3 upper_plane_normal= rotation_matrix * vec3(0.0, -sin(half_fov_y),  cos(half_fov_y));
@@ -373,10 +375,11 @@ void UpdatePlayerFrustumPlanes()
 	vec3 left_plane_normal = rotation_matrix * vec3(-cos(half_fov_x), -sin(half_fov_x), 0.0);
 	vec3 right_plane_normal= rotation_matrix * vec3( cos(half_fov_x), -sin(half_fov_x), 0.0);
 
-	player_state.frustum_planes[0]= vec4(upper_plane_normal, -dot(upper_plane_normal, player_state.pos.xyz));
-	player_state.frustum_planes[1]= vec4(lower_plane_normal, -dot(lower_plane_normal, player_state.pos.xyz));
-	player_state.frustum_planes[2]= vec4(left_plane_normal , -dot(left_plane_normal , player_state.pos.xyz));
-	player_state.frustum_planes[3]= vec4(right_plane_normal, -dot(right_plane_normal, player_state.pos.xyz));
+	player_state.frustum_planes[0]= vec4(front_plane_normal, -dot(front_plane_normal, player_state.pos.xyz));
+	player_state.frustum_planes[1]= vec4(upper_plane_normal, -dot(upper_plane_normal, player_state.pos.xyz));
+	player_state.frustum_planes[2]= vec4(lower_plane_normal, -dot(lower_plane_normal, player_state.pos.xyz));
+	player_state.frustum_planes[3]= vec4(left_plane_normal , -dot(left_plane_normal , player_state.pos.xyz));
+	player_state.frustum_planes[4]= vec4(right_plane_normal, -dot(right_plane_normal, player_state.pos.xyz));
 }
 
 void UpdateNextPlayerWorldWindowOffset()

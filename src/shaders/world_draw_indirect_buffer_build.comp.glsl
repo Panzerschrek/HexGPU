@@ -51,7 +51,7 @@ void main()
 		0.0);
 
 	bool visible= true;
-	for(int i= 0; i < 4; ++i)
+	for(int i= 0; i < 5; ++i)
 	{
 		// Approximate chunk as box.
 		// TODO - add slight offsets - chunks are a little bigger than their box.

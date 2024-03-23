@@ -52,6 +52,8 @@ const float c_player_radius= 0.25 * 0.9; // 90% of block side
 const float c_player_eyes_level= 1.65;
 const float c_player_height= 1.75;
 
+const float c_fov_y= radians(75.0);
+
 void ProcessPlayerRotateInputs()
 {
 	player_state.angles.xy+= mouse_move;
@@ -338,14 +340,9 @@ void UpdatePlayerMatrices()
 {
 	const float z_near= 0.075; // TODO - calculate it based on FOV and nearby colliders.
 	const float z_far= 2048.0;
-	const float fov_deg= 75.0;
-
-	const float fov= radians(fov_deg);
-
-	float fov_y= fov;
 
 	mat4 rotation_and_perspective=
-		MakePerspectiveProjectionMatrix(aspect, fov, z_near, z_far) *
+		MakePerspectiveProjectionMatrix(aspect, c_fov_y, z_near, z_far) *
 		MakePerspectiveChangeBasisMatrix() *
 		MakeRotationXMatrix(-player_state.angles.y) *
 		MakeRotationZMatrix(-player_state.angles.x);
@@ -357,6 +354,28 @@ void UpdatePlayerMatrices()
 
 	// Do not upply translation to sky matrix - always keep player in the center of the sky mesh.
 	player_state.sky_matrix= rotation_and_perspective;
+}
+
+void UpdatePlayerFrustumPlanes()
+{
+	mat3 rotation_matrix=
+		mat3(MakeRotationZMatrix(player_state.angles.x)) * mat3(MakeRotationXMatrix(player_state.angles.y));
+
+	vec3 front_plane_normal= rotation_matrix * vec3(0.0, -1.0, 0.0);
+
+	float half_fov_y= c_fov_y * 0.5;
+	vec3 upper_plane_normal= rotation_matrix * vec3(0.0, -sin(half_fov_y),  cos(half_fov_y));
+	vec3 lower_plane_normal= rotation_matrix * vec3(0.0, -sin(half_fov_y), -cos(half_fov_y));
+
+	float half_fov_x= atan(tan(half_fov_y) * aspect);
+	vec3 left_plane_normal = rotation_matrix * vec3(-cos(half_fov_x), -sin(half_fov_x), 0.0);
+	vec3 right_plane_normal= rotation_matrix * vec3( cos(half_fov_x), -sin(half_fov_x), 0.0);
+
+	player_state.frustum_planes[0]= vec4(front_plane_normal, -dot(front_plane_normal, player_state.pos.xyz));
+	player_state.frustum_planes[1]= vec4(upper_plane_normal, -dot(upper_plane_normal, player_state.pos.xyz));
+	player_state.frustum_planes[2]= vec4(lower_plane_normal, -dot(lower_plane_normal, player_state.pos.xyz));
+	player_state.frustum_planes[3]= vec4(left_plane_normal , -dot(left_plane_normal , player_state.pos.xyz));
+	player_state.frustum_planes[4]= vec4(right_plane_normal, -dot(right_plane_normal, player_state.pos.xyz));
 }
 
 void UpdateNextPlayerWorldWindowOffset()
@@ -420,5 +439,6 @@ void main()
 	}
 
 	UpdatePlayerMatrices();
+	UpdatePlayerFrustumPlanes();
 	UpdateNextPlayerWorldWindowOffset();
 }

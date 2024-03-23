@@ -18,6 +18,7 @@ namespace DrawIndirectBufferBuildShaderBindings
 	const ShaderBindingIndex chunk_draw_info_buffer= 0;
 	const ShaderBindingIndex draw_indirect_buffer= 1;
 	const ShaderBindingIndex water_draw_indirect_buffer= 2;
+	const ShaderBindingIndex player_state_buffer= 3;
 }
 
 namespace DrawShaderBindings
@@ -34,7 +35,8 @@ namespace WaterDrawShaderBindings
 
 struct DrawIndirectBufferBuildUniforms
 {
-	int32_t world_size_chunks[2];
+	int32_t world_size_chunks[2]{};
+	int32_t world_offset_chunks[2]{};
 };
 
 struct WorldShaderUniforms
@@ -102,6 +104,13 @@ ComputePipeline CreateDrawIndirectBufferBuildPipeline(const vk::Device vk_device
 		},
 		{
 			DrawIndirectBufferBuildShaderBindings::water_draw_indirect_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+		{
+			DrawIndirectBufferBuildShaderBindings::player_state_buffer,
 			vk::DescriptorType::eStorageBuffer,
 			1u,
 			vk::ShaderStageFlagBits::eCompute,
@@ -186,6 +195,11 @@ WorldRenderer::WorldRenderer(
 			0u,
 			water_draw_indirect_buffer_.GetSize());
 
+		const vk::DescriptorBufferInfo descriptor_player_state_buffer_info(
+			world_processor.GetPlayerStateBuffer(),
+			0u,
+			sizeof(WorldProcessor::PlayerState));
+
 		vk_device_.updateDescriptorSets(
 			{
 				{
@@ -216,6 +230,16 @@ WorldRenderer::WorldRenderer(
 					vk::DescriptorType::eStorageBuffer,
 					nullptr,
 					&descriptor_water_draw_indirect_buffer_info,
+					nullptr
+				},
+				{
+					draw_indirect_buffer_build_descriptor_set_,
+					DrawIndirectBufferBuildShaderBindings::player_state_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_player_state_buffer_info,
 					nullptr
 				},
 			},
@@ -760,6 +784,7 @@ void WorldRenderer::BuildDrawIndirectBuffer(TaskOrganizer& task_organizer)
 {
 	TaskOrganizer::ComputeTaskParams task;
 	task.input_storage_buffers.push_back(geometry_generator_.GetChunkDrawInfoBuffer());
+	task.input_storage_buffers.push_back(world_processor_.GetPlayerStateBuffer());
 	task.output_storage_buffers.push_back(draw_indirect_buffer_.GetBuffer());
 	task.output_storage_buffers.push_back(water_draw_indirect_buffer_.GetBuffer());
 
@@ -778,6 +803,10 @@ void WorldRenderer::BuildDrawIndirectBuffer(TaskOrganizer& task_organizer)
 			DrawIndirectBufferBuildUniforms uniforms;
 			uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
 			uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+
+			const auto world_offset= world_processor_.GetWorldOffset();
+			uniforms.world_offset_chunks[0]= world_offset[0];
+			uniforms.world_offset_chunks[1]= world_offset[1];
 
 			command_buffer.pushConstants(
 				*draw_indirect_buffer_build_pipeline_.pipeline_layout,

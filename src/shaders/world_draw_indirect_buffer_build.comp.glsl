@@ -50,16 +50,32 @@ void main()
 		float(chunk_global_coord.y) * float(c_chunk_width),
 		0.0);
 
-	bool behind_the_plane= false;
+	bool visible= true;
 	for(int i= 0; i < 4; ++i)
-		behind_the_plane= behind_the_plane || dot(vec4(chunk_start_coord, 1.0), player_state.frustum_planes[i]) > 0.0;
+	{
+		// Approximate chunk as box.
+		// TODO - add slight offsets - chunks are a little bigger than their box.
+		int num_vertices_behind_the_plane= 0;
+		for(int x= 0; x < 2; ++x)
+		for(int y= 0; y < 2; ++y)
+		for(int z= 0; z < 2; ++z)
+		{
+			vec3 vertex_offset= vec3(float(x * c_chunk_width) * c_space_scale_x, float(y * c_chunk_width), float(z * c_chunk_height));
+			vec3 vertex_coord= chunk_start_coord + vertex_offset;
+			if(dot(vec4(chunk_start_coord, 1.0), player_state.frustum_planes[i]) > 0.0)
+				++num_vertices_behind_the_plane;
+		}
+
+		if(num_vertices_behind_the_plane == 8)
+			visible= false;
+	}
 
 	{
 		uint num_quads= chunk_draw_info[chunk_index].num_quads;
 		uint first_quad= chunk_draw_info[chunk_index].first_quad;
 
 		VkDrawIndexedIndirectCommand draw_command;
-		draw_command.indexCount= behind_the_plane ? 0 : num_quads * c_indices_per_quad;
+		draw_command.indexCount= visible ? (num_quads * c_indices_per_quad) : 0;
 		draw_command.instanceCount= 1;
 		draw_command.firstIndex= 0;
 		draw_command.vertexOffset= int(first_quad) * 4;

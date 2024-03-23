@@ -33,13 +33,12 @@ vec4 HexagonFetch(in sampler2DArray tex, vec3 tex_coord)
 	if(lod <= c_hexagon_fetch_lod_edge)
 	{
 		ivec2 tex_size= textureSize( tex, 0 ).xy;
-		int texture_layer= int(tex_coord.z + 0.49);
 
 		return texelFetch(
 			tex,
 			ivec3(
 				mod(GetHexagonTexCoord(tex_coord.xy * vec2(tex_size)), tex_size),
-				texture_layer),
+				int(tex_coord.z)),
 			0);
 	}
 	else

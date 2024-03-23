@@ -50,7 +50,9 @@ void main()
 		float(chunk_global_coord.y) * float(c_chunk_width),
 		0.0);
 
-	bool behind_the_plane= dot(vec4(chunk_start_coord, 1.0), player_state.frustum_planes[0]) > 0.0;
+	bool behind_the_plane= false;
+	for(int i= 0; i < 4; ++i)
+		behind_the_plane= behind_the_plane || dot(vec4(chunk_start_coord, 1.0), player_state.frustum_planes[i]) > 0.0;
 
 	{
 		uint num_quads= chunk_draw_info[chunk_index].num_quads;

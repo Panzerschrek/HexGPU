@@ -36,6 +36,42 @@ layout(binding= 3, std430) buffer readonly player_state_buffer
 
 const uint c_indices_per_quad= 6;
 
+bool IsChunkVisible(ivec2 chunk_global_coord)
+{
+	// Approximate chunk as box and check if this box is behind one of the clip planes.
+
+	// Hexagonal grid extents a little bit outside chunk bounding box. Compensate this error.
+	const vec2 chunk_border= vec2(0.5, 0.5);
+
+	vec3 chunk_start_coord= vec3(
+		float(chunk_global_coord.x) * (c_space_scale_x * float(c_chunk_width)) - chunk_border.x,
+		float(chunk_global_coord.y) * float(c_chunk_width) - chunk_border.y,
+		0.0);
+
+	for(int i= 0; i < 5; ++i)
+	{
+		// Approximate chunk as box.
+		int num_vertices_behind_the_plane= 0;
+		for(int dx= 0; dx < 2; ++dx)
+		for(int dy= 0; dy < 2; ++dy)
+		for(int dz= 0; dz < 2; ++dz)
+		{
+			vec3 vertex_offset= vec3(
+				float(dx) * (chunk_border.x * 2.0 + float(c_chunk_width) * c_space_scale_x),
+				float(dy) * (chunk_border.y * 2.0 + float(c_chunk_width)),
+				float(dz * c_chunk_height));
+			vec3 vertex_coord= chunk_start_coord + vertex_offset;
+			if(dot(vec4(vertex_coord, 1.0), player_state.frustum_planes[i]) > 0.0)
+				++num_vertices_behind_the_plane;
+		}
+
+		if(num_vertices_behind_the_plane == 8)
+			return false; // Totally clipped by this plane.
+	}
+
+	return true;
+}
+
 void main()
 {
 	uint chunk_x= gl_GlobalInvocationID.x;
@@ -43,32 +79,7 @@ void main()
 
 	uint chunk_index= chunk_x + chunk_y * uint(world_size_chunks.x);
 
-	ivec2 chunk_global_coord= ivec2(chunk_x, chunk_y) + world_offset_chunks;
-
-	vec3 chunk_start_coord= vec3(
-		float(chunk_global_coord.x) * (c_space_scale_x * float(c_chunk_width)),
-		float(chunk_global_coord.y) * float(c_chunk_width),
-		0.0);
-
-	bool visible= true;
-	for(int i= 0; i < 5; ++i)
-	{
-		// Approximate chunk as box.
-		// TODO - add slight offsets - chunks are a little bigger than their box.
-		int num_vertices_behind_the_plane= 0;
-		for(int x= 0; x < 2; ++x)
-		for(int y= 0; y < 2; ++y)
-		for(int z= 0; z < 2; ++z)
-		{
-			vec3 vertex_offset= vec3(float(x * c_chunk_width) * c_space_scale_x, float(y * c_chunk_width), float(z * c_chunk_height));
-			vec3 vertex_coord= chunk_start_coord + vertex_offset;
-			if(dot(vec4(vertex_coord, 1.0), player_state.frustum_planes[i]) > 0.0)
-				++num_vertices_behind_the_plane;
-		}
-
-		if(num_vertices_behind_the_plane == 8)
-			visible= false;
-	}
+	bool visible= IsChunkVisible(ivec2(chunk_x, chunk_y) + world_offset_chunks);
 
 	{
 		uint num_quads= visible ? chunk_draw_info[chunk_index].num_quads : 0;

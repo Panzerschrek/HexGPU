@@ -9,7 +9,6 @@ The order represents importance and/or dependency.
 * More block types
 * Smooth lighting - average block light values at each vertex
 * More light source blocks
-* Use device-local memory almost everywhere
 * Anisotropy textures filtering
 * Run SPIR-V optimizer for compiled shaders
 * Use background thread for chunk data compression/decompression

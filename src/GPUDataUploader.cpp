@@ -16,6 +16,7 @@ GPUDataUploader::GPUDataUploader(WindowVulkan& window_vulkan)
 		window_vulkan,
 		4 * 1024 * 1024,
 		vk::BufferUsageFlagBits::eTransferSrc,
+		// This memory visibility is optimal for uploading (shold be pretty fast).
 		vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
 	, buffer_mapped_(buffer_.Map(vk_device_))
 {

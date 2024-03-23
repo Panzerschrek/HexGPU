@@ -665,6 +665,7 @@ Buffer CreateChunkDataLoadBuffer(WindowVulkan& window_vulkan, const WorldSizeChu
 
 WorldProcessor::WorldProcessor(
 	WindowVulkan& window_vulkan,
+	GPUDataUploader& gpu_data_uploader,
 	const vk::DescriptorPool global_descriptor_pool,
 	Settings& settings)
 	: vk_device_(window_vulkan.GetVulkanDevice())
@@ -673,7 +674,7 @@ WorldProcessor::WorldProcessor(
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, world_size_(ReadWorldSize(settings))
 	, world_seed_(int32_t(settings.GetOrSetInt("g_world_seed")))
-	, structures_buffer_(window_vulkan, GenStructures())
+	, structures_buffer_(window_vulkan, gpu_data_uploader, GenStructures())
 	, tree_map_buffer_(
 		window_vulkan,
 		sizeof(TreeMap),

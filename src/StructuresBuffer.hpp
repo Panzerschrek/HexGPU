@@ -1,5 +1,5 @@
 #pragma once
-#include "Buffer.hpp"
+#include "GPUDataUploader.hpp"
 #include "Structures.hpp"
 
 namespace HexGPU
@@ -8,7 +8,7 @@ namespace HexGPU
 class StructuresBuffer
 {
 public:
-	StructuresBuffer(WindowVulkan& window_vulkan, const Structures& structures);
+	StructuresBuffer(WindowVulkan& window_vulkan, GPUDataUploader& gpu_data_uploader, const Structures& structures);
 	~StructuresBuffer();
 
 	vk::Buffer GetDescriptionsBuffer() const;

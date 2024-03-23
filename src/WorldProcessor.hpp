@@ -1,8 +1,8 @@
 #pragma once
 #include "BlockType.hpp"
-#include "Buffer.hpp"
 #include "ChunksStorage.hpp"
 #include "DebugParams.hpp"
+#include "GPUDataUploader.hpp"
 #include "Keyboard.hpp"
 #include "Mouse.hpp"
 #include "Pipeline.hpp"
@@ -43,7 +43,11 @@ public:
 	};
 
 public:
-	WorldProcessor(WindowVulkan& window_vulkan, vk::DescriptorPool global_descriptor_pool, Settings& settings);
+	WorldProcessor(
+		WindowVulkan& window_vulkan,
+		GPUDataUploader& gpu_data_uploader,
+		vk::DescriptorPool global_descriptor_pool,
+		Settings& settings);
 	~WorldProcessor();
 
 	void Update(

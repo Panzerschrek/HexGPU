@@ -362,14 +362,16 @@ void UpdatePlayerMatrices()
 
 void UpdatePlayerFrustumPlanes()
 {
+	mat3 rotation_matrix= mat3(MakeRotationZMatrix(player_state.angles.x)) * mat3(MakeRotationXMatrix(player_state.angles.y));
+
 	float half_fov_y= radians(c_fov_degrees) * 0.5;
 
-	vec3 upper_plane_normal= vec3(0.0, -sin(half_fov_y),  cos(half_fov_y));
-	vec3 lower_plane_normal= vec3(0.0, -sin(half_fov_y), -cos(half_fov_y));
+	vec3 upper_plane_normal= rotation_matrix * vec3(0.0, -sin(half_fov_y),  cos(half_fov_y));
+	vec3 lower_plane_normal= rotation_matrix * vec3(0.0, -sin(half_fov_y), -cos(half_fov_y));
 
 	float half_fov_x= half_fov_y; // TODO - fix this.
-	vec3 left_plane_normal = vec3(-cos(half_fov_x), -sin(half_fov_x), 0.0);
-	vec3 right_plane_normal= vec3( cos(half_fov_x), -sin(half_fov_x), 0.0);
+	vec3 left_plane_normal = rotation_matrix * vec3(-cos(half_fov_x), -sin(half_fov_x), 0.0);
+	vec3 right_plane_normal= rotation_matrix * vec3( cos(half_fov_x), -sin(half_fov_x), 0.0);
 
 	player_state.frustum_planes[0]= vec4(upper_plane_normal, -dot(upper_plane_normal, player_state.pos.xyz));
 	player_state.frustum_planes[1]= vec4(lower_plane_normal, -dot(lower_plane_normal, player_state.pos.xyz));

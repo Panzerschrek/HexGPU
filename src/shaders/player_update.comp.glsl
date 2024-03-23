@@ -359,6 +359,11 @@ void UpdatePlayerMatrices()
 	player_state.sky_matrix= rotation_and_perspective;
 }
 
+void UpdatePlayerFrustumPlanes()
+{
+	player_state.frustum_planes[0]= vec4(1.0, 0.0, 0.0, -player_state.pos.x);
+}
+
 void UpdateNextPlayerWorldWindowOffset()
 {
 	player_state.next_player_world_window_offset=
@@ -420,5 +425,6 @@ void main()
 	}
 
 	UpdatePlayerMatrices();
+	UpdatePlayerFrustumPlanes();
 	UpdateNextPlayerWorldWindowOffset();
 }

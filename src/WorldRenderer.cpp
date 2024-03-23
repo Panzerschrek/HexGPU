@@ -35,7 +35,8 @@ namespace WaterDrawShaderBindings
 
 struct DrawIndirectBufferBuildUniforms
 {
-	int32_t world_size_chunks[2];
+	int32_t world_size_chunks[2]{};
+	int32_t world_offset_chunks[2]{};
 };
 
 struct WorldShaderUniforms
@@ -802,6 +803,10 @@ void WorldRenderer::BuildDrawIndirectBuffer(TaskOrganizer& task_organizer)
 			DrawIndirectBufferBuildUniforms uniforms;
 			uniforms.world_size_chunks[0]= int32_t(world_size_[0]);
 			uniforms.world_size_chunks[1]= int32_t(world_size_[1]);
+
+			const auto world_offset= world_processor_.GetWorldOffset();
+			uniforms.world_offset_chunks[0]= world_offset[0];
+			uniforms.world_offset_chunks[1]= world_offset[1];
 
 			command_buffer.pushConstants(
 				*draw_indirect_buffer_build_pipeline_.pipeline_layout,

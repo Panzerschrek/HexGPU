@@ -29,9 +29,6 @@ void main()
 
 	vec4 tex_value= HexagonFetch(texture_image, tc);
 
-	if(tex_value.a < 0.5)
-		discard;
-
 	vec3 l= CombineLight(f_light.x * c_fire_light_color, f_light.y * uniforms.sky_light_color.rgb, c_ambient_light_color);
 	out_color= vec4(l * tex_value.rgb, 0.5);
 }

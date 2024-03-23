@@ -71,11 +71,11 @@ void main()
 	}
 
 	{
-		uint num_quads= chunk_draw_info[chunk_index].num_quads;
-		uint first_quad= chunk_draw_info[chunk_index].first_quad;
+		uint num_quads= visible ? chunk_draw_info[chunk_index].num_quads : 0;
+		uint first_quad= visible ? chunk_draw_info[chunk_index].first_quad : 0;
 
 		VkDrawIndexedIndirectCommand draw_command;
-		draw_command.indexCount= visible ? (num_quads * c_indices_per_quad) : 0;
+		draw_command.indexCount= num_quads * c_indices_per_quad;
 		draw_command.instanceCount= 1;
 		draw_command.firstIndex= 0;
 		draw_command.vertexOffset= int(first_quad) * 4;
@@ -85,8 +85,8 @@ void main()
 	}
 
 	{
-		uint num_quads= chunk_draw_info[chunk_index].num_water_quads;
-		uint first_quad= chunk_draw_info[chunk_index].first_water_quad;
+		uint num_quads= visible ? chunk_draw_info[chunk_index].num_water_quads : 0;
+		uint first_quad= visible ? chunk_draw_info[chunk_index].first_water_quad : 0;
 
 		VkDrawIndexedIndirectCommand draw_command;
 		draw_command.indexCount= num_quads * c_indices_per_quad;

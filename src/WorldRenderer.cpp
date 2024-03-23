@@ -48,26 +48,32 @@ struct WaterPushConstantsUniforms
 	float water_phase= 0.0f;
 };
 
-// Returns indeces for quads with size - maximum uint16_t vertex index.
-std::vector<uint16_t> GetQuadsIndices()
+Buffer CreateAndFillQuadsIndexBuffer(WindowVulkan& window_vulkan, GPUDataUploader& gpu_data_uploader)
 {
 	// Each quad contains 4 unique vertices.
 	// So, whe have maximum number of quads equal to maximal possible index devided by 4.
 	// Add for sequrity extra -1.
-	size_t quad_count= 65536 / 4 - 1;
-	std::vector<uint16_t> indeces( quad_count * 6 );
+	constexpr size_t quad_count= 65536 / 4 - 1;
+	uint16_t indices[quad_count * 6];
 
 	for(uint32_t i= 0, v= 0; i< quad_count * 6; i+= 6, v+= 4)
 	{
-		indeces[i+0]= uint16_t(v + 0);
-		indeces[i+1]= uint16_t(v + 1);
-		indeces[i+2]= uint16_t(v + 2);
-		indeces[i+3]= uint16_t(v + 0);
-		indeces[i+4]= uint16_t(v + 2);
-		indeces[i+5]= uint16_t(v + 3);
+		indices[i+0]= uint16_t(v + 0);
+		indices[i+1]= uint16_t(v + 1);
+		indices[i+2]= uint16_t(v + 2);
+		indices[i+3]= uint16_t(v + 0);
+		indices[i+4]= uint16_t(v + 2);
+		indices[i+5]= uint16_t(v + 3);
 	}
 
-	return indeces;
+	Buffer buffer(
+		window_vulkan,
+		sizeof(indices),
+		vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst);
+
+	gpu_data_uploader.UploadData(static_cast<const void*>(indices), sizeof(indices), buffer.GetBuffer(), 0);
+
+	return buffer;
 }
 
 using QuadVertices= std::array<WorldVertex, 4>;
@@ -128,6 +134,7 @@ ComputePipeline CreateDrawIndirectBufferBuildPipeline(const vk::Device vk_device
 
 WorldRenderer::WorldRenderer(
 	WindowVulkan& window_vulkan,
+	GPUDataUploader& gpu_data_uploader,
 	const WorldProcessor& world_processor,
 	const vk::DescriptorPool global_descriptor_pool)
 	: vk_device_(window_vulkan.GetVulkanDevice())
@@ -160,6 +167,7 @@ WorldRenderer::WorldRenderer(
 	, water_draw_pipeline_(
 		CreateWorldWaterDrawPipeline(vk_device_, window_vulkan.GetViewportSize(), window_vulkan.GetRenderPass()))
 	, water_descriptor_set_(CreateDescriptorSet(vk_device_, global_descriptor_pool, *water_draw_pipeline_.descriptor_set_layout))
+	, index_buffer_(CreateAndFillQuadsIndexBuffer(window_vulkan, gpu_data_uploader))
 {
 	// Update descriptor set.
 	{
@@ -212,45 +220,6 @@ WorldRenderer::WorldRenderer(
 				},
 			},
 			{});
-	}
-
-	const auto memory_properties= window_vulkan.GetMemoryProperties();
-
-	// Create index buffer.
-	{
-		const std::vector<uint16_t> world_indeces= GetQuadsIndices();
-
-		const size_t indices_size= world_indeces.size() * sizeof(uint16_t);
-
-		index_buffer_=
-			vk_device_.createBufferUnique(
-				vk::BufferCreateInfo(
-					vk::BufferCreateFlags(),
-					indices_size,
-					vk::BufferUsageFlagBits::eIndexBuffer));
-
-		const vk::MemoryRequirements buffer_memory_requirements= vk_device_.getBufferMemoryRequirements(*index_buffer_);
-
-		vk::MemoryAllocateInfo memory_allocate_info(buffer_memory_requirements.size);
-		for(uint32_t i= 0u; i < memory_properties.memoryTypeCount; ++i)
-		{
-			if((buffer_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags() &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible) != vk::MemoryPropertyFlags() &&
-				(memory_properties.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent) != vk::MemoryPropertyFlags())
-			{
-				memory_allocate_info.memoryTypeIndex= i;
-				break;
-			}
-		}
-
-		index_buffer_memory_= vk_device_.allocateMemoryUnique(memory_allocate_info);
-		vk_device_.bindBufferMemory(*index_buffer_, *index_buffer_memory_, 0u);
-
-		void* index_data_gpu_size= nullptr;
-		vk_device_.mapMemory(*index_buffer_memory_, 0u, memory_allocate_info.allocationSize, vk::MemoryMapFlags(), &index_data_gpu_size);
-		std::memcpy(index_data_gpu_size, world_indeces.data(), indices_size);
-		vk_device_.unmapMemory(*index_buffer_memory_);
 	}
 
 	// Update draw descriptor set.
@@ -348,7 +317,7 @@ void WorldRenderer::CollectFrameInputs(TaskOrganizer::GraphicsTaskParams& out_ta
 {
 	out_task_params.indirect_draw_buffers.push_back(draw_indirect_buffer_.GetBuffer());
 	out_task_params.indirect_draw_buffers.push_back(water_draw_indirect_buffer_.GetBuffer());
-	out_task_params.index_buffers.push_back(*index_buffer_);
+	out_task_params.index_buffers.push_back(index_buffer_.GetBuffer());
 	out_task_params.vertex_buffers.push_back(geometry_generator_.GetVertexBuffer());
 	out_task_params.uniform_buffers.push_back(uniform_buffer_.GetBuffer());
 	out_task_params.input_images.push_back(textures_generator_.GetImageInfo());
@@ -360,7 +329,7 @@ void WorldRenderer::DrawOpaque(const vk::CommandBuffer command_buffer)
 
 	const vk::DeviceSize offsets= 0u;
 	command_buffer.bindVertexBuffers(0u, 1u, &vertex_buffer, &offsets);
-	command_buffer.bindIndexBuffer(*index_buffer_, 0u, vk::IndexType::eUint16);
+	command_buffer.bindIndexBuffer(index_buffer_.GetBuffer(), 0u, vk::IndexType::eUint16);
 
 	command_buffer.bindDescriptorSets(
 		vk::PipelineBindPoint::eGraphics,
@@ -384,7 +353,7 @@ void WorldRenderer::DrawTransparent(const vk::CommandBuffer command_buffer, cons
 
 	const vk::DeviceSize offsets= 0u;
 	command_buffer.bindVertexBuffers(0u, 1u, &vertex_buffer, &offsets);
-	command_buffer.bindIndexBuffer(*index_buffer_, 0u, vk::IndexType::eUint16);
+	command_buffer.bindIndexBuffer(index_buffer_.GetBuffer(), 0u, vk::IndexType::eUint16);
 
 	command_buffer.bindDescriptorSets(
 		vk::PipelineBindPoint::eGraphics,

@@ -1,6 +1,7 @@
 #pragma once
 #include "Pipeline.hpp"
 #include "Buffer.hpp"
+#include "GPUDataUploader.hpp"
 #include "WorldGeometryGenerator.hpp"
 #include "WorldTexturesGenerator.hpp"
 
@@ -12,6 +13,7 @@ class WorldRenderer
 public:
 	WorldRenderer(
 		WindowVulkan& window_vulkan,
+		GPUDataUploader& gpu_data_uploader,
 		const WorldProcessor& world_processor,
 		vk::DescriptorPool global_descriptor_pool);
 
@@ -65,8 +67,7 @@ private:
 	const WorldDrawPipeline water_draw_pipeline_;
 	const vk::DescriptorSet water_descriptor_set_;
 
-	vk::UniqueBuffer index_buffer_;
-	vk::UniqueDeviceMemory index_buffer_memory_;
+	const Buffer index_buffer_;
 };
 
 } // namespace HexGPU

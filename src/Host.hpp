@@ -33,6 +33,7 @@ private:
 	SystemWindow system_window_;
 	WindowVulkan window_vulkan_;
 	TaskOrganizer task_organizer_;
+	GPUDataUploader gpu_data_uploader_;
 	const vk::UniqueDescriptorPool global_descriptor_pool_;
 	ImGuiWrapper im_gui_wrapper_;
 	WorldProcessor world_processor_;

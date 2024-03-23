@@ -5,6 +5,7 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 
 #include "inc/chunk_draw_info.glsl"
+#include "inc/player_state.glsl"
 #include "inc/vulkan_structs.glsl"
 
 layout(push_constant) uniform uniforms_block
@@ -25,6 +26,11 @@ layout(binding= 1, std430) buffer draw_indirect_buffer
 layout(binding= 2, std430) buffer water_draw_indirect_buffer
 {
 	VkDrawIndexedIndirectCommand water_draw_commands[];
+};
+
+layout(binding= 3, std430) buffer readonly player_state_buffer
+{
+	PlayerState player_state;
 };
 
 const uint c_indices_per_quad= 6;

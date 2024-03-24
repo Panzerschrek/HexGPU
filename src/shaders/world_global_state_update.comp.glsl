@@ -36,12 +36,15 @@ void main()
 	else
 		daynight_k= (sun_direction.z - c_twilight_below_horizon) / (c_twilight_above_horizon - c_twilight_below_horizon);
 
-	world_global_state.sky_light_color= vec4(mix(c_sky_light_nighttime_color, c_sky_light_daytime_color, daynight_k), 0.0);
+	// Make overall light dimmer when there are a lot of clouds in the sky.
+	float clouds_darkening_factor= 1.0 - 0.25 * rain_intensity;
+
+	world_global_state.sky_light_color= vec4(clouds_darkening_factor * mix(c_sky_light_nighttime_color, c_sky_light_daytime_color, daynight_k), 0.0);
 
 	world_global_state.sky_color= vec4(mix(c_nighttime_sky_color, c_daytime_sky_color, daynight_k), 0.0);
 
 	world_global_state.sun_direction= vec4(sun_direction, 0.0);
 
-	world_global_state.clouds_color.rgb= mix(c_nightime_clouds_color, c_daytime_clouds_color, daynight_k);
+	world_global_state.clouds_color.rgb= clouds_darkening_factor * mix(c_nightime_clouds_color, c_daytime_clouds_color, daynight_k);
 	world_global_state.clouds_color.a= 1.0 - (rain_intensity * 0.7 + 0.25);
 }

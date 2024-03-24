@@ -351,10 +351,9 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 		window_vulkan,
 		chunk_draw_info_buffer_.GetSize(),
 		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferSrc)
-	, vertex_buffer_num_quads_(GetTotalVertexBufferQuads(world_size_))
 	, vertex_buffer_(
 		window_vulkan,
-		vertex_buffer_num_quads_ * uint32_t(sizeof(QuadVertices)),
+		GetTotalVertexBufferQuads(world_size_) * uint32_t(sizeof(QuadVertices)),
 		vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst)
 	, vertex_memory_allocator_(window_vulkan, GetTotalVertexBufferUnits(world_size_))
 	, chunk_draw_info_shift_pipeline_(CreateChunkDrawInfoShiftPipeline(vk_device_))

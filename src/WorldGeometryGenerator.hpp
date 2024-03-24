@@ -66,7 +66,6 @@ private:
 	const Buffer chunk_draw_info_buffer_;
 	const Buffer chunk_draw_info_buffer_temp_;
 
-	const uint32_t vertex_buffer_num_quads_;
 	const Buffer vertex_buffer_;
 
 	GPUAllocator vertex_memory_allocator_;

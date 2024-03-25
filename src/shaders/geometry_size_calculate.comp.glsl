@@ -95,4 +95,10 @@ void main()
 		// Add two water hexagon quads.
 		atomicAdd(chunk_draw_info[chunk_index].new_water_num_quads, 2);
 	}
+
+	if(block_value == c_block_type_fire)
+	{
+		// Add fire quads.
+		atomicAdd(chunk_draw_info[chunk_index].new_num_quads, 1);
+	}
 }

@@ -404,4 +404,44 @@ void main()
 		quads[quad_index]= quad_south;
 		quads[quad_index + 1]= quad_north;
 	}
+
+	if(block_value == c_block_type_fire)
+	{
+		// Add fire quads.
+
+		WorldVertex v[4];
+
+		v[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z + 0), 0.0);
+		v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z + 1), 0.0);
+		v[2].pos= i16vec4(int16_t(base_x + 5), int16_t(base_y + 0), int16_t(z + 1), 0.0);
+		v[3].pos= i16vec4(int16_t(base_x + 5), int16_t(base_y + 0), int16_t(z + 0), 0.0);
+
+		int16_t tex_index= c_block_texture_table[int(block_value)].b;
+
+		ivec2 tc_base= ivec2(base_tc_x, z * 2);
+
+		int16_t light= RepackAndScaleLight(light_buffer[optical_density > optical_density_south_east ? block_address : block_address_south_east], 257);
+
+		v[0].tex_coord= i16vec4(int16_t(tc_base.x + 2), int16_t(tc_base.y + 0), tex_index, light);
+		v[1].tex_coord= i16vec4(int16_t(tc_base.x + 2), int16_t(tc_base.y + 2), tex_index, light);
+		v[2].tex_coord= i16vec4(int16_t(tc_base.x + 4), int16_t(tc_base.y + 2), tex_index, light);
+		v[3].tex_coord= i16vec4(int16_t(tc_base.x + 4), int16_t(tc_base.y + 0), tex_index, light);
+
+		Quad quad;
+		quad.vertices[1]= v[1];
+		quad.vertices[3]= v[3];
+		if(optical_density < optical_density_south_east)
+		{
+			quad.vertices[0]= v[2];
+			quad.vertices[2]= v[0];
+		}
+		else
+		{
+			quad.vertices[0]= v[0];
+			quad.vertices[2]= v[2];
+		}
+
+		uint quad_index= quads_offset + atomicAdd(chunk_draw_info[chunk_index].num_quads, 1);
+		quads[quad_index]= quad;
+	}
 }

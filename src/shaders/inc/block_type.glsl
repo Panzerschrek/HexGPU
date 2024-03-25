@@ -33,7 +33,7 @@ const uint8_t c_block_optical_density_table[c_num_block_types]=
 	c_optical_density_solid, // fire stone
 	c_optical_density_air, // water
 	c_optical_density_solid, // sand
-	c_optical_density_semisolid // fire
+	c_optical_density_air // fire
 );
 
 const uint8_t c_block_own_light_table[c_num_block_types]=

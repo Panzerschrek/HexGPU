@@ -96,11 +96,6 @@ uint32_t GetTotalVertexBufferUnits(const WorldSizeChunks& world_size)
 	return (GetTotalVertexBufferQuads(world_size) + (c_allocation_unut_size_quads - 1)) / c_allocation_unut_size_quads;
 }
 
-uint32_t GetTotalFireVertexBufferQuads(const WorldSizeChunks& world_size)
-{
-	return c_max_average_fire_quads_per_chunk * world_size[0] * world_size[1];
-}
-
 ComputePipeline CreateChunkDrawInfoShiftPipeline(const vk::Device vk_device)
 {
 	ComputePipeline pipeline;
@@ -361,10 +356,6 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 	, vertex_buffer_(
 		window_vulkan,
 		GetTotalVertexBufferQuads(world_size_) * uint32_t(sizeof(QuadVertices)),
-		vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst)
-	, fire_vertex_buffer_(
-		window_vulkan,
-		GetTotalFireVertexBufferQuads(world_size_) * uint32_t(sizeof(FireQuadVertices)),
 		vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst)
 	, vertex_memory_allocator_(window_vulkan, GetTotalVertexBufferUnits(world_size_))
 	, chunk_draw_info_shift_pipeline_(CreateChunkDrawInfoShiftPipeline(vk_device_))
@@ -656,11 +647,6 @@ void WorldGeometryGenerator::Update(TaskOrganizer& task_organizer)
 vk::Buffer WorldGeometryGenerator::GetVertexBuffer() const
 {
 	return vertex_buffer_.GetBuffer();
-}
-
-vk::Buffer WorldGeometryGenerator::GetFireVertexBuffer() const
-{
-	return fire_vertex_buffer_.GetBuffer();
 }
 
 vk::Buffer WorldGeometryGenerator::GetChunkDrawInfoBuffer() const

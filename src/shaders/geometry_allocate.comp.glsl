@@ -31,7 +31,10 @@ void main()
 		chunk_draw_info[chunk_index].num_quads= 0;
 		chunk_draw_info[chunk_index].num_water_quads= 0;
 
-		uint total_quads= chunk_draw_info[chunk_index].new_num_quads + chunk_draw_info[chunk_index].new_water_num_quads;
+		uint total_quads=
+			chunk_draw_info[chunk_index].new_num_quads +
+			chunk_draw_info[chunk_index].new_water_num_quads +
+			chunk_draw_info[chunk_index].new_fire_num_quads;
 
 		// Calculate rounded up number of memory units.
 		uint num_memory_units_required=
@@ -58,10 +61,14 @@ void main()
 			}
 		}
 
-		chunk_draw_info[chunk_index].first_quad=
-			chunk_draw_info[chunk_index].first_memory_unit * c_allocation_unut_size_quads;
+		uint quads_offset= chunk_draw_info[chunk_index].first_memory_unit * c_allocation_unut_size_quads;
+		chunk_draw_info[chunk_index].first_quad= quads_offset;
+		quads_offset+= chunk_draw_info[chunk_index].new_num_quads;
 
-		chunk_draw_info[chunk_index].first_water_quad=
-			chunk_draw_info[chunk_index].first_quad + chunk_draw_info[chunk_index].new_num_quads;
+		chunk_draw_info[chunk_index].first_water_quad= quads_offset;
+		quads_offset+= chunk_draw_info[chunk_index].new_water_num_quads;
+
+		chunk_draw_info[chunk_index].first_fire_quad= quads_offset;
+		quads_offset+= chunk_draw_info[chunk_index].new_fire_num_quads;
 	}
 }

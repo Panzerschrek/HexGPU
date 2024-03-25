@@ -16,14 +16,6 @@ struct WorldVertex
 
 using QuadVertices= std::array<WorldVertex, 4>;
 
-struct FireVertex
-{
-	float position[4]{};
-	float tc[4]{};
-};
-
-using FireQuadVertices= std::array<FireVertex, 4>;
-
 class WorldGeometryGenerator
 {
 public:
@@ -36,6 +28,9 @@ public:
 		uint32_t num_water_quads= 0;
 		uint32_t new_water_num_quads= 0;
 		uint32_t first_water_quad= 0;
+		uint32_t num_fire_quads= 0;
+		uint32_t new_fire_num_quads= 0;
+		uint32_t first_fire_quad= 0;
 		uint32_t first_memory_unit= 0;
 		uint32_t num_memory_units= 0;
 	};
@@ -50,7 +45,6 @@ public:
 	void Update(TaskOrganizer& task_organizer);
 
 	vk::Buffer GetVertexBuffer() const;
-	vk::Buffer GetFireVertexBuffer() const;
 
 	vk::Buffer GetChunkDrawInfoBuffer() const;
 	vk::DeviceSize GetChunkDrawInfoBufferSize() const;
@@ -76,7 +70,6 @@ private:
 	const Buffer chunk_draw_info_buffer_temp_;
 
 	const Buffer vertex_buffer_;
-	const Buffer fire_vertex_buffer_;
 
 	GPUAllocator vertex_memory_allocator_;
 

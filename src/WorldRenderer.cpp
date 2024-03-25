@@ -381,25 +381,6 @@ void WorldRenderer::PrepareFrame(TaskOrganizer& task_organizer)
 	geometry_generator_.Update(task_organizer);
 	BuildDrawIndirectBuffer(task_organizer);
 	CopyViewMatrix(task_organizer);
-
-	TaskOrganizer::TransferTaskParams task;
-	task.output_buffers.push_back(geometry_generator_.GetFireVertexBuffer());
-
-	const auto task_func=
-		[this](const vk::CommandBuffer command_buffer)
-		{
-			const FireVertex vertices[4]
-			{
-				{ {0.0f, 0.0f, 32.0f, 0.0f}, {} },
-				{ {0.0f, 4.0f, 32.0f, 0.0f}, {} },
-				{ {0.0f, 4.0f, 34.0f, 0.0f}, {} },
-				{ {0.0f, 0.0f, 34.0f, 0.0f}, {} },
-			};
-
-			command_buffer.updateBuffer(geometry_generator_.GetFireVertexBuffer(), 0, sizeof(vertices), vertices);
-		};
-
-	task_organizer.ExecuteTask(task, task_func);
 }
 
 void WorldRenderer::CollectFrameInputs(TaskOrganizer::GraphicsTaskParams& out_task_params)
@@ -408,7 +389,6 @@ void WorldRenderer::CollectFrameInputs(TaskOrganizer::GraphicsTaskParams& out_ta
 	out_task_params.indirect_draw_buffers.push_back(water_draw_indirect_buffer_.GetBuffer());
 	out_task_params.index_buffers.push_back(index_buffer_.GetBuffer());
 	out_task_params.vertex_buffers.push_back(geometry_generator_.GetVertexBuffer());
-	out_task_params.vertex_buffers.push_back(geometry_generator_.GetFireVertexBuffer());
 	out_task_params.uniform_buffers.push_back(uniform_buffer_.GetBuffer());
 	out_task_params.input_images.push_back(textures_generator_.GetImageInfo());
 }
@@ -437,12 +417,6 @@ void WorldRenderer::DrawOpaque(const vk::CommandBuffer command_buffer)
 		sizeof(vk::DrawIndexedIndirectCommand));
 
 	{
-		const vk::Buffer vertex_buffer= geometry_generator_.GetFireVertexBuffer();
-
-		const vk::DeviceSize offsets= 0u;
-		command_buffer.bindVertexBuffers(0u, 1u, &vertex_buffer, &offsets);
-		command_buffer.bindIndexBuffer(index_buffer_.GetBuffer(), 0u, vk::IndexType::eUint16);
-
 		command_buffer.bindDescriptorSets(
 			vk::PipelineBindPoint::eGraphics,
 			*fire_draw_pipeline_.pipeline_layout,
@@ -452,7 +426,7 @@ void WorldRenderer::DrawOpaque(const vk::CommandBuffer command_buffer)
 
 		command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *fire_draw_pipeline_.pipeline);
 
-		command_buffer.drawIndexed(6, 1, 0, 0, 0);
+		// TODO
 	}
 }
 
@@ -903,14 +877,16 @@ WorldRenderer::WorldDrawPipeline WorldRenderer::CreateFireDrawPipeline(
 		},
 	};
 
+	// TODO - use special vertex format for fire.
 	const vk::VertexInputBindingDescription vertex_input_binding_description(
 		0u,
-		sizeof(FireVertex),
+		sizeof(WorldVertex),
 		vk::VertexInputRate::eVertex);
 
 	const vk::VertexInputAttributeDescription vertex_input_attribute_description[]
 	{
-		{0u, 0u, vk::Format::eR32G32B32A32Sfloat, offsetof(FireVertex, position)},
+		{0u, 0u, vk::Format::eR16G16B16A16Sscaled, 0u},
+		{1u, 0u, vk::Format::eR16G16B16A16Sint, sizeof(int16_t) * 4},
 	};
 
 	const vk::PipelineVertexInputStateCreateInfo pipiline_vertex_input_state_create_info(

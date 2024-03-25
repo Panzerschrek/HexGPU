@@ -441,7 +441,7 @@ void main()
 			quad.vertices[2]= v[2];
 		}
 
-		uint quad_index= quads_offset + atomicAdd(chunk_draw_info[chunk_index].num_quads, 1);
+		uint quad_index= chunk_draw_info[chunk_index].first_fire_quad + atomicAdd(chunk_draw_info[chunk_index].num_fire_quads, 1);
 		quads[quad_index]= quad;
 	}
 }

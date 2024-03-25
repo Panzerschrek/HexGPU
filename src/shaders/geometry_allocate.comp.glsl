@@ -30,6 +30,7 @@ void main()
 		uint chunk_index= uint(chunks_to_allocate_list[i]);
 		chunk_draw_info[chunk_index].num_quads= 0;
 		chunk_draw_info[chunk_index].num_water_quads= 0;
+		chunk_draw_info[chunk_index].num_fire_quads= 0;
 
 		uint total_quads=
 			chunk_draw_info[chunk_index].new_num_quads +

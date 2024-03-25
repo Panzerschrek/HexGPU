@@ -408,40 +408,64 @@ void main()
 	if(block_value == c_block_type_fire)
 	{
 		// Add fire quads.
+		uint quad_index= chunk_draw_info[chunk_index].first_fire_quad + atomicAdd(chunk_draw_info[chunk_index].num_fire_quads, 3);
 
-		WorldVertex v[4];
+		const int16_t light= int16_t(0); // No need to set light for fire.
+		int16_t tex_index= int16_t(0);
 
-		v[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z + 0), 0.0);
-		v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z + 1), 0.0);
-		v[2].pos= i16vec4(int16_t(base_x + 5), int16_t(base_y + 0), int16_t(z + 1), 0.0);
-		v[3].pos= i16vec4(int16_t(base_x + 5), int16_t(base_y + 0), int16_t(z + 0), 0.0);
+		WorldVertex center_vertices[2];
+		center_vertices[0].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 1), int16_t(z + 0), 0);
+		center_vertices[1].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 1), int16_t(z + 1), 0);
+		center_vertices[0].tex_coord= i16vec4(int16_t(0), int16_t(0), tex_index, light);
+		center_vertices[1].tex_coord= i16vec4(int16_t(0), int16_t(0), tex_index, light);
 
-		int16_t tex_index= c_block_texture_table[int(block_value)].b;
-
-		ivec2 tc_base= ivec2(base_tc_x, z * 2);
-
-		int16_t light= RepackAndScaleLight(light_buffer[optical_density > optical_density_south_east ? block_address : block_address_south_east], 257);
-
-		v[0].tex_coord= i16vec4(int16_t(tc_base.x + 2), int16_t(tc_base.y + 0), tex_index, light);
-		v[1].tex_coord= i16vec4(int16_t(tc_base.x + 2), int16_t(tc_base.y + 2), tex_index, light);
-		v[2].tex_coord= i16vec4(int16_t(tc_base.x + 4), int16_t(tc_base.y + 2), tex_index, light);
-		v[3].tex_coord= i16vec4(int16_t(tc_base.x + 4), int16_t(tc_base.y + 0), tex_index, light);
-
-		Quad quad;
-		quad.vertices[1]= v[1];
-		quad.vertices[3]= v[3];
-		if(optical_density < optical_density_south_east)
 		{
-			quad.vertices[0]= v[2];
-			quad.vertices[2]= v[0];
-		}
-		else
-		{
+			WorldVertex v[2];
+
+			v[0].pos= i16vec4(int16_t(base_x), int16_t(base_y + 1), int16_t(z + 1), 0);
+			v[1].pos= i16vec4(int16_t(base_x), int16_t(base_y + 1), int16_t(z + 0), 0);
+			v[0].tex_coord= i16vec4(int16_t(0), int16_t(0), tex_index, light);
+			v[1].tex_coord= i16vec4(int16_t(0), int16_t(0), tex_index, light);
+
+			Quad quad;
 			quad.vertices[0]= v[0];
-			quad.vertices[2]= v[2];
-		}
+			quad.vertices[1]= v[1];
+			quad.vertices[2]= center_vertices[0];
+			quad.vertices[3]= center_vertices[1];
 
-		uint quad_index= chunk_draw_info[chunk_index].first_fire_quad + atomicAdd(chunk_draw_info[chunk_index].num_fire_quads, 1);
-		quads[quad_index]= quad;
+			quads[quad_index]= quad;
+		}
+		{
+			WorldVertex v[2];
+
+			v[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 1), 0);
+			v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 0), 0);
+			v[0].tex_coord= i16vec4(int16_t(0), int16_t(0), tex_index, light);
+			v[1].tex_coord= i16vec4(int16_t(0), int16_t(0), tex_index, light);
+
+			Quad quad;
+			quad.vertices[0]= v[0];
+			quad.vertices[1]= v[1];
+			quad.vertices[2]= center_vertices[0];
+			quad.vertices[3]= center_vertices[1];
+
+			quads[quad_index + 1]= quad;
+		}
+		{
+			WorldVertex v[2];
+
+			v[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y ), int16_t(z + 1), 0);
+			v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y ), int16_t(z + 0), 0);
+			v[0].tex_coord= i16vec4(int16_t(0), int16_t(0), tex_index, light);
+			v[1].tex_coord= i16vec4(int16_t(0), int16_t(0), tex_index, light);
+
+			Quad quad;
+			quad.vertices[0]= v[0];
+			quad.vertices[1]= v[1];
+			quad.vertices[2]= center_vertices[0];
+			quad.vertices[3]= center_vertices[1];
+
+			quads[quad_index + 2]= quad;
+		}
 	}
 }

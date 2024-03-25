@@ -126,50 +126,61 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 				}
 			}
 		}
-		else if(is_water_side_flow_tick)
+
+		int flow_in= 0;
+		int num_fire_blocks_nearby= 0;
+		int total_flammability_nearby= 0;
+
+		for(int i= 0; i < 6; ++i) // For adjacent blocks.
 		{
-			if(is_in_active_area)
+			int adjacent_block_address= adjacent_columns[i] + z;
+			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
+
+			total_flammability_nearby+= int(c_block_flammability_table[uint(adjacent_block_type)]);
+
+			if(adjacent_block_type == c_block_type_water)
 			{
 				// Check if water flows into this air block.
 				// This should mirror water block logic!
-				int flow_in= 0;
-
-				for(int i= 0; i < 6; ++i) // For adjacent blocks.
+				if(adjacent_column_is_in_active_area[i])
 				{
-					if(!adjacent_column_is_in_active_area[i])
-						continue; // Prevent flow from inactive area, since water level values aren't updated there.
-
-					int adjacent_block_address= adjacent_columns[i] + z;
-
-					uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
-					if(adjacent_block_type == c_block_type_water)
+					bool adjacent_can_flow_down= false;
+					if(z > 0)
 					{
-						bool adjacent_can_flow_down= false;
-						if(z > 0)
-						{
-							int adjacent_block_below_address= adjacent_block_address - 1;
-							uint8_t adjacent_block_below_type= chunks_input_data[adjacent_block_below_address];
-							adjacent_can_flow_down=
-								adjacent_block_below_type == c_block_type_air ||
-								(adjacent_block_below_type == c_block_type_water &&  int(chunks_auxiliar_input_data[adjacent_block_below_address]) < c_max_water_level);
-						}
-						if(adjacent_can_flow_down)
-							continue; // Prevent out flow if flow down is possilble.
-
-						int adjacent_water_level= int(chunks_auxiliar_input_data[adjacent_block_address]);
-
-						flow_in+= adjacent_water_level >> 3;
+						int adjacent_block_below_address= adjacent_block_address - 1;
+						uint8_t adjacent_block_below_type= chunks_input_data[adjacent_block_below_address];
+						adjacent_can_flow_down=
+							adjacent_block_below_type == c_block_type_air ||
+							(adjacent_block_below_type == c_block_type_water &&  int(chunks_auxiliar_input_data[adjacent_block_below_address]) < c_max_water_level);
 					}
-				}
+					if(adjacent_can_flow_down)
+						continue; // Prevent out flow if flow down is possilble.
 
-				if(flow_in != 0)
-				{
-					// Has some in water flow - convert into water.
-					return u8vec2(c_block_type_water, flow_in);
+					int adjacent_water_level= int(chunks_auxiliar_input_data[adjacent_block_address]);
+
+					flow_in+= adjacent_water_level >> 3;
 				}
-				else
-					return u8vec2(c_block_type_air, 0);
 			}
+			if(adjacent_block_type == c_block_type_fire)
+				++num_fire_blocks_nearby;
+		}
+
+		// Perform water flow in water flow tick. This should have highest priority!
+		if(is_water_side_flow_tick)
+		{
+			if(flow_in != 0)
+			{
+				// Has some in water flow - convert into water.
+				return u8vec2(c_block_type_water, flow_in);
+			}
+			else
+				return u8vec2(c_block_type_air, 0);
+		}
+
+		// Try to convert into fire.
+		if(num_fire_blocks_nearby != 0 && total_flammability_nearby > 0)
+		{
+			return u8vec2(c_block_type_fire, 0);
 		}
 	}
 	else if(block_type == c_block_type_sand)

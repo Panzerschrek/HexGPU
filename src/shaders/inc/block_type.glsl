@@ -53,6 +53,23 @@ const uint8_t c_block_own_light_table[c_num_block_types]=
 	uint8_t(7)  // fire
 );
 
+const uint8_t c_block_flammability_table[c_num_block_types]=
+	uint8_t[c_num_block_types]
+(
+	uint8_t(0), // air
+	uint8_t(0), // spherical block
+	uint8_t(0), // stone
+	uint8_t(0), // soil
+	uint8_t(1), // wood
+	uint8_t(0), // grass
+	uint8_t(0), // brick
+	uint8_t(1), // foliage
+	uint8_t(0), // fire stone
+	uint8_t(0), // water
+	uint8_t(0),  // sand
+	uint8_t(0)  // fire
+);
+
 // If this changed, TexturesTable.hpp" must be changed too!
 // "r" - top, "g" - bottom, "b" - sides.
 // TODO - support more precise mapping - individually for all 6 sides?

@@ -19,6 +19,7 @@ namespace DrawIndirectBufferBuildShaderBindings
 	const ShaderBindingIndex draw_indirect_buffer= 1;
 	const ShaderBindingIndex water_draw_indirect_buffer= 2;
 	const ShaderBindingIndex player_state_buffer= 3;
+	const ShaderBindingIndex fire_draw_indirect_buffer= 4;
 }
 
 namespace DrawShaderBindings
@@ -122,6 +123,13 @@ ComputePipeline CreateDrawIndirectBufferBuildPipeline(const vk::Device vk_device
 			vk::ShaderStageFlagBits::eCompute,
 			nullptr,
 		},
+		{
+			DrawIndirectBufferBuildShaderBindings::fire_draw_indirect_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
 	};
 
 	pipeline.descriptor_set_layout= vk_device.createDescriptorSetLayoutUnique(
@@ -163,6 +171,10 @@ WorldRenderer::WorldRenderer(
 		world_size_[0] * world_size_[1] * uint32_t(sizeof(vk::DrawIndexedIndirectCommand)),
 		vk::BufferUsageFlagBits::eIndirectBuffer | vk::BufferUsageFlagBits::eStorageBuffer)
 	, water_draw_indirect_buffer_(
+		window_vulkan,
+		world_size_[0] * world_size_[1] * uint32_t(sizeof(vk::DrawIndexedIndirectCommand)),
+		vk::BufferUsageFlagBits::eIndirectBuffer | vk::BufferUsageFlagBits::eStorageBuffer)
+	, fire_draw_indirect_buffer_(
 		window_vulkan,
 		world_size_[0] * world_size_[1] * uint32_t(sizeof(vk::DrawIndexedIndirectCommand)),
 		vk::BufferUsageFlagBits::eIndirectBuffer | vk::BufferUsageFlagBits::eStorageBuffer)
@@ -208,6 +220,11 @@ WorldRenderer::WorldRenderer(
 			0u,
 			sizeof(WorldProcessor::PlayerState));
 
+		const vk::DescriptorBufferInfo descriptor_fire_draw_indirect_buffer_info(
+			fire_draw_indirect_buffer_.GetBuffer(),
+			0u,
+			fire_draw_indirect_buffer_.GetSize());
+
 		vk_device_.updateDescriptorSets(
 			{
 				{
@@ -248,6 +265,16 @@ WorldRenderer::WorldRenderer(
 					vk::DescriptorType::eStorageBuffer,
 					nullptr,
 					&descriptor_player_state_buffer_info,
+					nullptr
+				},
+				{
+					draw_indirect_buffer_build_descriptor_set_,
+					DrawIndirectBufferBuildShaderBindings::fire_draw_indirect_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_fire_draw_indirect_buffer_info,
 					nullptr
 				},
 			},
@@ -387,6 +414,7 @@ void WorldRenderer::CollectFrameInputs(TaskOrganizer::GraphicsTaskParams& out_ta
 {
 	out_task_params.indirect_draw_buffers.push_back(draw_indirect_buffer_.GetBuffer());
 	out_task_params.indirect_draw_buffers.push_back(water_draw_indirect_buffer_.GetBuffer());
+	out_task_params.indirect_draw_buffers.push_back(fire_draw_indirect_buffer_.GetBuffer());
 	out_task_params.index_buffers.push_back(index_buffer_.GetBuffer());
 	out_task_params.vertex_buffers.push_back(geometry_generator_.GetVertexBuffer());
 	out_task_params.uniform_buffers.push_back(uniform_buffer_.GetBuffer());
@@ -426,7 +454,11 @@ void WorldRenderer::DrawOpaque(const vk::CommandBuffer command_buffer)
 
 		command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *fire_draw_pipeline_.pipeline);
 
-		// TODO
+		command_buffer.drawIndexedIndirect(
+			fire_draw_indirect_buffer_.GetBuffer(),
+			0,
+			world_size_[0] * world_size_[1],
+			sizeof(vk::DrawIndexedIndirectCommand));
 	}
 }
 
@@ -1010,6 +1042,7 @@ void WorldRenderer::BuildDrawIndirectBuffer(TaskOrganizer& task_organizer)
 	task.input_storage_buffers.push_back(world_processor_.GetPlayerStateBuffer());
 	task.output_storage_buffers.push_back(draw_indirect_buffer_.GetBuffer());
 	task.output_storage_buffers.push_back(water_draw_indirect_buffer_.GetBuffer());
+	task.output_storage_buffers.push_back(fire_draw_indirect_buffer_.GetBuffer());
 
 	const auto task_func=
 		[this](const vk::CommandBuffer command_buffer)

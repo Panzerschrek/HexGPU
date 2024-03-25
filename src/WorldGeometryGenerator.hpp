@@ -19,7 +19,7 @@ using QuadVertices= std::array<WorldVertex, 4>;
 struct FireVertex
 {
 	float position[4]{};
-	float tc[2]{};
+	float tc[4]{};
 };
 
 using FireQuadVertices= std::array<FireVertex, 4>;

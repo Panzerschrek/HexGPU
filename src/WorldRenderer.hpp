@@ -41,6 +41,11 @@ private:
 		vk::Extent2D viewport_size,
 		vk::RenderPass render_pass);
 
+	static WorldDrawPipeline CreateFireDrawPipeline(
+		vk::Device vk_device,
+		vk::Extent2D viewport_size,
+		vk::RenderPass render_pass);
+
 	void CopyViewMatrix(TaskOrganizer& task_organizer);
 	void BuildDrawIndirectBuffer(TaskOrganizer& task_organizer);
 
@@ -66,6 +71,9 @@ private:
 
 	const WorldDrawPipeline water_draw_pipeline_;
 	const vk::DescriptorSet water_descriptor_set_;
+
+	const WorldDrawPipeline fire_draw_pipeline_;
+	const vk::DescriptorSet fire_descriptor_set_;
 
 	const Buffer index_buffer_;
 };

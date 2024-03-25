@@ -450,6 +450,36 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 
 		return u8vec2(block_type, uint8_t(this_block_foliage_factor));
 	}
+	else if(block_type == c_block_type_fire)
+	{
+		int total_flammability_nearby= 0;
+
+		for(int i= 0; i < 6; ++i) // For adjacent blocks.
+		{
+			int adjacent_block_address= adjacent_columns[i] + z;
+			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
+
+			total_flammability_nearby+= int(c_block_flammability_table[uint(adjacent_block_type)]);
+		}
+		if(z < c_chunk_height - 1)
+		{
+			int adjacent_block_address= column_address + z + 1;
+			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
+			total_flammability_nearby+= int(c_block_flammability_table[uint(adjacent_block_type)]);
+		}
+		if(z > 0)
+		{
+			int adjacent_block_address= column_address + z - 1;
+			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
+			total_flammability_nearby+= int(c_block_flammability_table[uint(adjacent_block_type)]);
+		}
+
+		if(total_flammability_nearby == 0)
+		{
+			// No flammable blocks nearby - immediately convert into air.
+			return u8vec2(c_block_type_air, uint8_t(0));
+		}
+	}
 
 	// Common case when block type isn't chanhed.
 	return u8vec2(block_type, chunks_auxiliar_input_data[column_address + z]);

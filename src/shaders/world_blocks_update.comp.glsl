@@ -164,6 +164,24 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 			if(adjacent_block_type == c_block_type_fire)
 				++num_fire_blocks_nearby;
 		}
+		if(z < c_chunk_height - 1)
+		{
+			int adjacent_block_address= column_address + z + 1;
+			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
+			total_flammability_nearby+= int(c_block_flammability_table[uint(adjacent_block_type)]);
+
+			if(adjacent_block_type == c_block_type_fire)
+				++num_fire_blocks_nearby;
+		}
+		if(z > 0)
+		{
+			int adjacent_block_address= column_address + z - 1;
+			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
+			total_flammability_nearby+= int(c_block_flammability_table[uint(adjacent_block_type)]);
+
+			if(adjacent_block_type == c_block_type_fire)
+				++num_fire_blocks_nearby;
+		}
 
 		// Perform water flow in water flow tick. This should have highest priority!
 		if(is_water_side_flow_tick)
@@ -178,9 +196,37 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 		}
 
 		// Try to convert into fire.
-		if(num_fire_blocks_nearby != 0 && total_flammability_nearby > 0)
+		if(total_flammability_nearby > 0)
 		{
-			return u8vec2(c_block_type_fire, 0);
+			if(num_fire_blocks_nearby != 0)
+			{
+				// There are fire blocks nearby. Immideately convert into fire.
+				return u8vec2(c_block_type_fire, 0);
+			}
+
+			// Check if there are fire blocks nearby below/above, which are accessible via air block.
+
+			bool block_below_is_air=
+				z > 0 && chunks_input_data[column_address + z - 1] == c_block_type_air;
+			bool block_above_is_air=
+				z < c_chunk_height - 1 && chunks_input_data[column_address + z + 1] == c_block_type_air;
+
+			for(int i= 0; i < 6; ++i) // For adjacent blocks.
+			{
+				int adjacent_block_address= adjacent_columns[i] + z;
+				bool adjacent_block_is_air= chunks_input_data[adjacent_block_address] == c_block_type_air;
+
+				if((adjacent_block_is_air || block_below_is_air) &&
+					z > 0 && chunks_input_data[adjacent_block_address - 1] == c_block_type_fire)
+					++num_fire_blocks_nearby;
+
+				if((adjacent_block_is_air || block_above_is_air) &&
+					z < c_chunk_height - 1 && chunks_input_data[adjacent_block_address + 1] == c_block_type_fire)
+					++num_fire_blocks_nearby;
+			}
+
+			if(num_fire_blocks_nearby != 0)
+				return u8vec2(c_block_type_fire, 0);
 		}
 	}
 	else if(block_type == c_block_type_sand)
@@ -458,7 +504,6 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 		{
 			int adjacent_block_address= adjacent_columns[i] + z;
 			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
-
 			total_flammability_nearby+= int(c_block_flammability_table[uint(adjacent_block_type)]);
 		}
 		if(z < c_chunk_height - 1)

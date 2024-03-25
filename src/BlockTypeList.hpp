@@ -17,6 +17,7 @@ BLOCK_PROCESS_FUNC(Foliage)
 BLOCK_PROCESS_FUNC(FireStone)
 BLOCK_PROCESS_FUNC(Water)
 BLOCK_PROCESS_FUNC(Sand)
+BLOCK_PROCESS_FUNC(Fire)
 
 // Put new block types at the end
 

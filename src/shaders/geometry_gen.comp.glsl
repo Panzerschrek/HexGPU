@@ -613,10 +613,10 @@ void main()
 				quad.vertices[1].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(z + 1), 0);
 				quad.vertices[2].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(z + 1), 0);
 				quad.vertices[3].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z + 1), 0);
-				quad.vertices[0].tex_coord= i16vec4(int16_t(2), int16_t(1), tex_index, int16_t(fire_power));
-				quad.vertices[1].tex_coord= i16vec4(int16_t(0), int16_t(1), tex_index, int16_t(fire_power));
-				quad.vertices[2].tex_coord= i16vec4(int16_t(1), int16_t(2), tex_index, int16_t(fire_power));
-				quad.vertices[3].tex_coord= i16vec4(int16_t(3), int16_t(2), tex_index, int16_t(fire_power));
+				quad.vertices[0].tex_coord= i16vec4(int16_t(5), int16_t(1), tex_index, int16_t(fire_power));
+				quad.vertices[1].tex_coord= i16vec4(int16_t(3), int16_t(1), tex_index, int16_t(fire_power));
+				quad.vertices[2].tex_coord= i16vec4(int16_t(4), int16_t(2), tex_index, int16_t(fire_power));
+				quad.vertices[3].tex_coord= i16vec4(int16_t(6), int16_t(2), tex_index, int16_t(fire_power));
 
 				quads[quad_index + 1]= quad;
 			}
@@ -626,10 +626,10 @@ void main()
 				quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 1), 0);
 				quad.vertices[2].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(z + 1), 0);
 				quad.vertices[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(z + 1), 0);
-				quad.vertices[0].tex_coord= i16vec4(int16_t(2), int16_t(1), tex_index, int16_t(fire_power));
-				quad.vertices[1].tex_coord= i16vec4(int16_t(0), int16_t(1), tex_index, int16_t(fire_power));
-				quad.vertices[2].tex_coord= i16vec4(int16_t(1), int16_t(2), tex_index, int16_t(fire_power));
-				quad.vertices[3].tex_coord= i16vec4(int16_t(3), int16_t(2), tex_index, int16_t(fire_power));
+				quad.vertices[0].tex_coord= i16vec4(int16_t(8), int16_t(1), tex_index, int16_t(fire_power));
+				quad.vertices[1].tex_coord= i16vec4(int16_t(6), int16_t(1), tex_index, int16_t(fire_power));
+				quad.vertices[2].tex_coord= i16vec4(int16_t(7), int16_t(2), tex_index, int16_t(fire_power));
+				quad.vertices[3].tex_coord= i16vec4(int16_t(9), int16_t(2), tex_index, int16_t(fire_power));
 
 				quads[quad_index + 2]= quad;
 			}

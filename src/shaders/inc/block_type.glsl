@@ -50,7 +50,7 @@ const uint8_t c_block_own_light_table[c_num_block_types]=
 	uint8_t(15), // fire stone
 	uint8_t(0), // water
 	uint8_t(0),  // sand
-	uint8_t(7)  // fire
+	uint8_t(11)  // fire
 );
 
 const uint8_t c_block_flammability_table[c_num_block_types]=

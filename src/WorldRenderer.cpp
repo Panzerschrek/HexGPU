@@ -505,7 +505,7 @@ void WorldRenderer::DrawFire(vk::CommandBuffer command_buffer, const float time_
 		{});
 
 	FirePushConstantsUniforms uniforms;
-	uniforms.tex_shift= -0.125f * time_s * 0.5f;
+	uniforms.tex_shift= -0.125f * time_s;
 
 	command_buffer.pushConstants(
 		*fire_draw_pipeline_.pipeline_layout,

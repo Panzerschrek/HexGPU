@@ -18,6 +18,7 @@ layout(binding= 0) uniform uniforms_block
 layout(binding= 1) uniform sampler2D texture_image;
 
 layout(location= 0) in vec2 f_tex_coord;
+layout(location= 1) in flat float f_fire_power;
 
 layout(location = 0) out vec4 out_color;
 
@@ -30,10 +31,8 @@ void main()
 
 	float y= f_tex_coord.y * 4.0;
 
-	float power= 1.0; // TODO - take fire power from fire block itself.
-
 	float inv_temperature= mix(tex_value.r, y, 0.4);
-	inv_temperature= 1.0 - (1.0 - inv_temperature) * (0.7 + 0.3 * power);
+	inv_temperature= 1.0 - (1.0 - inv_temperature) * (0.6 + 0.4 * f_fire_power);
 
 	const float c_step_width= 0.05;
 	const float c_step_end_pos= 0.62;

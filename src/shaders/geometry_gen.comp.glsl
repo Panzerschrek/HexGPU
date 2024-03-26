@@ -413,19 +413,21 @@ void main()
 		const int16_t light= int16_t(0); // No need to set light for fire.
 		int16_t tex_index= int16_t(0);
 
+		int fire_power= int(chunks_auxiliar_data[block_address]);
+
 		WorldVertex center_vertices[2];
 		center_vertices[0].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 1), int16_t(z + 0), 0);
 		center_vertices[1].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 1), int16_t(z + 1), 0);
-		center_vertices[0].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(0), tex_index, light);
-		center_vertices[1].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(2), tex_index, light);
+		center_vertices[0].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(0), tex_index, int16_t(fire_power));
+		center_vertices[1].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(2), tex_index, int16_t(fire_power));
 
 		{
 			WorldVertex v[2];
 
 			v[0].pos= i16vec4(int16_t(base_x), int16_t(base_y + 1), int16_t(z + 1), 0);
 			v[1].pos= i16vec4(int16_t(base_x), int16_t(base_y + 1), int16_t(z + 0), 0);
-			v[0].tex_coord= i16vec4(int16_t(base_tc_x - 2), int16_t(2), tex_index, light);
-			v[1].tex_coord= i16vec4(int16_t(base_tc_x - 2), int16_t(0), tex_index, light);
+			v[0].tex_coord= i16vec4(int16_t(base_tc_x - 2), int16_t(2), tex_index, int16_t(fire_power));
+			v[1].tex_coord= i16vec4(int16_t(base_tc_x - 2), int16_t(0), tex_index, int16_t(fire_power));
 
 			Quad quad;
 			quad.vertices[0]= v[0];
@@ -440,8 +442,8 @@ void main()
 
 			v[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 1), 0);
 			v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 0), 0);
-			v[0].tex_coord= i16vec4(int16_t(base_tc_x + 2), int16_t(2), tex_index, light);
-			v[1].tex_coord= i16vec4(int16_t(base_tc_x + 2), int16_t(0), tex_index, light);
+			v[0].tex_coord= i16vec4(int16_t(base_tc_x + 2), int16_t(2), tex_index, int16_t(fire_power));
+			v[1].tex_coord= i16vec4(int16_t(base_tc_x + 2), int16_t(0), tex_index, int16_t(fire_power));
 
 			Quad quad;
 			quad.vertices[0]= v[0];
@@ -456,8 +458,8 @@ void main()
 
 			v[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y ), int16_t(z + 1), 0);
 			v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y ), int16_t(z + 0), 0);
-			v[0].tex_coord= i16vec4(int16_t(base_tc_x + 2), int16_t(2), tex_index, light);
-			v[1].tex_coord= i16vec4(int16_t(base_tc_x + 2), int16_t(0), tex_index, light);
+			v[0].tex_coord= i16vec4(int16_t(base_tc_x + 2), int16_t(2), tex_index, int16_t(fire_power));
+			v[1].tex_coord= i16vec4(int16_t(base_tc_x + 2), int16_t(0), tex_index, int16_t(fire_power));
 
 			Quad quad;
 			quad.vertices[0]= v[0];

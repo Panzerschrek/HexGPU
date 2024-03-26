@@ -556,11 +556,26 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 	{
 		int total_flammability_nearby= 0;
 
+		bool extinguish= false;
 		for(int i= 0; i < 6; ++i) // For adjacent blocks.
 		{
 			int adjacent_block_address= adjacent_columns[i] + z;
 			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
 			total_flammability_nearby+= int(c_block_flammability_table[uint(adjacent_block_type)]);
+			if(adjacent_block_type == c_block_type_water)
+			{
+				bool adjacent_can_flow_down= false;
+				if(z > 0)
+				{
+					int adjacent_block_below_address= adjacent_block_address - 1;
+					uint8_t adjacent_block_below_type= chunks_input_data[adjacent_block_below_address];
+					adjacent_can_flow_down=
+						adjacent_block_below_type == c_block_type_air ||
+						(adjacent_block_below_type == c_block_type_water && int(chunks_auxiliar_input_data[adjacent_block_below_address]) < c_max_water_level);
+				}
+				if(!adjacent_can_flow_down)
+					extinguish= true;
+			}
 		}
 		if(z < c_chunk_height - 1)
 		{
@@ -575,9 +590,9 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 			total_flammability_nearby+= int(c_block_flammability_table[uint(adjacent_block_type)]);
 		}
 
-		if(total_flammability_nearby == 0)
+		if(total_flammability_nearby == 0 || extinguish)
 		{
-			// No flammable blocks nearby - immediately convert into air.
+			// No flammable blocks nearby or has water nearby - immediately convert into air.
 			return u8vec2(c_block_type_air, uint8_t(0));
 		}
 

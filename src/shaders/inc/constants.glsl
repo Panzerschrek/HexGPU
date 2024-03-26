@@ -25,4 +25,7 @@ const int c_max_water_level= 255;
 
 const int c_max_foliage_factor= 6;
 
+const int c_initial_fire_power= 1;
+const int c_min_fire_power_for_fire_to_spread= 32;
+
 #endif // CONSTANTS_GLSL_HEADER

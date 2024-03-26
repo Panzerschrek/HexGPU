@@ -128,7 +128,7 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 		}
 
 		int flow_in= 0;
-		int num_fire_blocks_nearby= 0;
+		int total_fire_power_nearby= 0;
 		int total_flammability_nearby= 0;
 
 		for(int i= 0; i < 6; ++i) // For adjacent blocks.
@@ -162,7 +162,7 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 				}
 			}
 			if(adjacent_block_type == c_block_type_fire)
-				++num_fire_blocks_nearby;
+				total_fire_power_nearby+= int(chunks_auxiliar_input_data[adjacent_block_address]);
 		}
 		if(z < c_chunk_height - 1)
 		{
@@ -171,7 +171,7 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 			total_flammability_nearby+= int(c_block_flammability_table[uint(adjacent_block_type)]);
 
 			if(adjacent_block_type == c_block_type_fire)
-				++num_fire_blocks_nearby;
+				total_fire_power_nearby+= int(chunks_auxiliar_input_data[adjacent_block_address]);
 		}
 		if(z > 0)
 		{
@@ -180,7 +180,7 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 			total_flammability_nearby+= int(c_block_flammability_table[uint(adjacent_block_type)]);
 
 			if(adjacent_block_type == c_block_type_fire)
-				++num_fire_blocks_nearby;
+				total_fire_power_nearby+= int(chunks_auxiliar_input_data[adjacent_block_address]);
 		}
 
 		// Perform water flow in water flow tick. This should have highest priority!
@@ -198,10 +198,10 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 		// Try to convert into fire.
 		if(total_flammability_nearby > 0)
 		{
-			if(num_fire_blocks_nearby != 0)
+			if(total_fire_power_nearby >= c_min_fire_power_for_fire_to_spread)
 			{
 				// There are fire blocks nearby. Immideately convert into fire.
-				return u8vec2(c_block_type_fire, 0);
+				return u8vec2(c_block_type_fire, c_initial_fire_power);
 			}
 
 			// Check if there are fire blocks nearby below/above, which are accessible via air block.
@@ -218,15 +218,15 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 
 				if((adjacent_block_is_air || block_below_is_air) &&
 					z > 0 && chunks_input_data[adjacent_block_address - 1] == c_block_type_fire)
-					++num_fire_blocks_nearby;
+					total_fire_power_nearby+= int(chunks_auxiliar_input_data[adjacent_block_address - 1]);
 
 				if((adjacent_block_is_air || block_above_is_air) &&
 					z < c_chunk_height - 1 && chunks_input_data[adjacent_block_address + 1] == c_block_type_fire)
-					++num_fire_blocks_nearby;
+					total_fire_power_nearby+= int(chunks_auxiliar_input_data[adjacent_block_address + 1]);
 			}
 
-			if(num_fire_blocks_nearby != 0)
-				return u8vec2(c_block_type_fire, 0);
+			if(total_fire_power_nearby >= c_min_fire_power_for_fire_to_spread)
+				return u8vec2(c_block_type_fire, c_initial_fire_power);
 		}
 	}
 	else if(block_type == c_block_type_sand)
@@ -509,7 +509,7 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 			// TODO - use global coord for noise.
 			int block_rand= hex_Noise3(block_x, block_y, z, int(current_tick));
 			if((block_rand & 31) == 0)
-				return u8vec2(c_block_type_fire, uint8_t(0));
+				return u8vec2(c_block_type_fire, uint8_t(c_initial_fire_power));
 		}
 
 		return u8vec2(block_type, uint8_t(this_block_foliage_factor));
@@ -548,7 +548,7 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 			// TODO - use global coord for noise.
 			int block_rand= hex_Noise3(block_x, block_y, z, int(current_tick));
 			if((block_rand & 127) == 0)
-				return u8vec2(c_block_type_fire, uint8_t(0));
+				return u8vec2(c_block_type_fire, uint8_t(c_initial_fire_power));
 		}
 	}
 	else if(block_type == c_block_type_fire)
@@ -579,6 +579,13 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 			// No flammable blocks nearby - immediately convert into air.
 			return u8vec2(c_block_type_air, uint8_t(0));
 		}
+
+		// Each tick fire power is increased by total flammability nearby.
+		int fire_power= int(chunks_auxiliar_input_data[column_address + z]);
+		fire_power+= total_flammability_nearby;
+		fire_power= min(fire_power, 255);
+
+		return u8vec2(c_block_type_fire, uint8_t(fire_power));
 	}
 
 	// Common case when block type isn't chanhed.

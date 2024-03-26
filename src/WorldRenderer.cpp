@@ -977,7 +977,7 @@ WorldRenderer::WorldDrawPipeline WorldRenderer::CreateFireDrawPipeline(
 		vk::PolygonMode::eFill,
 		vk::CullModeFlagBits::eNone, // Use twosided polygons.
 		vk::FrontFace::eCounterClockwise,
-		VK_FALSE, 0.0f, 0.0f, 0.0f,
+		VK_TRUE, -1.0f, 0.0f, -1.0f, // Depth bias
 		1.0f);
 
 	const vk::PipelineMultisampleStateCreateInfo pipeline_multisample_state_create_info;

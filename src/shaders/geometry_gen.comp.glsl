@@ -408,7 +408,6 @@ void main()
 	if(block_value == c_block_type_fire)
 	{
 		// Add fire quads.
-		uint quad_index= chunk_draw_info[chunk_index].first_fire_quad + atomicAdd(chunk_draw_info[chunk_index].num_fire_quads, 6);
 
 		const int16_t light= int16_t(0); // No need to set light for fire.
 		int16_t tex_index= int16_t(0);
@@ -417,6 +416,8 @@ void main()
 
 		// Lower quads.
 		{
+			uint quad_index= chunk_draw_info[chunk_index].first_fire_quad + atomicAdd(chunk_draw_info[chunk_index].num_fire_quads, 3);
+
 			WorldVertex center_vertices[2];
 			center_vertices[0].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 1), int16_t(z + 0), 0);
 			center_vertices[1].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 1), int16_t(z + 1), 0);
@@ -474,44 +475,49 @@ void main()
 		}
 
 		// Upper quads.
+		if(c_block_flammability_table[uint(block_value_up)] != uint8_t(0))
 		{
-			Quad quad;
-			quad.vertices[0].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 1), int16_t(z + 1), 0);
-			quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z + 1), 0);
-			quad.vertices[2].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(z + 1), 0);
-			quad.vertices[3].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 1), 0);
-			quad.vertices[0].tex_coord= i16vec4(int16_t(3), int16_t(0), tex_index, int16_t(fire_power));
-			quad.vertices[1].tex_coord= i16vec4(int16_t(6), int16_t(1), tex_index, int16_t(fire_power));
-			quad.vertices[2].tex_coord= i16vec4(int16_t(3), int16_t(2), tex_index, int16_t(fire_power));
-			quad.vertices[3].tex_coord= i16vec4(int16_t(0), int16_t(1), tex_index, int16_t(fire_power));
+			uint quad_index= chunk_draw_info[chunk_index].first_fire_quad + atomicAdd(chunk_draw_info[chunk_index].num_fire_quads, 3);
 
-			quads[quad_index + 3]= quad;
-		}
-		{
-			Quad quad;
-			quad.vertices[0].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 1), int16_t(z + 1), 0);
-			quad.vertices[1].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(z + 1), 0);
-			quad.vertices[2].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(z + 1), 0);
-			quad.vertices[3].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z + 1), 0);
-			quad.vertices[0].tex_coord= i16vec4(int16_t(3), int16_t(0), tex_index, int16_t(fire_power));
-			quad.vertices[1].tex_coord= i16vec4(int16_t(6), int16_t(1), tex_index, int16_t(fire_power));
-			quad.vertices[2].tex_coord= i16vec4(int16_t(3), int16_t(2), tex_index, int16_t(fire_power));
-			quad.vertices[3].tex_coord= i16vec4(int16_t(0), int16_t(1), tex_index, int16_t(fire_power));
+			{
+				Quad quad;
+				quad.vertices[0].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 1), int16_t(z + 1), 0);
+				quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z + 1), 0);
+				quad.vertices[2].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(z + 1), 0);
+				quad.vertices[3].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 1), 0);
+				quad.vertices[0].tex_coord= i16vec4(int16_t(3), int16_t(0), tex_index, int16_t(fire_power));
+				quad.vertices[1].tex_coord= i16vec4(int16_t(6), int16_t(1), tex_index, int16_t(fire_power));
+				quad.vertices[2].tex_coord= i16vec4(int16_t(3), int16_t(2), tex_index, int16_t(fire_power));
+				quad.vertices[3].tex_coord= i16vec4(int16_t(0), int16_t(1), tex_index, int16_t(fire_power));
 
-			quads[quad_index + 4]= quad;
-		}
-		{
-			Quad quad;
-			quad.vertices[0].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 1), int16_t(z + 1), 0);
-			quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 1), 0);
-			quad.vertices[2].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(z + 1), 0);
-			quad.vertices[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(z + 1), 0);
-			quad.vertices[0].tex_coord= i16vec4(int16_t(3), int16_t(0), tex_index, int16_t(fire_power));
-			quad.vertices[1].tex_coord= i16vec4(int16_t(6), int16_t(1), tex_index, int16_t(fire_power));
-			quad.vertices[2].tex_coord= i16vec4(int16_t(3), int16_t(2), tex_index, int16_t(fire_power));
-			quad.vertices[3].tex_coord= i16vec4(int16_t(0), int16_t(1), tex_index, int16_t(fire_power));
+				quads[quad_index + 0]= quad;
+			}
+			{
+				Quad quad;
+				quad.vertices[0].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 1), int16_t(z + 1), 0);
+				quad.vertices[1].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(z + 1), 0);
+				quad.vertices[2].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(z + 1), 0);
+				quad.vertices[3].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z + 1), 0);
+				quad.vertices[0].tex_coord= i16vec4(int16_t(3), int16_t(0), tex_index, int16_t(fire_power));
+				quad.vertices[1].tex_coord= i16vec4(int16_t(6), int16_t(1), tex_index, int16_t(fire_power));
+				quad.vertices[2].tex_coord= i16vec4(int16_t(3), int16_t(2), tex_index, int16_t(fire_power));
+				quad.vertices[3].tex_coord= i16vec4(int16_t(0), int16_t(1), tex_index, int16_t(fire_power));
 
-			quads[quad_index + 5]= quad;
+				quads[quad_index + 1]= quad;
+			}
+			{
+				Quad quad;
+				quad.vertices[0].pos= i16vec4(int16_t(base_x + 2), int16_t(base_y + 1), int16_t(z + 1), 0);
+				quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 1), 0);
+				quad.vertices[2].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(z + 1), 0);
+				quad.vertices[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(z + 1), 0);
+				quad.vertices[0].tex_coord= i16vec4(int16_t(3), int16_t(0), tex_index, int16_t(fire_power));
+				quad.vertices[1].tex_coord= i16vec4(int16_t(6), int16_t(1), tex_index, int16_t(fire_power));
+				quad.vertices[2].tex_coord= i16vec4(int16_t(3), int16_t(2), tex_index, int16_t(fire_power));
+				quad.vertices[3].tex_coord= i16vec4(int16_t(0), int16_t(1), tex_index, int16_t(fire_power));
+
+				quads[quad_index + 2]= quad;
+			}
 		}
 	}
 }

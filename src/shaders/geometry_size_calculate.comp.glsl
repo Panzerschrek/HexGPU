@@ -99,6 +99,12 @@ void main()
 	if(block_value == c_block_type_fire)
 	{
 		// Add fire quads.
-		atomicAdd(chunk_draw_info[chunk_index].new_fire_num_quads, 6);
+		int total_quads= 3;
+
+		if(c_block_flammability_table[uint(block_value_up)] != uint8_t(0))
+			total_quads+= 3;
+
+		atomicAdd(chunk_draw_info[chunk_index].new_fire_num_quads, total_quads);
+
 	}
 }

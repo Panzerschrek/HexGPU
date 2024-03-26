@@ -542,7 +542,7 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 				total_fire_power_nearby+= int(chunks_auxiliar_input_data[adjacent_block_address]);
 		}
 
-		if(total_fire_power_nearby >= 100 * c_min_fire_power_for_blocks_burning)
+		if(total_fire_power_nearby >= c_min_fire_power_for_blocks_burning)
 		{
 			// Burn this wood  block if has fire nearby.
 

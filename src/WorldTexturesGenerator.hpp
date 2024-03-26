@@ -16,6 +16,7 @@ public:
 
 	vk::ImageView GetImageView() const;
 	vk::ImageView GetWaterImageView() const;
+	vk::ImageView GetFireImageView() const;
 	TaskOrganizer::ImageInfo GetImageInfo() const;
 
 private:
@@ -33,6 +34,7 @@ private:
 		ShaderNames::texture_gen_wood_comp,
 		ShaderNames::texture_gen_wood_end_comp,
 		ShaderNames::texture_gen_water_comp,
+		ShaderNames::texture_gen_fire_comp,
 	};
 
 	static constexpr uint32_t c_num_layers= uint32_t(std::size(gen_shader_table));
@@ -45,6 +47,7 @@ private:
 	static constexpr uint32_t c_texture_num_texels= c_texture_size * c_texture_size;
 
 	const uint32_t c_water_image_index= 10;
+	const uint32_t c_fire_image_index= 11;
 
 private:
 
@@ -77,6 +80,7 @@ private:
 	const vk::UniqueDeviceMemory image_memory_;
 	const vk::UniqueImageView image_view_;
 	const vk::UniqueImageView water_image_view_;
+	const vk::UniqueImageView fire_image_view_;
 
 	const TextureGenPipelines texture_gen_pipelines_;
 

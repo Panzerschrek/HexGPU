@@ -366,7 +366,7 @@ WorldRenderer::WorldRenderer(
 
 		const vk::DescriptorImageInfo descriptor_tex_info(
 			vk::Sampler(),
-			textures_generator_.GetWaterImageView(),
+			textures_generator_.GetFireImageView(),
 			vk::ImageLayout::eShaderReadOnlyOptimal);
 
 		vk_device_.updateDescriptorSets(

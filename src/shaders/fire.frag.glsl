@@ -5,6 +5,11 @@
 #include "inc/world_common.glsl"
 #include "inc/world_shader_uniforms.glsl"
 
+layout(push_constant) uniform push_uniforms_block
+{
+	float tex_shift;
+};
+
 layout(binding= 0) uniform uniforms_block
 {
 	WorldShaderUniforms uniforms;
@@ -18,7 +23,25 @@ layout(location = 0) out vec4 out_color;
 
 void main()
 {
-	vec4 tex_value= HexagonFetch(texture_image, f_tex_coord);
+	vec2 tex_coord_shifted= f_tex_coord;
+	tex_coord_shifted.y+= tex_shift;
 
-	out_color= vec4(tex_value.rgb, 1.0);
+	vec4 tex_value= HexagonFetch(texture_image, tex_coord_shifted);
+
+	float y= f_tex_coord.y * 4.0;
+
+	float power= 1.0; // TODO - take fire power from fire block itself.
+
+	float inv_temperature= mix(tex_value.r, y, 0.4);
+	inv_temperature= 1.0 - (1.0 - inv_temperature) * (0.7 + 0.3 * power);
+
+	const float c_step_width= 0.05;
+	const float c_step_end_pos= 0.62;
+	float alpha= 1.0 - smoothstep(c_step_end_pos - c_step_width, c_step_end_pos, inv_temperature);
+	alpha*= 1.0 - smoothstep(0.8, 1.0, y);
+
+	if(alpha < 0.04)
+		discard;
+
+	out_color= vec4(tex_value.rgb, alpha);
 }

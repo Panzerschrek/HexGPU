@@ -57,6 +57,11 @@ struct WaterPushConstantsUniforms
 	float water_phase= 0.0f;
 };
 
+struct FirePushConstantsUniforms
+{
+	float tex_shift= 0.0f;
+};
+
 Buffer CreateAndFillQuadsIndexBuffer(WindowVulkan& window_vulkan, GPUDataUploader& gpu_data_uploader)
 {
 	// Each quad contains 4 unique vertices.
@@ -443,26 +448,15 @@ void WorldRenderer::DrawOpaque(const vk::CommandBuffer command_buffer)
 		0,
 		world_size_[0] * world_size_[1],
 		sizeof(vk::DrawIndexedIndirectCommand));
-
-	{
-		command_buffer.bindDescriptorSets(
-			vk::PipelineBindPoint::eGraphics,
-			*fire_draw_pipeline_.pipeline_layout,
-			0u,
-			{fire_descriptor_set_},
-			{});
-
-		command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *fire_draw_pipeline_.pipeline);
-
-		command_buffer.drawIndexedIndirect(
-			fire_draw_indirect_buffer_.GetBuffer(),
-			0,
-			world_size_[0] * world_size_[1],
-			sizeof(vk::DrawIndexedIndirectCommand));
-	}
 }
 
 void WorldRenderer::DrawTransparent(const vk::CommandBuffer command_buffer, const float time_s)
+{
+	DrawWater(command_buffer, time_s);
+	DrawFire(command_buffer, time_s);
+}
+
+void WorldRenderer::DrawWater(vk::CommandBuffer command_buffer, const float time_s)
 {
 	const vk::Buffer vertex_buffer= geometry_generator_.GetVertexBuffer();
 
@@ -490,6 +484,39 @@ void WorldRenderer::DrawTransparent(const vk::CommandBuffer command_buffer, cons
 
 	command_buffer.drawIndexedIndirect(
 		water_draw_indirect_buffer_.GetBuffer(),
+		0,
+		world_size_[0] * world_size_[1],
+		sizeof(vk::DrawIndexedIndirectCommand));
+}
+
+void WorldRenderer::DrawFire(vk::CommandBuffer command_buffer, const float time_s)
+{
+	const vk::Buffer vertex_buffer= geometry_generator_.GetVertexBuffer();
+
+	const vk::DeviceSize offsets= 0u;
+	command_buffer.bindVertexBuffers(0u, 1u, &vertex_buffer, &offsets);
+	command_buffer.bindIndexBuffer(index_buffer_.GetBuffer(), 0u, vk::IndexType::eUint16);
+
+	command_buffer.bindDescriptorSets(
+		vk::PipelineBindPoint::eGraphics,
+		*fire_draw_pipeline_.pipeline_layout,
+		0u,
+		{fire_descriptor_set_},
+		{});
+
+	FirePushConstantsUniforms uniforms;
+	uniforms.tex_shift= -0.125f * time_s * 0.5f;
+
+	command_buffer.pushConstants(
+		*fire_draw_pipeline_.pipeline_layout,
+		vk::ShaderStageFlagBits::eFragment,
+		0,
+		sizeof(FirePushConstantsUniforms), static_cast<const void*>(&uniforms));
+
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *fire_draw_pipeline_.pipeline);
+
+	command_buffer.drawIndexedIndirect(
+		fire_draw_indirect_buffer_.GetBuffer(),
 		0,
 		world_size_[0] * world_size_[1],
 		sizeof(vk::DrawIndexedIndirectCommand));
@@ -886,12 +913,17 @@ WorldRenderer::WorldDrawPipeline WorldRenderer::CreateFireDrawPipeline(
 				vk::DescriptorSetLayoutCreateFlags(),
 				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
 
+	const vk::PushConstantRange push_constant_range(
+		vk::ShaderStageFlagBits::eFragment,
+		0u,
+		sizeof(FirePushConstantsUniforms));
+
 	pipeline.pipeline_layout=
 		vk_device.createPipelineLayoutUnique(
 			vk::PipelineLayoutCreateInfo(
 				vk::PipelineLayoutCreateFlags(),
 				1u, &*pipeline.descriptor_set_layout,
-				0u, nullptr));
+				1u, &push_constant_range));
 
 	const vk::PipelineShaderStageCreateInfo shader_stage_create_info[]
 	{
@@ -962,10 +994,11 @@ WorldRenderer::WorldDrawPipeline WorldRenderer::CreateFireDrawPipeline(
 		0.0f,
 		1.0f);
 
+	// Use simple alpha-blending.
 	const vk::PipelineColorBlendAttachmentState pipeline_color_blend_attachment_state(
-		VK_FALSE,
-		vk::BlendFactor::eOne, vk::BlendFactor::eZero, vk::BlendOp::eAdd,
-		vk::BlendFactor::eOne, vk::BlendFactor::eZero, vk::BlendOp::eAdd,
+		VK_TRUE,
+		vk::BlendFactor::eSrcAlpha, vk::BlendFactor::eOneMinusSrcAlpha, vk::BlendOp::eAdd,
+		vk::BlendFactor::eSrcAlpha, vk::BlendFactor::eOneMinusSrcAlpha, vk::BlendOp::eAdd,
 		vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
 
 	const vk::PipelineColorBlendStateCreateInfo pipeline_color_blend_state_create_info(

@@ -31,6 +31,9 @@ private:
 	};
 
 private:
+	void DrawWater(vk::CommandBuffer command_buffer, float time_s);
+	void DrawFire(vk::CommandBuffer command_buffer, float time_s);
+
 	static WorldDrawPipeline CreateWorldDrawPipeline(
 		vk::Device vk_device,
 		vk::Extent2D viewport_size,

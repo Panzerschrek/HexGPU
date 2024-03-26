@@ -83,8 +83,6 @@ const uint32_t c_allocation_unut_size_quads= 512;
 // we need to have enough space for so much vertices.
 const uint32_t c_max_average_quads_per_chunk= 6144;
 
-const uint32_t c_max_average_fire_quads_per_chunk= 768; //  TODO - tune this
-
 uint32_t GetTotalVertexBufferQuads(const WorldSizeChunks& world_size)
 {
 	return c_max_average_quads_per_chunk * world_size[0] * world_size[1];

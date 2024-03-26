@@ -132,6 +132,5 @@ void main()
 			++total_quads;
 
 		atomicAdd(chunk_draw_info[chunk_index].new_fire_num_quads, total_quads);
-
 	}
 }

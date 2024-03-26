@@ -27,5 +27,6 @@ const int c_max_foliage_factor= 6;
 
 const int c_initial_fire_power= 1;
 const int c_min_fire_power_for_fire_to_spread= 32;
+const int c_min_fire_power_for_blocks_burning= 64; // TODO - make this different for different block types.
 
 #endif // CONSTANTS_GLSL_HEADER

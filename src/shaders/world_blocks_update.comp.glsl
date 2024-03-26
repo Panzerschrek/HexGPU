@@ -582,7 +582,7 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 			int adjacent_block_address= column_address + z + 1;
 			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
 			total_flammability_nearby+= int(c_block_flammability_table[uint(adjacent_block_type)]);
-			if(adjacent_block_type == c_block_type_water)
+			if(adjacent_block_type == c_block_type_water || adjacent_block_type == c_block_type_sand)
 				extinguish= true;
 		}
 		if(z > 0)

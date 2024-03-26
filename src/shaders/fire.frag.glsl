@@ -43,5 +43,7 @@ void main()
 	if(alpha < 0.04)
 		discard;
 
-	out_color= vec4(tex_value.rgb, alpha);
+	vec3 color_for_temperature= mix(vec3(0.5, 0.1, 0.05), vec3(1.5, 1.4, 1.2), sqrt(inv_temperature));
+
+	out_color= vec4(color_for_temperature, alpha);
 }

@@ -433,6 +433,7 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 		// Other foliage blocks have maximum foliage factor of adjacent blocks minus one.
 
 		int max_adjacent_foliage_factor= 0;
+		int num_fire_blocks_nearby= 0;
 		for(int i= 0; i < 6; ++i)
 		{
 			int adjacent_block_address= adjacent_columns[i] + z;
@@ -444,6 +445,8 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 				int adjacent_foliage_factor= int(chunks_auxiliar_input_data[adjacent_block_address]);
 				max_adjacent_foliage_factor= max(max_adjacent_foliage_factor, adjacent_foliage_factor);
 			}
+			else if(adjacent_block_type == c_block_type_fire)
+				++num_fire_blocks_nearby;
 		}
 
 		if(z < c_chunk_height - 1)
@@ -457,6 +460,8 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 				int adjacent_foliage_factor= int(chunks_auxiliar_input_data[adjacent_block_address]);
 				max_adjacent_foliage_factor= max(max_adjacent_foliage_factor, adjacent_foliage_factor);
 			}
+			else if(adjacent_block_type == c_block_type_fire)
+				++num_fire_blocks_nearby;
 		}
 		if(z > 0)
 		{
@@ -469,6 +474,8 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 				int adjacent_foliage_factor= int(chunks_auxiliar_input_data[adjacent_block_address]);
 				max_adjacent_foliage_factor= max(max_adjacent_foliage_factor, adjacent_foliage_factor);
 			}
+			else if(adjacent_block_type == c_block_type_fire)
+				++num_fire_blocks_nearby;
 		}
 
 		int this_block_foliage_factor= max(0, max_adjacent_foliage_factor - 1);
@@ -494,7 +501,55 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 				return u8vec2(c_block_type_air, uint8_t(0));
 		}
 
+		if(num_fire_blocks_nearby > 0)
+		{
+			// Burn this foliage block if has fire nearby.
+			// TODO - make buringn chance depending on fire power.
+
+			// TODO - use global coord for noise.
+			int block_rand= hex_Noise3(block_x, block_y, z, int(current_tick));
+			if((block_rand & 31) == 0)
+				return u8vec2(c_block_type_fire, uint8_t(0));
+		}
+
 		return u8vec2(block_type, uint8_t(this_block_foliage_factor));
+	}
+	else if(block_type == c_block_type_wood)
+	{
+		int num_fire_blocks_nearby= 0;
+		for(int i= 0; i < 6; ++i)
+		{
+			int adjacent_block_address= adjacent_columns[i] + z;
+			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
+			if(adjacent_block_type == c_block_type_fire)
+				++num_fire_blocks_nearby;
+		}
+
+		if(z < c_chunk_height - 1)
+		{
+			int adjacent_block_address= column_address + z + 1;
+			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
+			if(adjacent_block_type == c_block_type_fire)
+				++num_fire_blocks_nearby;
+		}
+		if(z > 0)
+		{
+			int adjacent_block_address= column_address + z - 1;
+			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
+			if(adjacent_block_type == c_block_type_fire)
+				++num_fire_blocks_nearby;
+		}
+
+		if(num_fire_blocks_nearby > 0)
+		{
+			// Burn this foliage wood if has fire nearby.
+			// TODO - make buringn chance depending on fire power.
+
+			// TODO - use global coord for noise.
+			int block_rand= hex_Noise3(block_x, block_y, z, int(current_tick));
+			if((block_rand & 127) == 0)
+				return u8vec2(c_block_type_fire, uint8_t(0));
+		}
 	}
 	else if(block_type == c_block_type_fire)
 	{

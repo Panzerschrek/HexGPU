@@ -44,6 +44,68 @@ vk::Format ChooseDepthFormat(const vk::PhysicalDevice physical_device)
 	return vk::Format::eD16Unorm;
 }
 
+vk::UniqueRenderPass CreateRenderPass(const vk::Device vk_device, const vk::Format depth_format)
+{
+	const vk::AttachmentDescription attachment_descriptions[]
+	{
+		{
+			vk::AttachmentDescriptionFlags(),
+			vk::Format::eR8G8B8A8Unorm,
+			vk::SampleCountFlagBits::e1,
+			vk::AttachmentLoadOp::eDontCare,
+			vk::AttachmentStoreOp::eStore,
+			vk::AttachmentLoadOp::eDontCare,
+			vk::AttachmentStoreOp::eDontCare,
+			vk::ImageLayout::eUndefined,
+			vk::ImageLayout::ePresentSrcKHR // TODO - use other layout
+		},
+		{
+			vk::AttachmentDescriptionFlags(),
+			depth_format,
+			vk::SampleCountFlagBits::e1,
+			vk::AttachmentLoadOp::eClear,
+			vk::AttachmentStoreOp::eStore,
+			vk::AttachmentLoadOp::eDontCare,
+			vk::AttachmentStoreOp::eDontCare,
+			vk::ImageLayout::eUndefined,
+			vk::ImageLayout::eDepthStencilAttachmentOptimal, // Actually we do not care about layout after this pass.
+		},
+	};
+
+	const vk::AttachmentReference attachment_reference_color(0u, vk::ImageLayout::eColorAttachmentOptimal);
+	const vk::AttachmentReference attachment_reference_depth(1u, vk::ImageLayout::eDepthStencilAttachmentOptimal);
+
+	const vk::SubpassDescription subpass_description(
+		vk::SubpassDescriptionFlags(),
+		vk::PipelineBindPoint::eGraphics,
+		0u, nullptr,
+		1u, &attachment_reference_color,
+		0u,
+		&attachment_reference_depth);
+
+	return vk_device.createRenderPassUnique(
+			vk::RenderPassCreateInfo(
+				vk::RenderPassCreateFlags(),
+				uint32_t(std::size(attachment_descriptions)), attachment_descriptions,
+				1u, &subpass_description));
+}
+
+vk::UniqueFramebuffer CreateFramebuffer(
+	const vk::Device vk_device,
+	const vk::ImageView image_view,
+	const vk::ImageView depth_image_view,
+	const vk::RenderPass render_pass,
+	const vk::Extent3D framebuffer_size)
+{
+	const vk::ImageView attachments[]{image_view, depth_image_view};
+	return vk_device.createFramebufferUnique(
+		vk::FramebufferCreateInfo(
+			vk::FramebufferCreateFlags(),
+			render_pass,
+			uint32_t(std::size(attachments)), attachments,
+			framebuffer_size.width, framebuffer_size.height, framebuffer_size.depth));
+}
+
 } // namespace
 
 WorldRenderPass::WorldRenderPass(WindowVulkan& window_vulkan)
@@ -96,6 +158,8 @@ WorldRenderPass::WorldRenderPass(WindowVulkan& window_vulkan)
 			depth_format_,
 			vk::ComponentMapping(),
 			vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0u, 1u, 0u, 1u))))
+	, render_pass_(CreateRenderPass(vk_device_, depth_format_))
+	, framebuffer_(CreateFramebuffer(vk_device_, *image_view_, *depth_image_view_, *render_pass_, framebuffer_size_))
 {
 }
 

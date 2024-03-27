@@ -23,6 +23,10 @@ private:
 	const vk::UniqueImage depth_image_;
 	const vk::UniqueDeviceMemory depth_image_memory_;
 	const vk::UniqueImageView depth_image_view_;
+
+	const vk::UniqueRenderPass render_pass_;
+
+	const vk::UniqueFramebuffer framebuffer_;
 };
 
 } // namespace HexGPU

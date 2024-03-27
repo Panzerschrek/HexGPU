@@ -505,7 +505,8 @@ void WorldRenderer::DrawFire(vk::CommandBuffer command_buffer, const float time_
 		{});
 
 	FirePushConstantsUniforms uniforms;
-	uniforms.tex_shift= floor(24.0f * time_s) * (-1.0f / 128.0f);
+	// Round shift to pixel grid.
+	uniforms.tex_shift= std::floor(24.0f * time_s) * (-1.0f / float(WorldTexturesGenerator::c_texture_size));
 
 	command_buffer.pushConstants(
 		*fire_draw_pipeline_.pipeline_layout,

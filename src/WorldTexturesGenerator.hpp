@@ -9,6 +9,10 @@ namespace HexGPU
 class WorldTexturesGenerator
 {
 public:
+	static constexpr uint32_t c_texture_size_log2= 7;
+	static constexpr uint32_t c_texture_size= 1 << c_texture_size_log2;
+
+public:
 	WorldTexturesGenerator(WindowVulkan& window_vulkan, vk::DescriptorPool global_descriptor_pool);
 	~WorldTexturesGenerator();
 
@@ -38,9 +42,6 @@ private:
 	};
 
 	static constexpr uint32_t c_num_layers= uint32_t(std::size(gen_shader_table));
-
-	static constexpr uint32_t c_texture_size_log2= 7;
-	static constexpr uint32_t c_texture_size= 1 << c_texture_size_log2;
 
 	static constexpr uint32_t c_num_mips= c_texture_size_log2 - 1; // Ignore last mip for simplicity.
 

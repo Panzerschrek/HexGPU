@@ -193,13 +193,34 @@ WorldRenderer::WorldRenderer(
 			vk_device_,
 			global_descriptor_pool,
 			*draw_indirect_buffer_build_pipeline_.descriptor_set_layout))
+	, texture_sampler_(vk_device_.createSamplerUnique(
+		vk::SamplerCreateInfo(
+			vk::SamplerCreateFlags(),
+			vk::Filter::eLinear,
+			vk::Filter::eLinear,
+			vk::SamplerMipmapMode::eLinear,
+			vk::SamplerAddressMode::eRepeat,
+			vk::SamplerAddressMode::eRepeat,
+			vk::SamplerAddressMode::eRepeat,
+			0.0f,
+			VK_FALSE, // anisotropy
+			1.0f, // anisotropy level
+			VK_FALSE,
+			vk::CompareOp::eNever,
+			0.0f,
+			100.0f,
+			vk::BorderColor::eFloatTransparentBlack,
+			VK_FALSE)))
 	, draw_pipeline_(
-		CreateWorldDrawPipeline(vk_device_, window_vulkan.GetViewportSize(), window_vulkan.GetRenderPass()))
+		CreateWorldDrawPipeline(
+			vk_device_, window_vulkan.GetViewportSize(), window_vulkan.GetRenderPass(), *texture_sampler_))
 	, descriptor_set_(CreateDescriptorSet(vk_device_, global_descriptor_pool, *draw_pipeline_.descriptor_set_layout))
 	, water_draw_pipeline_(
-		CreateWorldWaterDrawPipeline(vk_device_, window_vulkan.GetViewportSize(), window_vulkan.GetRenderPass()))
+		CreateWorldWaterDrawPipeline(
+			vk_device_, window_vulkan.GetViewportSize(), window_vulkan.GetRenderPass(), *texture_sampler_))
 	, water_descriptor_set_(CreateDescriptorSet(vk_device_, global_descriptor_pool, *water_draw_pipeline_.descriptor_set_layout))
-	, fire_draw_pipeline_(CreateFireDrawPipeline(vk_device_, window_vulkan.GetViewportSize(), window_vulkan.GetRenderPass()))
+	, fire_draw_pipeline_(
+		CreateFireDrawPipeline(vk_device_, window_vulkan.GetViewportSize(), window_vulkan.GetRenderPass(), *texture_sampler_))
 	, fire_descriptor_set_(CreateDescriptorSet(vk_device_, global_descriptor_pool, *fire_draw_pipeline_.descriptor_set_layout))
 	, index_buffer_(CreateAndFillQuadsIndexBuffer(window_vulkan, gpu_data_uploader))
 {
@@ -523,37 +544,17 @@ void WorldRenderer::DrawFire(vk::CommandBuffer command_buffer, const float time_
 		sizeof(vk::DrawIndexedIndirectCommand));
 }
 
-WorldRenderer::WorldDrawPipeline WorldRenderer::CreateWorldDrawPipeline(
+GraphicsPipeline WorldRenderer::CreateWorldDrawPipeline(
 	const vk::Device vk_device,
 	const vk::Extent2D viewport_size,
-	const vk::RenderPass render_pass)
+	const vk::RenderPass render_pass,
+	const vk::Sampler texture_sampler)
 {
-	WorldDrawPipeline pipeline;
+	GraphicsPipeline pipeline;
 
 	// Create shaders
 	pipeline.shader_vert= CreateShader(vk_device, ShaderNames::world_vert);
 	pipeline.shader_frag= CreateShader(vk_device, ShaderNames::world_frag);
-
-	// Create texture sampler
-	pipeline.texture_sampler=
-		vk_device.createSamplerUnique(
-			vk::SamplerCreateInfo(
-				vk::SamplerCreateFlags(),
-				vk::Filter::eLinear,
-				vk::Filter::eLinear,
-				vk::SamplerMipmapMode::eLinear,
-				vk::SamplerAddressMode::eRepeat,
-				vk::SamplerAddressMode::eRepeat,
-				vk::SamplerAddressMode::eRepeat,
-				0.0f,
-				VK_FALSE, // anisotropy
-				1.0f, // anisotropy level
-				VK_FALSE,
-				vk::CompareOp::eNever,
-				0.0f,
-				100.0f,
-				vk::BorderColor::eFloatTransparentBlack,
-				VK_FALSE));
 
 	// Create descriptor set layout.
 	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
@@ -569,7 +570,7 @@ WorldRenderer::WorldDrawPipeline WorldRenderer::CreateWorldDrawPipeline(
 			vk::DescriptorType::eCombinedImageSampler,
 			1u,
 			vk::ShaderStageFlagBits::eFragment,
-			&*pipeline.texture_sampler,
+			&texture_sampler,
 		},
 	};
 
@@ -692,35 +693,16 @@ WorldRenderer::WorldDrawPipeline WorldRenderer::CreateWorldDrawPipeline(
 	return pipeline;
 }
 
-WorldRenderer::WorldDrawPipeline WorldRenderer::CreateWorldWaterDrawPipeline(
+GraphicsPipeline WorldRenderer::CreateWorldWaterDrawPipeline(
 	const vk::Device vk_device,
 	const vk::Extent2D viewport_size,
-	const vk::RenderPass render_pass)
+	const vk::RenderPass render_pass,
+	const vk::Sampler texture_sampler)
 {
-	WorldDrawPipeline pipeline;
+	GraphicsPipeline pipeline;
 
 	pipeline.shader_vert= CreateShader(vk_device, ShaderNames::water_vert);
 	pipeline.shader_frag= CreateShader(vk_device, ShaderNames::water_frag);
-
-	pipeline.texture_sampler=
-		vk_device.createSamplerUnique(
-			vk::SamplerCreateInfo(
-				vk::SamplerCreateFlags(),
-				vk::Filter::eLinear,
-				vk::Filter::eLinear,
-				vk::SamplerMipmapMode::eLinear,
-				vk::SamplerAddressMode::eRepeat,
-				vk::SamplerAddressMode::eRepeat,
-				vk::SamplerAddressMode::eRepeat,
-				0.0f,
-				VK_FALSE, // anisotropy
-				1.0f, // anisotropy level
-				VK_FALSE,
-				vk::CompareOp::eNever,
-				0.0f,
-				100.0f,
-				vk::BorderColor::eFloatTransparentBlack,
-				VK_FALSE));
 
 	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
 	{
@@ -735,7 +717,7 @@ WorldRenderer::WorldDrawPipeline WorldRenderer::CreateWorldWaterDrawPipeline(
 			vk::DescriptorType::eCombinedImageSampler,
 			1u,
 			vk::ShaderStageFlagBits::eFragment,
-			&*pipeline.texture_sampler,
+			&texture_sampler,
 		},
 	};
 
@@ -861,35 +843,16 @@ WorldRenderer::WorldDrawPipeline WorldRenderer::CreateWorldWaterDrawPipeline(
 	return pipeline;
 }
 
-WorldRenderer::WorldDrawPipeline WorldRenderer::CreateFireDrawPipeline(
+GraphicsPipeline WorldRenderer::CreateFireDrawPipeline(
 	const vk::Device vk_device,
 	const vk::Extent2D viewport_size,
-	const vk::RenderPass render_pass)
+	const vk::RenderPass render_pass,
+	const vk::Sampler texture_sampler)
 {
-	WorldDrawPipeline pipeline;
+	GraphicsPipeline pipeline;
 
 	pipeline.shader_vert= CreateShader(vk_device, ShaderNames::fire_vert);
 	pipeline.shader_frag= CreateShader(vk_device, ShaderNames::fire_frag);
-
-	pipeline.texture_sampler=
-		vk_device.createSamplerUnique(
-			vk::SamplerCreateInfo(
-				vk::SamplerCreateFlags(),
-				vk::Filter::eLinear,
-				vk::Filter::eLinear,
-				vk::SamplerMipmapMode::eLinear,
-				vk::SamplerAddressMode::eRepeat,
-				vk::SamplerAddressMode::eRepeat,
-				vk::SamplerAddressMode::eRepeat,
-				0.0f,
-				VK_FALSE, // anisotropy
-				1.0f, // anisotropy level
-				VK_FALSE,
-				vk::CompareOp::eNever,
-				0.0f,
-				100.0f,
-				vk::BorderColor::eFloatTransparentBlack,
-				VK_FALSE));
 
 	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
 	{
@@ -904,7 +867,7 @@ WorldRenderer::WorldDrawPipeline WorldRenderer::CreateFireDrawPipeline(
 			vk::DescriptorType::eCombinedImageSampler,
 			1u,
 			vk::ShaderStageFlagBits::eFragment,
-			&*pipeline.texture_sampler,
+			&texture_sampler,
 		},
 	};
 

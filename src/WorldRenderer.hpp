@@ -25,29 +25,26 @@ public:
 	void DrawTransparent(vk::CommandBuffer command_buffer, float time_s);
 
 private:
-	struct WorldDrawPipeline : public GraphicsPipeline
-	{
-		vk::UniqueSampler texture_sampler;
-	};
-
-private:
 	void DrawWater(vk::CommandBuffer command_buffer, float time_s);
 	void DrawFire(vk::CommandBuffer command_buffer, float time_s);
 
-	static WorldDrawPipeline CreateWorldDrawPipeline(
+	static GraphicsPipeline CreateWorldDrawPipeline(
 		vk::Device vk_device,
 		vk::Extent2D viewport_size,
-		vk::RenderPass render_pass);
+		vk::RenderPass render_pass,
+		vk::Sampler texture_sampler);
 
-	static WorldDrawPipeline CreateWorldWaterDrawPipeline(
+	static GraphicsPipeline CreateWorldWaterDrawPipeline(
 		vk::Device vk_device,
 		vk::Extent2D viewport_size,
-		vk::RenderPass render_pass);
+		vk::RenderPass render_pass,
+		vk::Sampler texture_sampler);
 
-	static WorldDrawPipeline CreateFireDrawPipeline(
+	static GraphicsPipeline CreateFireDrawPipeline(
 		vk::Device vk_device,
 		vk::Extent2D viewport_size,
-		vk::RenderPass render_pass);
+		vk::RenderPass render_pass,
+		vk::Sampler texture_sampler);
 
 	void CopyViewMatrix(TaskOrganizer& task_organizer);
 	void BuildDrawIndirectBuffer(TaskOrganizer& task_organizer);
@@ -70,13 +67,15 @@ private:
 	const ComputePipeline draw_indirect_buffer_build_pipeline_;
 	const vk::DescriptorSet draw_indirect_buffer_build_descriptor_set_;
 
-	const WorldDrawPipeline draw_pipeline_;
+	const vk::UniqueSampler texture_sampler_;
+
+	const GraphicsPipeline draw_pipeline_;
 	const vk::DescriptorSet descriptor_set_;
 
-	const WorldDrawPipeline water_draw_pipeline_;
+	const GraphicsPipeline water_draw_pipeline_;
 	const vk::DescriptorSet water_descriptor_set_;
 
-	const WorldDrawPipeline fire_draw_pipeline_;
+	const GraphicsPipeline fire_draw_pipeline_;
 	const vk::DescriptorSet fire_descriptor_set_;
 
 	const Buffer index_buffer_;

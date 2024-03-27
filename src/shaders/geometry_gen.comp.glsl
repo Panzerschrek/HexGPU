@@ -409,8 +409,7 @@ void main()
 	{
 		// Add fire quads.
 
-		const int16_t light= int16_t(0); // No need to set light for fire.
-		int16_t tex_index= int16_t(0);
+		const int16_t tex_index= int16_t(0);
 
 		int fire_power= int(chunks_auxiliar_data[block_address]);
 
@@ -426,48 +425,39 @@ void main()
 			center_vertices[1].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(2), tex_index, int16_t(fire_power));
 
 			{
-				WorldVertex v[2];
-
-				v[0].pos= i16vec4(int16_t(base_x), int16_t(base_y + 1), int16_t(z + 1), 0);
-				v[1].pos= i16vec4(int16_t(base_x), int16_t(base_y + 1), int16_t(z + 0), 0);
-				v[0].tex_coord= i16vec4(int16_t(base_tc_x - 2), int16_t(2), tex_index, int16_t(fire_power));
-				v[1].tex_coord= i16vec4(int16_t(base_tc_x - 2), int16_t(0), tex_index, int16_t(fire_power));
-
 				Quad quad;
-				quad.vertices[0]= v[0];
-				quad.vertices[1]= v[1];
+
+				quad.vertices[0].pos= i16vec4(int16_t(base_x), int16_t(base_y + 1), int16_t(z + 1), 0);
+				quad.vertices[1].pos= i16vec4(int16_t(base_x), int16_t(base_y + 1), int16_t(z + 0), 0);
+				quad.vertices[0].tex_coord= i16vec4(int16_t(base_tc_x - 2), int16_t(2), tex_index, int16_t(fire_power));
+				quad.vertices[1].tex_coord= i16vec4(int16_t(base_tc_x - 2), int16_t(0), tex_index, int16_t(fire_power));
+
 				quad.vertices[2]= center_vertices[0];
 				quad.vertices[3]= center_vertices[1];
 
-				quads[quad_index]= quad;
+				quads[quad_index + 0]= quad;
 			}
 			{
-				WorldVertex v[2];
-
-				v[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 1), 0);
-				v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 0), 0);
-				v[0].tex_coord= i16vec4(int16_t(base_tc_x + 2), int16_t(2), tex_index, int16_t(fire_power));
-				v[1].tex_coord= i16vec4(int16_t(base_tc_x + 2), int16_t(0), tex_index, int16_t(fire_power));
-
 				Quad quad;
-				quad.vertices[0]= v[0];
-				quad.vertices[1]= v[1];
+
+				quad.vertices[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 1), 0);
+				quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 0), 0);
+				quad.vertices[0].tex_coord= i16vec4(int16_t(base_tc_x + 2), int16_t(2), tex_index, int16_t(fire_power));
+				quad.vertices[1].tex_coord= i16vec4(int16_t(base_tc_x + 2), int16_t(0), tex_index, int16_t(fire_power));
+
 				quad.vertices[2]= center_vertices[0];
 				quad.vertices[3]= center_vertices[1];
 
 				quads[quad_index + 1]= quad;
 			}
 			{
-				WorldVertex v[2];
-
-				v[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y ), int16_t(z + 1), 0);
-				v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y ), int16_t(z + 0), 0);
-				v[0].tex_coord= i16vec4(int16_t(base_tc_x + 2), int16_t(2), tex_index, int16_t(fire_power));
-				v[1].tex_coord= i16vec4(int16_t(base_tc_x + 2), int16_t(0), tex_index, int16_t(fire_power));
-
 				Quad quad;
-				quad.vertices[0]= v[0];
-				quad.vertices[1]= v[1];
+
+				quad.vertices[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y ), int16_t(z + 1), 0);
+				quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y ), int16_t(z + 0), 0);
+				quad.vertices[0].tex_coord= i16vec4(int16_t(base_tc_x + 2), int16_t(2), tex_index, int16_t(fire_power));
+				quad.vertices[1].tex_coord= i16vec4(int16_t(base_tc_x + 2), int16_t(0), tex_index, int16_t(fire_power));
+
 				quad.vertices[2]= center_vertices[0];
 				quad.vertices[3]= center_vertices[1];
 
@@ -478,8 +468,6 @@ void main()
 		// North quad.
 		if(c_block_flammability_table[uint(block_value_north)] != uint8_t(0))
 		{
-			uint quad_index= chunk_draw_info[chunk_index].first_fire_quad + atomicAdd(chunk_draw_info[chunk_index].num_fire_quads, 1);
-
 			Quad quad;
 			quad.vertices[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(z + 0), 0);
 			quad.vertices[1].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(z + 1), 0);
@@ -490,14 +478,13 @@ void main()
 			quad.vertices[2].tex_coord= i16vec4(int16_t(base_tc_x + 2), int16_t(2), tex_index, int16_t(fire_power));
 			quad.vertices[3].tex_coord= i16vec4(int16_t(base_tc_x + 2), int16_t(0), tex_index, int16_t(fire_power));
 
+			uint quad_index= chunk_draw_info[chunk_index].first_fire_quad + atomicAdd(chunk_draw_info[chunk_index].num_fire_quads, 1);
 			quads[quad_index]= quad;
 		}
 
 		// North-east quad.
 		if(c_block_flammability_table[uint(block_value_north_east)] != uint8_t(0))
 		{
-			uint quad_index= chunk_draw_info[chunk_index].first_fire_quad + atomicAdd(chunk_draw_info[chunk_index].num_fire_quads, 1);
-
 			Quad quad;
 			quad.vertices[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 0), 0);
 			quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 1), 0);
@@ -508,14 +495,13 @@ void main()
 			quad.vertices[2].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(2), tex_index, int16_t(fire_power));
 			quad.vertices[3].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(0), tex_index, int16_t(fire_power));
 
+			uint quad_index= chunk_draw_info[chunk_index].first_fire_quad + atomicAdd(chunk_draw_info[chunk_index].num_fire_quads, 1);
 			quads[quad_index]= quad;
 		}
 
 		// South-east quad.
 		if(c_block_flammability_table[uint(block_value_south_east)] != uint8_t(0))
 		{
-			uint quad_index= chunk_draw_info[chunk_index].first_fire_quad + atomicAdd(chunk_draw_info[chunk_index].num_fire_quads, 1);
-
 			Quad quad;
 			quad.vertices[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z + 0), 0);
 			quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z + 1), 0);
@@ -526,6 +512,7 @@ void main()
 			quad.vertices[2].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(2), tex_index, int16_t(fire_power));
 			quad.vertices[3].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(0), tex_index, int16_t(fire_power));
 
+			uint quad_index= chunk_draw_info[chunk_index].first_fire_quad + atomicAdd(chunk_draw_info[chunk_index].num_fire_quads, 1);
 			quads[quad_index]= quad;
 		}
 
@@ -533,8 +520,6 @@ void main()
 		int south_block_address= GetBlockFullAddress(ivec3(block_x, max(block_y - 1, 0), z), world_size_chunks);
 		if(c_block_flammability_table[uint(chunks_data[south_block_address])] != uint8_t(0))
 		{
-			uint quad_index= chunk_draw_info[chunk_index].first_fire_quad + atomicAdd(chunk_draw_info[chunk_index].num_fire_quads, 1);
-
 			Quad quad;
 			quad.vertices[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y), int16_t(z + 0), 0);
 			quad.vertices[1].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y), int16_t(z + 1), 0);
@@ -545,6 +530,7 @@ void main()
 			quad.vertices[2].tex_coord= i16vec4(int16_t(base_tc_x + 2), int16_t(2), tex_index, int16_t(fire_power));
 			quad.vertices[3].tex_coord= i16vec4(int16_t(base_tc_x + 2), int16_t(0), tex_index, int16_t(fire_power));
 
+			uint quad_index= chunk_draw_info[chunk_index].first_fire_quad + atomicAdd(chunk_draw_info[chunk_index].num_fire_quads, 1);
 			quads[quad_index]= quad;
 		}
 
@@ -555,8 +541,6 @@ void main()
 		int south_west_block_address= GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 1, max_world_coord.y)), z), world_size_chunks);
 		if(c_block_flammability_table[uint(chunks_data[south_west_block_address])] != uint8_t(0))
 		{
-			uint quad_index= chunk_draw_info[chunk_index].first_fire_quad + atomicAdd(chunk_draw_info[chunk_index].num_fire_quads, 1);
-
 			Quad quad;
 			quad.vertices[0].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(z + 0), 0);
 			quad.vertices[1].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(z + 1), 0);
@@ -567,6 +551,7 @@ void main()
 			quad.vertices[2].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(2), tex_index, int16_t(fire_power));
 			quad.vertices[3].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(0), tex_index, int16_t(fire_power));
 
+			uint quad_index= chunk_draw_info[chunk_index].first_fire_quad + atomicAdd(chunk_draw_info[chunk_index].num_fire_quads, 1);
 			quads[quad_index]= quad;
 		}
 
@@ -574,8 +559,6 @@ void main()
 		int north_west_block_address= GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 0, max_world_coord.y)), z), world_size_chunks);
 		if(c_block_flammability_table[uint(chunks_data[north_west_block_address])] != uint8_t(0))
 		{
-			uint quad_index= chunk_draw_info[chunk_index].first_fire_quad + atomicAdd(chunk_draw_info[chunk_index].num_fire_quads, 1);
-
 			Quad quad;
 			quad.vertices[0].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(z + 0), 0);
 			quad.vertices[1].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(z + 1), 0);
@@ -586,6 +569,7 @@ void main()
 			quad.vertices[2].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(2), tex_index, int16_t(fire_power));
 			quad.vertices[3].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(0), tex_index, int16_t(fire_power));
 
+			uint quad_index= chunk_draw_info[chunk_index].first_fire_quad + atomicAdd(chunk_draw_info[chunk_index].num_fire_quads, 1);
 			quads[quad_index]= quad;
 		}
 

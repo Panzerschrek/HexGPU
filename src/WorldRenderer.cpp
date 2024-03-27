@@ -942,7 +942,7 @@ WorldRenderer::WorldDrawPipeline WorldRenderer::CreateFireDrawPipeline(
 		},
 	};
 
-	// TODO - use special vertex format for fire.
+	// Use the same vertex format for fire as for regular world polygons.
 	const vk::VertexInputBindingDescription vertex_input_binding_description(
 		0u,
 		sizeof(WorldVertex),
@@ -978,7 +978,7 @@ WorldRenderer::WorldDrawPipeline WorldRenderer::CreateFireDrawPipeline(
 		vk::PolygonMode::eFill,
 		vk::CullModeFlagBits::eNone, // Use twosided polygons.
 		vk::FrontFace::eCounterClockwise,
-		VK_TRUE, -1.0f, 0.0f, -1.0f, // Depth bias
+		VK_TRUE, -1.0f, 0.0f, -1.0f, // Use depth bias in order to draw fire polygons atop of regular block polygons.
 		1.0f);
 
 	const vk::PipelineMultisampleStateCreateInfo pipeline_multisample_state_create_info;

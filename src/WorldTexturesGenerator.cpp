@@ -13,30 +13,6 @@ namespace TextureGenShaderBindings
 	const ShaderBindingIndex out_image= 0;
 }
 
-vk::UniqueDeviceMemory AllocateAndBindImageMemory(const vk::Image image, const WindowVulkan& window_vulkan)
-{
-	const auto vk_device= window_vulkan.GetVulkanDevice();
-
-	const auto memory_properties= window_vulkan.GetMemoryProperties();
-
-	const vk::MemoryRequirements memory_requirements= vk_device.getImageMemoryRequirements(image);
-
-	vk::MemoryAllocateInfo memory_allocate_info(memory_requirements.size);
-	for(uint32_t j= 0u; j < memory_properties.memoryTypeCount; ++j)
-	{
-		if((memory_requirements.memoryTypeBits & (1u << j)) != 0 &&
-			(memory_properties.memoryTypes[j].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
-		{
-			memory_allocate_info.memoryTypeIndex= j;
-			break;
-		}
-	}
-
-	auto image_memory= vk_device.allocateMemoryUnique(memory_allocate_info);
-	vk_device.bindImageMemory(image, *image_memory, 0u);
-
-	return image_memory;
-}
 } // namespace
 
 WorldTexturesGenerator::WorldTexturesGenerator(WindowVulkan& window_vulkan, const vk::DescriptorPool global_descriptor_pool)
@@ -56,7 +32,7 @@ WorldTexturesGenerator::WorldTexturesGenerator(WindowVulkan& window_vulkan, cons
 			vk::SharingMode::eExclusive,
 			0u, nullptr,
 			vk::ImageLayout::eUndefined)))
-	, image_memory_(AllocateAndBindImageMemory(*image_, window_vulkan))
+	, image_memory_(AllocateAndBindImageMemory(vk_device_, *image_, window_vulkan.GetMemoryProperties()))
 	, image_view_(vk_device_.createImageViewUnique(
 		vk::ImageViewCreateInfo(
 			vk::ImageViewCreateFlags(),

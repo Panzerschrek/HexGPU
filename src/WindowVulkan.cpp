@@ -2,6 +2,7 @@
 #include "Assert.hpp"
 #include "Log.hpp"
 #include "SystemWindow.hpp"
+#include "VulkanUtils.hpp"
 #include <SDL_vulkan.h>
 #include <algorithm>
 #include <cstring>
@@ -396,21 +397,7 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window, Settings& settings
 						0u, nullptr,
 						vk::ImageLayout::eUndefined));
 
-			const vk::MemoryRequirements image_memory_requirements= vk_device_->getImageMemoryRequirements(*framebuffers_[i].depth_image);
-
-			vk::MemoryAllocateInfo memory_allocate_info(image_memory_requirements.size);
-			for(uint32_t i= 0u; i < memory_properties_.memoryTypeCount; ++i)
-			{
-				if((image_memory_requirements.memoryTypeBits & (1u << i)) != 0 &&
-					(memory_properties_.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal) != vk::MemoryPropertyFlags())
-				{
-					memory_allocate_info.memoryTypeIndex= i;
-					break;
-				}
-			}
-
-			framebuffers_[i].depth_image_memory= vk_device_->allocateMemoryUnique(memory_allocate_info);
-			vk_device_->bindImageMemory(*framebuffers_[i].depth_image, *framebuffers_[i].depth_image_memory, 0u);
+			framebuffers_[i].depth_image_memory= AllocateAndBindImageMemory(*vk_device_, *framebuffers_[i].depth_image, memory_properties_);
 
 			framebuffers_[i].depth_image_view=
 				vk_device_->createImageViewUnique(

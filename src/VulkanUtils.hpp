@@ -23,4 +23,9 @@ vk::UniquePipeline CreateComputePipeline(
 	vk::ShaderModule shader,
 	vk::PipelineLayout pipeline_layout);
 
+vk::UniqueDeviceMemory AllocateAndBindImageMemory(
+	vk::Device vk_device,
+	vk::Image image,
+	const vk::PhysicalDeviceMemoryProperties& memory_properties);
+
 } // namespace HexGPU

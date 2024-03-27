@@ -102,6 +102,9 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 	// Doing so we prevent cases where water is suddenly replaced with sand, for example.
 	bool is_water_side_flow_tick= (current_tick & 1) == 1;
 
+	// TODO - use global coord for rand.
+	int block_rand= hex_Noise3(block_x, block_y, z, int(current_tick));
+
 	// Switch over block type.
 	if(block_type == c_block_type_air)
 	{
@@ -198,8 +201,6 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 		// Try to convert into fire.
 		if(total_flammability_nearby > 0)
 		{
-			// TODO - use global coord for rand.
-			int block_rand= hex_Noise3(block_x, block_y, z, int(current_tick));
 			if((block_rand & 15) == 0)
 			{
 				if(total_fire_power_nearby >= c_min_fire_power_for_fire_to_spread)
@@ -372,8 +373,6 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 		// Soil may be converted into grass, if there is a grass block nearby.
 		// Perform such conversion check randomly.
 
-		// TODO - use global coord for noise.
-		int block_rand= hex_Noise3(block_x, block_y, z, int(current_tick));
 		if((block_rand & 15) == 0)
 		{
 			// TODO - check if has enough light.
@@ -499,17 +498,12 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 		if(this_block_foliage_factor == 0)
 		{
 			// Randomly convert foliage with factor 0 into air.
-
-			// TODO - use global coord for noise.
-			int block_rand= hex_Noise3(block_x, block_y, z, int(current_tick));
 			if((block_rand & 31) == 0)
 				return u8vec2(c_block_type_air, uint8_t(0));
 		}
 
 		if(total_fire_power_nearby >= c_min_fire_power_for_blocks_burning)
 		{
-			// TODO - use global coord for noise.
-			int block_rand= hex_Noise3(block_x, block_y, z, int(current_tick));
 			if((block_rand & 15) == 0)
 				return u8vec2(c_block_type_fire, uint8_t(c_initial_fire_power));
 		}
@@ -545,9 +539,6 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 		if(total_fire_power_nearby >= c_min_fire_power_for_blocks_burning)
 		{
 			// Burn this wood  block if has fire nearby.
-
-			// TODO - use global coord for noise.
-			int block_rand= hex_Noise3(block_x, block_y, z, int(current_tick));
 			if((block_rand & 63) == 0)
 				return u8vec2(c_block_type_fire, uint8_t(c_initial_fire_power));
 		}

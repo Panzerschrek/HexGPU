@@ -163,8 +163,10 @@ bool Host::Loop()
 		DrawDebugParamsUI();
 	}
 
+	const bool mouse_enabled= settings_.GetOrSetInt("in_mouse_enabled", 1) != 0;
+
 	const bool game_has_focus= !show_debug_menus_ && !blocks_selection_menu_active_;
-	system_window_.SetMouseCaptured(game_has_focus);
+	system_window_.SetMouseCaptured(game_has_focus && mouse_enabled);
 
 	const vk::CommandBuffer command_buffer= window_vulkan_.BeginFrame();
 	task_organizer_.SetCommandBuffer(command_buffer);
@@ -174,7 +176,7 @@ bool Host::Loop()
 		dt_s_limited,
 		game_has_focus ? CreateKeyboardState(keys_state) : 0,
 		game_has_focus ? CreateMouseState(events) : 0,
-		game_has_focus ? GetMouseMove(events, settings_) : std::array<float, 2>{0.0f, 0.0f},
+		(game_has_focus && mouse_enabled) ? GetMouseMove(events, settings_) : std::array<float, 2>{0.0f, 0.0f},
 		selected_block_type_,
 		CalculateAspect(window_vulkan_.GetViewportSize()),
 		debug_params_);

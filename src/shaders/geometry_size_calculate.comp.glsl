@@ -107,13 +107,13 @@ void main()
 		if(c_block_flammability_table[uint(block_value_up)] != uint8_t(0))
 			total_quads+= 3;
 
-		if(c_block_flammability_table[uint(optical_density_north)] != uint8_t(0))
+		if(c_block_flammability_table[uint(block_value_north)] != uint8_t(0))
 			++total_quads;
 
-		if(c_block_flammability_table[uint(optical_density_north_east)] != uint8_t(0))
+		if(c_block_flammability_table[uint(block_value_north_east)] != uint8_t(0))
 			++total_quads;
 
-		if(c_block_flammability_table[uint(optical_density_south_east)] != uint8_t(0))
+		if(c_block_flammability_table[uint(block_value_south_east)] != uint8_t(0))
 			++total_quads;
 
 		int south_block_address= GetBlockFullAddress(ivec3(block_x, max(block_y - 1, 0), z), world_size_chunks);

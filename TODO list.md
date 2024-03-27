@@ -3,11 +3,9 @@ The order represents importance and/or dependency.
 * Biome-based world generation
 * Update light only after blocks update - in order to avoid black spots in places of removed blocks
 * Grass logic improvements - disappers slower, become yellow, require water or sunlight to grow, etc.
-* Fire (that burns some blocks)
 * Save and load player state
 * More block types
 * Smooth lighting - average block light values at each vertex
-* More light source blocks
 * Anisotropy textures filtering
 * Run SPIR-V optimizer for compiled shaders
 * Use background thread for chunk data compression/decompression
@@ -22,11 +20,14 @@ The order represents importance and/or dependency.
 * Player physics - limit velocity vector on collisions
 * Trees generation with variable density
 * Procedural tree models
+* Burn wooden blocks first into charcoal blocks
 * Chunk vertices allocator - make it faster (remove linear complexity)
 * Plates (half-blocks)
 * Vertically-splitted half-blocks
 * Day-night cycle - change day time each tick
 * Stars (at night)
 * Rain/snow
+* Extinguish fire during rain
+* Tune burning probability for different block types
 * Pipe blocks for fast directional water transfer
 * Sparse chunk geometry update improvements - update area around player frequently, use direction of view, etc.

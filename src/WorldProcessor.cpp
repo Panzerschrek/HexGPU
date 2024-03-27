@@ -1368,7 +1368,8 @@ void WorldProcessor::Update(
 	const float c_update_frequency= 8.0f;
 
 	// Do not allow updating slightly less than whole world in a frame.
-	const float tick_delta_clamped= std::min(time_delta_s * c_update_frequency, 0.75f);
+	const float tick_delta_clamped=
+		debug_params.frame_rate_world_update ? 1.0f : std::min(time_delta_s * c_update_frequency, 0.75f);
 
 	const float prev_tick_fractional= current_tick_fractional_;
 	const float cur_tick_fractional= current_tick_fractional_ + tick_delta_clamped;

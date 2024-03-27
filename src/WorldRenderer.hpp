@@ -31,12 +31,20 @@ private:
 	};
 
 private:
+	void DrawWater(vk::CommandBuffer command_buffer, float time_s);
+	void DrawFire(vk::CommandBuffer command_buffer, float time_s);
+
 	static WorldDrawPipeline CreateWorldDrawPipeline(
 		vk::Device vk_device,
 		vk::Extent2D viewport_size,
 		vk::RenderPass render_pass);
 
 	static WorldDrawPipeline CreateWorldWaterDrawPipeline(
+		vk::Device vk_device,
+		vk::Extent2D viewport_size,
+		vk::RenderPass render_pass);
+
+	static WorldDrawPipeline CreateFireDrawPipeline(
 		vk::Device vk_device,
 		vk::Extent2D viewport_size,
 		vk::RenderPass render_pass);
@@ -56,6 +64,7 @@ private:
 
 	const Buffer draw_indirect_buffer_;
 	const Buffer water_draw_indirect_buffer_;
+	const Buffer fire_draw_indirect_buffer_;
 	const Buffer uniform_buffer_;
 
 	const ComputePipeline draw_indirect_buffer_build_pipeline_;
@@ -66,6 +75,9 @@ private:
 
 	const WorldDrawPipeline water_draw_pipeline_;
 	const vk::DescriptorSet water_descriptor_set_;
+
+	const WorldDrawPipeline fire_draw_pipeline_;
+	const vk::DescriptorSet fire_descriptor_set_;
 
 	const Buffer index_buffer_;
 };

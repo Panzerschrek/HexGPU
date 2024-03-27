@@ -126,49 +126,111 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 				}
 			}
 		}
-		else if(is_water_side_flow_tick)
+
+		int flow_in= 0;
+		int total_fire_power_nearby= 0;
+		int total_flammability_nearby= 0;
+
+		for(int i= 0; i < 6; ++i) // For adjacent blocks.
 		{
-			if(is_in_active_area)
+			int adjacent_block_address= adjacent_columns[i] + z;
+			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
+
+			total_flammability_nearby+= int(c_block_flammability_table[uint(adjacent_block_type)]);
+
+			if(adjacent_block_type == c_block_type_water)
 			{
 				// Check if water flows into this air block.
 				// This should mirror water block logic!
-				int flow_in= 0;
+				if(adjacent_column_is_in_active_area[i])
+				{
+					bool adjacent_can_flow_down= false;
+					if(z > 0)
+					{
+						int adjacent_block_below_address= adjacent_block_address - 1;
+						uint8_t adjacent_block_below_type= chunks_input_data[adjacent_block_below_address];
+						adjacent_can_flow_down=
+							adjacent_block_below_type == c_block_type_air ||
+							(adjacent_block_below_type == c_block_type_water &&  int(chunks_auxiliar_input_data[adjacent_block_below_address]) < c_max_water_level);
+					}
+					if(adjacent_can_flow_down)
+						continue; // Prevent out flow if flow down is possilble.
+
+					int adjacent_water_level= int(chunks_auxiliar_input_data[adjacent_block_address]);
+
+					flow_in+= adjacent_water_level >> 3;
+				}
+			}
+			if(adjacent_block_type == c_block_type_fire)
+				total_fire_power_nearby+= int(chunks_auxiliar_input_data[adjacent_block_address]);
+		}
+		if(z < c_chunk_height - 1)
+		{
+			int adjacent_block_address= column_address + z + 1;
+			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
+			total_flammability_nearby+= int(c_block_flammability_table[uint(adjacent_block_type)]);
+
+			if(adjacent_block_type == c_block_type_fire)
+				total_fire_power_nearby+= int(chunks_auxiliar_input_data[adjacent_block_address]);
+		}
+		if(z > 0)
+		{
+			int adjacent_block_address= column_address + z - 1;
+			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
+			total_flammability_nearby+= int(c_block_flammability_table[uint(adjacent_block_type)]);
+
+			if(adjacent_block_type == c_block_type_fire)
+				total_fire_power_nearby+= int(chunks_auxiliar_input_data[adjacent_block_address]);
+		}
+
+		// Perform water flow in water flow tick. This should have highest priority!
+		if(is_water_side_flow_tick)
+		{
+			if(flow_in != 0)
+			{
+				// Has some in water flow - convert into water.
+				return u8vec2(c_block_type_water, flow_in);
+			}
+			else
+				return u8vec2(c_block_type_air, 0);
+		}
+
+		// Try to convert into fire.
+		if(total_flammability_nearby > 0)
+		{
+			// TODO - use global coord for rand.
+			int block_rand= hex_Noise3(block_x, block_y, z, int(current_tick));
+			if((block_rand & 15) == 0)
+			{
+				if(total_fire_power_nearby >= c_min_fire_power_for_fire_to_spread)
+				{
+					// There are fire blocks nearby. Immideately convert into fire.
+					return u8vec2(c_block_type_fire, c_initial_fire_power);
+				}
+
+				// Check if there are fire blocks nearby below/above, which are accessible via air block.
+
+				bool block_below_is_air=
+					z > 0 && chunks_input_data[column_address + z - 1] == c_block_type_air;
+				bool block_above_is_air=
+					z < c_chunk_height - 1 && chunks_input_data[column_address + z + 1] == c_block_type_air;
 
 				for(int i= 0; i < 6; ++i) // For adjacent blocks.
 				{
-					if(!adjacent_column_is_in_active_area[i])
-						continue; // Prevent flow from inactive area, since water level values aren't updated there.
-
 					int adjacent_block_address= adjacent_columns[i] + z;
+					bool adjacent_block_is_air= chunks_input_data[adjacent_block_address] == c_block_type_air;
 
-					uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
-					if(adjacent_block_type == c_block_type_water)
-					{
-						bool adjacent_can_flow_down= false;
-						if(z > 0)
-						{
-							int adjacent_block_below_address= adjacent_block_address - 1;
-							uint8_t adjacent_block_below_type= chunks_input_data[adjacent_block_below_address];
-							adjacent_can_flow_down=
-								adjacent_block_below_type == c_block_type_air ||
-								(adjacent_block_below_type == c_block_type_water &&  int(chunks_auxiliar_input_data[adjacent_block_below_address]) < c_max_water_level);
-						}
-						if(adjacent_can_flow_down)
-							continue; // Prevent out flow if flow down is possilble.
+					if((adjacent_block_is_air || block_below_is_air) &&
+						z > 0 && chunks_input_data[adjacent_block_address - 1] == c_block_type_fire)
+						total_fire_power_nearby+= int(chunks_auxiliar_input_data[adjacent_block_address - 1]);
 
-						int adjacent_water_level= int(chunks_auxiliar_input_data[adjacent_block_address]);
-
-						flow_in+= adjacent_water_level >> 3;
-					}
+					if((adjacent_block_is_air || block_above_is_air) &&
+						z < c_chunk_height - 1 && chunks_input_data[adjacent_block_address + 1] == c_block_type_fire)
+						total_fire_power_nearby+= int(chunks_auxiliar_input_data[adjacent_block_address + 1]);
 				}
 
-				if(flow_in != 0)
-				{
-					// Has some in water flow - convert into water.
-					return u8vec2(c_block_type_water, flow_in);
-				}
-				else
-					return u8vec2(c_block_type_air, 0);
+				if(total_fire_power_nearby >= c_min_fire_power_for_fire_to_spread)
+					return u8vec2(c_block_type_fire, c_initial_fire_power);
 			}
 		}
 	}
@@ -376,6 +438,7 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 		// Other foliage blocks have maximum foliage factor of adjacent blocks minus one.
 
 		int max_adjacent_foliage_factor= 0;
+		int total_fire_power_nearby= 0;
 		for(int i= 0; i < 6; ++i)
 		{
 			int adjacent_block_address= adjacent_columns[i] + z;
@@ -387,6 +450,8 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 				int adjacent_foliage_factor= int(chunks_auxiliar_input_data[adjacent_block_address]);
 				max_adjacent_foliage_factor= max(max_adjacent_foliage_factor, adjacent_foliage_factor);
 			}
+			else if(adjacent_block_type == c_block_type_fire)
+				total_fire_power_nearby+= int(chunks_auxiliar_input_data[adjacent_block_address]);
 		}
 
 		if(z < c_chunk_height - 1)
@@ -400,6 +465,8 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 				int adjacent_foliage_factor= int(chunks_auxiliar_input_data[adjacent_block_address]);
 				max_adjacent_foliage_factor= max(max_adjacent_foliage_factor, adjacent_foliage_factor);
 			}
+			else if(adjacent_block_type == c_block_type_fire)
+				total_fire_power_nearby+= int(chunks_auxiliar_input_data[adjacent_block_address]);
 		}
 		if(z > 0)
 		{
@@ -412,6 +479,8 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 				int adjacent_foliage_factor= int(chunks_auxiliar_input_data[adjacent_block_address]);
 				max_adjacent_foliage_factor= max(max_adjacent_foliage_factor, adjacent_foliage_factor);
 			}
+			else if(adjacent_block_type == c_block_type_fire)
+				total_fire_power_nearby+= int(chunks_auxiliar_input_data[adjacent_block_address]);
 		}
 
 		int this_block_foliage_factor= max(0, max_adjacent_foliage_factor - 1);
@@ -437,7 +506,104 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 				return u8vec2(c_block_type_air, uint8_t(0));
 		}
 
+		if(total_fire_power_nearby >= c_min_fire_power_for_blocks_burning)
+		{
+			// TODO - use global coord for noise.
+			int block_rand= hex_Noise3(block_x, block_y, z, int(current_tick));
+			if((block_rand & 15) == 0)
+				return u8vec2(c_block_type_fire, uint8_t(c_initial_fire_power));
+		}
+
 		return u8vec2(block_type, uint8_t(this_block_foliage_factor));
+	}
+	else if(block_type == c_block_type_wood)
+	{
+		int total_fire_power_nearby= 0;
+		for(int i= 0; i < 6; ++i)
+		{
+			int adjacent_block_address= adjacent_columns[i] + z;
+			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
+			if(adjacent_block_type == c_block_type_fire)
+				total_fire_power_nearby+= int(chunks_auxiliar_input_data[adjacent_block_address]);
+		}
+
+		if(z < c_chunk_height - 1)
+		{
+			int adjacent_block_address= column_address + z + 1;
+			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
+			if(adjacent_block_type == c_block_type_fire)
+				total_fire_power_nearby+= int(chunks_auxiliar_input_data[adjacent_block_address]);
+		}
+		if(z > 0)
+		{
+			int adjacent_block_address= column_address + z - 1;
+			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
+			if(adjacent_block_type == c_block_type_fire)
+				total_fire_power_nearby+= int(chunks_auxiliar_input_data[adjacent_block_address]);
+		}
+
+		if(total_fire_power_nearby >= c_min_fire_power_for_blocks_burning)
+		{
+			// Burn this wood  block if has fire nearby.
+
+			// TODO - use global coord for noise.
+			int block_rand= hex_Noise3(block_x, block_y, z, int(current_tick));
+			if((block_rand & 63) == 0)
+				return u8vec2(c_block_type_fire, uint8_t(c_initial_fire_power));
+		}
+	}
+	else if(block_type == c_block_type_fire)
+	{
+		int total_flammability_nearby= 0;
+
+		bool extinguish= false;
+		for(int i= 0; i < 6; ++i) // For adjacent blocks.
+		{
+			int adjacent_block_address= adjacent_columns[i] + z;
+			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
+			total_flammability_nearby+= int(c_block_flammability_table[uint(adjacent_block_type)]);
+			if(adjacent_block_type == c_block_type_water)
+			{
+				bool adjacent_can_flow_down= false;
+				if(z > 0)
+				{
+					int adjacent_block_below_address= adjacent_block_address - 1;
+					uint8_t adjacent_block_below_type= chunks_input_data[adjacent_block_below_address];
+					adjacent_can_flow_down=
+						adjacent_block_below_type == c_block_type_air ||
+						(adjacent_block_below_type == c_block_type_water && int(chunks_auxiliar_input_data[adjacent_block_below_address]) < c_max_water_level);
+				}
+				if(!adjacent_can_flow_down)
+					extinguish= true;
+			}
+		}
+		if(z < c_chunk_height - 1)
+		{
+			int adjacent_block_address= column_address + z + 1;
+			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
+			total_flammability_nearby+= int(c_block_flammability_table[uint(adjacent_block_type)]);
+			if(adjacent_block_type == c_block_type_water || adjacent_block_type == c_block_type_sand)
+				extinguish= true;
+		}
+		if(z > 0)
+		{
+			int adjacent_block_address= column_address + z - 1;
+			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
+			total_flammability_nearby+= int(c_block_flammability_table[uint(adjacent_block_type)]);
+		}
+
+		if(total_flammability_nearby == 0 || extinguish)
+		{
+			// No flammable blocks nearby or has water nearby - immediately convert into air.
+			return u8vec2(c_block_type_air, uint8_t(0));
+		}
+
+		// Each tick fire power is increased by total flammability nearby.
+		int fire_power= int(chunks_auxiliar_input_data[column_address + z]);
+		fire_power+= total_flammability_nearby;
+		fire_power= min(fire_power, 255);
+
+		return u8vec2(c_block_type_fire, uint8_t(fire_power));
 	}
 
 	// Common case when block type isn't chanhed.

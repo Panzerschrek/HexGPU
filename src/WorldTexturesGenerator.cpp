@@ -73,6 +73,14 @@ WorldTexturesGenerator::WorldTexturesGenerator(WindowVulkan& window_vulkan, cons
 			vk::Format::eR8G8B8A8Unorm,
 			vk::ComponentMapping(),
 			vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, c_water_image_index, 1u))))
+	, fire_image_view_(vk_device_.createImageViewUnique(
+		vk::ImageViewCreateInfo(
+			vk::ImageViewCreateFlags(),
+			*image_,
+			vk::ImageViewType::e2D,
+			vk::Format::eR8G8B8A8Unorm,
+			vk::ComponentMapping(),
+			vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, c_fire_image_index, 1u))))
 	, texture_gen_pipelines_(CreatePipelines(vk_device_, global_descriptor_pool, *image_))
 {
 }
@@ -130,6 +138,11 @@ vk::ImageView WorldTexturesGenerator::GetImageView() const
 vk::ImageView WorldTexturesGenerator::GetWaterImageView() const
 {
 	return water_image_view_.get();
+}
+
+vk::ImageView WorldTexturesGenerator::GetFireImageView() const
+{
+	return fire_image_view_.get();
 }
 
 TaskOrganizer::ImageInfo WorldTexturesGenerator::GetImageInfo() const

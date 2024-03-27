@@ -28,6 +28,9 @@ public:
 		uint32_t num_water_quads= 0;
 		uint32_t new_water_num_quads= 0;
 		uint32_t first_water_quad= 0;
+		uint32_t num_fire_quads= 0;
+		uint32_t new_fire_num_quads= 0;
+		uint32_t first_fire_quad= 0;
 		uint32_t first_memory_unit= 0;
 		uint32_t num_memory_units= 0;
 	};

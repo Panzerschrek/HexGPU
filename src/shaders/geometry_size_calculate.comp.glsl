@@ -95,4 +95,42 @@ void main()
 		// Add two water hexagon quads.
 		atomicAdd(chunk_draw_info[chunk_index].new_water_num_quads, 2);
 	}
+
+	if(block_value == c_block_type_fire)
+	{
+		// Add fire quads.
+		int total_quads= 0;
+
+		if(z > 0 && c_block_flammability_table[uint(chunks_data[block_address - 1])] != uint8_t(0))
+			total_quads+= 3;
+
+		if(c_block_flammability_table[uint(block_value_up)] != uint8_t(0))
+			total_quads+= 3;
+
+		if(c_block_flammability_table[uint(block_value_north)] != uint8_t(0))
+			++total_quads;
+
+		if(c_block_flammability_table[uint(block_value_north_east)] != uint8_t(0))
+			++total_quads;
+
+		if(c_block_flammability_table[uint(block_value_south_east)] != uint8_t(0))
+			++total_quads;
+
+		int south_block_address= GetBlockFullAddress(ivec3(block_x, max(block_y - 1, 0), z), world_size_chunks);
+		if(c_block_flammability_table[uint(chunks_data[south_block_address])] != uint8_t(0))
+			++total_quads;
+
+		int side_y_base= block_y + ((block_x + 1) & 1);
+		int west_x_clamped= max(block_x - 1, 0);
+
+		int south_west_block_address= GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 1, max_world_coord.y)), z), world_size_chunks);
+		if(c_block_flammability_table[uint(chunks_data[south_west_block_address])] != uint8_t(0))
+			++total_quads;
+
+		int north_west_block_address= GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 0, max_world_coord.y)), z), world_size_chunks);
+		if(c_block_flammability_table[uint(chunks_data[north_west_block_address])] != uint8_t(0))
+			++total_quads;
+
+		atomicAdd(chunk_draw_info[chunk_index].new_fire_num_quads, total_quads);
+	}
 }

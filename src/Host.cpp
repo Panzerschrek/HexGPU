@@ -239,7 +239,7 @@ void Host::DrawFPS()
 	ImGui::SetNextWindowPos(
 		{float(window_vulkan_.GetViewportSize().width) - offset, 0});
 
-	ImGui::SetNextWindowSize({offset, 16.0f});
+	ImGui::SetNextWindowSize({offset, 44.0f});
 
 	ImGui::SetNextWindowBgAlpha(0.25f);
 	ImGui::Begin(
@@ -248,6 +248,7 @@ void Host::DrawFPS()
 		ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs);
 
 	ImGui::Text("fps: %3.2f", ticks_counter_.GetTicksFrequency());
+	ImGui::Text("%3.2f ms", 1000.0f / ticks_counter_.GetTicksFrequency());
 
 	ImGui::End();
 }

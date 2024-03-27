@@ -1,5 +1,6 @@
 #pragma once
 #include "WindowVulkan.hpp"
+#include "Pipeline.hpp"
 
 namespace HexGPU
 {
@@ -7,8 +8,10 @@ namespace HexGPU
 class WorldRenderPass
 {
 public:
-	explicit WorldRenderPass(WindowVulkan& window_vulkan);
+	WorldRenderPass(WindowVulkan& window_vulkan, vk::DescriptorPool global_descriptor_pool);
 	~WorldRenderPass();
+
+	void Draw(vk::CommandBuffer command_buffer);
 
 private:
 	const vk::Device vk_device_;
@@ -27,6 +30,11 @@ private:
 	const vk::UniqueRenderPass render_pass_;
 
 	const vk::UniqueFramebuffer framebuffer_;
+
+	const vk::UniqueSampler sampler_;
+
+	const GraphicsPipeline pipeline_;
+	const vk::DescriptorSet descriptor_set_;
 };
 
 } // namespace HexGPU

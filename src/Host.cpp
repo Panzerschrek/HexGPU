@@ -103,7 +103,7 @@ Host::Host()
 	, gpu_data_uploader_(window_vulkan_)
 	, global_descriptor_pool_(CreateGlobalDescriptorPool(window_vulkan_.GetVulkanDevice()))
 	, im_gui_wrapper_(system_window_, window_vulkan_)
-	, world_render_pass_(window_vulkan_)
+	, world_render_pass_(window_vulkan_, *global_descriptor_pool_)
 	, world_processor_(window_vulkan_, gpu_data_uploader_, *global_descriptor_pool_, settings_)
 	, world_renderer_(window_vulkan_, gpu_data_uploader_, world_processor_, *global_descriptor_pool_)
 	, sky_renderer_(window_vulkan_, world_processor_, *global_descriptor_pool_)
@@ -199,6 +199,7 @@ bool Host::Loop()
 			sky_renderer_.Draw(command_buffer, accumulated_time_s_);
 			world_renderer_.DrawTransparent(command_buffer, accumulated_time_s_);
 			build_prism_renderer_.Draw(command_buffer);
+			world_render_pass_.Draw(command_buffer);
 
 			im_gui_wrapper_.EndFrame(command_buffer);
 		};

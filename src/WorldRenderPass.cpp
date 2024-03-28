@@ -243,7 +243,7 @@ GraphicsPipeline CreateWorldRenderPassPresentPipeline(
 
 WorldRenderPass::WorldRenderPass(WindowVulkan& window_vulkan, const vk::DescriptorPool global_descriptor_pool)
 	: vk_device_(window_vulkan.GetVulkanDevice())
-	, samples_(vk::SampleCountFlagBits::e4)
+	, samples_(vk::SampleCountFlagBits::e1)
 	, framebuffer_size_(GetFramebufferTextureSize(window_vulkan))
 	, image_(vk_device_.createImageUnique(
 		vk::ImageCreateInfo(

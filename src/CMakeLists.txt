@@ -117,7 +117,7 @@ set(GENERATED_SOURCES ${CMAKE_CURRENT_BINARY_DIR}/ShaderList.hpp ${CMAKE_CURRENT
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/ShaderList.cpp PROPERTIES OBJECT_DEPENDS "${SHADERS_COMPILED}")
 
 # Add main executable.
-file(GLOB_RECURSE SOURCES "*.cpp" "*.hpp")
+file(GLOB_RECURSE SOURCES "*.cpp" "*.hpp" "*.rc" "*.ico")
 
 add_executable(
 	HexGPU

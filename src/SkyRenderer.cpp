@@ -158,6 +158,7 @@ GraphicsPipeline CreateSkyPipeline(
 
 SkyRenderer::SkyRenderer(
 	WindowVulkan& window_vulkan,
+	WorldRenderPass& world_render_pass,
 	const WorldProcessor& world_processor,
 	const vk::DescriptorPool global_descriptor_pool)
 	: vk_device_(window_vulkan.GetVulkanDevice())
@@ -171,14 +172,14 @@ SkyRenderer::SkyRenderer(
 	, skybox_pipeline_(
 		CreateSkyPipeline(
 			window_vulkan.GetVulkanDevice(),
-			window_vulkan.GetViewportSize(),
-			window_vulkan.GetRenderPass()))
+			world_render_pass.GetFramebufferSize(),
+			world_render_pass.GetRenderPass()))
 	, skybox_descriptor_set_(CreateDescriptorSet(vk_device_, global_descriptor_pool, *skybox_pipeline_.descriptor_set_layout))
 	, clouds_pipeline_(
 		CreateCloudsPipeline(
 			window_vulkan.GetVulkanDevice(),
-			window_vulkan.GetViewportSize(),
-			window_vulkan.GetRenderPass()))
+			world_render_pass.GetFramebufferSize(),
+			world_render_pass.GetRenderPass()))
 	, clouds_descriptor_set_(CreateDescriptorSet(vk_device_, global_descriptor_pool, *clouds_pipeline_.descriptor_set_layout))
 {
 	// Update skybox descriptor set.

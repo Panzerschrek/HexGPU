@@ -11,6 +11,9 @@ public:
 	WorldRenderPass(WindowVulkan& window_vulkan, vk::DescriptorPool global_descriptor_pool);
 	~WorldRenderPass();
 
+	vk::Extent2D GetFramebufferSize() const;
+	vk::RenderPass GetRenderPass() const;
+
 	void Draw(vk::CommandBuffer command_buffer);
 
 private:

@@ -346,6 +346,16 @@ WorldRenderPass::~WorldRenderPass()
 	vk_device_.waitIdle();
 }
 
+vk::Extent2D WorldRenderPass::GetFramebufferSize() const
+{
+	return vk::Extent2D(framebuffer_size_.width, framebuffer_size_.height);
+}
+
+vk::RenderPass WorldRenderPass::GetRenderPass() const
+{
+	return *render_pass_;
+}
+
 void WorldRenderPass::Draw(const vk::CommandBuffer command_buffer)
 {
 	command_buffer.bindDescriptorSets(

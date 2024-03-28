@@ -5,7 +5,6 @@
 #include "TaskOrganizer.hpp"
 #include "TicksCounter.hpp"
 #include "WorldRenderer.hpp"
-#include "WorldRenderPass.hpp"
 #include <chrono>
 
 namespace HexGPU

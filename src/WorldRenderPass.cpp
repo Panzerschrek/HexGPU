@@ -13,7 +13,8 @@ namespace
 vk::Extent3D GetFramebufferTextureSize(WindowVulkan& window_vulkan)
 {
 	const vk::Extent2D size_2d= window_vulkan.GetViewportSize();
-	return vk::Extent3D(size_2d.width, size_2d.height, 1);
+	// Use supersampling 2x2.
+	return vk::Extent3D(size_2d.width * 2, size_2d.height * 2, 1);
 }
 
 vk::Format ChooseDepthFormat(const vk::PhysicalDevice physical_device)

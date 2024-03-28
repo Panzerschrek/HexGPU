@@ -66,7 +66,7 @@ VoronoiPatternResult VoronoiPattern(ivec2 texel_coord, int seed_offset)
 	VoronoiPatternResult result;
 
 	float min_dist_diff= abs(second_min_dist - min_dist);
-	result.edge_factor= smoothstep(0.0, 1.75 / float(c_cell_size), min_dist_diff);
+	result.edge_factor= smoothstep(0.5 / float(c_cell_size), 1.0 / float(c_cell_size), min_dist_diff);
 
 	vec4 closest_cell_noise= vec4(
 		float(hex_Noise2(closest_cell_coord.x, closest_cell_coord.y, 8765 + seed_offset)),

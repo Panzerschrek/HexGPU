@@ -229,7 +229,6 @@ bool Host::Loop()
 	graphics_task_params.clear_values=
 	{
 		vk::ClearColorValue(std::array<float,4>{1.0f, 0.0f, 1.0f, 1.0f}), // Clear with pink to catch some mistakes.
-		vk::ClearDepthStencilValue(1.0f, 0u),
 	};
 
 	window_vulkan_.EndFrame(

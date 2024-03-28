@@ -234,7 +234,7 @@ void TaskOrganizer::ExecuteTask(const GraphicsTaskParams& params, const TaskFunc
 				vk::ImageSubresourceRange(image_info.asppect_flags, 0u, image_info.num_mips, 0u, image_info.num_layers));
 
 			src_pipeline_stage_flags|= sync_info.pipeline_stage_flags;
-			dst_pipeline_stage_flags|= vk::PipelineStageFlagBits::eColorAttachmentOutput;
+			dst_pipeline_stage_flags|= vk::PipelineStageFlagBits::eEarlyFragmentTests | vk::PipelineStageFlagBits::eLateFragmentTests;
 		}
 	}
 
@@ -622,7 +622,7 @@ TaskOrganizer::ImageSyncInfo TaskOrganizer::GetSyncInfoForImageUsage(const Image
 	case ImageUsage::ColorAttachment:
 		return {vk::AccessFlagBits::eColorAttachmentWrite, vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::ImageLayout::eColorAttachmentOptimal};
 	case ImageUsage::DepthAttachment:
-		return {vk::AccessFlagBits::eDepthStencilAttachmentWrite, vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::ImageLayout::eDepthStencilAttachmentOptimal};
+		return {vk::AccessFlagBits::eDepthStencilAttachmentWrite, vk::PipelineStageFlagBits::eEarlyFragmentTests | vk::PipelineStageFlagBits::eLateFragmentTests, vk::ImageLayout::eDepthStencilAttachmentOptimal};
 	};
 
 	HEX_ASSERT(false);

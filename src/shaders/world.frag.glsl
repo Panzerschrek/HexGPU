@@ -30,5 +30,5 @@ void main()
 
 	// tex_value.rgb= vec3(0.5, 0.5, 0.5);
 	vec3 l= CombineLight(f_light.x * c_fire_light_color, f_light.y * uniforms.sky_light_color.rgb, c_ambient_light_color);
-	out_color= vec4(l * tex_value.rgb, 1.0);
+	out_color= vec4(l * tex_value.rgb, tex_value.a);
 }

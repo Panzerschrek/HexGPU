@@ -303,20 +303,17 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window, Settings& settings
 
 	// Create render pass and framebuffers for drawing into screen.
 
-	const vk::AttachmentDescription attachment_descriptions[]
-	{
-		{
-			vk::AttachmentDescriptionFlags(),
-			surface_format.format,
-			vk::SampleCountFlagBits::e1,
-			vk::AttachmentLoadOp::eDontCare,
-			vk::AttachmentStoreOp::eStore,
-			vk::AttachmentLoadOp::eDontCare,
-			vk::AttachmentStoreOp::eDontCare,
-			vk::ImageLayout::eUndefined,
-			vk::ImageLayout::ePresentSrcKHR
-		}
-	};
+	const vk::AttachmentDescription attachment_description(
+		vk::AttachmentDescriptionFlags(),
+		surface_format.format,
+		vk::SampleCountFlagBits::e1,
+		vk::AttachmentLoadOp::eDontCare,
+		vk::AttachmentStoreOp::eStore,
+		vk::AttachmentLoadOp::eDontCare,
+		vk::AttachmentStoreOp::eDontCare,
+		vk::ImageLayout::eUndefined,
+		vk::ImageLayout::ePresentSrcKHR
+	);
 
 	const vk::AttachmentReference attachment_reference_color(0u, vk::ImageLayout::eColorAttachmentOptimal);
 
@@ -332,7 +329,7 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window, Settings& settings
 		vk_device_->createRenderPassUnique(
 			vk::RenderPassCreateInfo(
 				vk::RenderPassCreateFlags(),
-				uint32_t(std::size(attachment_descriptions)), attachment_descriptions,
+				1u, &attachment_description,
 				1u, &subpass_description));
 
 	const std::vector<vk::Image> swapchain_images= vk_device_->getSwapchainImagesKHR(*swapchain_);

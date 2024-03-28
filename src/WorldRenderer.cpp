@@ -834,10 +834,11 @@ GraphicsPipeline WorldRenderer::CreateWorldWaterDrawPipeline(
 		1.0f);
 
 	// Use simple alpha-blending.
+	// Do not modify dst alpha.
 	const vk::PipelineColorBlendAttachmentState pipeline_color_blend_attachment_state(
 		VK_TRUE,
 		vk::BlendFactor::eSrcAlpha, vk::BlendFactor::eOneMinusSrcAlpha, vk::BlendOp::eAdd,
-		vk::BlendFactor::eSrcAlpha, vk::BlendFactor::eOneMinusSrcAlpha, vk::BlendOp::eAdd,
+		vk::BlendFactor::eZero, vk::BlendFactor::eOne, vk::BlendOp::eAdd,
 		vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
 
 	const vk::PipelineColorBlendStateCreateInfo pipeline_color_blend_state_create_info(

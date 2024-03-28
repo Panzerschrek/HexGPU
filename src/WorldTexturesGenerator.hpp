@@ -39,6 +39,7 @@ private:
 		ShaderNames::texture_gen_wood_end_comp,
 		ShaderNames::texture_gen_water_comp,
 		ShaderNames::texture_gen_fire_comp,
+		ShaderNames::texture_gen_glass_comp,
 	};
 
 	static constexpr uint32_t c_num_layers= uint32_t(std::size(gen_shader_table));

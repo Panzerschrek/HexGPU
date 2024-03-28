@@ -12,8 +12,9 @@ const uint8_t c_block_type_fire_stone=					uint8_t(  8);
 const uint8_t c_block_type_water=						uint8_t(  9);
 const uint8_t c_block_type_sand=						uint8_t( 10);
 const uint8_t c_block_type_fire=						uint8_t( 11);
+const uint8_t c_block_type_glass=						uint8_t( 12);
 
-const int c_num_block_types=									 12;
+const int c_num_block_types=									 13;
 
 const uint8_t c_optical_density_solid= uint8_t(0);
 const uint8_t c_optical_density_semisolid= uint8_t(1);
@@ -33,7 +34,8 @@ const uint8_t c_block_optical_density_table[c_num_block_types]=
 	c_optical_density_solid, // fire stone
 	c_optical_density_air, // water
 	c_optical_density_solid, // sand
-	c_optical_density_air // fire
+	c_optical_density_air, // fire
+	c_optical_density_semisolid // glass
 );
 
 const uint8_t c_block_own_light_table[c_num_block_types]=
@@ -47,10 +49,11 @@ const uint8_t c_block_own_light_table[c_num_block_types]=
 	uint8_t(0), // grass
 	uint8_t(0), // brick
 	uint8_t(0), // foliage
-	uint8_t(15), // fire stone
+	uint8_t(15),// fire stone
 	uint8_t(0), // water
-	uint8_t(0),  // sand
-	uint8_t(11)  // fire
+	uint8_t(0), // sand
+	uint8_t(11),// fire
+	uint8_t(0)  // glass
 );
 
 const uint8_t c_block_flammability_table[c_num_block_types]=
@@ -66,8 +69,9 @@ const uint8_t c_block_flammability_table[c_num_block_types]=
 	uint8_t(1), // foliage
 	uint8_t(0), // fire stone
 	uint8_t(0), // water
-	uint8_t(0),  // sand
-	uint8_t(0)  // fire
+	uint8_t(0), // sand
+	uint8_t(0), // fire
+	uint8_t(0)  // glass
 );
 
 // If this changed, TexturesTable.hpp" must be changed too!
@@ -87,7 +91,8 @@ const i16vec3 c_block_texture_table[c_num_block_types]=
 	i16vec3( 1,  1,  1), // fire stone
 	i16vec3(10, 10, 10), // water
 	i16vec3( 4,  4,  4), // sand
-	i16vec3( 1,  1,  1)  // fire
+	i16vec3( 1,  1,  1), // fire
+	i16vec3(12, 12, 12)  // glass
 );
 
 // If this changed, C++ code must be changed too!

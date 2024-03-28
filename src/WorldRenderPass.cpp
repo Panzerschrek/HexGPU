@@ -59,7 +59,7 @@ vk::UniqueRenderPass CreateRenderPass(const vk::Device vk_device, const vk::Form
 			vk::AttachmentLoadOp::eDontCare,
 			vk::AttachmentStoreOp::eDontCare,
 			vk::ImageLayout::eUndefined,
-			vk::ImageLayout::ePresentSrcKHR // TODO - use other layout
+			vk::ImageLayout::eColorAttachmentOptimal // Leave in this layout.
 		},
 		{
 			vk::AttachmentDescriptionFlags(),
@@ -70,7 +70,7 @@ vk::UniqueRenderPass CreateRenderPass(const vk::Device vk_device, const vk::Form
 			vk::AttachmentLoadOp::eDontCare,
 			vk::AttachmentStoreOp::eDontCare,
 			vk::ImageLayout::eUndefined,
-			vk::ImageLayout::eDepthStencilAttachmentOptimal, // Actually we do not care about layout after this pass.
+			vk::ImageLayout::eDepthStencilAttachmentOptimal, // Leane in this layout.
 		},
 	};
 

@@ -204,6 +204,40 @@ void TaskOrganizer::ExecuteTask(const GraphicsTaskParams& params, const TaskFunc
 		}
 	}
 
+	for(const ImageInfo image_info : params.output_color_images)
+	{
+		if(GetLastImageUsage(image_info.image) != ImageUsage::ColorAttachment)
+		{
+			const auto sync_info= GetSyncInfoForLastImageUsage(image_info.image);
+			image_barriers.emplace_back(
+				sync_info.access_flags, vk::AccessFlagBits::eColorAttachmentWrite,
+				sync_info.layout, vk::ImageLayout::eColorAttachmentOptimal,
+				queue_family_index_, queue_family_index_,
+				image_info.image,
+				vk::ImageSubresourceRange(image_info.asppect_flags, 0u, image_info.num_mips, 0u, image_info.num_layers));
+
+			src_pipeline_stage_flags|= sync_info.pipeline_stage_flags;
+			dst_pipeline_stage_flags|= vk::PipelineStageFlagBits::eColorAttachmentOutput;
+		}
+	}
+
+	for(const ImageInfo image_info : params.output_depth_images)
+	{
+		if(GetLastImageUsage(image_info.image) != ImageUsage::DepthAttachment)
+		{
+			const auto sync_info= GetSyncInfoForLastImageUsage(image_info.image);
+			image_barriers.emplace_back(
+				sync_info.access_flags, vk::AccessFlagBits::eDepthStencilAttachmentWrite,
+				sync_info.layout, vk::ImageLayout::eDepthStencilAttachmentOptimal,
+				queue_family_index_, queue_family_index_,
+				image_info.image,
+				vk::ImageSubresourceRange(image_info.asppect_flags, 0u, image_info.num_mips, 0u, image_info.num_layers));
+
+			src_pipeline_stage_flags|= sync_info.pipeline_stage_flags;
+			dst_pipeline_stage_flags|= vk::PipelineStageFlagBits::eColorAttachmentOutput;
+		}
+	}
+
 	if(!buffer_barriers.empty() || !image_barriers.empty())
 		command_buffer_.pipelineBarrier(
 			src_pipeline_stage_flags,
@@ -212,8 +246,6 @@ void TaskOrganizer::ExecuteTask(const GraphicsTaskParams& params, const TaskFunc
 			{},
 			buffer_barriers,
 			image_barriers);
-
-	// TODO - add synchronization for output images to ensure write after read.
 
 	command_buffer_.beginRenderPass(
 		vk::RenderPassBeginInfo(
@@ -234,6 +266,12 @@ void TaskOrganizer::ExecuteTask(const GraphicsTaskParams& params, const TaskFunc
 
 	for(const ImageInfo& image_info : params.input_images)
 		UpdateLastImageUsage(image_info.image, ImageUsage::GraphicsSrc);
+
+	for(const ImageInfo& image_info : params.output_color_images)
+		UpdateLastImageUsage(image_info.image, ImageUsage::ColorAttachment);
+
+	for(const ImageInfo& image_info : params.output_depth_images)
+		UpdateLastImageUsage(image_info.image, ImageUsage::DepthAttachment);
 }
 
 void TaskOrganizer::ExecuteTask(const TransferTaskParams& params, const TaskFunc& func)
@@ -581,6 +619,10 @@ TaskOrganizer::ImageSyncInfo TaskOrganizer::GetSyncInfoForImageUsage(const Image
 		return {vk::AccessFlagBits::eTransferRead, vk::PipelineStageFlagBits::eTransfer, vk::ImageLayout::eTransferSrcOptimal};
 	case ImageUsage::ComputeDst:
 		return {vk::AccessFlagBits::eShaderWrite, vk::PipelineStageFlagBits::eComputeShader, vk::ImageLayout::eGeneral};
+	case ImageUsage::ColorAttachment:
+		return {vk::AccessFlagBits::eColorAttachmentWrite, vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::ImageLayout::eColorAttachmentOptimal};
+	case ImageUsage::DepthAttachment:
+		return {vk::AccessFlagBits::eDepthStencilAttachmentWrite, vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::ImageLayout::eDepthStencilAttachmentOptimal};
 	};
 
 	HEX_ASSERT(false);

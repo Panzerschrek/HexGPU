@@ -61,6 +61,9 @@ public:
 
 		std::vector<ImageInfo> input_images;
 
+		std::vector<ImageInfo> output_color_images;
+		std::vector<ImageInfo> output_depth_images;
+
 		vk::Framebuffer framebuffer;
 		vk::Extent2D viewport_size;
 		vk::RenderPass render_pass;
@@ -116,7 +119,8 @@ private:
 		TransferDst,
 		TransferSrc,
 		ComputeDst,
-		// TODO - add GraphicsDst for render pass output images.
+		ColorAttachment,
+		DepthAttachment,
 	};
 
 	struct ImageSyncInfo

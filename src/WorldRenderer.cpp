@@ -162,6 +162,7 @@ ComputePipeline CreateDrawIndirectBufferBuildPipeline(const vk::Device vk_device
 
 WorldRenderer::WorldRenderer(
 	WindowVulkan& window_vulkan,
+	WorldRenderPass& world_render_pass,
 	GPUDataUploader& gpu_data_uploader,
 	const WorldProcessor& world_processor,
 	const vk::DescriptorPool global_descriptor_pool)
@@ -213,14 +214,27 @@ WorldRenderer::WorldRenderer(
 			VK_FALSE)))
 	, draw_pipeline_(
 		CreateWorldDrawPipeline(
-			vk_device_, window_vulkan.GetViewportSize(), window_vulkan.GetRenderPass(), *texture_sampler_))
+			vk_device_,
+			world_render_pass.GetSamples(),
+			world_render_pass.GetFramebufferSize(),
+			world_render_pass.GetRenderPass(),
+			*texture_sampler_))
 	, descriptor_set_(CreateDescriptorSet(vk_device_, global_descriptor_pool, *draw_pipeline_.descriptor_set_layout))
 	, water_draw_pipeline_(
 		CreateWorldWaterDrawPipeline(
-			vk_device_, window_vulkan.GetViewportSize(), window_vulkan.GetRenderPass(), *texture_sampler_))
+			vk_device_,
+			world_render_pass.GetSamples(),
+			world_render_pass.GetFramebufferSize(),
+			world_render_pass.GetRenderPass(),
+			*texture_sampler_))
 	, water_descriptor_set_(CreateDescriptorSet(vk_device_, global_descriptor_pool, *water_draw_pipeline_.descriptor_set_layout))
 	, fire_draw_pipeline_(
-		CreateFireDrawPipeline(vk_device_, window_vulkan.GetViewportSize(), window_vulkan.GetRenderPass(), *texture_sampler_))
+		CreateFireDrawPipeline(
+			vk_device_,
+			world_render_pass.GetSamples(),
+			world_render_pass.GetFramebufferSize(),
+			world_render_pass.GetRenderPass(),
+			*texture_sampler_))
 	, fire_descriptor_set_(CreateDescriptorSet(vk_device_, global_descriptor_pool, *fire_draw_pipeline_.descriptor_set_layout))
 	, index_buffer_(CreateAndFillQuadsIndexBuffer(window_vulkan, gpu_data_uploader))
 {
@@ -546,6 +560,7 @@ void WorldRenderer::DrawFire(vk::CommandBuffer command_buffer, const float time_
 
 GraphicsPipeline WorldRenderer::CreateWorldDrawPipeline(
 	const vk::Device vk_device,
+	const vk::SampleCountFlagBits samples,
 	const vk::Extent2D viewport_size,
 	const vk::RenderPass render_pass,
 	const vk::Sampler texture_sampler)
@@ -644,7 +659,9 @@ GraphicsPipeline WorldRenderer::CreateWorldDrawPipeline(
 		VK_FALSE, 0.0f, 0.0f, 0.0f,
 		1.0f);
 
-	const vk::PipelineMultisampleStateCreateInfo pipeline_multisample_state_create_info;
+	const vk::PipelineMultisampleStateCreateInfo pipeline_multisample_state_create_info(
+		vk::PipelineMultisampleStateCreateFlags(),
+		samples);
 
 	const vk::PipelineDepthStencilStateCreateInfo pipeline_depth_state_create_info(
 		vk::PipelineDepthStencilStateCreateFlags(),
@@ -695,6 +712,7 @@ GraphicsPipeline WorldRenderer::CreateWorldDrawPipeline(
 
 GraphicsPipeline WorldRenderer::CreateWorldWaterDrawPipeline(
 	const vk::Device vk_device,
+	const vk::SampleCountFlagBits samples,
 	const vk::Extent2D viewport_size,
 	const vk::RenderPass render_pass,
 	const vk::Sampler texture_sampler)
@@ -793,7 +811,9 @@ GraphicsPipeline WorldRenderer::CreateWorldWaterDrawPipeline(
 		VK_FALSE, 0.0f, 0.0f, 0.0f,
 		1.0f);
 
-	const vk::PipelineMultisampleStateCreateInfo pipeline_multisample_state_create_info;
+	const vk::PipelineMultisampleStateCreateInfo pipeline_multisample_state_create_info(
+		vk::PipelineMultisampleStateCreateFlags(),
+		samples);
 
 	const vk::PipelineDepthStencilStateCreateInfo pipeline_depth_state_create_info(
 		vk::PipelineDepthStencilStateCreateFlags(),
@@ -845,6 +865,7 @@ GraphicsPipeline WorldRenderer::CreateWorldWaterDrawPipeline(
 
 GraphicsPipeline WorldRenderer::CreateFireDrawPipeline(
 	const vk::Device vk_device,
+	const vk::SampleCountFlagBits samples,
 	const vk::Extent2D viewport_size,
 	const vk::RenderPass render_pass,
 	const vk::Sampler texture_sampler)
@@ -944,7 +965,9 @@ GraphicsPipeline WorldRenderer::CreateFireDrawPipeline(
 		VK_TRUE, -1.0f, 0.0f, -1.0f, // Use depth bias in order to draw fire polygons atop of regular block polygons.
 		1.0f);
 
-	const vk::PipelineMultisampleStateCreateInfo pipeline_multisample_state_create_info;
+	const vk::PipelineMultisampleStateCreateInfo pipeline_multisample_state_create_info(
+		vk::PipelineMultisampleStateCreateFlags(),
+		samples);
 
 	const vk::PipelineDepthStencilStateCreateInfo pipeline_depth_state_create_info(
 		vk::PipelineDepthStencilStateCreateFlags(),

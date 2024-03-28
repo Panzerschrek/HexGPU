@@ -1,6 +1,7 @@
 #pragma once
 #include "CloudsTextureGenerator.hpp"
 #include "WorldProcessor.hpp"
+#include "WorldRenderPass.hpp"
 
 namespace HexGPU
 {
@@ -10,6 +11,7 @@ class SkyRenderer
 public:
 	SkyRenderer(
 		WindowVulkan& window_vulkan,
+		WorldRenderPass& world_render_pass,
 		const WorldProcessor& world_processor,
 		vk::DescriptorPool global_descriptor_pool);
 	~SkyRenderer();
@@ -30,6 +32,7 @@ private:
 
 	static CloudsPipeline CreateCloudsPipeline(
 		vk::Device vk_device,
+		vk::SampleCountFlagBits samples,
 		vk::Extent2D viewport_size,
 		vk::RenderPass render_pass);
 

@@ -3,6 +3,7 @@
 #include "Buffer.hpp"
 #include "GPUDataUploader.hpp"
 #include "WorldGeometryGenerator.hpp"
+#include "WorldRenderPass.hpp"
 #include "WorldTexturesGenerator.hpp"
 
 namespace HexGPU
@@ -13,6 +14,7 @@ class WorldRenderer
 public:
 	WorldRenderer(
 		WindowVulkan& window_vulkan,
+		WorldRenderPass& world_render_pass,
 		GPUDataUploader& gpu_data_uploader,
 		const WorldProcessor& world_processor,
 		vk::DescriptorPool global_descriptor_pool);
@@ -30,18 +32,21 @@ private:
 
 	static GraphicsPipeline CreateWorldDrawPipeline(
 		vk::Device vk_device,
+		vk::SampleCountFlagBits samples,
 		vk::Extent2D viewport_size,
 		vk::RenderPass render_pass,
 		vk::Sampler texture_sampler);
 
 	static GraphicsPipeline CreateWorldWaterDrawPipeline(
 		vk::Device vk_device,
+		vk::SampleCountFlagBits samples,
 		vk::Extent2D viewport_size,
 		vk::RenderPass render_pass,
 		vk::Sampler texture_sampler);
 
 	static GraphicsPipeline CreateFireDrawPipeline(
 		vk::Device vk_device,
+		vk::SampleCountFlagBits samples,
 		vk::Extent2D viewport_size,
 		vk::RenderPass render_pass,
 		vk::Sampler texture_sampler);

@@ -37,6 +37,7 @@ private:
 	GPUDataUploader gpu_data_uploader_;
 	const vk::UniqueDescriptorPool global_descriptor_pool_;
 	ImGuiWrapper im_gui_wrapper_;
+	WorldRenderPass world_render_pass_;
 	WorldProcessor world_processor_;
 	WorldRenderer world_renderer_;
 	SkyRenderer sky_renderer_;

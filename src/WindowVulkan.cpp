@@ -2,7 +2,6 @@
 #include "Assert.hpp"
 #include "Log.hpp"
 #include "SystemWindow.hpp"
-#include "VulkanUtils.hpp"
 #include <SDL_vulkan.h>
 #include <algorithm>
 #include <cstring>
@@ -269,34 +268,6 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window, Settings& settings
 	}
 	Log::Info("Swapchan surface format: ", vk::to_string(surface_format.format), " ", vk::to_string(surface_format.colorSpace));
 
-	// TODO - avoid creating depth buffer here.
-
-	// Select depth buffer format.
-	const vk::Format depth_formats[]
-	{
-		// Depth formats by priority.
-		vk::Format::eD32Sfloat,
-		vk::Format::eD24UnormS8Uint,
-		vk::Format::eX8D24UnormPack32,
-		vk::Format::eD32SfloatS8Uint,
-		vk::Format::eD16Unorm,
-		vk::Format::eD16UnormS8Uint,
-	};
-	vk::Format framebuffer_depth_format= vk::Format::eD16Unorm;
-	for(const vk::Format depth_format_candidate : depth_formats)
-	{
-		const vk::FormatProperties format_properties=
-			physical_device.getFormatProperties(depth_format_candidate);
-
-		const vk::FormatFeatureFlags required_falgs= vk::FormatFeatureFlagBits::eDepthStencilAttachment;
-		if((format_properties.optimalTilingFeatures & required_falgs) == required_falgs)
-		{
-			framebuffer_depth_format= depth_format_candidate;
-			break;
-		}
-	}
-	Log::Info("Framebuffer depth format: ", vk::to_string(framebuffer_depth_format));
-
 	// Select present mode. Prefer usage of tripple buffering, than double buffering.
 	const std::vector<vk::PresentModeKHR> present_modes= physical_device.getSurfacePresentModesKHR(*surface_);
 	vk::PresentModeKHR present_mode= present_modes.front();
@@ -332,34 +303,19 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window, Settings& settings
 
 	// Create render pass and framebuffers for drawing into screen.
 
-	const vk::AttachmentDescription attachment_descriptions[]
-	{
-		{
-			vk::AttachmentDescriptionFlags(),
-			surface_format.format,
-			vk::SampleCountFlagBits::e1,
-			vk::AttachmentLoadOp::eDontCare,
-			vk::AttachmentStoreOp::eStore,
-			vk::AttachmentLoadOp::eDontCare,
-			vk::AttachmentStoreOp::eDontCare,
-			vk::ImageLayout::eUndefined,
-			vk::ImageLayout::ePresentSrcKHR
-		},
-		{
-			vk::AttachmentDescriptionFlags(),
-			framebuffer_depth_format,
-			vk::SampleCountFlagBits::e1,
-			vk::AttachmentLoadOp::eClear,
-			vk::AttachmentStoreOp::eStore,
-			vk::AttachmentLoadOp::eDontCare,
-			vk::AttachmentStoreOp::eDontCare,
-			vk::ImageLayout::eUndefined,
-			vk::ImageLayout::eDepthStencilAttachmentOptimal, // Actually we do not care about layout after this pass.
-		},
-	};
+	const vk::AttachmentDescription attachment_description(
+		vk::AttachmentDescriptionFlags(),
+		surface_format.format,
+		vk::SampleCountFlagBits::e1,
+		vk::AttachmentLoadOp::eDontCare,
+		vk::AttachmentStoreOp::eStore,
+		vk::AttachmentLoadOp::eDontCare,
+		vk::AttachmentStoreOp::eDontCare,
+		vk::ImageLayout::eUndefined,
+		vk::ImageLayout::ePresentSrcKHR
+	);
 
 	const vk::AttachmentReference attachment_reference_color(0u, vk::ImageLayout::eColorAttachmentOptimal);
-	const vk::AttachmentReference attachment_reference_depth(1u, vk::ImageLayout::eGeneral);
 
 	const vk::SubpassDescription subpass_description(
 		vk::SubpassDescriptionFlags(),
@@ -367,49 +323,19 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window, Settings& settings
 		0u, nullptr,
 		1u, &attachment_reference_color,
 		nullptr,
-		&attachment_reference_depth);
+		nullptr);
 
 	render_pass_=
 		vk_device_->createRenderPassUnique(
 			vk::RenderPassCreateInfo(
 				vk::RenderPassCreateFlags(),
-				uint32_t(std::size(attachment_descriptions)), attachment_descriptions,
+				1u, &attachment_description,
 				1u, &subpass_description));
 
 	const std::vector<vk::Image> swapchain_images= vk_device_->getSwapchainImagesKHR(*swapchain_);
 	framebuffers_.resize(swapchain_images.size());
 	for(size_t i= 0u; i < framebuffers_.size(); ++i)
 	{
-		{
-			framebuffers_[i].depth_image=
-				vk_device_->createImageUnique(
-					vk::ImageCreateInfo(
-						vk::ImageCreateFlags(),
-						vk::ImageType::e2D,
-						framebuffer_depth_format,
-						vk::Extent3D(viewport_size_.width, viewport_size_.height, 1u),
-						1u,
-						1u,
-						vk::SampleCountFlagBits::e1,
-						vk::ImageTiling::eOptimal,
-						vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled,
-						vk::SharingMode::eExclusive,
-						0u, nullptr,
-						vk::ImageLayout::eUndefined));
-
-			framebuffers_[i].depth_image_memory= AllocateAndBindImageMemory(*vk_device_, *framebuffers_[i].depth_image, memory_properties_);
-
-			framebuffers_[i].depth_image_view=
-				vk_device_->createImageViewUnique(
-					vk::ImageViewCreateInfo(
-						vk::ImageViewCreateFlags(),
-						*framebuffers_[i].depth_image,
-						vk::ImageViewType::e2D,
-						framebuffer_depth_format,
-						vk::ComponentMapping(),
-						vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0u, 1u, 0u, 1u)));
-		}
-
 		framebuffers_[i].image= swapchain_images[i];
 
 		framebuffers_[i].image_view=
@@ -422,15 +348,13 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window, Settings& settings
 					vk::ComponentMapping(),
 					vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, 1u, 0u, 1u)));
 
-		const vk::ImageView attachments[]{ *framebuffers_[i].image_view, *framebuffers_[i].depth_image_view };
 		framebuffers_[i].framebuffer=
 			vk_device_->createFramebufferUnique(
 				vk::FramebufferCreateInfo(
 					vk::FramebufferCreateFlags(),
 					*render_pass_,
-					uint32_t(std::size(attachments)), attachments,
+					1u, &*framebuffers_[i].image_view,
 					viewport_size_.width, viewport_size_.height, 1u));
-
 	}
 
 	// Create command pull.

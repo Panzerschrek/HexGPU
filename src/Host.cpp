@@ -103,10 +103,11 @@ Host::Host()
 	, gpu_data_uploader_(window_vulkan_)
 	, global_descriptor_pool_(CreateGlobalDescriptorPool(window_vulkan_.GetVulkanDevice()))
 	, im_gui_wrapper_(system_window_, window_vulkan_)
+	, world_render_pass_(window_vulkan_, *global_descriptor_pool_)
 	, world_processor_(window_vulkan_, gpu_data_uploader_, *global_descriptor_pool_, settings_)
-	, world_renderer_(window_vulkan_, gpu_data_uploader_, world_processor_, *global_descriptor_pool_)
-	, sky_renderer_(window_vulkan_, world_processor_, *global_descriptor_pool_)
-	, build_prism_renderer_(window_vulkan_, world_processor_, *global_descriptor_pool_)
+	, world_renderer_(window_vulkan_, world_render_pass_, gpu_data_uploader_, world_processor_, *global_descriptor_pool_)
+	, sky_renderer_(window_vulkan_, world_render_pass_, world_processor_, *global_descriptor_pool_)
+	, build_prism_renderer_(window_vulkan_, world_render_pass_, world_processor_, *global_descriptor_pool_)
 	, init_time_(Clock::now())
 	, prev_tick_time_(init_time_)
 	, ticks_counter_(std::chrono::milliseconds(500))
@@ -178,44 +179,68 @@ bool Host::Loop()
 		game_has_focus ? CreateMouseState(events) : 0,
 		(game_has_focus && mouse_enabled) ? GetMouseMove(events, settings_) : std::array<float, 2>{0.0f, 0.0f},
 		selected_block_type_,
-		CalculateAspect(window_vulkan_.GetViewportSize()),
+		CalculateAspect(world_render_pass_.GetFramebufferSize()),
 		debug_params_);
 
 	world_renderer_.PrepareFrame(task_organizer_);
 	build_prism_renderer_.PrepareFrame(task_organizer_);
 	sky_renderer_.PrepareFrame(task_organizer_);
 
-	TaskOrganizer::GraphicsTaskParams graphics_task_params;
-	world_renderer_.CollectFrameInputs(graphics_task_params);
-	build_prism_renderer_.CollectFrameInputs(graphics_task_params);
-	sky_renderer_.CollectFrameInputs(graphics_task_params);
+	// Draw into world render pass.
+	{
+		TaskOrganizer::GraphicsTaskParams task_params;
+		world_renderer_.CollectFrameInputs(task_params);
+		sky_renderer_.CollectFrameInputs(task_params);
+		build_prism_renderer_.CollectFrameInputs(task_params);
 
-	graphics_task_params.render_pass= window_vulkan_.GetRenderPass();
-	graphics_task_params.viewport_size= window_vulkan_.GetViewportSize();
+		task_params.framebuffer= world_render_pass_.GetFramebuffer();
+		task_params.viewport_size= world_render_pass_.GetFramebufferSize();
+		task_params.render_pass= world_render_pass_.GetRenderPass();
+		world_render_pass_.CollectPassOutputs(task_params);
 
-	const auto graphics_task_func=
-		[this](const vk::CommandBuffer command_buffer)
+		task_params.clear_values=
 		{
-			world_renderer_.DrawOpaque(command_buffer);
-			sky_renderer_.Draw(command_buffer, accumulated_time_s_);
-			world_renderer_.DrawTransparent(command_buffer, accumulated_time_s_);
-			build_prism_renderer_.Draw(command_buffer);
-
-			im_gui_wrapper_.EndFrame(command_buffer);
+			vk::ClearColorValue(), // Actually do not care clearing color buffer.
+			vk::ClearDepthStencilValue(1.0f, 0u),
 		};
 
-	graphics_task_params.clear_values=
-	{
-		vk::ClearColorValue(std::array<float,4>{1.0f, 0.0f, 1.0f, 1.0f}), // Clear with pink to catch some mistakes.
-		vk::ClearDepthStencilValue(1.0f, 0u),
-	};
+		task_organizer_.ExecuteTask(
+			task_params,
+			[this](const vk::CommandBuffer command_buffer)
+			{
+				world_renderer_.DrawOpaque(command_buffer);
+				sky_renderer_.Draw(command_buffer, accumulated_time_s_);
+				world_renderer_.DrawTransparent(command_buffer, accumulated_time_s_);
+				build_prism_renderer_.Draw(command_buffer);
+			});
+	}
 
-	window_vulkan_.EndFrame(
-		[&](const vk::Framebuffer framebuffer)
+	// Draw into screen.
+	{
+		TaskOrganizer::GraphicsTaskParams task_params;
+		world_render_pass_.CollectFrameInputs(task_params);
+
+		task_params.render_pass= window_vulkan_.GetRenderPass();
+		task_params.viewport_size= window_vulkan_.GetViewportSize();
+		task_params.clear_values=
 		{
-			graphics_task_params.framebuffer= framebuffer;
-			task_organizer_.ExecuteTask(graphics_task_params, graphics_task_func);
-		});
+			vk::ClearColorValue(std::array<float,4>{1.0f, 0.0f, 1.0f, 1.0f}), // Clear with pink to catch some mistakes.
+		};
+
+		const auto task_func=
+			[this](const vk::CommandBuffer command_buffer)
+			{
+				world_render_pass_.Draw(command_buffer);
+				im_gui_wrapper_.EndFrame(command_buffer);
+			};
+
+		window_vulkan_.EndFrame(
+			[&](const vk::Framebuffer framebuffer)
+			{
+				task_params.framebuffer= framebuffer;
+				task_organizer_.ExecuteTask(task_params, task_func);
+			});
+	}
 
 	const Clock::time_point tick_end_time= Clock::now();
 	const auto frame_dt= tick_end_time - tick_start_time;

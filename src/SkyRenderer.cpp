@@ -30,6 +30,7 @@ struct CloudsUniforms
 
 GraphicsPipeline CreateSkyPipeline(
 	const vk::Device vk_device,
+	const vk::SampleCountFlagBits samples,
 	const vk::Extent2D viewport_size,
 	const vk::RenderPass render_pass)
 {
@@ -105,7 +106,9 @@ GraphicsPipeline CreateSkyPipeline(
 		VK_FALSE, 0.0f, 0.0f, 0.0f,
 		1.0f);
 
-	const vk::PipelineMultisampleStateCreateInfo pipeline_multisample_state_create_info;
+	const vk::PipelineMultisampleStateCreateInfo pipeline_multisample_state_create_info(
+		vk::PipelineMultisampleStateCreateFlags(),
+		samples);
 
 	const vk::PipelineDepthStencilStateCreateInfo pipeline_depth_state_create_info(
 		vk::PipelineDepthStencilStateCreateFlags(),
@@ -158,6 +161,7 @@ GraphicsPipeline CreateSkyPipeline(
 
 SkyRenderer::SkyRenderer(
 	WindowVulkan& window_vulkan,
+	WorldRenderPass& world_render_pass,
 	const WorldProcessor& world_processor,
 	const vk::DescriptorPool global_descriptor_pool)
 	: vk_device_(window_vulkan.GetVulkanDevice())
@@ -170,15 +174,17 @@ SkyRenderer::SkyRenderer(
 		vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst)
 	, skybox_pipeline_(
 		CreateSkyPipeline(
-			window_vulkan.GetVulkanDevice(),
-			window_vulkan.GetViewportSize(),
-			window_vulkan.GetRenderPass()))
+			vk_device_,
+			world_render_pass.GetSamples(),
+			world_render_pass.GetFramebufferSize(),
+			world_render_pass.GetRenderPass()))
 	, skybox_descriptor_set_(CreateDescriptorSet(vk_device_, global_descriptor_pool, *skybox_pipeline_.descriptor_set_layout))
 	, clouds_pipeline_(
 		CreateCloudsPipeline(
-			window_vulkan.GetVulkanDevice(),
-			window_vulkan.GetViewportSize(),
-			window_vulkan.GetRenderPass()))
+			vk_device_,
+			world_render_pass.GetSamples(),
+			world_render_pass.GetFramebufferSize(),
+			world_render_pass.GetRenderPass()))
 	, clouds_descriptor_set_(CreateDescriptorSet(vk_device_, global_descriptor_pool, *clouds_pipeline_.descriptor_set_layout))
 {
 	// Update skybox descriptor set.
@@ -355,6 +361,7 @@ void SkyRenderer::DrawClouds(const vk::CommandBuffer command_buffer, const float
 
 SkyRenderer::CloudsPipeline SkyRenderer::CreateCloudsPipeline(
 	const vk::Device vk_device,
+	const vk::SampleCountFlagBits samples,
 	const vk::Extent2D viewport_size,
 	const vk::RenderPass render_pass)
 {
@@ -461,7 +468,9 @@ SkyRenderer::CloudsPipeline SkyRenderer::CreateCloudsPipeline(
 		VK_FALSE, 0.0f, 0.0f, 0.0f,
 		1.0f);
 
-	const vk::PipelineMultisampleStateCreateInfo pipeline_multisample_state_create_info;
+	const vk::PipelineMultisampleStateCreateInfo pipeline_multisample_state_create_info(
+		vk::PipelineMultisampleStateCreateFlags(),
+		samples);
 
 	const vk::PipelineDepthStencilStateCreateInfo pipeline_depth_state_create_info(
 		vk::PipelineDepthStencilStateCreateFlags(),

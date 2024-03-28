@@ -346,6 +346,11 @@ WorldRenderPass::~WorldRenderPass()
 	vk_device_.waitIdle();
 }
 
+vk::Framebuffer WorldRenderPass::GetFramebuffer() const
+{
+	return *framebuffer_;
+}
+
 vk::Extent2D WorldRenderPass::GetFramebufferSize() const
 {
 	return vk::Extent2D(framebuffer_size_.width, framebuffer_size_.height);
@@ -354,6 +359,17 @@ vk::Extent2D WorldRenderPass::GetFramebufferSize() const
 vk::RenderPass WorldRenderPass::GetRenderPass() const
 {
 	return *render_pass_;
+}
+
+void WorldRenderPass::CollectPassOutputs(TaskOrganizer::GraphicsTaskParams& out_task_params) const
+{
+	out_task_params.output_color_images.push_back(TaskOrganizer::ImageInfo{*image_, vk::ImageAspectFlagBits::eColor, 1, 1});
+	out_task_params.output_depth_images.push_back(TaskOrganizer::ImageInfo{*depth_image_, vk::ImageAspectFlagBits::eDepth, 1, 1});
+}
+
+void WorldRenderPass::CollectFrameInputs(TaskOrganizer::GraphicsTaskParams& out_task_params) const
+{
+	out_task_params.input_images.push_back(TaskOrganizer::ImageInfo{*image_, vk::ImageAspectFlagBits::eColor, 1, 1});
 }
 
 void WorldRenderPass::Draw(const vk::CommandBuffer command_buffer)

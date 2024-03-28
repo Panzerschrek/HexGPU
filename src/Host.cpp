@@ -184,10 +184,33 @@ bool Host::Loop()
 	build_prism_renderer_.PrepareFrame(task_organizer_);
 	sky_renderer_.PrepareFrame(task_organizer_);
 
+	{
+		TaskOrganizer::GraphicsTaskParams task_params;
+		sky_renderer_.CollectFrameInputs(task_params);
+
+		task_params.framebuffer= world_render_pass_.GetFramebuffer();
+		task_params.viewport_size= world_render_pass_.GetFramebufferSize();
+		task_params.render_pass= world_render_pass_.GetRenderPass();
+		world_render_pass_.CollectPassOutputs(task_params);
+
+		task_params.clear_values=
+		{
+			vk::ClearColorValue(std::array<float,4>{1.0f, 0.0f, 1.0f, 1.0f}), // Clear with pink to catch some mistakes.
+			vk::ClearDepthStencilValue(1.0f, 0u),
+		};
+
+		const auto func=
+			[this](const vk::CommandBuffer command_buffer)
+		{
+			sky_renderer_.Draw(command_buffer, accumulated_time_s_);
+		};
+
+		task_organizer_.ExecuteTask(task_params, func);
+	}
+
 	TaskOrganizer::GraphicsTaskParams graphics_task_params;
 	world_renderer_.CollectFrameInputs(graphics_task_params);
 	build_prism_renderer_.CollectFrameInputs(graphics_task_params);
-	sky_renderer_.CollectFrameInputs(graphics_task_params);
 
 	graphics_task_params.render_pass= window_vulkan_.GetRenderPass();
 	graphics_task_params.viewport_size= window_vulkan_.GetViewportSize();
@@ -196,7 +219,6 @@ bool Host::Loop()
 		[this](const vk::CommandBuffer command_buffer)
 		{
 			world_renderer_.DrawOpaque(command_buffer);
-			sky_renderer_.Draw(command_buffer, accumulated_time_s_);
 			world_renderer_.DrawTransparent(command_buffer, accumulated_time_s_);
 			build_prism_renderer_.Draw(command_buffer);
 			world_render_pass_.Draw(command_buffer);

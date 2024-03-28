@@ -1,6 +1,7 @@
 #pragma once
 #include "WindowVulkan.hpp"
 #include "Pipeline.hpp"
+#include "TaskOrganizer.hpp"
 
 namespace HexGPU
 {
@@ -11,8 +12,12 @@ public:
 	WorldRenderPass(WindowVulkan& window_vulkan, vk::DescriptorPool global_descriptor_pool);
 	~WorldRenderPass();
 
+	vk::Framebuffer GetFramebuffer() const;
 	vk::Extent2D GetFramebufferSize() const;
 	vk::RenderPass GetRenderPass() const;
+
+	void CollectPassOutputs(TaskOrganizer::GraphicsTaskParams& out_task_params) const;
+	void CollectFrameInputs(TaskOrganizer::GraphicsTaskParams& out_task_params) const;
 
 	void Draw(vk::CommandBuffer command_buffer);
 

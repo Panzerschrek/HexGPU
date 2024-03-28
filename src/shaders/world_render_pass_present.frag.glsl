@@ -8,28 +8,9 @@ void main()
 {
 	ivec2 coord= ivec2(gl_FragCoord.xy);
 	vec4 c0= texelFetch(frame_image, coord, 0);
-	/*
-	vec4 average= 0.0625 *(
-		texelFetch(frame_image, coord + ivec2(-1, -1), 0) +
-		texelFetch(frame_image, coord + ivec2(-1,  0), 0) +
-		texelFetch(frame_image, coord + ivec2(-1,  1), 0) +
-		texelFetch(frame_image, coord + ivec2(-1,  2), 0) +
-		texelFetch(frame_image, coord + ivec2( 0, -1), 0) +
-		texelFetch(frame_image, coord + ivec2( 0,  0), 0) +
-		texelFetch(frame_image, coord + ivec2( 0,  1), 0) +
-		texelFetch(frame_image, coord + ivec2( 0,  2), 0) +
-		texelFetch(frame_image, coord + ivec2( 1, -1), 0) +
-		texelFetch(frame_image, coord + ivec2( 1,  0), 0) +
-		texelFetch(frame_image, coord + ivec2( 1,  1), 0) +
-		texelFetch(frame_image, coord + ivec2( 1,  2), 0) +
-		texelFetch(frame_image, coord + ivec2( 2, -1), 0) +
-		texelFetch(frame_image, coord + ivec2( 2,  0), 0) +
-		texelFetch(frame_image, coord + ivec2( 2,  1), 0) +
-		texelFetch(frame_image, coord + ivec2( 2,  2), 0));
-	*/
-	vec4 average= 0.24 *(
+	vec4 average= 0.25 *(
 		c0 +
-		texelFetch(frame_image, coord + ivec2(0, 0), 0) +
+		texelFetch(frame_image, coord + ivec2(0, 1), 0) +
 		texelFetch(frame_image, coord + ivec2(1, 0), 0) +
 		texelFetch(frame_image, coord + ivec2(1, 1), 0));
 

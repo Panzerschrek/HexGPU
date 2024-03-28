@@ -1,6 +1,7 @@
 #pragma once
 #include "Pipeline.hpp"
 #include "WorldProcessor.hpp"
+#include "WorldRenderPass.hpp"
 
 namespace HexGPU
 {
@@ -10,6 +11,7 @@ class BuildPrismRenderer
 public:
 	BuildPrismRenderer(
 		WindowVulkan& window_vulkan,
+		WorldRenderPass& world_render_pass,
 		const WorldProcessor& world_processor,
 		vk::DescriptorPool global_descriptor_pool);
 

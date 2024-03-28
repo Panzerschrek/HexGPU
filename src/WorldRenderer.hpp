@@ -3,6 +3,7 @@
 #include "Buffer.hpp"
 #include "GPUDataUploader.hpp"
 #include "WorldGeometryGenerator.hpp"
+#include "WorldRenderPass.hpp"
 #include "WorldTexturesGenerator.hpp"
 
 namespace HexGPU
@@ -13,6 +14,7 @@ class WorldRenderer
 public:
 	WorldRenderer(
 		WindowVulkan& window_vulkan,
+		WorldRenderPass& world_render_pass,
 		GPUDataUploader& gpu_data_uploader,
 		const WorldProcessor& world_processor,
 		vk::DescriptorPool global_descriptor_pool);

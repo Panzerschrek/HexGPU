@@ -162,6 +162,7 @@ ComputePipeline CreateDrawIndirectBufferBuildPipeline(const vk::Device vk_device
 
 WorldRenderer::WorldRenderer(
 	WindowVulkan& window_vulkan,
+	WorldRenderPass& world_render_pass,
 	GPUDataUploader& gpu_data_uploader,
 	const WorldProcessor& world_processor,
 	const vk::DescriptorPool global_descriptor_pool)
@@ -213,14 +214,14 @@ WorldRenderer::WorldRenderer(
 			VK_FALSE)))
 	, draw_pipeline_(
 		CreateWorldDrawPipeline(
-			vk_device_, window_vulkan.GetViewportSize(), window_vulkan.GetRenderPass(), *texture_sampler_))
+			vk_device_, world_render_pass.GetFramebufferSize(), world_render_pass.GetRenderPass(), *texture_sampler_))
 	, descriptor_set_(CreateDescriptorSet(vk_device_, global_descriptor_pool, *draw_pipeline_.descriptor_set_layout))
 	, water_draw_pipeline_(
 		CreateWorldWaterDrawPipeline(
-			vk_device_, window_vulkan.GetViewportSize(), window_vulkan.GetRenderPass(), *texture_sampler_))
+			vk_device_, world_render_pass.GetFramebufferSize(), world_render_pass.GetRenderPass(), *texture_sampler_))
 	, water_descriptor_set_(CreateDescriptorSet(vk_device_, global_descriptor_pool, *water_draw_pipeline_.descriptor_set_layout))
 	, fire_draw_pipeline_(
-		CreateFireDrawPipeline(vk_device_, window_vulkan.GetViewportSize(), window_vulkan.GetRenderPass(), *texture_sampler_))
+		CreateFireDrawPipeline(vk_device_, world_render_pass.GetFramebufferSize(), world_render_pass.GetRenderPass(), *texture_sampler_))
 	, fire_descriptor_set_(CreateDescriptorSet(vk_device_, global_descriptor_pool, *fire_draw_pipeline_.descriptor_set_layout))
 	, index_buffer_(CreateAndFillQuadsIndexBuffer(window_vulkan, gpu_data_uploader))
 {

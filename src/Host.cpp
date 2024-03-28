@@ -105,9 +105,9 @@ Host::Host()
 	, im_gui_wrapper_(system_window_, window_vulkan_)
 	, world_render_pass_(window_vulkan_, *global_descriptor_pool_)
 	, world_processor_(window_vulkan_, gpu_data_uploader_, *global_descriptor_pool_, settings_)
-	, world_renderer_(window_vulkan_, gpu_data_uploader_, world_processor_, *global_descriptor_pool_)
+	, world_renderer_(window_vulkan_, world_render_pass_, gpu_data_uploader_, world_processor_, *global_descriptor_pool_)
 	, sky_renderer_(window_vulkan_, world_render_pass_, world_processor_, *global_descriptor_pool_)
-	, build_prism_renderer_(window_vulkan_, world_processor_, *global_descriptor_pool_)
+	, build_prism_renderer_(window_vulkan_, world_render_pass_, world_processor_, *global_descriptor_pool_)
 	, init_time_(Clock::now())
 	, prev_tick_time_(init_time_)
 	, ticks_counter_(std::chrono::milliseconds(500))
@@ -186,7 +186,9 @@ bool Host::Loop()
 
 	{
 		TaskOrganizer::GraphicsTaskParams task_params;
+		world_renderer_.CollectFrameInputs(task_params);
 		sky_renderer_.CollectFrameInputs(task_params);
+		build_prism_renderer_.CollectFrameInputs(task_params);
 
 		task_params.framebuffer= world_render_pass_.GetFramebuffer();
 		task_params.viewport_size= world_render_pass_.GetFramebufferSize();
@@ -202,15 +204,17 @@ bool Host::Loop()
 		const auto func=
 			[this](const vk::CommandBuffer command_buffer)
 		{
+			world_renderer_.DrawOpaque(command_buffer);
 			sky_renderer_.Draw(command_buffer, accumulated_time_s_);
+			world_renderer_.DrawTransparent(command_buffer, accumulated_time_s_);
+			build_prism_renderer_.Draw(command_buffer);
 		};
 
 		task_organizer_.ExecuteTask(task_params, func);
 	}
 
 	TaskOrganizer::GraphicsTaskParams graphics_task_params;
-	world_renderer_.CollectFrameInputs(graphics_task_params);
-	build_prism_renderer_.CollectFrameInputs(graphics_task_params);
+	world_render_pass_.CollectPassOutputs(graphics_task_params);
 
 	graphics_task_params.render_pass= window_vulkan_.GetRenderPass();
 	graphics_task_params.viewport_size= window_vulkan_.GetViewportSize();
@@ -218,11 +222,7 @@ bool Host::Loop()
 	const auto graphics_task_func=
 		[this](const vk::CommandBuffer command_buffer)
 		{
-			world_renderer_.DrawOpaque(command_buffer);
-			world_renderer_.DrawTransparent(command_buffer, accumulated_time_s_);
-			build_prism_renderer_.Draw(command_buffer);
 			world_render_pass_.Draw(command_buffer);
-
 			im_gui_wrapper_.EndFrame(command_buffer);
 		};
 

@@ -147,6 +147,7 @@ GraphicsPipeline CreateBuildPrismPipeline(
 
 BuildPrismRenderer::BuildPrismRenderer(
 	WindowVulkan& window_vulkan,
+	WorldRenderPass& world_render_pass,
 	const WorldProcessor& world_processor,
 	const vk::DescriptorPool global_descriptor_pool)
 	: vk_device_(window_vulkan.GetVulkanDevice())
@@ -156,7 +157,7 @@ BuildPrismRenderer::BuildPrismRenderer(
 		window_vulkan,
 		sizeof(DrawUniforms),
 		vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst)
-	, pipeline_(CreateBuildPrismPipeline(vk_device_, window_vulkan.GetViewportSize(), window_vulkan.GetRenderPass()))
+	, pipeline_(CreateBuildPrismPipeline(vk_device_, world_render_pass.GetFramebufferSize(), world_render_pass.GetRenderPass()))
 	, descriptor_set_(CreateDescriptorSet(vk_device_, global_descriptor_pool, *pipeline_.descriptor_set_layout))
 {
 	// Update descriptor set.

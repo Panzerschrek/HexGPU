@@ -32,18 +32,21 @@ private:
 
 	static GraphicsPipeline CreateWorldDrawPipeline(
 		vk::Device vk_device,
+		vk::SampleCountFlagBits samples,
 		vk::Extent2D viewport_size,
 		vk::RenderPass render_pass,
 		vk::Sampler texture_sampler);
 
 	static GraphicsPipeline CreateWorldWaterDrawPipeline(
 		vk::Device vk_device,
+		vk::SampleCountFlagBits samples,
 		vk::Extent2D viewport_size,
 		vk::RenderPass render_pass,
 		vk::Sampler texture_sampler);
 
 	static GraphicsPipeline CreateFireDrawPipeline(
 		vk::Device vk_device,
+		vk::SampleCountFlagBits samples,
 		vk::Extent2D viewport_size,
 		vk::RenderPass render_pass,
 		vk::Sampler texture_sampler);

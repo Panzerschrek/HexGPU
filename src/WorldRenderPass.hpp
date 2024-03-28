@@ -12,6 +12,7 @@ public:
 	WorldRenderPass(WindowVulkan& window_vulkan, vk::DescriptorPool global_descriptor_pool);
 	~WorldRenderPass();
 
+	vk::SampleCountFlagBits GetSamples() const;
 	vk::Framebuffer GetFramebuffer() const;
 	vk::Extent2D GetFramebufferSize() const;
 	vk::RenderPass GetRenderPass() const;
@@ -24,6 +25,7 @@ public:
 private:
 	const vk::Device vk_device_;
 
+	const vk::SampleCountFlagBits samples_;
 	const vk::Extent3D framebuffer_size_;
 
 	const vk::UniqueImage image_;

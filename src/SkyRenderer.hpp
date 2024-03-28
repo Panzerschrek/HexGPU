@@ -32,6 +32,7 @@ private:
 
 	static CloudsPipeline CreateCloudsPipeline(
 		vk::Device vk_device,
+		vk::SampleCountFlagBits samples,
 		vk::Extent2D viewport_size,
 		vk::RenderPass render_pass);
 

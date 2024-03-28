@@ -46,14 +46,17 @@ vk::Format ChooseDepthFormat(const vk::PhysicalDevice physical_device)
 	return vk::Format::eD16Unorm;
 }
 
-vk::UniqueRenderPass CreateRenderPass(const vk::Device vk_device, const vk::Format depth_format)
+vk::UniqueRenderPass CreateRenderPass(
+	const vk::Device vk_device,
+	const vk::Format depth_format,
+	const vk::SampleCountFlagBits samples)
 {
 	const vk::AttachmentDescription attachment_descriptions[]
 	{
 		{
 			vk::AttachmentDescriptionFlags(),
 			vk::Format::eR8G8B8A8Unorm,
-			vk::SampleCountFlagBits::e1,
+			samples,
 			vk::AttachmentLoadOp::eDontCare,
 			vk::AttachmentStoreOp::eStore,
 			vk::AttachmentLoadOp::eDontCare,
@@ -64,7 +67,7 @@ vk::UniqueRenderPass CreateRenderPass(const vk::Device vk_device, const vk::Form
 		{
 			vk::AttachmentDescriptionFlags(),
 			depth_format,
-			vk::SampleCountFlagBits::e1,
+			samples,
 			vk::AttachmentLoadOp::eClear,
 			vk::AttachmentStoreOp::eStore,
 			vk::AttachmentLoadOp::eDontCare,
@@ -240,6 +243,7 @@ GraphicsPipeline CreateWorldRenderPassPresentPipeline(
 
 WorldRenderPass::WorldRenderPass(WindowVulkan& window_vulkan, const vk::DescriptorPool global_descriptor_pool)
 	: vk_device_(window_vulkan.GetVulkanDevice())
+	, samples_(vk::SampleCountFlagBits::e4)
 	, framebuffer_size_(GetFramebufferTextureSize(window_vulkan))
 	, image_(vk_device_.createImageUnique(
 		vk::ImageCreateInfo(
@@ -249,7 +253,7 @@ WorldRenderPass::WorldRenderPass(WindowVulkan& window_vulkan, const vk::Descript
 			framebuffer_size_,
 			1u,
 			1u,
-			vk::SampleCountFlagBits::e1,
+			samples_,
 			vk::ImageTiling::eOptimal,
 			vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled,
 			vk::SharingMode::eExclusive,
@@ -273,7 +277,7 @@ WorldRenderPass::WorldRenderPass(WindowVulkan& window_vulkan, const vk::Descript
 			framebuffer_size_,
 			1u,
 			1u,
-			vk::SampleCountFlagBits::e1,
+			samples_,
 			vk::ImageTiling::eOptimal,
 			vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled,
 			vk::SharingMode::eExclusive,
@@ -288,26 +292,26 @@ WorldRenderPass::WorldRenderPass(WindowVulkan& window_vulkan, const vk::Descript
 			depth_format_,
 			vk::ComponentMapping(),
 			vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0u, 1u, 0u, 1u))))
-	, render_pass_(CreateRenderPass(vk_device_, depth_format_))
+	, render_pass_(CreateRenderPass(vk_device_, depth_format_, samples_))
 	, framebuffer_(CreateFramebuffer(vk_device_, *image_view_, *depth_image_view_, *render_pass_, framebuffer_size_))
 	, sampler_(vk_device_.createSamplerUnique(
 		vk::SamplerCreateInfo(
-		vk::SamplerCreateFlags(),
-		vk::Filter::eNearest,
-		vk::Filter::eNearest,
-		vk::SamplerMipmapMode::eNearest,
-		vk::SamplerAddressMode::eClampToEdge,
-		vk::SamplerAddressMode::eClampToBorder,
-		vk::SamplerAddressMode::eClampToEdge,
-		0.0f,
-		VK_FALSE,
-		1.0f,
-		VK_FALSE,
-		vk::CompareOp::eNever,
-		0.0f,
-		0.0f,
-		vk::BorderColor::eFloatTransparentBlack,
-		VK_FALSE)))
+			vk::SamplerCreateFlags(),
+			vk::Filter::eNearest,
+			vk::Filter::eNearest,
+			vk::SamplerMipmapMode::eNearest,
+			vk::SamplerAddressMode::eClampToEdge,
+			vk::SamplerAddressMode::eClampToBorder,
+			vk::SamplerAddressMode::eClampToEdge,
+			0.0f,
+			VK_FALSE,
+			1.0f,
+			VK_FALSE,
+			vk::CompareOp::eNever,
+			0.0f,
+			0.0f,
+			vk::BorderColor::eFloatTransparentBlack,
+			VK_FALSE)))
 	, pipeline_(
 		CreateWorldRenderPassPresentPipeline(
 			vk_device_,
@@ -344,6 +348,11 @@ WorldRenderPass::~WorldRenderPass()
 {
 	// Sync before destruction.
 	vk_device_.waitIdle();
+}
+
+vk::SampleCountFlagBits WorldRenderPass::GetSamples() const
+{
+	return samples_;
 }
 
 vk::Framebuffer WorldRenderPass::GetFramebuffer() const

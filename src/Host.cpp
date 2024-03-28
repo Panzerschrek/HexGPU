@@ -214,7 +214,7 @@ bool Host::Loop()
 	}
 
 	TaskOrganizer::GraphicsTaskParams graphics_task_params;
-	world_render_pass_.CollectPassOutputs(graphics_task_params);
+	world_render_pass_.CollectFrameInputs(graphics_task_params);
 
 	graphics_task_params.render_pass= window_vulkan_.GetRenderPass();
 	graphics_task_params.viewport_size= window_vulkan_.GetViewportSize();

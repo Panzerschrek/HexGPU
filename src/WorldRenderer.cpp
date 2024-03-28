@@ -461,7 +461,19 @@ void WorldRenderer::CollectFrameInputs(TaskOrganizer::GraphicsTaskParams& out_ta
 	out_task_params.input_images.push_back(textures_generator_.GetImageInfo());
 }
 
-void WorldRenderer::DrawOpaque(const vk::CommandBuffer command_buffer)
+void WorldRenderer::DrawOpaque(const vk::CommandBuffer command_buffer, const float time_s)
+{
+	DrawWorld(command_buffer);
+	DrawFire(command_buffer, time_s);
+}
+
+void WorldRenderer::DrawTransparent(const vk::CommandBuffer command_buffer, const float time_s)
+{
+	DrawWater(command_buffer, time_s);
+	DrawFire(command_buffer, time_s);
+}
+
+void WorldRenderer::DrawWorld(const vk::CommandBuffer command_buffer)
 {
 	const vk::Buffer vertex_buffer= geometry_generator_.GetVertexBuffer();
 
@@ -483,12 +495,6 @@ void WorldRenderer::DrawOpaque(const vk::CommandBuffer command_buffer)
 		0,
 		world_size_[0] * world_size_[1],
 		sizeof(vk::DrawIndexedIndirectCommand));
-}
-
-void WorldRenderer::DrawTransparent(const vk::CommandBuffer command_buffer, const float time_s)
-{
-	DrawWater(command_buffer, time_s);
-	DrawFire(command_buffer, time_s);
 }
 
 void WorldRenderer::DrawWater(vk::CommandBuffer command_buffer, const float time_s)
@@ -981,11 +987,10 @@ GraphicsPipeline WorldRenderer::CreateFireDrawPipeline(
 		0.0f,
 		1.0f);
 
-	// Use simple alpha-blending.
 	const vk::PipelineColorBlendAttachmentState pipeline_color_blend_attachment_state(
-		VK_TRUE,
-		vk::BlendFactor::eSrcAlpha, vk::BlendFactor::eOneMinusSrcAlpha, vk::BlendOp::eAdd,
-		vk::BlendFactor::eSrcAlpha, vk::BlendFactor::eOneMinusSrcAlpha, vk::BlendOp::eAdd,
+		VK_FALSE,
+		vk::BlendFactor::eOne, vk::BlendFactor::eZero, vk::BlendOp::eAdd,
+		vk::BlendFactor::eOne, vk::BlendFactor::eZero, vk::BlendOp::eAdd,
 		vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
 
 	const vk::PipelineColorBlendStateCreateInfo pipeline_color_blend_state_create_info(

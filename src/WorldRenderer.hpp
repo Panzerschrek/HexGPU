@@ -23,10 +23,11 @@ public:
 
 	void PrepareFrame(TaskOrganizer& task_organizer);
 	void CollectFrameInputs(TaskOrganizer::GraphicsTaskParams& out_task_params);
-	void DrawOpaque(vk::CommandBuffer command_buffer);
+	void DrawOpaque(vk::CommandBuffer command_buffer, float time_s);
 	void DrawTransparent(vk::CommandBuffer command_buffer, float time_s);
 
 private:
+	void DrawWorld(vk::CommandBuffer command_buffer);
 	void DrawWater(vk::CommandBuffer command_buffer, float time_s);
 	void DrawFire(vk::CommandBuffer command_buffer, float time_s);
 

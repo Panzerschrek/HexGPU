@@ -1,3 +1,17 @@
+bool AlphaDither2x2(float alpha)
+{
+	const float[2][2] c_dither_matrix=
+	float[2][2]
+	(
+		float[2](0.0 / 4.0, 2.0 / 4.0),
+		float[2](3.0 / 4.0, 1.0 / 4.0)
+	);
+
+	ivec2 dither_coord= ivec2(gl_FragCoord.xy) & 1;
+
+	return alpha <= c_dither_matrix[dither_coord.x][dither_coord.y];
+}
+
 bool AlphaDither(float alpha)
 {
 	const float[4][4] c_dither_matrix=

@@ -62,7 +62,7 @@ vk::UniqueRenderPass CreateRenderPass(
 			vk::AttachmentLoadOp::eDontCare,
 			vk::AttachmentStoreOp::eDontCare,
 			vk::ImageLayout::eUndefined,
-			vk::ImageLayout::eColorAttachmentOptimal // Leave in this layout.
+			vk::ImageLayout::eColorAttachmentOptimal // Leave optimal layout. Change it later if necessary.
 		},
 		{
 			vk::AttachmentDescriptionFlags(),
@@ -73,7 +73,7 @@ vk::UniqueRenderPass CreateRenderPass(
 			vk::AttachmentLoadOp::eDontCare,
 			vk::AttachmentStoreOp::eDontCare,
 			vk::ImageLayout::eUndefined,
-			vk::ImageLayout::eDepthStencilAttachmentOptimal, // Leane in this layout.
+			vk::ImageLayout::eDepthStencilAttachmentOptimal, // Leave optimal layout.  Change it later if necessary.
 		},
 	};
 

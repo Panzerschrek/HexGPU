@@ -121,13 +121,13 @@ const i16vec3 c_block_texture_table[c_num_block_types]=
 	i16vec3( 4,  4,  4), // sand
 	i16vec3( 1,  1,  1), // fire
 	i16vec3(20, 20, 12), // glass_white
-	i16vec3(20, 20, 13), // glass_grey
-	i16vec3(20, 20, 14), // glass_red
-	i16vec3(20, 20, 15), // glass_yellow
-	i16vec3(20, 20, 16), // glass_green
-	i16vec3(20, 20, 17), // glass_cian
-	i16vec3(20, 20, 18), // glass_blue
-	i16vec3(20, 20, 19)  // glass_magenta
+	i16vec3(21, 21, 13), // glass_grey
+	i16vec3(22, 22, 14), // glass_red
+	i16vec3(23, 23, 15), // glass_yellow
+	i16vec3(24, 24, 16), // glass_green
+	i16vec3(25, 25, 17), // glass_cian
+	i16vec3(26, 26, 18), // glass_blue
+	i16vec3(27, 27, 19)  // glass_magenta
 );
 
 // If this changed, C++ code must be changed too!

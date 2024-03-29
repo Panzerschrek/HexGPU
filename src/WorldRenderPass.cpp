@@ -10,10 +10,11 @@ namespace HexGPU
 namespace
 {
 
-vk::Extent3D GetFramebufferTextureSize(WindowVulkan& window_vulkan)
+vk::Extent3D GetFramebufferTextureSize(WindowVulkan& window_vulkan, const bool use_supersampling)
 {
 	const vk::Extent2D size_2d= window_vulkan.GetViewportSize();
-	return vk::Extent3D(size_2d.width, size_2d.height, 1);
+	const uint32_t scale= use_supersampling ? 2 : 1;
+	return vk::Extent3D(size_2d.width * scale, size_2d.height * scale, 1);
 }
 
 vk::Format ChooseDepthFormat(const vk::PhysicalDevice physical_device)
@@ -115,12 +116,19 @@ GraphicsPipeline CreateWorldRenderPassPresentPipeline(
 	const vk::Device vk_device,
 	const vk::RenderPass swapchain_render_pass,
 	const vk::Sampler sampler,
-	const vk::Extent2D viewport_size)
+	const vk::Extent2D viewport_size,
+	const bool use_supersampling)
 {
 	GraphicsPipeline pipeline;
 
 	pipeline.shader_vert= CreateShader(vk_device, ShaderNames::world_render_pass_present_vert);
-	pipeline.shader_frag= CreateShader(vk_device, ShaderNames::world_render_pass_present_frag);
+
+	pipeline.shader_frag=
+		CreateShader(
+			vk_device,
+			use_supersampling
+				? ShaderNames::world_render_pass_present_supersampling_frag
+				: ShaderNames::world_render_pass_present_frag);
 
 	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
 	{
@@ -241,10 +249,14 @@ GraphicsPipeline CreateWorldRenderPassPresentPipeline(
 
 } // namespace
 
-WorldRenderPass::WorldRenderPass(WindowVulkan& window_vulkan, const vk::DescriptorPool global_descriptor_pool)
+WorldRenderPass::WorldRenderPass(
+	WindowVulkan& window_vulkan,
+	Settings& settings,
+	const vk::DescriptorPool global_descriptor_pool)
 	: vk_device_(window_vulkan.GetVulkanDevice())
+	, use_supersampling_(settings.GetOrSetInt("r_supersampling", 1) != 0)
 	, samples_(vk::SampleCountFlagBits::e1)
-	, framebuffer_size_(GetFramebufferTextureSize(window_vulkan))
+	, framebuffer_size_(GetFramebufferTextureSize(window_vulkan, use_supersampling_))
 	, image_(vk_device_.createImageUnique(
 		vk::ImageCreateInfo(
 			vk::ImageCreateFlags(),
@@ -317,7 +329,8 @@ WorldRenderPass::WorldRenderPass(WindowVulkan& window_vulkan, const vk::Descript
 			vk_device_,
 			window_vulkan.GetRenderPass(),
 			*sampler_,
-			vk::Extent2D(framebuffer_size_.width, framebuffer_size_.height)))
+			vk::Extent2D(framebuffer_size_.width, framebuffer_size_.height),
+			use_supersampling_))
 	, descriptor_set_(CreateDescriptorSet(vk_device_, global_descriptor_pool, *pipeline_.descriptor_set_layout))
 {
 	// Update descriptor set.
@@ -348,6 +361,11 @@ WorldRenderPass::~WorldRenderPass()
 {
 	// Sync before destruction.
 	vk_device_.waitIdle();
+}
+
+bool WorldRenderPass::UseSupersampling() const
+{
+	return use_supersampling_;
 }
 
 vk::SampleCountFlagBits WorldRenderPass::GetSamples() const

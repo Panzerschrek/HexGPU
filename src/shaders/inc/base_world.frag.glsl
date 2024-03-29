@@ -1,7 +1,4 @@
-#version 450
-
-#extension GL_GOOGLE_include_directive : require
-
+#include "inc/dithering.glsl"
 #include "inc/world_common.glsl"
 #include "inc/world_rendering_constants.glsl"
 #include "inc/world_shader_uniforms.glsl"
@@ -23,10 +20,10 @@ void main()
 {
 	vec4 tex_value= HexagonFetch(texture_image, vec3(f_tex_coord, f_tex_index));
 
-	if(tex_value.a < 0.5)
+	if(DITHER_FUNC(tex_value.a))
 		discard;
 
 	// tex_value.rgb= vec3(0.5, 0.5, 0.5);
 	vec3 l= CombineLight(f_light.x * c_fire_light_color, f_light.y * uniforms.sky_light_color.rgb, c_ambient_light_color);
-	out_color= vec4(l * tex_value.rgb, 1.0);
+	out_color= vec4(l * tex_value.rgb, tex_value.a);
 }

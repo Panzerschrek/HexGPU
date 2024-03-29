@@ -23,15 +23,17 @@ public:
 
 	void PrepareFrame(TaskOrganizer& task_organizer);
 	void CollectFrameInputs(TaskOrganizer::GraphicsTaskParams& out_task_params);
-	void DrawOpaque(vk::CommandBuffer command_buffer);
+	void DrawOpaque(vk::CommandBuffer command_buffer, float time_s);
 	void DrawTransparent(vk::CommandBuffer command_buffer, float time_s);
 
 private:
+	void DrawWorld(vk::CommandBuffer command_buffer);
 	void DrawWater(vk::CommandBuffer command_buffer, float time_s);
 	void DrawFire(vk::CommandBuffer command_buffer, float time_s);
 
 	static GraphicsPipeline CreateWorldDrawPipeline(
 		vk::Device vk_device,
+		bool use_supersampling,
 		vk::SampleCountFlagBits samples,
 		vk::Extent2D viewport_size,
 		vk::RenderPass render_pass,
@@ -46,6 +48,7 @@ private:
 
 	static GraphicsPipeline CreateFireDrawPipeline(
 		vk::Device vk_device,
+		bool use_supersampling,
 		vk::SampleCountFlagBits samples,
 		vk::Extent2D viewport_size,
 		vk::RenderPass render_pass,

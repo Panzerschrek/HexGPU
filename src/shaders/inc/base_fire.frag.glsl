@@ -1,7 +1,4 @@
-#version 450
-
-#extension GL_GOOGLE_include_directive : require
-
+#include "inc/dithering.glsl"
 #include "inc/world_common.glsl"
 #include "inc/world_shader_uniforms.glsl"
 
@@ -39,7 +36,7 @@ void main()
 	float alpha= 1.0 - smoothstep(c_step_end_pos - c_step_width, c_step_end_pos, inv_temperature);
 	alpha*= 1.0 - smoothstep(0.8, 1.0, y);
 
-	if(alpha < 0.04)
+	if(DITHER_FUNC(alpha))
 		discard;
 
 	vec3 color_for_temperature= mix(vec3(0.5, 0.1, 0.05), vec3(1.5, 1.4, 1.2), sqrt(inv_temperature));

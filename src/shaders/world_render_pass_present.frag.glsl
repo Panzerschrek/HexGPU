@@ -10,20 +10,29 @@ void main()
 
 	ivec2 coord= ivec2(gl_FragCoord.xy) << 1;
 
-	vec4 average= vec4(0);
-	for(int dx= 0; dx < 4; ++dx)
-	for(int dy= 0; dy < 4; ++dy)
-		average+= texelFetch(frame_image, coord + ivec2(dx - 1, dy - 1), 0);
-	average/= 16.0;
+	vec4 box_2x2_sum=
+		texelFetch(frame_image, coord + ivec2(0, 0), 0) +
+		texelFetch(frame_image, coord + ivec2(0, 1), 0) +
+		texelFetch(frame_image, coord + ivec2(1, 0), 0) +
+		texelFetch(frame_image, coord + ivec2(1, 1), 0);
 
-	if(average.a < 1.0)
-		out_color= average;
+	vec4 box_4x4_sum=
+		box_2x2_sum +
+		texelFetch(frame_image, coord + ivec2(-1, -1), 0) +
+		texelFetch(frame_image, coord + ivec2(-1,  0), 0) +
+		texelFetch(frame_image, coord + ivec2(-1,  1), 0) +
+		texelFetch(frame_image, coord + ivec2(-1,  2), 0) +
+		texelFetch(frame_image, coord + ivec2( 0, -1), 0) +
+		texelFetch(frame_image, coord + ivec2( 0,  2), 0) +
+		texelFetch(frame_image, coord + ivec2( 1, -1), 0) +
+		texelFetch(frame_image, coord + ivec2( 1,  2), 0) +
+		texelFetch(frame_image, coord + ivec2( 2, -1), 0) +
+		texelFetch(frame_image, coord + ivec2( 2,  0), 0) +
+		texelFetch(frame_image, coord + ivec2( 2,  1), 0) +
+		texelFetch(frame_image, coord + ivec2( 2,  2), 0);
+
+	if(box_4x4_sum.a < 16.0)
+		out_color= vecbox_4x4_sum * 0.0625;
 	else
-	{
-		out_color= 0.25 *(
-			texelFetch(frame_image, coord + ivec2(0, 0), 0) +
-			texelFetch(frame_image, coord + ivec2(0, 1), 0) +
-			texelFetch(frame_image, coord + ivec2(1, 0), 0) +
-			texelFetch(frame_image, coord + ivec2(1, 1), 0));
-	}
+		out_color= box_2x2_sum * 0.25;
 }

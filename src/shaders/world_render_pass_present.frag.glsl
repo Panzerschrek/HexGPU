@@ -10,8 +10,7 @@ void main()
 
 	ivec2 coord= ivec2(gl_FragCoord.xy);
 
-	vec4 c0=
-		texelFetch(frame_image, coord, 0);
+	vec4 c0= texelFetch(frame_image, coord, 0);
 
 	vec4 box_2x2_sum=
 		c0 +
@@ -19,6 +18,8 @@ void main()
 		texelFetch(frame_image, coord + ivec2(1, 0), 0) +
 		texelFetch(frame_image, coord + ivec2(1, 1), 0);
 
+	// Alpha channel on surfaces with dithering should be less than 1.
+	// For opaque surfaces alpha should be always 1.
 	if(box_2x2_sum.a < 4.0)
 		out_color= box_2x2_sum * 0.25;
 	else

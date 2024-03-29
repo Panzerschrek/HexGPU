@@ -16,7 +16,6 @@ layout(location= 2) in flat float f_tex_index;
 
 layout(location = 0) out vec4 out_color;
 
-
 void main()
 {
 	vec4 tex_value= HexagonFetch(texture_image, vec3(f_tex_coord, f_tex_index));

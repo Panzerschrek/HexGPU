@@ -31,6 +31,8 @@ void main()
 		texelFetch(frame_image, coord + ivec2( 2,  1), 0) +
 		texelFetch(frame_image, coord + ivec2( 2,  2), 0);
 
+	// Alpha channel on surfaces with dithering should be less than 1.
+	// For opaque surfaces alpha should be always 1.
 	if(box_4x4_sum.a < 16.0)
 		out_color= box_4x4_sum * 0.0625;
 	else

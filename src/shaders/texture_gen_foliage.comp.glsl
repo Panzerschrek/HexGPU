@@ -91,7 +91,7 @@ void main()
 	vec4 background_color= vec4(background_pattern.cell_color * 0.5, background_pattern.edge_factor);
 	vec4 foreground_color= vec4(foreground_pattern.cell_color, foreground_pattern.edge_factor);
 	vec4 color= mix(background_color, foreground_color, foreground_color.a);
-	color.a= step(0.5, color.a);
+	color.a= step(0.5, color.a); // Keep alpha in mip #0 binary - avoid semitransparent leafs (this looks ugly).
 
 	imageStore(out_image, texel_coord, color);
 }

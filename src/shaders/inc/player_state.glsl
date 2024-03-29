@@ -4,6 +4,7 @@ struct PlayerState
 	mat4 blocks_matrix;
 	mat4 fog_matrix;
 	mat4 sky_matrix;
+	vec4 fog_color;
 	vec4 frustum_planes[5];
 	vec4 pos;
 	vec4 angles; // azimuth, elevation

@@ -32,7 +32,7 @@ void main()
 	// Input coordinates should be scaled properly to ensure full fog at required distance.
 	float square_fog_distance= dot(f_fog_coord, f_fog_coord);
 	float fog_factor= min(square_fog_distance, 1.0);
-	vec3 color_with_fog= mix(self_color, vec3(0.5, 0.0, 0.5), fog_factor);
+	vec3 color_with_fog= mix(self_color, uniforms.fog_color.rgb, fog_factor);
 
 	out_color= vec4(color_with_fog, tex_value.a);
 }

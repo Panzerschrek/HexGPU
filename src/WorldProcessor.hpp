@@ -25,6 +25,7 @@ public:
 		float blocks_matrix[16]{};
 		float fog_matrix[16]{};
 		float sky_matrix[16]{};
+		float fog_color[4]{};
 		float frustum_planes[5][4]{};
 		float pos[4]{};
 		float angles[4]{};

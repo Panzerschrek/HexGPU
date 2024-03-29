@@ -360,6 +360,10 @@ void UpdatePlayerMatrices()
 	// Rotation isn't needed, since fog is spherical.
 	float fog_distance= 32.0;
 	player_state.fog_matrix= MakeScaleMatrix(vec3(1.0 / fog_distance)) * translate_and_blocks_scale;
+
+	// TODO - move into anouther place.
+	// TODO - use sky light at player position.
+	player_state.fog_color.rgb= vec3(0.76, 0.76, 1.0);
 }
 
 void UpdatePlayerFrustumPlanes()

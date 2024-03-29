@@ -49,6 +49,7 @@ struct DrawIndirectBufferBuildUniforms
 struct WorldShaderUniforms
 {
 	float view_matrix[16]{};
+	float fog_matrix[16]{};
 	float sky_light_color[4]{};
 };
 
@@ -1052,7 +1053,12 @@ void WorldRenderer::CopyViewMatrix(TaskOrganizer& task_organizer)
 						offsetof(WorldProcessor::PlayerState, blocks_matrix),
 						offsetof(WorldShaderUniforms, view_matrix),
 						sizeof(float) * 16
-					}
+					},
+					{
+						offsetof(WorldProcessor::PlayerState, fog_matrix),
+						offsetof(WorldShaderUniforms, fog_matrix),
+						sizeof(float) * 16
+					},
 				});
 
 			// Copy sky light color.

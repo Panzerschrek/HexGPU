@@ -347,13 +347,17 @@ void UpdatePlayerMatrices()
 		MakeRotationXMatrix(-player_state.angles.y) *
 		MakeRotationZMatrix(-player_state.angles.x);
 
-	player_state.blocks_matrix=
-		rotation_and_perspective *
-		MateTranslateMatrix(-vec3(player_state.pos.xy, player_state.pos.z + c_player_eyes_level) ) *
-		MakeScaleMatrix(vec3(0.5 / sqrt(3.0), 0.5, 1.0));
+	mat4 translate_matrix= MateTranslateMatrix(-vec3(player_state.pos.xy, player_state.pos.z + c_player_eyes_level) );
+	mat4 blocks_scale_matrix= MakeScaleMatrix(vec3(0.5 / sqrt(3.0), 0.5, 1.0));
+
+	mat4 translate_and_scale_blocks_matrix= translate_matrix * blocks_scale_matrix;
+
+	player_state.blocks_matrix= rotation_and_perspective * translate_and_scale_blocks_matrix;
 
 	// Do not upply translation to sky matrix - always keep player in the center of the sky mesh.
 	player_state.sky_matrix= rotation_and_perspective;
+
+	player_state.fog_matrix= translate_and_scale_blocks_matrix;
 }
 
 void UpdatePlayerFrustumPlanes()

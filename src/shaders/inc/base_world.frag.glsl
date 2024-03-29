@@ -13,6 +13,7 @@ layout(binding= 1) uniform sampler2DArray texture_image;
 layout(location= 0) in vec2 f_light;
 layout(location= 1) in vec2 f_tex_coord;
 layout(location= 2) in flat float f_tex_index;
+layout(location= 3) in vec3 f_fog_coord;
 
 layout(location = 0) out vec4 out_color;
 
@@ -25,5 +26,10 @@ void main()
 
 	// tex_value.rgb= vec3(0.5, 0.5, 0.5);
 	vec3 l= CombineLight(f_light.x * c_fire_light_color, f_light.y * uniforms.sky_light_color.rgb, c_ambient_light_color);
-	out_color= vec4(l * tex_value.rgb, tex_value.a);
+	vec3 self_color= l * tex_value.rgb;
+
+	float fog_factor= exp(-length(f_fog_coord) * 0.1);
+	vec3 color_with_fog= mix(vec3(0.5, 0.0, 0.5), self_color, fog_factor);
+
+	out_color= vec4(color_with_fog, tex_value.a);
 }

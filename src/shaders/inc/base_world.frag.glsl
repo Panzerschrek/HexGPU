@@ -28,8 +28,11 @@ void main()
 	vec3 l= CombineLight(f_light.x * c_fire_light_color, f_light.y * uniforms.sky_light_color.rgb, c_ambient_light_color);
 	vec3 self_color= l * tex_value.rgb;
 
-	float fog_factor= exp(-length(f_fog_coord) * 0.1);
-	vec3 color_with_fog= mix(vec3(0.5, 0.0, 0.5), self_color, fog_factor);
+	// Use quadratic fog function - for good performance.
+	// Input coordinates should be scaled properly to ensure full fog at required distance.
+	float square_fog_distance= dot(f_fog_coord, f_fog_coord);
+	float fog_factor= min(square_fog_distance, 1.0);
+	vec3 color_with_fog= mix(self_color, vec3(0.5, 0.0, 0.5), fog_factor);
 
 	out_color= vec4(color_with_fog, tex_value.a);
 }

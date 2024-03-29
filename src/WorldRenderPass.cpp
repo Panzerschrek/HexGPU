@@ -363,6 +363,11 @@ WorldRenderPass::~WorldRenderPass()
 	vk_device_.waitIdle();
 }
 
+bool WorldRenderPass::UseSupersampling() const
+{
+	return use_supersampling_;
+}
+
 vk::SampleCountFlagBits WorldRenderPass::GetSamples() const
 {
 	return samples_;

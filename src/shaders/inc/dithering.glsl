@@ -12,7 +12,7 @@ bool AlphaDither2x2(float alpha)
 	return alpha <= c_dither_matrix[dither_coord.x][dither_coord.y];
 }
 
-bool AlphaDither(float alpha)
+bool AlphaDither4x4(float alpha)
 {
 	const float[4][4] c_dither_matrix=
 	float[4][4]

@@ -215,6 +215,7 @@ WorldRenderer::WorldRenderer(
 	, draw_pipeline_(
 		CreateWorldDrawPipeline(
 			vk_device_,
+			world_render_pass.UseSupersampling(),
 			world_render_pass.GetSamples(),
 			world_render_pass.GetFramebufferSize(),
 			world_render_pass.GetRenderPass(),
@@ -231,6 +232,7 @@ WorldRenderer::WorldRenderer(
 	, fire_draw_pipeline_(
 		CreateFireDrawPipeline(
 			vk_device_,
+			world_render_pass.UseSupersampling(),
 			world_render_pass.GetSamples(),
 			world_render_pass.GetFramebufferSize(),
 			world_render_pass.GetRenderPass(),
@@ -566,6 +568,7 @@ void WorldRenderer::DrawFire(vk::CommandBuffer command_buffer, const float time_
 
 GraphicsPipeline WorldRenderer::CreateWorldDrawPipeline(
 	const vk::Device vk_device,
+	const bool use_supersampling,
 	const vk::SampleCountFlagBits samples,
 	const vk::Extent2D viewport_size,
 	const vk::RenderPass render_pass,
@@ -575,7 +578,10 @@ GraphicsPipeline WorldRenderer::CreateWorldDrawPipeline(
 
 	// Create shaders
 	pipeline.shader_vert= CreateShader(vk_device, ShaderNames::world_vert);
-	pipeline.shader_frag= CreateShader(vk_device, ShaderNames::world_frag);
+	pipeline.shader_frag=
+		CreateShader(
+			vk_device,
+			use_supersampling ? ShaderNames::world_dither_4x4_frag : ShaderNames::world_dither_2x2_frag);
 
 	// Create descriptor set layout.
 	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
@@ -872,6 +878,7 @@ GraphicsPipeline WorldRenderer::CreateWorldWaterDrawPipeline(
 
 GraphicsPipeline WorldRenderer::CreateFireDrawPipeline(
 	const vk::Device vk_device,
+	const bool use_supersampling,
 	const vk::SampleCountFlagBits samples,
 	const vk::Extent2D viewport_size,
 	const vk::RenderPass render_pass,
@@ -880,7 +887,10 @@ GraphicsPipeline WorldRenderer::CreateFireDrawPipeline(
 	GraphicsPipeline pipeline;
 
 	pipeline.shader_vert= CreateShader(vk_device, ShaderNames::fire_vert);
-	pipeline.shader_frag= CreateShader(vk_device, ShaderNames::fire_frag);
+	pipeline.shader_frag=
+		CreateShader(
+			vk_device,
+			use_supersampling ? ShaderNames::fire_dither_4x4_frag : ShaderNames::fire_dither_2x2_frag);
 
 	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
 	{

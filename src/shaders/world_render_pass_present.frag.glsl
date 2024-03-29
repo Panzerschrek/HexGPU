@@ -7,7 +7,6 @@ layout(location= 0) out vec4 out_color;
 void main()
 {
 	// Perform 2x2 filtering for dithering (if needed).
-	// Such filtering still doesn't filter all dithering artefacts, but it's better than 4x4 box filter, which is too blurry without supersampling.
 
 	ivec2 coord= ivec2(gl_FragCoord.xy);
 

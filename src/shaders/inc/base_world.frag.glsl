@@ -1,7 +1,3 @@
-#version 450
-
-#extension GL_GOOGLE_include_directive : require
-
 #include "inc/dithering.glsl"
 #include "inc/world_common.glsl"
 #include "inc/world_rendering_constants.glsl"
@@ -25,7 +21,7 @@ void main()
 {
 	vec4 tex_value= HexagonFetch(texture_image, vec3(f_tex_coord, f_tex_index));
 
-	if(AlphaDither(tex_value.a))
+	if(DITHER_FUNC(tex_value.a))
 		discard;
 
 	// tex_value.rgb= vec3(0.5, 0.5, 0.5);

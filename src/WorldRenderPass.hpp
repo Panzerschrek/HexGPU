@@ -13,6 +13,7 @@ public:
 	WorldRenderPass(WindowVulkan& window_vulkan, Settings& settings, vk::DescriptorPool global_descriptor_pool);
 	~WorldRenderPass();
 
+	bool UseSupersampling() const;
 	vk::SampleCountFlagBits GetSamples() const;
 	vk::Framebuffer GetFramebuffer() const;
 	vk::Extent2D GetFramebufferSize() const;

@@ -1,6 +1,7 @@
 #pragma once
 #include "WindowVulkan.hpp"
 #include "Pipeline.hpp"
+#include "Settings.hpp"
 #include "TaskOrganizer.hpp"
 
 namespace HexGPU
@@ -9,7 +10,7 @@ namespace HexGPU
 class WorldRenderPass
 {
 public:
-	WorldRenderPass(WindowVulkan& window_vulkan, vk::DescriptorPool global_descriptor_pool);
+	WorldRenderPass(WindowVulkan& window_vulkan, Settings& settings, vk::DescriptorPool global_descriptor_pool);
 	~WorldRenderPass();
 
 	vk::SampleCountFlagBits GetSamples() const;
@@ -25,6 +26,7 @@ public:
 private:
 	const vk::Device vk_device_;
 
+	const bool use_supersampling_;
 	const vk::SampleCountFlagBits samples_;
 	const vk::Extent3D framebuffer_size_;
 

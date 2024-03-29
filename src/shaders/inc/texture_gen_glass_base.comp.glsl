@@ -19,5 +19,9 @@ void main()
 	if(grid_cell_fract < 1.0 / x_step || grid_cell_fract >= (1.0 - 1.0 / x_step))
 		color= vec4(GLASS_COLOR, 1.0);
 
+	int vertical_bar= texel_coord.y & 31;
+	if(vertical_bar == 0 || vertical_bar == 31)
+		color= vec4(GLASS_COLOR, 1.0);
+
 	imageStore(out_image, texel_coord, color);
 }

@@ -47,6 +47,7 @@ private:
 		ShaderNames::texture_gen_glass_cian_comp,
 		ShaderNames::texture_gen_glass_blue_comp,
 		ShaderNames::texture_gen_glass_magenta_comp,
+		ShaderNames::texture_gen_glass_top_comp,
 	};
 
 	static constexpr uint32_t c_num_layers= uint32_t(std::size(gen_shader_table));

@@ -18,6 +18,7 @@ layout(location=1) in i16vec4 tex_coord;
 
 layout(location= 0) out vec2 f_tex_coord;
 layout(location= 1) out flat float f_fire_power;
+layout(location= 2) out vec3 f_fog_coord;
 
 void main()
 {
@@ -25,6 +26,8 @@ void main()
 
 	// TODO - maybe use greater factor to show fire growing slower?
 	f_fire_power= min(1.0, float(tex_coord.w) * (1.0 / float(c_min_fire_power_for_fire_to_spread)));
+
+	f_fog_coord= (uniforms.fog_matrix * vec4(pos.xyz, 1.0)).xyz;
 
 	gl_Position= uniforms.view_matrix * vec4(pos.xyz, 1.0);
 }

@@ -72,3 +72,11 @@ vec3 CombineLight(vec3 fire_light, vec3 sky_light, vec3 ambient_light)
 		sky_light * (c_one - c_mul * fire_light) +
 		ambient_light;
 }
+
+float CalculateFogFactor(vec3 fog_coord)
+{
+	// Use quadratic fog function - for good performance.
+	// Input coordinates should be scaled properly to ensure full fog at required distance.
+	float square_fog_distance= dot(fog_coord, fog_coord);
+	return min(square_fog_distance, 1.0);
+}

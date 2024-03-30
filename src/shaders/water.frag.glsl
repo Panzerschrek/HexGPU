@@ -20,6 +20,7 @@ layout(binding= 1) uniform sampler2D texture_image;
 
 layout(location= 0) in vec2 f_light;
 layout(location= 1) in vec2 f_tex_coord;
+layout(location= 2) in vec3 f_fog_coord;
 
 layout(location = 0) out vec4 out_color;
 
@@ -30,5 +31,10 @@ void main()
 	vec4 tex_value= HexagonFetch(texture_image, tc);
 
 	vec3 l= CombineLight(f_light.x * c_fire_light_color, f_light.y * uniforms.sky_light_color.rgb, c_ambient_light_color);
-	out_color= vec4(l * tex_value.rgb, 0.5);
+	vec3 self_color= l * tex_value.rgb;
+
+	float fog_factor= CalculateFogFactor(f_fog_coord);
+	vec3 color_with_fog= mix(self_color, uniforms.fog_color.rgb, fog_factor);
+
+	out_color= vec4(color_with_fog, 0.5);
 }

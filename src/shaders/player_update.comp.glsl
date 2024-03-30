@@ -21,6 +21,7 @@ layout(push_constant) uniform uniforms_block
 	uint keyboard_state;
 	uint mouse_state;
 	vec2 mouse_move;
+	float fog_distance;
 	uint8_t selected_block_type;
 };
 
@@ -358,7 +359,6 @@ void UpdatePlayerMatrices()
 
 	// For fog matrix only translation and scale are required.
 	// Rotation isn't needed, since fog is spherical.
-	float fog_distance= 32.0;
 	player_state.fog_matrix= MakeScaleMatrix(vec3(1.0 / fog_distance)) * translate_and_blocks_scale;
 }
 

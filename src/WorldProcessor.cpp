@@ -139,6 +139,7 @@ struct PlayerUpdateUniforms
 	KeyboardState keyboard_state= 0;
 	MouseState mouse_state= 0;
 	float mouse_move[2]{};
+	float fog_distance= 100.0f;
 	BlockType selected_block_type= BlockType::Air;
 };
 
@@ -2344,6 +2345,12 @@ void WorldProcessor::UpdatePlayer(
 	player_update_uniforms.selected_block_type= selected_block_type;
 	player_update_uniforms.mouse_move[0]= mouse_move[0];
 	player_update_uniforms.mouse_move[1]= mouse_move[1];
+
+	// Make sure fog is full at world borders, including possible player shift without world move.
+	player_update_uniforms.fog_distance=
+		std::min(
+			float(std::max(2u, world_size_[0] / 2 - 2)) * float(c_chunk_width) * c_space_scale_x,
+			float(std::max(2u, world_size_[1] / 2 - 2)) * float(c_chunk_width));
 
 	TaskOrganizer::ComputeTaskParams player_update_task;
 	player_update_task.input_output_storage_buffers.push_back(player_state_buffer_.GetBuffer());

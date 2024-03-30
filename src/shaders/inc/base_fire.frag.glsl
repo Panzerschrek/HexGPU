@@ -16,6 +16,7 @@ layout(binding= 1) uniform sampler2D texture_image;
 
 layout(location= 0) in vec2 f_tex_coord;
 layout(location= 1) in flat float f_fire_power;
+layout(location= 2) in vec3 f_fog_coord;
 
 layout(location = 0) out vec4 out_color;
 
@@ -41,5 +42,8 @@ void main()
 
 	vec3 color_for_temperature= mix(vec3(0.5, 0.1, 0.05), vec3(1.5, 1.4, 1.2), sqrt(inv_temperature));
 
-	out_color= vec4(color_for_temperature, alpha);
+	float fog_factor= CalculateFogFactor(f_fog_coord);
+	vec3 color_with_fog= mix(color_for_temperature, uniforms.fog_color.rgb, fog_factor);
+
+	out_color= vec4(color_with_fog, alpha);
 }

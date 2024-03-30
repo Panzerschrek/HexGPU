@@ -9,6 +9,7 @@ const int c_player_world_window_volume= c_player_world_window_size.x * c_player_
 struct PlayerWorldWindow
 {
 	ivec4 offset; // Position of the window start (in blocks)
+	uint player_block_light; // Value of light data byte (both light kinds packed).
 	uint8_t window_data[c_player_world_window_volume];
 };
 

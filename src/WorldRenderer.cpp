@@ -49,6 +49,8 @@ struct DrawIndirectBufferBuildUniforms
 struct WorldShaderUniforms
 {
 	float view_matrix[16]{};
+	float fog_matrix[16]{};
+	float fog_color[4]{};
 	float sky_light_color[4]{};
 };
 
@@ -1043,7 +1045,7 @@ void WorldRenderer::CopyViewMatrix(TaskOrganizer& task_organizer)
 	const auto task_func=
 		[this](const vk::CommandBuffer command_buffer)
 		{
-			// Copy view matrix.
+			// Copy view params from player state.
 			command_buffer.copyBuffer(
 				world_processor_.GetPlayerStateBuffer(),
 				uniform_buffer_.GetBuffer(),
@@ -1052,7 +1054,17 @@ void WorldRenderer::CopyViewMatrix(TaskOrganizer& task_organizer)
 						offsetof(WorldProcessor::PlayerState, blocks_matrix),
 						offsetof(WorldShaderUniforms, view_matrix),
 						sizeof(float) * 16
-					}
+					},
+					{
+						offsetof(WorldProcessor::PlayerState, fog_matrix),
+						offsetof(WorldShaderUniforms, fog_matrix),
+						sizeof(float) * 16
+					},
+					{
+						offsetof(WorldProcessor::PlayerState, fog_color),
+						offsetof(WorldShaderUniforms, fog_color),
+						sizeof(float) * 4
+					},
 				});
 
 			// Copy sky light color.

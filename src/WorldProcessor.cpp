@@ -54,6 +54,7 @@ namespace PlayerWorldWindowBuildShaderBindings
 	const ShaderBindingIndex chunk_data_buffer= 0;
 	const ShaderBindingIndex player_world_window_buffer= 1;
 	const ShaderBindingIndex player_state_buffer= 2;
+	const ShaderBindingIndex light_data_buffer= 3;
 }
 
 namespace PlayerUpdateShaderBindings
@@ -61,6 +62,7 @@ namespace PlayerUpdateShaderBindings
 	const ShaderBindingIndex player_state_buffer= 1;
 	const ShaderBindingIndex world_blocks_external_update_queue_buffer= 2;
 	const ShaderBindingIndex player_world_window_buffer= 3;
+	const ShaderBindingIndex world_global_state_buffer= 4;
 }
 
 namespace WorldBlocksExternalUpdateQueueFlushShaderBindigns
@@ -138,6 +140,7 @@ struct PlayerUpdateUniforms
 	KeyboardState keyboard_state= 0;
 	MouseState mouse_state= 0;
 	float mouse_move[2]{};
+	float fog_distance= 100.0f;
 	BlockType selected_block_type= BlockType::Air;
 };
 
@@ -470,6 +473,13 @@ ComputePipeline CreatePlayerWorldWindowBuildPipeline(const vk::Device vk_device)
 			vk::ShaderStageFlagBits::eCompute,
 			nullptr,
 		},
+		{
+			PlayerWorldWindowBuildShaderBindings::light_data_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
 	};
 
 	pipeline.descriptor_set_layout= vk_device.createDescriptorSetLayoutUnique(
@@ -517,6 +527,13 @@ ComputePipeline CreatePlayerUpdatePipeline(const vk::Device vk_device)
 		},
 		{
 			PlayerUpdateShaderBindings::player_world_window_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+		{
+			PlayerUpdateShaderBindings::world_global_state_buffer,
 			vk::DescriptorType::eStorageBuffer,
 			1u,
 			vk::ShaderStageFlagBits::eCompute,
@@ -1098,6 +1115,11 @@ WorldProcessor::WorldProcessor(
 			0u,
 			sizeof(PlayerState));
 
+		const vk::DescriptorBufferInfo light_data_buffer_info(
+			light_buffers_[i].GetBuffer(),
+			0u,
+			light_buffers_[i].GetSize());
+
 		vk_device_.updateDescriptorSets(
 			{
 				{
@@ -1130,6 +1152,16 @@ WorldProcessor::WorldProcessor(
 					&player_state_buffer_info,
 					nullptr
 				},
+				{
+					player_world_window_build_descriptor_sets_[i],
+					PlayerWorldWindowBuildShaderBindings::light_data_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&light_data_buffer_info,
+					nullptr
+				},
 			},
 			{});
 	}
@@ -1150,6 +1182,11 @@ WorldProcessor::WorldProcessor(
 			player_world_window_buffer_.GetBuffer(),
 			0u,
 			sizeof(PlayerWorldWindow));
+
+		const vk::DescriptorBufferInfo world_global_state_buffer_info(
+			world_global_state_buffer_.GetBuffer(),
+			0u,
+			sizeof(WorldGlobalState));
 
 		vk_device_.updateDescriptorSets(
 			{
@@ -1181,6 +1218,16 @@ WorldProcessor::WorldProcessor(
 					vk::DescriptorType::eStorageBuffer,
 					nullptr,
 					&player_world_window_buffer_info,
+					nullptr
+				},
+				{
+					player_update_descriptor_set_,
+					PlayerUpdateShaderBindings::world_global_state_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&world_global_state_buffer_info,
 					nullptr
 				},
 			},
@@ -2259,6 +2306,7 @@ void WorldProcessor::BuildPlayerWorldWindow(TaskOrganizer& task_organizer)
 	TaskOrganizer::ComputeTaskParams task;
 	task.input_storage_buffers.push_back(player_state_buffer_.GetBuffer());
 	task.input_storage_buffers.push_back(chunk_data_buffers_[src_buffer_index].GetBuffer());
+	task.input_storage_buffers.push_back(light_buffers_[src_buffer_index].GetBuffer());
 	task.output_storage_buffers.push_back(player_world_window_buffer_.GetBuffer());
 
 	const auto task_func=
@@ -2321,7 +2369,14 @@ void WorldProcessor::UpdatePlayer(
 	player_update_uniforms.mouse_move[0]= mouse_move[0];
 	player_update_uniforms.mouse_move[1]= mouse_move[1];
 
+	// Make sure fog is full at world borders, including possible player shift without world move.
+	player_update_uniforms.fog_distance=
+		std::min(
+			float(std::max(2u, world_size_[0] / 2 - 2)) * float(c_chunk_width) * c_space_scale_x,
+			float(std::max(2u, world_size_[1] / 2 - 2)) * float(c_chunk_width));
+
 	TaskOrganizer::ComputeTaskParams player_update_task;
+	player_update_task.input_storage_buffers.push_back(world_global_state_buffer_.GetBuffer());
 	player_update_task.input_output_storage_buffers.push_back(player_state_buffer_.GetBuffer());
 	player_update_task.input_output_storage_buffers.push_back(world_blocks_external_update_queue_buffer_.GetBuffer());
 	player_update_task.input_output_storage_buffers.push_back(player_world_window_buffer_.GetBuffer());

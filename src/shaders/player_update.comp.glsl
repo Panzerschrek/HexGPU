@@ -13,6 +13,7 @@
 #include "inc/player_state.glsl"
 #include "inc/player_world_window.glsl"
 #include "inc/world_blocks_external_update_queue.glsl"
+#include "inc/world_global_state.glsl"
 
 layout(push_constant) uniform uniforms_block
 {
@@ -21,6 +22,7 @@ layout(push_constant) uniform uniforms_block
 	uint keyboard_state;
 	uint mouse_state;
 	vec2 mouse_move;
+	float fog_distance;
 	uint8_t selected_block_type;
 };
 
@@ -37,6 +39,11 @@ layout(binding= 2, std430) buffer world_blocks_external_update_queue_buffer
 layout(binding= 3, std430) buffer player_world_window_buffer
 {
 	PlayerWorldWindow player_world_window;
+};
+
+layout(binding= 4, std430) buffer readonly world_global_state_buffer
+{
+	WorldGlobalState world_global_state;
 };
 
 // Player movement constants.
@@ -347,13 +354,18 @@ void UpdatePlayerMatrices()
 		MakeRotationXMatrix(-player_state.angles.y) *
 		MakeRotationZMatrix(-player_state.angles.x);
 
-	player_state.blocks_matrix=
-		rotation_and_perspective *
-		MateTranslateMatrix(-vec3(player_state.pos.xy, player_state.pos.z + c_player_eyes_level) ) *
+	mat4 translate_and_blocks_scale=
+		MateTranslateMatrix(-vec3(player_state.pos.xy, player_state.pos.z + c_player_eyes_level)) *
 		MakeScaleMatrix(vec3(0.5 / sqrt(3.0), 0.5, 1.0));
+
+	player_state.blocks_matrix= rotation_and_perspective * translate_and_blocks_scale;
 
 	// Do not upply translation to sky matrix - always keep player in the center of the sky mesh.
 	player_state.sky_matrix= rotation_and_perspective;
+
+	// For fog matrix only translation and scale are required.
+	// Rotation isn't needed, since fog is spherical.
+	player_state.fog_matrix= MakeScaleMatrix(vec3(1.0 / fog_distance)) * translate_and_blocks_scale;
 }
 
 void UpdatePlayerFrustumPlanes()
@@ -385,6 +397,19 @@ void UpdateNextPlayerWorldWindowOffset()
 			(GetHexogonCoord(player_state.pos.xy) - c_player_world_window_size.xy / 2) & 0xFFFFFFFE,
 			int(floor(player_state.pos.z)) - c_player_world_window_size.z / 2,
 			0);
+}
+
+void UpdateFogColor()
+{
+	// Multiply fog color by factor dependent on sky light at player position in order to make fog darker underground.
+	float sky_light= float(player_world_window.player_block_light >> c_sky_light_shift) / float(c_max_sky_light);
+	float fog_brightness= pow(sky_light, 0.333); // Use non-linear function to keep fog brighter in semi-dark places.
+	vec3 new_fog_color= fog_brightness * world_global_state.base_fog_color.rgb;
+
+	// Perform temporal interpolation of fog color.
+	// Calculate mix factor based on time delata in order to keep update speed constant.
+	float mix_factor= pow(0.3, time_delta_s);
+	player_state.fog_color.rgb= mix(new_fog_color, player_state.fog_color.rgb, mix_factor);
 }
 
 void main()
@@ -441,4 +466,5 @@ void main()
 	UpdatePlayerMatrices();
 	UpdatePlayerFrustumPlanes();
 	UpdateNextPlayerWorldWindowOffset();
+	UpdateFogColor();
 }

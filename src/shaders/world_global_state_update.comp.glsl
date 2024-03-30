@@ -47,4 +47,10 @@ void main()
 
 	world_global_state.clouds_color.rgb= clouds_darkening_factor * mix(c_nightime_clouds_color, c_daytime_clouds_color, daynight_k);
 	world_global_state.clouds_color.a= 1.0 - (rain_intensity * 0.7 + 0.25);
+
+	world_global_state.base_fog_color.rgb=
+		mix(
+			0.75 * world_global_state.sky_color.rgb,
+			0.9 * world_global_state.clouds_color.rgb,
+			sqrt(rain_intensity));
 }

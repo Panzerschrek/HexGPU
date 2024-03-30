@@ -23,7 +23,9 @@ public:
 	struct PlayerState
 	{
 		float blocks_matrix[16]{};
+		float fog_matrix[16]{};
 		float sky_matrix[16]{};
+		float fog_color[4]{};
 		float frustum_planes[5][4]{};
 		float pos[4]{};
 		float angles[4]{};
@@ -41,6 +43,7 @@ public:
 		float sky_color[4]{};
 		float sun_direction[4]{};
 		float clouds_color[4]{};
+		float base_fog_color[4]{};
 	};
 
 public:
@@ -92,6 +95,7 @@ private:
 	struct PlayerWorldWindow
 	{
 		int32_t offset[4]{}; // Position of the window start (in blocks)
+		uint32_t player_block_light= 0;
 		uint8_t window_data[c_player_world_window_volume];
 	};
 

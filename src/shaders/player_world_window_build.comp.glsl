@@ -34,6 +34,11 @@ layout(binding= 2, std430) readonly buffer player_state_buffer
 	PlayerState player_state;
 };
 
+layout(binding= 3, std430) readonly buffer light_data_biffer
+{
+	uint8_t light_data[];
+};
+
 void main()
 {
 	ivec4 player_world_window_offset= player_state.next_player_world_window_offset;
@@ -41,7 +46,14 @@ void main()
 	ivec3 invocation= ivec3(gl_GlobalInvocationID);
 
 	if(invocation == ivec3(0, 0, 0))
+	{
 		player_world_window.offset= player_world_window_offset;
+
+		ivec3 player_block_global_coord= ivec3(GetHexogonCoord(player_state.pos.xy), int(floor(player_state.pos.z)) + 1);
+		ivec3 player_block_coord= player_block_global_coord - ivec3(world_offset_chunks << c_chunk_width_log2, 0);
+		if(IsInWorldBorders(player_block_coord, world_size_chunks))
+			player_world_window.player_block_light= light_data[GetBlockFullAddress(player_block_coord, world_size_chunks)];
+	}
 
 	ivec3 block_coord= player_world_window_offset.xyz - ivec3(world_offset_chunks << c_chunk_width_log2, 0) + invocation;
 

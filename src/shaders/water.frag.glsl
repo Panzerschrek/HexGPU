@@ -36,5 +36,8 @@ void main()
 	float fog_factor= CalculateFogFactor(f_fog_coord);
 	vec3 color_with_fog= mix(self_color, uniforms.fog_color.rgb, fog_factor);
 
-	out_color= vec4(color_with_fog, 0.5);
+	// Make water at distance less transparent, in order to hide fog behind water.
+	float alpha= 0.55 + 0.45 * fog_factor;
+
+	out_color= vec4(color_with_fog, alpha);
 }

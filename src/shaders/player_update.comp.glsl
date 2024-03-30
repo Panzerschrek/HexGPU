@@ -407,8 +407,9 @@ void UpdateFogColor()
 	vec3 new_fog_color= fog_brightness * world_global_state.base_fog_color.rgb;
 
 	// Perform temporal interpolation of fog color.
-	// TODO - make it FPS-intependent.
-	player_state.fog_color.rgb= mix(player_state.fog_color.rgb, new_fog_color, 0.02);
+	// Calculate mix factor based on time delata in order to keep update speed constant.
+	float mix_factor= pow(0.3, time_delta_s);
+	player_state.fog_color.rgb= mix(new_fog_color, player_state.fog_color.rgb, mix_factor);
 }
 
 void main()

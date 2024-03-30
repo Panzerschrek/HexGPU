@@ -51,7 +51,7 @@ More memory for bigger active world size is required.
 
 For now it's possible to run the game, fly, build blocks, destroy them.
 Game world is pseudo-randomly generated and is somewhat unlimited.
-The number of block types is for now very poor - around 10.
+The number of block types is for now very poor - around 20.
 
 It's possible to specify time of day via debug menu.
 But for now this affects only the sky and world lighting, but not the game logic itself.
@@ -85,6 +85,7 @@ Some configuration params:
 * "r_window_width", "r_window_height" - game window size
 * "r_fullscreeen" - 0 to run windowed or 1 to run in fullscreen mode
 * "r_vsync" - 0 to disable vsync, 1 to enable
+* "r_supersampling" - 0 to to disable sumpersampled antialiasing, 1 to enable it
 * "r_device_id" - you may change Vulkan device via this setting. This may be helpful for systems with more than 1 GPU.
 * "g_world_size_x", "g_world_size_y" - world size (in chunks). Increase this to have bigger view distance, but this may affect performance.
 * "g_world_seed" - set to some number to change world generator seed

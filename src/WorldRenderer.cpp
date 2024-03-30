@@ -1063,7 +1063,7 @@ void WorldRenderer::CopyViewMatrix(TaskOrganizer& task_organizer)
 					{
 						offsetof(WorldProcessor::PlayerState, fog_color),
 						offsetof(WorldShaderUniforms, fog_color),
-						sizeof(float) * 16
+						sizeof(float) * 4
 					},
 				});
 

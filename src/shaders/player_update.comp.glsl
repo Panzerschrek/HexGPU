@@ -13,6 +13,7 @@
 #include "inc/player_state.glsl"
 #include "inc/player_world_window.glsl"
 #include "inc/world_blocks_external_update_queue.glsl"
+#include "inc/world_global_state.glsl"
 
 layout(push_constant) uniform uniforms_block
 {
@@ -38,6 +39,11 @@ layout(binding= 2, std430) buffer world_blocks_external_update_queue_buffer
 layout(binding= 3, std430) buffer player_world_window_buffer
 {
 	PlayerWorldWindow player_world_window;
+};
+
+layout(binding= 4, std430) buffer readonly world_global_state_buffer
+{
+	WorldGlobalState world_global_state;
 };
 
 // Player movement constants.
@@ -397,7 +403,7 @@ void UpdateFogColor()
 {
 	float sky_light= float(player_world_window.player_block_light >> c_sky_light_shift) / float(c_max_sky_light);
 	// Multiply fog color by sky light at player position in order to make fog darker underground.
-	player_state.fog_color.rgb= sky_light * vec3(0.76, 0.76, 1.0);
+	player_state.fog_color.rgb= sky_light * world_global_state.base_fog_color.rgb;
 }
 
 void main()

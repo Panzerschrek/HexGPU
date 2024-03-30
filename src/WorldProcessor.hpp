@@ -43,6 +43,7 @@ public:
 		float sky_color[4]{};
 		float sun_direction[4]{};
 		float clouds_color[4]{};
+		float base_fog_color[4]{};
 	};
 
 public:

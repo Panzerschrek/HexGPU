@@ -62,6 +62,7 @@ namespace PlayerUpdateShaderBindings
 	const ShaderBindingIndex player_state_buffer= 1;
 	const ShaderBindingIndex world_blocks_external_update_queue_buffer= 2;
 	const ShaderBindingIndex player_world_window_buffer= 3;
+	const ShaderBindingIndex world_global_state_buffer= 4;
 }
 
 namespace WorldBlocksExternalUpdateQueueFlushShaderBindigns
@@ -526,6 +527,13 @@ ComputePipeline CreatePlayerUpdatePipeline(const vk::Device vk_device)
 		},
 		{
 			PlayerUpdateShaderBindings::player_world_window_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+		{
+			PlayerUpdateShaderBindings::world_global_state_buffer,
 			vk::DescriptorType::eStorageBuffer,
 			1u,
 			vk::ShaderStageFlagBits::eCompute,
@@ -1175,6 +1183,11 @@ WorldProcessor::WorldProcessor(
 			0u,
 			sizeof(PlayerWorldWindow));
 
+		const vk::DescriptorBufferInfo world_global_state_buffer_info(
+			world_global_state_buffer_.GetBuffer(),
+			0u,
+			sizeof(WorldGlobalState));
+
 		vk_device_.updateDescriptorSets(
 			{
 				{
@@ -1205,6 +1218,16 @@ WorldProcessor::WorldProcessor(
 					vk::DescriptorType::eStorageBuffer,
 					nullptr,
 					&player_world_window_buffer_info,
+					nullptr
+				},
+				{
+					player_update_descriptor_set_,
+					PlayerUpdateShaderBindings::world_global_state_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&world_global_state_buffer_info,
 					nullptr
 				},
 			},
@@ -2353,6 +2376,7 @@ void WorldProcessor::UpdatePlayer(
 			float(std::max(2u, world_size_[1] / 2 - 2)) * float(c_chunk_width));
 
 	TaskOrganizer::ComputeTaskParams player_update_task;
+	player_update_task.input_storage_buffers.push_back(world_global_state_buffer_.GetBuffer());
 	player_update_task.input_output_storage_buffers.push_back(player_state_buffer_.GetBuffer());
 	player_update_task.input_output_storage_buffers.push_back(world_blocks_external_update_queue_buffer_.GetBuffer());
 	player_update_task.input_output_storage_buffers.push_back(player_world_window_buffer_.GetBuffer());

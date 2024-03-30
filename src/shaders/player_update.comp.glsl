@@ -360,10 +360,6 @@ void UpdatePlayerMatrices()
 	// Rotation isn't needed, since fog is spherical.
 	float fog_distance= 32.0;
 	player_state.fog_matrix= MakeScaleMatrix(vec3(1.0 / fog_distance)) * translate_and_blocks_scale;
-
-	// TODO - move into anouther place.
-	// TODO - use sky light at player position.
-	player_state.fog_color.rgb= vec3(0.76, 0.76, 1.0);
 }
 
 void UpdatePlayerFrustumPlanes()
@@ -395,6 +391,13 @@ void UpdateNextPlayerWorldWindowOffset()
 			(GetHexogonCoord(player_state.pos.xy) - c_player_world_window_size.xy / 2) & 0xFFFFFFFE,
 			int(floor(player_state.pos.z)) - c_player_world_window_size.z / 2,
 			0);
+}
+
+void UpdateFogColor()
+{
+	float sky_light= float(player_world_window.player_block_light >> c_sky_light_shift) / float(c_max_sky_light);
+	// Multiply fog color by sky light at player position in order to make fog darker underground.
+	player_state.fog_color.rgb= sky_light * vec3(0.76, 0.76, 1.0);
 }
 
 void main()
@@ -451,4 +454,5 @@ void main()
 	UpdatePlayerMatrices();
 	UpdatePlayerFrustumPlanes();
 	UpdateNextPlayerWorldWindowOffset();
+	UpdateFogColor();
 }

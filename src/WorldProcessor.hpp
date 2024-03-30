@@ -94,6 +94,7 @@ private:
 	struct PlayerWorldWindow
 	{
 		int32_t offset[4]{}; // Position of the window start (in blocks)
+		uint32_t player_block_light= 0;
 		uint8_t window_data[c_player_world_window_volume];
 	};
 

@@ -54,6 +54,7 @@ namespace PlayerWorldWindowBuildShaderBindings
 	const ShaderBindingIndex chunk_data_buffer= 0;
 	const ShaderBindingIndex player_world_window_buffer= 1;
 	const ShaderBindingIndex player_state_buffer= 2;
+	const ShaderBindingIndex light_data_buffer= 3;
 }
 
 namespace PlayerUpdateShaderBindings
@@ -465,6 +466,13 @@ ComputePipeline CreatePlayerWorldWindowBuildPipeline(const vk::Device vk_device)
 		},
 		{
 			PlayerWorldWindowBuildShaderBindings::player_state_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+		{
+			PlayerWorldWindowBuildShaderBindings::light_data_buffer,
 			vk::DescriptorType::eStorageBuffer,
 			1u,
 			vk::ShaderStageFlagBits::eCompute,
@@ -1098,6 +1106,11 @@ WorldProcessor::WorldProcessor(
 			0u,
 			sizeof(PlayerState));
 
+		const vk::DescriptorBufferInfo light_data_buffer_info(
+			light_buffers_[i].GetBuffer(),
+			0u,
+			light_buffers_[i].GetSize());
+
 		vk_device_.updateDescriptorSets(
 			{
 				{
@@ -1128,6 +1141,16 @@ WorldProcessor::WorldProcessor(
 					vk::DescriptorType::eStorageBuffer,
 					nullptr,
 					&player_state_buffer_info,
+					nullptr
+				},
+				{
+					player_world_window_build_descriptor_sets_[i],
+					PlayerWorldWindowBuildShaderBindings::light_data_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&light_data_buffer_info,
 					nullptr
 				},
 			},
@@ -2259,6 +2282,7 @@ void WorldProcessor::BuildPlayerWorldWindow(TaskOrganizer& task_organizer)
 	TaskOrganizer::ComputeTaskParams task;
 	task.input_storage_buffers.push_back(player_state_buffer_.GetBuffer());
 	task.input_storage_buffers.push_back(chunk_data_buffers_[src_buffer_index].GetBuffer());
+	task.input_storage_buffers.push_back(light_buffers_[src_buffer_index].GetBuffer());
 	task.output_storage_buffers.push_back(player_world_window_buffer_.GetBuffer());
 
 	const auto task_func=

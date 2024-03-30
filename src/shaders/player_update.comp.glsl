@@ -401,9 +401,10 @@ void UpdateNextPlayerWorldWindowOffset()
 
 void UpdateFogColor()
 {
+	// Multiply fog color by factor dependent on sky light at player position in order to make fog darker underground.
 	float sky_light= float(player_world_window.player_block_light >> c_sky_light_shift) / float(c_max_sky_light);
-	// Multiply fog color by sky light at player position in order to make fog darker underground.
-	vec3 new_fog_color= sky_light * world_global_state.base_fog_color.rgb;
+	float fog_brightness= pow(sky_light, 0.333); // Use non-linear function to keep fog brighter in semi-dark places.
+	vec3 new_fog_color= fog_brightness * world_global_state.base_fog_color.rgb;
 
 	// Perform temporal interpolation of fog color.
 	// TODO - make it FPS-intependent.

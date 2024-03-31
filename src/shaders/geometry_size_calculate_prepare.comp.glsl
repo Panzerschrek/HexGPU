@@ -28,4 +28,5 @@ void main()
 	chunk_draw_info[chunk_index].new_num_quads= 0;
 	chunk_draw_info[chunk_index].new_water_num_quads= 0;
 	chunk_draw_info[chunk_index].new_fire_num_quads= 0;
+	chunk_draw_info[chunk_index].new_grass_num_quads= 0;
 }

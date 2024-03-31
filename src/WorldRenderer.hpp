@@ -70,6 +70,7 @@ private:
 	const Buffer draw_indirect_buffer_;
 	const Buffer water_draw_indirect_buffer_;
 	const Buffer fire_draw_indirect_buffer_;
+	const Buffer grass_draw_indirect_buffer_;
 	const Buffer uniform_buffer_;
 
 	const ComputePipeline draw_indirect_buffer_build_pipeline_;

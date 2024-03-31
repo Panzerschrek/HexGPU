@@ -39,6 +39,11 @@ layout(binding= 4, std430) buffer fire_draw_indirect_buffer
 	VkDrawIndexedIndirectCommand fire_draw_commands[];
 };
 
+layout(binding= 5, std430) buffer grass_draw_indirect_buffer
+{
+	VkDrawIndexedIndirectCommand grass_draw_commands[];
+};
+
 const uint c_indices_per_quad= 6;
 
 bool IsChunkVisible(ivec2 chunk_global_coord)
@@ -126,5 +131,19 @@ void main()
 		draw_command.firstInstance= 0;
 
 		fire_draw_commands[chunk_index]= draw_command;
+	}
+
+	{
+		uint num_quads= visible ? chunk_draw_info[chunk_index].num_grass_quads : 0;
+		uint first_quad= visible ? chunk_draw_info[chunk_index].first_grass_quad : 0;
+
+		VkDrawIndexedIndirectCommand draw_command;
+		draw_command.indexCount= num_quads * c_indices_per_quad;
+		draw_command.instanceCount= 1;
+		draw_command.firstIndex= 0;
+		draw_command.vertexOffset= int(first_quad) * 4;
+		draw_command.firstInstance= 0;
+
+		grass_draw_commands[chunk_index]= draw_command;
 	}
 }

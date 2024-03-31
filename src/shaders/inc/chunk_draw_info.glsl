@@ -13,6 +13,10 @@ struct ChunkDrawInfo
 	uint new_fire_num_quads;
 	uint first_fire_quad; // Index in total buffer.
 
+	uint num_grass_quads;
+	uint new_grass_num_quads;
+	uint first_grass_quad; // Index in total buffer.
+
 	uint first_memory_unit;
 	uint num_memory_units;
 };

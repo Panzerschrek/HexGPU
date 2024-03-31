@@ -327,10 +327,10 @@ void main()
 
 		int16_t light= RepackAndScaleLight(light_buffer[block_address_up], 272);
 
-		quad.vertices[0].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(0), tex_index, light);
-		quad.vertices[1].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(1), tex_index, light);
-		quad.vertices[2].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(1), tex_index, light);
-		quad.vertices[3].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(0), tex_index, light);
+		quad.vertices[0].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(1), tex_index, light);
+		quad.vertices[1].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(2), tex_index, light);
+		quad.vertices[2].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(2), tex_index, light);
+		quad.vertices[3].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(1), tex_index, light);
 
 		uint quad_index= chunk_draw_info[chunk_index].first_grass_quad + atomicAdd(chunk_draw_info[chunk_index].num_grass_quads, 1);
 		quads[quad_index]= quad;

@@ -7,7 +7,7 @@
 namespace HexGPU
 {
 
-class Settings final
+class Settings
 {
 public:
 	explicit Settings(std::string_view file_name);

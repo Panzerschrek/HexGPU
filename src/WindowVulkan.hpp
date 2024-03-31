@@ -6,7 +6,7 @@
 namespace HexGPU
 {
 
-class WindowVulkan final
+class WindowVulkan
 {
 public:
 	using DrawFunction= std::function<void(vk::Framebuffer framebuffer)>;

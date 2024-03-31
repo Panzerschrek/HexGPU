@@ -7,7 +7,7 @@
 namespace HexGPU
 {
 
-class SystemWindow final
+class SystemWindow
 {
 public:
 	explicit SystemWindow(Settings& settings);

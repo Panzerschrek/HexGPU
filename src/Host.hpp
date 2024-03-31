@@ -10,7 +10,7 @@
 namespace HexGPU
 {
 
-class Host final
+class Host
 {
 public:
 	Host();

@@ -5,7 +5,7 @@
 namespace HexGPU
 {
 
-class TicksCounter final
+class TicksCounter
 {
 public:
 	using Clock= std::chrono::steady_clock;

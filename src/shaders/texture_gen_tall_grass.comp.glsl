@@ -22,19 +22,22 @@ void main()
 	int noise_val=
 		hex_TextureOctaveNoiseWraped(texel_coord.x, texel_coord.y, 0, octaves, c_texture_size_log2);
 
-	float tex_coord_warped= float(texel_coord.x) + float(noise_val) * (3.0 / 65536.0);
+	float tex_coord_warped= float(texel_coord.x) + float(noise_val) * (2.0 / 65536.0);
 
-	const float frequency= 2.0 * c_pi * 20.0 / float(1 << c_texture_size_log2);
+	const float frequency= 2.0 * c_pi * 32.0 / float(1 << c_texture_size_log2);
 	float s= sin(tex_coord_warped * frequency);
 
 	float y= float(texel_coord.y) - 0.5 * float(texel_coord.x & 1);
 
-	float alpha= s * 0.4 + 0.4;
-	alpha= 1.0 - alpha * smoothstep(16.0, 18.0, y);
+	float alpha= s * 0.5 + 0.5;
+	alpha= 1.0 - alpha * smoothstep(16.0, 20.0, y);
 	alpha*= 1.0 - smoothstep(24.0, 38.0, y);
 	float alpha_binary= step(0.5, alpha);
 
-	vec4 color= vec4(mix(c_color_grass_light.rgb, c_color_grass_dark.rgb, s * 0.5 + 0.5) * 0.9, alpha_binary);
+	float vertical_gradient= 0.8 + 0.2 * smoothstep(16.0, 32.0, y);
+	vec3 self_color= mix(c_color_grass_light.rgb, c_color_grass_dark.rgb, s * 0.3 + 0.3) * vertical_gradient;
+
+	vec4 color= vec4(self_color, alpha_binary);
 
 	imageStore(out_image, texel_coord, color);
 }

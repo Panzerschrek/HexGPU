@@ -31,7 +31,7 @@ void main()
 
 	float alpha= s * 0.5 + 0.5;
 	alpha= 1.0 - alpha * smoothstep(16.0, 20.0, y);
-	alpha*= 1.0 - smoothstep(24.0, 38.0, y);
+	alpha*= 1.0 - smoothstep(28.0, 34.0, y);
 	float alpha_binary= step(0.5, alpha);
 
 	float vertical_gradient= 0.8 + 0.2 * smoothstep(16.0, 32.0, y);

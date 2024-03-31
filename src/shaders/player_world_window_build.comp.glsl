@@ -24,7 +24,7 @@ layout(binding= 0, std430) readonly buffer chunks_data_buffer
 	uint8_t chunks_data[];
 };
 
-layout(binding= 1, std430) buffer player_world_window_buffer
+layout(binding= 1, std430) writeonly buffer player_world_window_buffer
 {
 	PlayerWorldWindow player_world_window;
 };

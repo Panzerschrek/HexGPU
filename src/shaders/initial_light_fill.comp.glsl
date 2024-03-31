@@ -22,7 +22,7 @@ layout(binding= 0, std430) readonly buffer chunks_data_buffer
 	uint8_t chunks_data[];
 };
 
-layout(binding= 1, std430) buffer light_data_buffer
+layout(binding= 1, std430) writeonly buffer light_data_buffer
 {
 	uint8_t light_data[];
 };

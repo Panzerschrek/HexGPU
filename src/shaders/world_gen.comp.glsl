@@ -42,7 +42,7 @@ layout(binding= 3, std430) readonly buffer structures_data_buffer
 	uint8_t structures_data[];
 };
 
-layout(binding= 4, std430) buffer chunks_auxiliar_data_buffer
+layout(binding= 4, std430) writeonly buffer chunks_auxiliar_data_buffer
 {
 	uint8_t chunks_auxiliar_data[];
 };

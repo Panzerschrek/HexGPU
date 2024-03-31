@@ -15,7 +15,7 @@ layout(binding= 0, std430) readonly buffer chunk_draw_info_input_buffer
 	ChunkDrawInfo chunk_draw_info_input[];
 };
 
-layout(binding= 1, std430) buffer chunk_draw_info_output_buffer
+layout(binding= 1, std430) writeonly buffer chunk_draw_info_output_buffer
 {
 	ChunkDrawInfo chunk_draw_info_output[];
 };

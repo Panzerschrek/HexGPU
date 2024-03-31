@@ -28,7 +28,7 @@ layout(binding= 1, std430) readonly buffer chunk_input_light_buffer
 	uint8_t input_light[];
 };
 
-layout(binding= 2, std430) buffer chunk_output_light_buffer
+layout(binding= 2, std430) writeonly buffer chunk_output_light_buffer
 {
 	uint8_t output_light[];
 };

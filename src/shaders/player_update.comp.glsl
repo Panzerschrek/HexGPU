@@ -41,7 +41,7 @@ layout(binding= 3, std430) buffer player_world_window_buffer
 	PlayerWorldWindow player_world_window;
 };
 
-layout(binding= 4, std430) buffer readonly world_global_state_buffer
+layout(binding= 4, std430) readonly buffer world_global_state_buffer
 {
 	WorldGlobalState world_global_state;
 };

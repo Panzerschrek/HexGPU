@@ -24,7 +24,7 @@ struct Quad
 	WorldVertex vertices[4];
 };
 
-layout(binding= 0, std430) buffer vertices_buffer
+layout(binding= 0, std430) writeonly buffer vertices_buffer
 {
 	// Populate here quads list.
 	Quad quads[];

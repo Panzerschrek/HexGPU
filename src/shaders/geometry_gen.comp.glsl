@@ -290,6 +290,32 @@ void main()
 		quads[quad_index]= quad;
 	}
 
+	if(block_value == c_block_type_grass)
+	{
+		// Add tall grass quad.
+
+		Quad quad;
+
+		quad.vertices[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 1), 0.0);
+		quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 1), int16_t(z + 2), 0.0);
+		quad.vertices[2].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 1), int16_t(z + 2), 0.0);
+		quad.vertices[3].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 1), int16_t(z + 1), 0.0);
+
+		int16_t tex_index= c_block_texture_table[uint(c_block_type_grass)].r;
+
+		ivec2 tc_base= ivec2(base_tc_x, z * 2 + 2);
+
+		int16_t light= RepackAndScaleLight(light_buffer[block_address_up], 272);
+
+		quad.vertices[0].tex_coord= i16vec4(int16_t(tc_base.x + 2), int16_t(tc_base.y + 0), tex_index, light);
+		quad.vertices[1].tex_coord= i16vec4(int16_t(tc_base.x + 2), int16_t(tc_base.y + 2), tex_index, light);
+		quad.vertices[2].tex_coord= i16vec4(int16_t(tc_base.x + 0), int16_t(tc_base.y + 2), tex_index, light);
+		quad.vertices[3].tex_coord= i16vec4(int16_t(tc_base.x + 0), int16_t(tc_base.y + 0), tex_index, light);
+
+		uint quad_index= quads_offset + atomicAdd(chunk_draw_info[chunk_index].num_quads, 1);
+		quads[quad_index]= quad;
+	}
+
 	if(block_value == c_block_type_water && block_value_up != c_block_type_water)
 	{
 		// Add two water hexagon quads.

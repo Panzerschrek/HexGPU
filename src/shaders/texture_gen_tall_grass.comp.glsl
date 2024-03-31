@@ -6,6 +6,7 @@
 #include "inc/noise.glsl"
 #include "inc/texture_gen_common.glsl"
 
+const vec4 c_color_grass_dark= vec4(0.23, 0.45, 0.12, 1.0);
 const vec4 c_color_grass_light= vec4(0.38, 0.65, 0.32, 1.0);
 
 void main()
@@ -30,7 +31,7 @@ void main()
 	alpha= 1.0 - alpha * smoothstep(0.0, 8.0, float(texel_coord.y));
 	float alpha_binary= step(0.5, alpha);
 
-	vec4 color= vec4(c_color_grass_light.rgb, alpha_binary);
+	vec4 color= vec4(mix(c_color_grass_light.rgb, c_color_grass_dark.rgb, s * 0.5 + 0.5) * 0.9, alpha_binary);
 
 	imageStore(out_image, texel_coord, color);
 }

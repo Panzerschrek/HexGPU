@@ -41,6 +41,12 @@ namespace FireDrawShaderBindings
 	const ShaderBindingIndex sampler= 1;
 }
 
+namespace GrassDrawShaderBindings
+{
+	const ShaderBindingIndex uniform_buffer= 0;
+	const ShaderBindingIndex sampler= 1;
+}
+
 struct DrawIndirectBufferBuildUniforms
 {
 	int32_t world_size_chunks[2]{};
@@ -252,6 +258,15 @@ WorldRenderer::WorldRenderer(
 			world_render_pass.GetRenderPass(),
 			*texture_sampler_))
 	, fire_descriptor_set_(CreateDescriptorSet(vk_device_, global_descriptor_pool, *fire_draw_pipeline_.descriptor_set_layout))
+	, grass_draw_pipeline_(
+		CreateGrassDrawPipeline(
+			vk_device_,
+			world_render_pass.UseSupersampling(),
+			world_render_pass.GetSamples(),
+			world_render_pass.GetFramebufferSize(),
+			world_render_pass.GetRenderPass(),
+			*texture_sampler_))
+	, grass_descriptor_set_(CreateDescriptorSet(vk_device_, global_descriptor_pool, *grass_draw_pipeline_.descriptor_set_layout))
 	, index_buffer_(CreateAndFillQuadsIndexBuffer(window_vulkan, gpu_data_uploader))
 {
 	// Update descriptor set.
@@ -465,6 +480,44 @@ WorldRenderer::WorldRenderer(
 			},
 			{});
 	}
+
+	// Update grass draw descriptor set.
+	{
+		const vk::DescriptorBufferInfo descriptor_uniform_buffer_info(
+			uniform_buffer_.GetBuffer(),
+			0u,
+			sizeof(WorldShaderUniforms));
+
+		const vk::DescriptorImageInfo descriptor_tex_info(
+			vk::Sampler(),
+			textures_generator_.GetImageView(),
+			vk::ImageLayout::eShaderReadOnlyOptimal);
+
+		vk_device_.updateDescriptorSets(
+			{
+				{
+					grass_descriptor_set_,
+					GrassDrawShaderBindings::uniform_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eUniformBuffer,
+					nullptr,
+					&descriptor_uniform_buffer_info,
+					nullptr
+				},
+				{
+					grass_descriptor_set_,
+					GrassDrawShaderBindings::sampler,
+					0u,
+					1u,
+					vk::DescriptorType::eCombinedImageSampler,
+					&descriptor_tex_info,
+					nullptr,
+					nullptr
+				},
+			},
+			{});
+	}
 }
 
 WorldRenderer::~WorldRenderer()
@@ -497,6 +550,7 @@ void WorldRenderer::DrawOpaque(const vk::CommandBuffer command_buffer, const flo
 {
 	DrawWorld(command_buffer);
 	DrawFire(command_buffer, time_s);
+	DrawGrass(command_buffer);
 }
 
 void WorldRenderer::DrawTransparent(const vk::CommandBuffer command_buffer, const float time_s)
@@ -524,12 +578,6 @@ void WorldRenderer::DrawWorld(const vk::CommandBuffer command_buffer)
 
 	command_buffer.drawIndexedIndirect(
 		draw_indirect_buffer_.GetBuffer(),
-		0,
-		world_size_[0] * world_size_[1],
-		sizeof(vk::DrawIndexedIndirectCommand));
-
-	command_buffer.drawIndexedIndirect(
-		grass_draw_indirect_buffer_.GetBuffer(),
 		0,
 		world_size_[0] * world_size_[1],
 		sizeof(vk::DrawIndexedIndirectCommand));
@@ -597,6 +645,30 @@ void WorldRenderer::DrawFire(vk::CommandBuffer command_buffer, const float time_
 
 	command_buffer.drawIndexedIndirect(
 		fire_draw_indirect_buffer_.GetBuffer(),
+		0,
+		world_size_[0] * world_size_[1],
+		sizeof(vk::DrawIndexedIndirectCommand));
+}
+
+void WorldRenderer::DrawGrass(const vk::CommandBuffer command_buffer)
+{
+	const vk::Buffer vertex_buffer= geometry_generator_.GetVertexBuffer();
+
+	const vk::DeviceSize offsets= 0u;
+	command_buffer.bindVertexBuffers(0u, 1u, &vertex_buffer, &offsets);
+	command_buffer.bindIndexBuffer(index_buffer_.GetBuffer(), 0u, vk::IndexType::eUint16);
+
+	command_buffer.bindDescriptorSets(
+		vk::PipelineBindPoint::eGraphics,
+		*grass_draw_pipeline_.pipeline_layout,
+		0u,
+		{grass_descriptor_set_},
+		{});
+
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *grass_draw_pipeline_.pipeline);
+
+	command_buffer.drawIndexedIndirect(
+		grass_draw_indirect_buffer_.GetBuffer(),
 		0,
 		world_size_[0] * world_size_[1],
 		sizeof(vk::DrawIndexedIndirectCommand));
@@ -1016,6 +1088,163 @@ GraphicsPipeline WorldRenderer::CreateFireDrawPipeline(
 		vk::CullModeFlagBits::eNone, // Use twosided polygons.
 		vk::FrontFace::eCounterClockwise,
 		VK_TRUE, -1.0f, 0.0f, -1.0f, // Use depth bias in order to draw fire polygons atop of regular block polygons.
+		1.0f);
+
+	const vk::PipelineMultisampleStateCreateInfo pipeline_multisample_state_create_info(
+		vk::PipelineMultisampleStateCreateFlags(),
+		samples);
+
+	const vk::PipelineDepthStencilStateCreateInfo pipeline_depth_state_create_info(
+		vk::PipelineDepthStencilStateCreateFlags(),
+		VK_TRUE,
+		VK_TRUE,
+		vk::CompareOp::eLess,
+		VK_FALSE,
+		VK_FALSE,
+		vk::StencilOpState(),
+		vk::StencilOpState(),
+		0.0f,
+		1.0f);
+
+	const vk::PipelineColorBlendAttachmentState pipeline_color_blend_attachment_state(
+		VK_FALSE,
+		vk::BlendFactor::eOne, vk::BlendFactor::eZero, vk::BlendOp::eAdd,
+		vk::BlendFactor::eOne, vk::BlendFactor::eZero, vk::BlendOp::eAdd,
+		vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
+
+	const vk::PipelineColorBlendStateCreateInfo pipeline_color_blend_state_create_info(
+		vk::PipelineColorBlendStateCreateFlags(),
+		VK_FALSE,
+		vk::LogicOp::eCopy,
+		1u, &pipeline_color_blend_attachment_state);
+
+	pipeline.pipeline=
+		UnwrapPipeline(vk_device.createGraphicsPipelineUnique(
+			nullptr,
+			vk::GraphicsPipelineCreateInfo(
+				vk::PipelineCreateFlags(),
+				uint32_t(std::size(shader_stage_create_info)),
+				shader_stage_create_info,
+				&pipiline_vertex_input_state_create_info,
+				&pipeline_input_assembly_state_create_info,
+				nullptr,
+				&pipieline_viewport_state_create_info,
+				&pipilane_rasterization_state_create_info,
+				&pipeline_multisample_state_create_info,
+				&pipeline_depth_state_create_info,
+				&pipeline_color_blend_state_create_info,
+				nullptr,
+				*pipeline.pipeline_layout,
+				render_pass,
+				0u)));
+
+	return pipeline;
+}
+
+
+GraphicsPipeline WorldRenderer::CreateGrassDrawPipeline(
+	const vk::Device vk_device,
+	const bool use_supersampling,
+	const vk::SampleCountFlagBits samples,
+	const vk::Extent2D viewport_size,
+	const vk::RenderPass render_pass,
+	const vk::Sampler texture_sampler)
+{
+	GraphicsPipeline pipeline;
+
+	// Create shaders
+	pipeline.shader_vert= CreateShader(vk_device, ShaderNames::world_vert);
+	pipeline.shader_frag=
+		CreateShader(
+			vk_device,
+			use_supersampling ? ShaderNames::world_dither_4x4_frag : ShaderNames::world_dither_2x2_frag);
+
+	// Create descriptor set layout.
+	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
+	{
+		{
+			GrassDrawShaderBindings::uniform_buffer,
+			vk::DescriptorType::eUniformBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
+		},
+		{
+			GrassDrawShaderBindings::sampler,
+			vk::DescriptorType::eCombinedImageSampler,
+			1u,
+			vk::ShaderStageFlagBits::eFragment,
+			&texture_sampler,
+		},
+	};
+
+	pipeline.descriptor_set_layout=
+		vk_device.createDescriptorSetLayoutUnique(
+			vk::DescriptorSetLayoutCreateInfo(
+				vk::DescriptorSetLayoutCreateFlags(),
+				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
+
+	// Create pipeline layout
+	pipeline.pipeline_layout=
+		vk_device.createPipelineLayoutUnique(
+			vk::PipelineLayoutCreateInfo(
+				vk::PipelineLayoutCreateFlags(),
+				1u, &*pipeline.descriptor_set_layout,
+				0u, nullptr));
+
+	// Create pipeline.
+
+	const vk::PipelineShaderStageCreateInfo shader_stage_create_info[2]
+	{
+		{
+			vk::PipelineShaderStageCreateFlags(),
+			vk::ShaderStageFlagBits::eVertex,
+			*pipeline.shader_vert,
+			"main"
+		},
+		{
+			vk::PipelineShaderStageCreateFlags(),
+			vk::ShaderStageFlagBits::eFragment,
+			*pipeline.shader_frag,
+			"main"
+		},
+	};
+
+	const vk::VertexInputBindingDescription vertex_input_binding_description(
+		0u,
+		sizeof(WorldVertex),
+		vk::VertexInputRate::eVertex);
+
+	const vk::VertexInputAttributeDescription vertex_input_attribute_description[]
+	{
+		{0u, 0u, vk::Format::eR16G16B16A16Sscaled, 0u},
+		{1u, 0u, vk::Format::eR16G16B16A16Sint, sizeof(int16_t) * 4},
+	};
+
+	const vk::PipelineVertexInputStateCreateInfo pipiline_vertex_input_state_create_info(
+		vk::PipelineVertexInputStateCreateFlags(),
+		1u, &vertex_input_binding_description,
+		uint32_t(std::size(vertex_input_attribute_description)), vertex_input_attribute_description);
+
+	const vk::PipelineInputAssemblyStateCreateInfo pipeline_input_assembly_state_create_info(
+		vk::PipelineInputAssemblyStateCreateFlags(),
+		vk::PrimitiveTopology::eTriangleList);
+
+	const vk::Viewport viewport(0.0f, 0.0f, float(viewport_size.width), float(viewport_size.height), 0.0f, 1.0f);
+	const vk::Rect2D scissor(vk::Offset2D(0, 0), viewport_size);
+
+	const vk::PipelineViewportStateCreateInfo pipieline_viewport_state_create_info(
+		vk::PipelineViewportStateCreateFlags(),
+		1u, &viewport,
+		1u, &scissor);
+
+	const vk::PipelineRasterizationStateCreateInfo pipilane_rasterization_state_create_info(
+		vk::PipelineRasterizationStateCreateFlags(),
+		VK_FALSE,
+		VK_FALSE,
+		vk::PolygonMode::eFill,
+		vk::CullModeFlagBits::eNone, // Use twosided polygons.
+		vk::FrontFace::eCounterClockwise,
+		VK_FALSE, 0.0f, 0.0f, 0.0f,
 		1.0f);
 
 	const vk::PipelineMultisampleStateCreateInfo pipeline_multisample_state_create_info(

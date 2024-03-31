@@ -1153,7 +1153,7 @@ GraphicsPipeline WorldRenderer::CreateGrassDrawPipeline(
 	GraphicsPipeline pipeline;
 
 	// Create shaders
-	pipeline.shader_vert= CreateShader(vk_device, ShaderNames::world_vert);
+	pipeline.shader_vert= CreateShader(vk_device, ShaderNames::grass_vert);
 	pipeline.shader_frag=
 		CreateShader(
 			vk_device,

@@ -17,13 +17,11 @@ layout(location=1) in i16vec4 tex_coord;
 
 layout(location= 0) out vec2 f_light;
 layout(location= 1) out vec2 f_tex_coord;
-layout(location= 2) out flat float f_tex_index;
-layout(location= 3) out vec3 f_fog_coord;
+layout(location= 2) out vec3 f_fog_coord;
 
 void main()
 {
 	f_tex_coord= vec2(tex_coord.xy) * c_tex_coord_scale;
-	f_tex_index= int(tex_coord.z) + 0.25; // Add epsilon value to fix possible interpolation errors.
 
 	// Normalize light [0; 255] -> [0; 1]
 	const float c_light_scale= 1.0 / 255.0;

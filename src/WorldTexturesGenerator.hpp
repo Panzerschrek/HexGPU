@@ -21,6 +21,7 @@ public:
 	vk::ImageView GetImageView() const;
 	vk::ImageView GetWaterImageView() const;
 	vk::ImageView GetFireImageView() const;
+	vk::ImageView GetGrassImageView() const;
 	TaskOrganizer::ImageInfo GetImageInfo() const;
 
 private:
@@ -66,6 +67,7 @@ private:
 
 	const uint32_t c_water_image_index= 10;
 	const uint32_t c_fire_image_index= 11;
+	const uint32_t c_grass_image_index= 28;
 
 private:
 
@@ -99,6 +101,7 @@ private:
 	const vk::UniqueImageView image_view_;
 	const vk::UniqueImageView water_image_view_;
 	const vk::UniqueImageView fire_image_view_;
+	const vk::UniqueImageView grass_image_view_;
 
 	const TextureGenPipelines texture_gen_pipelines_;
 

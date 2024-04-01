@@ -41,22 +41,9 @@ WorldTexturesGenerator::WorldTexturesGenerator(WindowVulkan& window_vulkan, cons
 			vk::Format::eR8G8B8A8Unorm,
 			vk::ComponentMapping(),
 			vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, 0u, c_num_layers))))
-	, water_image_view_(vk_device_.createImageViewUnique(
-		vk::ImageViewCreateInfo(
-			vk::ImageViewCreateFlags(),
-			*image_,
-			vk::ImageViewType::e2D,
-			vk::Format::eR8G8B8A8Unorm,
-			vk::ComponentMapping(),
-			vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, c_water_image_index, 1u))))
-	, fire_image_view_(vk_device_.createImageViewUnique(
-		vk::ImageViewCreateInfo(
-			vk::ImageViewCreateFlags(),
-			*image_,
-			vk::ImageViewType::e2D,
-			vk::Format::eR8G8B8A8Unorm,
-			vk::ComponentMapping(),
-			vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, c_fire_image_index, 1u))))
+	, water_image_view_(CreateLayerView(vk_device_, *image_, c_water_image_index))
+	, fire_image_view_(CreateLayerView(vk_device_, *image_, c_fire_image_index))
+	, grass_image_view_(CreateLayerView(vk_device_, *image_, c_grass_image_index))
 	, texture_gen_pipelines_(CreatePipelines(vk_device_, global_descriptor_pool, *image_))
 {
 }
@@ -119,6 +106,11 @@ vk::ImageView WorldTexturesGenerator::GetWaterImageView() const
 vk::ImageView WorldTexturesGenerator::GetFireImageView() const
 {
 	return fire_image_view_.get();
+}
+
+vk::ImageView WorldTexturesGenerator::GetGrassImageView() const
+{
+	return grass_image_view_.get();
 }
 
 TaskOrganizer::ImageInfo WorldTexturesGenerator::GetImageInfo() const
@@ -203,6 +195,21 @@ WorldTexturesGenerator::TextureGenPipelines WorldTexturesGenerator::CreatePipeli
 	}
 
 	return pipelines;
+}
+
+vk::UniqueImageView WorldTexturesGenerator::CreateLayerView(
+	const vk::Device vk_device,
+	const vk::Image image,
+	const uint32_t layer_index)
+{
+	return vk_device.createImageViewUnique(
+		vk::ImageViewCreateInfo(
+			vk::ImageViewCreateFlags(),
+			image,
+			vk::ImageViewType::e2D,
+			vk::Format::eR8G8B8A8Unorm,
+			vk::ComponentMapping(),
+			vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0u, c_num_mips, layer_index, 1u)));
 }
 
 } // namespace HexGPU

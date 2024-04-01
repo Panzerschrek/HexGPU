@@ -19,12 +19,12 @@ layout(binding= 0, std430) buffer readonly chunk_draw_info_buffer
 	ChunkDrawInfo chunk_draw_info[];
 };
 
-layout(binding= 1, std430) buffer draw_indirect_buffer
+layout(binding= 1, std430) writeonly buffer draw_indirect_buffer
 {
 	VkDrawIndexedIndirectCommand draw_commands[];
 };
 
-layout(binding= 2, std430) buffer water_draw_indirect_buffer
+layout(binding= 2, std430) writeonly buffer water_draw_indirect_buffer
 {
 	VkDrawIndexedIndirectCommand water_draw_commands[];
 };
@@ -34,9 +34,14 @@ layout(binding= 3, std430) buffer readonly player_state_buffer
 	PlayerState player_state;
 };
 
-layout(binding= 4, std430) buffer fire_draw_indirect_buffer
+layout(binding= 4, std430) writeonly buffer fire_draw_indirect_buffer
 {
 	VkDrawIndexedIndirectCommand fire_draw_commands[];
+};
+
+layout(binding= 5, std430) writeonly buffer grass_draw_indirect_buffer
+{
+	VkDrawIndexedIndirectCommand grass_draw_commands[];
 };
 
 const uint c_indices_per_quad= 6;
@@ -84,7 +89,9 @@ void main()
 
 	uint chunk_index= chunk_x + chunk_y * uint(world_size_chunks.x);
 
-	bool visible= IsChunkVisible(ivec2(chunk_x, chunk_y) + world_offset_chunks);
+	ivec2 chunk_global_coord= ivec2(chunk_x, chunk_y) + world_offset_chunks;
+
+	bool visible= IsChunkVisible(chunk_global_coord);
 
 	{
 		uint num_quads= visible ? chunk_draw_info[chunk_index].num_quads : 0;
@@ -126,5 +133,36 @@ void main()
 		draw_command.firstInstance= 0;
 
 		fire_draw_commands[chunk_index]= draw_command;
+	}
+
+	{
+		if(visible)
+		{
+			// Do not draw distant grass to save a little bit of performance.
+
+			// Calculate distance in 2d from player position to chunk center.
+			vec2 chunk_center_coord= vec2(
+				float(chunk_global_coord.x) * (c_space_scale_x * float(c_chunk_width)) + 0.5 * c_space_scale_x * float(c_chunk_width),
+				float(chunk_global_coord.y) * float(c_chunk_width) + 0.5 * float(c_chunk_width));
+
+			vec2 vec_to_center= player_state.pos.xy - chunk_center_coord;
+			float square_distance= dot(vec_to_center, vec_to_center);
+
+			const float c_max_distance= 144.0;
+
+			visible= square_distance < c_max_distance * c_max_distance;
+		}
+
+		uint num_quads= visible ? chunk_draw_info[chunk_index].num_grass_quads : 0;
+		uint first_quad= visible ? chunk_draw_info[chunk_index].first_grass_quad : 0;
+
+		VkDrawIndexedIndirectCommand draw_command;
+		draw_command.indexCount= num_quads * c_indices_per_quad;
+		draw_command.instanceCount= 1;
+		draw_command.firstIndex= 0;
+		draw_command.vertexOffset= int(first_quad) * 4;
+		draw_command.firstInstance= 0;
+
+		grass_draw_commands[chunk_index]= draw_command;
 	}
 }

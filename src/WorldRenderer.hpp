@@ -30,6 +30,7 @@ private:
 	void DrawWorld(vk::CommandBuffer command_buffer);
 	void DrawWater(vk::CommandBuffer command_buffer, float time_s);
 	void DrawFire(vk::CommandBuffer command_buffer, float time_s);
+	void DrawGrass(vk::CommandBuffer command_buffer);
 
 	static GraphicsPipeline CreateWorldDrawPipeline(
 		vk::Device vk_device,
@@ -54,7 +55,15 @@ private:
 		vk::RenderPass render_pass,
 		vk::Sampler texture_sampler);
 
-	void CopyViewMatrix(TaskOrganizer& task_organizer);
+	static GraphicsPipeline CreateGrassDrawPipeline(
+		vk::Device vk_device,
+		bool use_supersampling,
+		vk::SampleCountFlagBits samples,
+		vk::Extent2D viewport_size,
+		vk::RenderPass render_pass,
+		vk::Sampler texture_sampler);
+
+	void CopyViewParams(TaskOrganizer& task_organizer);
 	void BuildDrawIndirectBuffer(TaskOrganizer& task_organizer);
 
 private:
@@ -70,6 +79,7 @@ private:
 	const Buffer draw_indirect_buffer_;
 	const Buffer water_draw_indirect_buffer_;
 	const Buffer fire_draw_indirect_buffer_;
+	const Buffer grass_draw_indirect_buffer_;
 	const Buffer uniform_buffer_;
 
 	const ComputePipeline draw_indirect_buffer_build_pipeline_;
@@ -85,6 +95,9 @@ private:
 
 	const GraphicsPipeline fire_draw_pipeline_;
 	const vk::DescriptorSet fire_descriptor_set_;
+
+	const GraphicsPipeline grass_draw_pipeline_;
+	const vk::DescriptorSet grass_descriptor_set_;
 
 	const Buffer index_buffer_;
 };

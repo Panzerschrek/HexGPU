@@ -290,6 +290,77 @@ void main()
 		quads[quad_index]= quad;
 	}
 
+	if(block_value == c_block_type_grass)
+	{
+		// Add tall grass quads.
+
+		int16_t light= RepackAndScaleLight(light_buffer[block_address_up], 272);
+
+		// Calculate pseudo-random orientation using such formula.
+		// It is fast and doesn't depend on global block coordinates (is periodical within the chunk).
+		// It doesn't give exact distribution for all 3 orientations, but it's fine enough.
+		int orientation_rand= (block_x ^ block_y) & 15;
+
+		const bvec3 quads_table[16]= bvec3[16](
+			bvec3(true, true, false), bvec3(true, false, true), bvec3(false, true, true),
+			bvec3(true, true, false), bvec3(true, false, true), bvec3(false, true, true),
+			bvec3(true, true, false), bvec3(true, false, true), bvec3(false, true, true),
+			bvec3(true, true, false), bvec3(true, false, true), bvec3(false, true, true),
+			bvec3(true, true, false), bvec3(true, false, true), bvec3(false, true, true),
+			bvec3(true, true, false));
+
+		bvec3 quads_vec= quads_table[orientation_rand];
+
+		if(quads_vec.x)
+		{
+			Quad quad;
+
+			quad.vertices[0].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(z * 2 + 2), 0.0);
+			quad.vertices[1].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(z * 2 + 3), 0.0);
+			quad.vertices[2].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(z * 2 + 3), 0.0);
+			quad.vertices[3].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(z * 2 + 2), 0.0);
+			quad.vertices[0].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(1), int16_t(0), light);
+			quad.vertices[1].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(2), int16_t(0), light);
+			quad.vertices[2].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(2), int16_t(0), light);
+			quad.vertices[3].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(1), int16_t(0), light);
+
+			uint quad_index= chunk_draw_info[chunk_index].first_grass_quad + atomicAdd(chunk_draw_info[chunk_index].num_grass_quads, 1);
+			quads[quad_index]= quad;
+		}
+		if(quads_vec.y)
+		{
+			Quad quad;
+
+			quad.vertices[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(z * 2 + 2), 0.0);
+			quad.vertices[1].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(z * 2 + 3), 0.0);
+			quad.vertices[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z * 2 + 3), 0.0);
+			quad.vertices[3].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z * 2 + 2), 0.0);
+			quad.vertices[0].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(1), int16_t(0), light);
+			quad.vertices[1].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(2), int16_t(0), light);
+			quad.vertices[2].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(2), int16_t(0), light);
+			quad.vertices[3].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(1), int16_t(0), light);
+
+			uint quad_index= chunk_draw_info[chunk_index].first_grass_quad + atomicAdd(chunk_draw_info[chunk_index].num_grass_quads, 1);
+			quads[quad_index]= quad;
+		}
+		if(quads_vec.z)
+		{
+			Quad quad;
+
+			quad.vertices[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(z * 2 + 2), 0.0);
+			quad.vertices[1].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(z * 2 + 3), 0.0);
+			quad.vertices[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z * 2 + 3), 0.0);
+			quad.vertices[3].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z * 2 + 2), 0.0);
+			quad.vertices[0].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(1), int16_t(0), light);
+			quad.vertices[1].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(2), int16_t(0), light);
+			quad.vertices[2].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(2), int16_t(0), light);
+			quad.vertices[3].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(1), int16_t(0), light);
+
+			uint quad_index= chunk_draw_info[chunk_index].first_grass_quad + atomicAdd(chunk_draw_info[chunk_index].num_grass_quads, 1);
+			quads[quad_index]= quad;
+		}
+	}
+
 	if(block_value == c_block_type_water && block_value_up != c_block_type_water)
 	{
 		// Add two water hexagon quads.

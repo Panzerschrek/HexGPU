@@ -90,6 +90,12 @@ void main()
 		atomicAdd(chunk_draw_info[chunk_index].new_num_quads, 1);
 	}
 
+	if(block_value == c_block_type_grass)
+	{
+		// Add tall grass quads. Each grass block has exactly two of them.
+		atomicAdd(chunk_draw_info[chunk_index].new_grass_num_quads, 2);
+	}
+
 	if(block_value == c_block_type_water && block_value_up != c_block_type_water)
 	{
 		// Add two water hexagon quads.

@@ -92,6 +92,8 @@ private:
 		vk::DescriptorPool global_descriptor_pool,
 		vk::Image image);
 
+	static vk::UniqueImageView CreateLayerView(vk::Device vk_device, vk::Image image, uint32_t layer_index);
+
 private:
 	const vk::Device vk_device_;
 	const uint32_t queue_family_index_;

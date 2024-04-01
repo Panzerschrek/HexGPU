@@ -96,10 +96,18 @@ void main()
 		atomicAdd(chunk_draw_info[chunk_index].new_grass_num_quads, 2);
 	}
 
-	if(block_value == c_block_type_water && block_value_up != c_block_type_water)
+	if(block_value == c_block_type_water)
 	{
-		// Add two water hexagon quads.
-		atomicAdd(chunk_draw_info[chunk_index].new_water_num_quads, 2);
+		if(block_value_up != c_block_type_water)
+		{
+			// Add two water hexagon quads.
+			atomicAdd(chunk_draw_info[chunk_index].new_water_num_quads, 2);
+		}
+		if(block_value_north != c_block_type_water && optical_density_north != c_optical_density_solid)
+		{
+			// Add north water side quad.
+			atomicAdd(chunk_draw_info[chunk_index].new_num_quads, 1);
+		}
 	}
 
 	if(block_value == c_block_type_fire)

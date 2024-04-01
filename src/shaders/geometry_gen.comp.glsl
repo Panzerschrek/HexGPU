@@ -315,14 +315,14 @@ void main()
 		{
 			Quad quad;
 
-			quad.vertices[0].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(z * 2 + 2), 0.0);
-			quad.vertices[1].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(z * 2 + 3), 0.0);
-			quad.vertices[2].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(z * 2 + 3), 0.0);
-			quad.vertices[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(z * 2 + 2), 0.0);
-			quad.vertices[0].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(1), int16_t(0), light);
-			quad.vertices[1].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(2), int16_t(0), light);
-			quad.vertices[2].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(2), int16_t(0), light);
-			quad.vertices[3].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(1), int16_t(0), light);
+			quad.vertices[0].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(z * 2 + 2), 0.0);
+			quad.vertices[1].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(z * 2 + 3), 0.0);
+			quad.vertices[2].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(z * 2 + 3), 0.0);
+			quad.vertices[3].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(z * 2 + 2), 0.0);
+			quad.vertices[0].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(1), int16_t(0), light);
+			quad.vertices[1].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(2), int16_t(0), light);
+			quad.vertices[2].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(2), int16_t(0), light);
+			quad.vertices[3].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(1), int16_t(0), light);
 
 			uint quad_index= chunk_draw_info[chunk_index].first_grass_quad + atomicAdd(chunk_draw_info[chunk_index].num_grass_quads, 1);
 			quads[quad_index]= quad;
@@ -335,10 +335,10 @@ void main()
 			quad.vertices[1].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(z * 2 + 3), 0.0);
 			quad.vertices[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z * 2 + 3), 0.0);
 			quad.vertices[3].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z * 2 + 2), 0.0);
-			quad.vertices[0].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(1), int16_t(0), light);
-			quad.vertices[1].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(2), int16_t(0), light);
-			quad.vertices[2].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(2), int16_t(0), light);
-			quad.vertices[3].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(1), int16_t(0), light);
+			quad.vertices[0].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(1), int16_t(0), light);
+			quad.vertices[1].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(2), int16_t(0), light);
+			quad.vertices[2].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(2), int16_t(0), light);
+			quad.vertices[3].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(1), int16_t(0), light);
 
 			uint quad_index= chunk_draw_info[chunk_index].first_grass_quad + atomicAdd(chunk_draw_info[chunk_index].num_grass_quads, 1);
 			quads[quad_index]= quad;
@@ -351,10 +351,10 @@ void main()
 			quad.vertices[1].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(z * 2 + 3), 0.0);
 			quad.vertices[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z * 2 + 3), 0.0);
 			quad.vertices[3].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z * 2 + 2), 0.0);
-			quad.vertices[0].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(1), int16_t(0), light);
-			quad.vertices[1].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(2), int16_t(0), light);
-			quad.vertices[2].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(2), int16_t(0), light);
-			quad.vertices[3].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(1), int16_t(0), light);
+			quad.vertices[0].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(1), int16_t(0), light);
+			quad.vertices[1].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(2), int16_t(0), light);
+			quad.vertices[2].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(2), int16_t(0), light);
+			quad.vertices[3].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(1), int16_t(0), light);
 
 			uint quad_index= chunk_draw_info[chunk_index].first_grass_quad + atomicAdd(chunk_draw_info[chunk_index].num_grass_quads, 1);
 			quads[quad_index]= quad;

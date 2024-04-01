@@ -63,7 +63,7 @@ private:
 		vk::RenderPass render_pass,
 		vk::Sampler texture_sampler);
 
-	void CopyViewMatrix(TaskOrganizer& task_organizer);
+	void CopyViewParams(TaskOrganizer& task_organizer);
 	void BuildDrawIndirectBuffer(TaskOrganizer& task_organizer);
 
 private:

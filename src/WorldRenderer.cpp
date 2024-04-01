@@ -531,7 +531,7 @@ void WorldRenderer::PrepareFrame(TaskOrganizer& task_organizer)
 	textures_generator_.PrepareFrame(task_organizer);
 	geometry_generator_.Update(task_organizer);
 	BuildDrawIndirectBuffer(task_organizer);
-	CopyViewMatrix(task_organizer);
+	CopyViewParams(task_organizer);
 }
 
 void WorldRenderer::CollectFrameInputs(TaskOrganizer::GraphicsTaskParams& out_task_params)
@@ -1141,7 +1141,6 @@ GraphicsPipeline WorldRenderer::CreateFireDrawPipeline(
 	return pipeline;
 }
 
-
 GraphicsPipeline WorldRenderer::CreateGrassDrawPipeline(
 	const vk::Device vk_device,
 	const bool use_supersampling,
@@ -1152,14 +1151,12 @@ GraphicsPipeline WorldRenderer::CreateGrassDrawPipeline(
 {
 	GraphicsPipeline pipeline;
 
-	// Create shaders
 	pipeline.shader_vert= CreateShader(vk_device, ShaderNames::grass_vert);
 	pipeline.shader_frag=
 		CreateShader(
 			vk_device,
 			use_supersampling ? ShaderNames::grass_dither_4x4_frag : ShaderNames::grass_dither_2x2_frag);
 
-	// Create descriptor set layout.
 	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
 	{
 		{
@@ -1183,15 +1180,12 @@ GraphicsPipeline WorldRenderer::CreateGrassDrawPipeline(
 				vk::DescriptorSetLayoutCreateFlags(),
 				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
 
-	// Create pipeline layout
 	pipeline.pipeline_layout=
 		vk_device.createPipelineLayoutUnique(
 			vk::PipelineLayoutCreateInfo(
 				vk::PipelineLayoutCreateFlags(),
 				1u, &*pipeline.descriptor_set_layout,
 				0u, nullptr));
-
-	// Create pipeline.
 
 	const vk::PipelineShaderStageCreateInfo shader_stage_create_info[2]
 	{
@@ -1216,8 +1210,8 @@ GraphicsPipeline WorldRenderer::CreateGrassDrawPipeline(
 
 	const vk::VertexInputAttributeDescription vertex_input_attribute_description[]
 	{
-		{0u, 0u, vk::Format::eR16G16B16A16Sscaled, 0u},
-		{1u, 0u, vk::Format::eR16G16B16A16Sint, sizeof(int16_t) * 4},
+		{0u, 0u, vk::Format::eR16G16B16A16Sscaled,offsetof(WorldVertex, pos)},
+		{1u, 0u, vk::Format::eR16G16B16A16Sint, offsetof(WorldVertex, tex_coord)},
 	};
 
 	const vk::PipelineVertexInputStateCreateInfo pipiline_vertex_input_state_create_info(
@@ -1298,7 +1292,7 @@ GraphicsPipeline WorldRenderer::CreateGrassDrawPipeline(
 	return pipeline;
 }
 
-void WorldRenderer::CopyViewMatrix(TaskOrganizer& task_organizer)
+void WorldRenderer::CopyViewParams(TaskOrganizer& task_organizer)
 {
 	TaskOrganizer::TransferTaskParams task;
 	task.input_buffers.push_back(world_processor_.GetPlayerStateBuffer());

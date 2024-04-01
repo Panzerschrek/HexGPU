@@ -92,7 +92,7 @@ void main()
 
 	if(block_value == c_block_type_grass)
 	{
-		// Add tall grass quads.
+		// Add tall grass quads. Each grass block has exactly two of them.
 		atomicAdd(chunk_draw_info[chunk_index].new_grass_num_quads, 2);
 	}
 

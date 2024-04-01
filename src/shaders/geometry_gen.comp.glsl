@@ -298,32 +298,22 @@ void main()
 
 		int16_t light= RepackAndScaleLight(light_buffer[block_address_up], 272);
 
-		int xy_sum=
-			(((chunk_global_position.x << c_chunk_width_log2) + int(invocation.x)) ^
-			((chunk_global_position.y << c_chunk_width_log2) + int(invocation.y))) &
-				3;
+		// Calculate pseudo-random orientation using such formula.
+		// It is fast and doesn't depend on global block coordinates (is periodical within the chunk).
+		// It doesn't give exact distribution for all 3 orientations, but it's fine enough.
+		int orientation_rand= (block_x ^ block_y) & 15;
 
-		bool has_quads[3];
-		if(xy_sum == 0)
-		{
-			has_quads[0]= true;
-			has_quads[1]= true;
-			has_quads[2]= false;
-		}
-		else if(xy_sum == 1)
-		{
-			has_quads[0]= true;
-			has_quads[1]= false;
-			has_quads[2]= true;
-		}
-		else
-		{
-			has_quads[0]= false;
-			has_quads[1]= true;
-			has_quads[2]= true;
-		}
+		const bvec3 quads_table[16]= bvec3[16](
+			bvec3(true, true, false), bvec3(true, false, true), bvec3(false, true, true),
+			bvec3(true, true, false), bvec3(true, false, true), bvec3(false, true, true),
+			bvec3(true, true, false), bvec3(true, false, true), bvec3(false, true, true),
+			bvec3(true, true, false), bvec3(true, false, true), bvec3(false, true, true),
+			bvec3(true, true, false), bvec3(true, false, true), bvec3(false, true, true),
+			bvec3(true, true, false));
 
-		if(has_quads[0])
+		bvec3 quads_vec= quads_table[orientation_rand];
+
+		if(quads_vec.x)
 		{
 			Quad quad;
 
@@ -339,7 +329,7 @@ void main()
 			uint quad_index= chunk_draw_info[chunk_index].first_grass_quad + atomicAdd(chunk_draw_info[chunk_index].num_grass_quads, 1);
 			quads[quad_index]= quad;
 		}
-		if(has_quads[1])
+		if(quads_vec.y)
 		{
 			Quad quad;
 
@@ -355,7 +345,7 @@ void main()
 			uint quad_index= chunk_draw_info[chunk_index].first_grass_quad + atomicAdd(chunk_draw_info[chunk_index].num_grass_quads, 1);
 			quads[quad_index]= quad;
 		}
-		if(has_quads[2])
+		if(quads_vec.z)
 		{
 			Quad quad;
 
@@ -371,7 +361,6 @@ void main()
 			uint quad_index= chunk_draw_info[chunk_index].first_grass_quad + atomicAdd(chunk_draw_info[chunk_index].num_grass_quads, 1);
 			quads[quad_index]= quad;
 		}
-
 	}
 
 	if(block_value == c_block_type_water && block_value_up != c_block_type_water)

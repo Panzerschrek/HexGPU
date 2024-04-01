@@ -11,7 +11,6 @@ The order represents importance and/or dependency.
 * Water blocks side polygons
 * Twostage water rendering - back faces than front faces, in order to achieve somewhat good transparency ordering
 * When uderwater reduce fog distance and use other fog color
-* Evaporate water from blocks with low level and no input/output flow (randomly)
 * Increase water level in non-full water blocks under the sky when it's raining
 * Player physics - add gravity
 * Player physics - perform proper cylinder to hex-prism collision

@@ -350,10 +350,11 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 				}
 
 				bool can_flow_down= false;
+				uint8_t block_below_type= c_block_type_spherical_block;
 				if(z > 0)
 				{
 					int block_below_address= column_address + z - 1;
-					uint8_t block_below_type= chunks_input_data[block_below_address];
+					block_below_type= chunks_input_data[block_below_address];
 					can_flow_down=
 						block_below_type == c_block_type_air ||
 						(block_below_type == c_block_type_water && int(chunks_auxiliar_input_data[block_below_address]) < c_max_water_level);
@@ -361,6 +362,15 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 
 				if(can_flow_down)
 					flow_out= 0; // Prevent out flow if flow down is possilble.
+
+				if(water_level < 8 && flow_in == 0 && flow_out == 0 &&
+					block_below_type != c_block_type_air &&
+					block_below_type != c_block_type_water)
+				{
+					// Randomly evaporate this block if water level doesn't allow its content to flow sideways and it can't flow down.
+					if((block_rand & 15) == 0)
+						return u8vec2(c_block_type_air, 0);
+				}
 
 				int new_water_level= water_level + flow_in - flow_out; // Should be in allowed range [0; c_max_water_level]
 				// Assuming it's not possible to drain all water in side flow logic.

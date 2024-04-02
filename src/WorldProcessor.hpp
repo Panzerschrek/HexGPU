@@ -45,6 +45,7 @@ public:
 		float clouds_color[4]{};
 		float base_fog_color[4]{};
 		int32_t sky_light_mask= 0;
+		int32_t sky_light_based_wetness_mask= 0;
 	};
 
 public:

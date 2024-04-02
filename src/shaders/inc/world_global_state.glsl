@@ -7,4 +7,5 @@ struct WorldGlobalState
 	vec4 clouds_color; // a - clouds edge
 	vec4 base_fog_color;
 	int sky_light_mask; // zero at night, all ones at day
+	int sky_light_based_wetness_mask; // zero at drought, all ones otherwise
 };

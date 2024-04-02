@@ -156,6 +156,7 @@ struct WorldGlobalStateUpdateUniforms
 {
 	float time_of_day= 0.0f;
 	float rain_intensity= 0.0f;
+	float drought_intensity= 0.0f;
 };
 
 WorldSizeChunks ReadWorldSize(Settings& settings)
@@ -1788,6 +1789,7 @@ void WorldProcessor::UpdateWorldGlobalState(TaskOrganizer& task_organizer, const
 			WorldGlobalStateUpdateUniforms uniforms;
 			uniforms.time_of_day= debug_params.time_of_day;
 			uniforms.rain_intensity= debug_params.rain_intensity;
+			uniforms.drought_intensity= debug_params.drought ? 1.0f : 0.0f;
 
 			command_buffer.pushConstants(
 				*world_global_state_update_pipeline_.pipeline_layout,

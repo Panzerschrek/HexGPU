@@ -461,7 +461,7 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 		// Grass requires some level of wetness to exist.
 
 		// Assuming areas with large amount of sky light are located under the sky and thus rain affects such areas.
-		int wetness= light_data[column_address + z_up_clamped] >> c_sky_light_shift;
+		int wetness= (light_data[column_address + z_up_clamped] >> c_sky_light_shift) & world_global_state.sky_light_based_wetness_mask;
 
 		if(wetness < c_min_wetness_for_grass_to_exist)
 		{
@@ -478,7 +478,7 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 			return u8vec2(c_block_type_soil, 0);
 
 		// Assuming areas with large amount of sky light are located under the sky and thus rain affects such areas.
-		int wetness= light_data[column_address + z_up_clamped] >> c_sky_light_shift;
+		int wetness= (light_data[column_address + z_up_clamped] >> c_sky_light_shift) & world_global_state.sky_light_based_wetness_mask;
 
 		if(wetness >= c_min_wetness_for_grass_to_exist)
 		{

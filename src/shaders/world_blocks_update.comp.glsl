@@ -52,6 +52,8 @@ layout(binding= 5, std430) readonly buffer world_global_state_buffer
 	WorldGlobalState world_global_state;
 };
 
+const int c_min_wetness_for_grass_to_exist= 3;
+
 // Returns pair of block type and auxiliar data.
 u8vec2 TransformBlock(int block_x, int block_y, int z)
 {
@@ -452,10 +454,38 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 	else if(block_type == c_block_type_grass)
 	{
 		// Grass disappears if is blocked from above.
-		// TODO - take also light level into account.
 		uint8_t block_above_type= chunks_input_data[column_address + z_up_clamped];
 		if(!(block_above_type == c_block_type_air || block_above_type == c_block_type_foliage))
 			return u8vec2(c_block_type_soil, 0);
+
+		// Grass requires some level of wetness to exist.
+
+		// Assuming areas with large amount of sky light are located under the sky and thus rain affects such areas.
+		int wetness= light_data[column_address + z_up_clamped] >> c_sky_light_shift;
+
+		if(wetness < c_min_wetness_for_grass_to_exist)
+		{
+			// If wentess is not enough - randomly make grass yellow.
+			if((block_rand & 15) == 0)
+				return u8vec2(c_block_type_grass_yellow, 0);
+		}
+	}
+	else if(block_type == c_block_type_grass_yellow)
+	{
+		// Grass disappears if is blocked from above.
+		uint8_t block_above_type= chunks_input_data[column_address + z_up_clamped];
+		if(!(block_above_type == c_block_type_air || block_above_type == c_block_type_foliage))
+			return u8vec2(c_block_type_soil, 0);
+
+		// Assuming areas with large amount of sky light are located under the sky and thus rain affects such areas.
+		int wetness= light_data[column_address + z_up_clamped] >> c_sky_light_shift;
+
+		if(wetness >= c_min_wetness_for_grass_to_exist)
+		{
+			// If wentess is high enough - randomly make yellow grass green.
+			if((block_rand & 15) == 0)
+				return u8vec2(c_block_type_grass, 0);
+		}
 	}
 	else if(block_type == c_block_type_foliage)
 	{

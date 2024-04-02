@@ -490,7 +490,7 @@ WorldRenderer::WorldRenderer(
 
 		const vk::DescriptorImageInfo descriptor_tex_info(
 			vk::Sampler(),
-			textures_generator_.GetGrassImageView(),
+			textures_generator_.GetImageView(),
 			vk::ImageLayout::eShaderReadOnlyOptimal);
 
 		vk_device_.updateDescriptorSets(
@@ -1155,7 +1155,7 @@ GraphicsPipeline WorldRenderer::CreateGrassDrawPipeline(
 	pipeline.shader_frag=
 		CreateShader(
 			vk_device,
-			use_supersampling ? ShaderNames::grass_dither_4x4_frag : ShaderNames::grass_dither_2x2_frag);
+			use_supersampling ? ShaderNames::world_dither_4x4_frag : ShaderNames::world_dither_2x2_frag);
 
 	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
 	{

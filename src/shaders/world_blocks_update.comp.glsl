@@ -414,6 +414,9 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 				const int c_min_light_to_graw= 2;
 				if(total_light >= c_min_light_to_graw)
 				{
+					// Assuming areas with large amount of sky light are located under the sky and thus rain affects such areas.
+					int wetness= (light_packed >> c_sky_light_shift) & world_global_state.sky_light_based_wetness_mask;
+
 					// Check adjacent blocks. If has grass - convert into grass.
 					for(int i= 0; i < 6; ++i)
 					{
@@ -442,10 +445,14 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 							// Block above is grass and has enough air.
 							++num_adjacent_grass_blocks;
 						}
+
+						if(z_plus_zero_block_type == c_block_type_water || z_minus_one_block_type == c_block_type_water)
+							wetness= c_min_wetness_for_grass_to_exist;
 					}
 
 					// Conversion chance depends on number of grass blocks nearby.
-					if(num_adjacent_grass_blocks * block_rand >= 65536 / 2)
+					if(wetness >= c_min_wetness_for_grass_to_exist &&
+						num_adjacent_grass_blocks * block_rand >= 65536 / 2)
 						return u8vec2(c_block_type_grass, 0);
 				}
 			}

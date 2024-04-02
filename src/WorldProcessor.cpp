@@ -40,6 +40,8 @@ namespace WorldBlocksUpdateShaderBindings
 	const ShaderBindingIndex chunk_data_output_buffer= 1;
 	const ShaderBindingIndex chunk_auxiliar_data_input_buffer= 2;
 	const ShaderBindingIndex chunk_auxiliar_data_output_buffer= 3;
+	const ShaderBindingIndex chunks_light_data_buffer= 4;
+	const ShaderBindingIndex world_global_state_buffer= 5;
 }
 
 namespace LightUpdateShaderBindings
@@ -154,6 +156,7 @@ struct WorldGlobalStateUpdateUniforms
 {
 	float time_of_day= 0.0f;
 	float rain_intensity= 0.0f;
+	float drought_intensity= 0.0f;
 };
 
 WorldSizeChunks ReadWorldSize(Settings& settings)
@@ -364,6 +367,20 @@ ComputePipeline CreateWorldBlocksUpdatePipeline(const vk::Device vk_device)
 		},
 		{
 			WorldBlocksUpdateShaderBindings::chunk_auxiliar_data_output_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+		{
+			WorldBlocksUpdateShaderBindings::chunks_light_data_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+		{
+			WorldBlocksUpdateShaderBindings::world_global_state_buffer,
 			vk::DescriptorType::eStorageBuffer,
 			1u,
 			vk::ShaderStageFlagBits::eCompute,
@@ -997,6 +1014,16 @@ WorldProcessor::WorldProcessor(
 			0u,
 			chunk_auxiliar_data_buffers_[i ^ 1].GetSize());
 
+		const vk::DescriptorBufferInfo descriptor_chunk_light_data_buffer_info(
+			light_buffers_[i].GetBuffer(),
+			0u,
+			light_buffers_[i].GetSize());
+
+		const vk::DescriptorBufferInfo world_global_state_buffer_info(
+			world_global_state_buffer_.GetBuffer(),
+			0u,
+			world_global_state_buffer_.GetSize());
+
 		vk_device_.updateDescriptorSets(
 			{
 				{
@@ -1037,6 +1064,26 @@ WorldProcessor::WorldProcessor(
 					vk::DescriptorType::eStorageBuffer,
 					nullptr,
 					&descriptor_chunk_auxiliar_data_output_buffer_info,
+					nullptr
+				},
+				{
+					world_blocks_update_descriptor_sets_[i],
+					WorldBlocksUpdateShaderBindings::chunks_light_data_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_chunk_light_data_buffer_info,
+					nullptr
+				},
+				{
+					world_blocks_update_descriptor_sets_[i],
+					WorldBlocksUpdateShaderBindings::world_global_state_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&world_global_state_buffer_info,
 					nullptr
 				},
 			},
@@ -1742,6 +1789,7 @@ void WorldProcessor::UpdateWorldGlobalState(TaskOrganizer& task_organizer, const
 			WorldGlobalStateUpdateUniforms uniforms;
 			uniforms.time_of_day= debug_params.time_of_day;
 			uniforms.rain_intensity= debug_params.rain_intensity;
+			uniforms.drought_intensity= debug_params.drought ? 1.0f : 0.0f;
 
 			command_buffer.pushConstants(
 				*world_global_state_update_pipeline_.pipeline_layout,
@@ -1773,6 +1821,8 @@ void WorldProcessor::UpdateWorldBlocks(
 	TaskOrganizer::ComputeTaskParams task;
 	task.input_storage_buffers.push_back(chunk_data_buffers_[src_buffer_index].GetBuffer());
 	task.input_storage_buffers.push_back(chunk_auxiliar_data_buffers_[src_buffer_index].GetBuffer());
+	task.input_storage_buffers.push_back(light_buffers_[src_buffer_index].GetBuffer());
+	task.input_storage_buffers.push_back(world_global_state_buffer_.GetBuffer());
 	task.output_storage_buffers.push_back(chunk_data_buffers_[dst_buffer_index].GetBuffer());
 	task.output_storage_buffers.push_back(chunk_auxiliar_data_buffers_[dst_buffer_index].GetBuffer());
 

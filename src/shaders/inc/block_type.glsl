@@ -20,8 +20,9 @@ const uint8_t c_block_type_glass_green=					uint8_t( 16);
 const uint8_t c_block_type_glass_cian=					uint8_t( 17);
 const uint8_t c_block_type_glass_blue=					uint8_t( 18);
 const uint8_t c_block_type_glass_magenta=				uint8_t( 19);
+const uint8_t c_block_type_grass_yellow=				uint8_t( 20);
 
-const int c_num_block_types=									 20;
+const int c_num_block_types=									 21;
 
 const uint8_t c_optical_density_solid= uint8_t(0);
 const uint8_t c_optical_density_semisolid= uint8_t(1);
@@ -49,7 +50,8 @@ const uint8_t c_block_optical_density_table[c_num_block_types]=
 	c_optical_density_semisolid, // glass_green
 	c_optical_density_semisolid, // glass_cian
 	c_optical_density_semisolid, // glass_blue
-	c_optical_density_semisolid  // glass_magenta
+	c_optical_density_semisolid, // glass_magenta
+	c_optical_density_solid // grass_yellow
 );
 
 const uint8_t c_block_own_light_table[c_num_block_types]=
@@ -74,7 +76,8 @@ const uint8_t c_block_own_light_table[c_num_block_types]=
 	uint8_t(0), // glass_green
 	uint8_t(0), // glass_cian
 	uint8_t(0), // glass_blue
-	uint8_t(0)  // glass_magenta
+	uint8_t(0), // glass_magenta
+	uint8_t(0)  // grass_yellow
 );
 
 const uint8_t c_block_flammability_table[c_num_block_types]=
@@ -99,7 +102,8 @@ const uint8_t c_block_flammability_table[c_num_block_types]=
 	uint8_t(0), // glass_green
 	uint8_t(0), // glass_cian
 	uint8_t(0), // glass_blue
-	uint8_t(0)  // glass_magenta
+	uint8_t(0), // glass_magenta
+	uint8_t(1)  // grass_yellow
 );
 
 // If this changed, TexturesTable.hpp" must be changed too!
@@ -127,7 +131,8 @@ const i16vec3 c_block_texture_table[c_num_block_types]=
 	i16vec3(24, 24, 16), // glass_green
 	i16vec3(25, 25, 17), // glass_cian
 	i16vec3(26, 26, 18), // glass_blue
-	i16vec3(27, 27, 19)  // glass_magenta
+	i16vec3(27, 27, 19), // glass_magenta
+	i16vec3(29,  5,  5)  // grass_yellow
 );
 
 // If this changed, C++ code must be changed too!

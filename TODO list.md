@@ -2,9 +2,7 @@ Here is the list of futures that needs to be implemented.
 The order represents importance and/or dependency.
 * Biome-based world generation
 * Update light only after blocks update - in order to avoid black spots in places of removed blocks
-* Grass logic improvements - disappers slower, become yellow, require water or sunlight to grow, etc.
 * Save and load player state
-* More block types
 * Smooth lighting - average block light values at each vertex
 * Run SPIR-V optimizer for compiled shaders
 * Use background thread for chunk data compression/decompression
@@ -25,6 +23,7 @@ The order represents importance and/or dependency.
 * Day-night cycle - change day time each tick
 * Stars (at night)
 * Rain/snow
+* More block types
 * Extinguish fire during rain
 * Tune burning probability for different block types
 * Pipe blocks for fast directional water transfer

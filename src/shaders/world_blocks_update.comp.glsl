@@ -7,6 +7,7 @@
 #include "inc/block_type.glsl"
 #include "inc/hex_funcs.glsl"
 #include "inc/noise.glsl"
+#include "inc/world_global_state.glsl"
 
 // maxComputeWorkGroupInvocations is at least 128.
 // If this is changed, corresponding C++ code must be changed too!
@@ -44,6 +45,11 @@ layout(binding= 3, std430) writeonly buffer chunks_auxiliar_data_output_buffer
 layout(binding= 4, std430) readonly buffer chunks_light_data_buffer
 {
 	uint8_t light_data[];
+};
+
+layout(binding= 5, std430) readonly buffer world_global_state_buffer
+{
+	WorldGlobalState world_global_state;
 };
 
 // Returns pair of block type and auxiliar data.
@@ -401,7 +407,7 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 				// Require light to graw.
 				int light_packed= light_data[column_address + z_up_clamped];
 				int fire_light= light_packed & c_fire_light_mask;
-				int sky_light= light_packed >> c_sky_light_shift;
+				int sky_light= (light_packed >> c_sky_light_shift) & world_global_state.sky_light_mask;
 				int total_light= fire_light + sky_light;
 				const int c_min_light_to_graw= 2;
 				if(total_light >= c_min_light_to_graw)

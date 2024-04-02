@@ -40,6 +40,7 @@ namespace WorldBlocksUpdateShaderBindings
 	const ShaderBindingIndex chunk_data_output_buffer= 1;
 	const ShaderBindingIndex chunk_auxiliar_data_input_buffer= 2;
 	const ShaderBindingIndex chunk_auxiliar_data_output_buffer= 3;
+	const ShaderBindingIndex chunks_light_data_buffer= 4;
 }
 
 namespace LightUpdateShaderBindings
@@ -364,6 +365,13 @@ ComputePipeline CreateWorldBlocksUpdatePipeline(const vk::Device vk_device)
 		},
 		{
 			WorldBlocksUpdateShaderBindings::chunk_auxiliar_data_output_buffer,
+			vk::DescriptorType::eStorageBuffer,
+			1u,
+			vk::ShaderStageFlagBits::eCompute,
+			nullptr,
+		},
+		{
+			WorldBlocksUpdateShaderBindings::chunks_light_data_buffer,
 			vk::DescriptorType::eStorageBuffer,
 			1u,
 			vk::ShaderStageFlagBits::eCompute,
@@ -997,6 +1005,11 @@ WorldProcessor::WorldProcessor(
 			0u,
 			chunk_auxiliar_data_buffers_[i ^ 1].GetSize());
 
+		const vk::DescriptorBufferInfo descriptor_chunk_light_data_buffer_info(
+			light_buffers_[i].GetBuffer(),
+			0u,
+			light_buffers_[i].GetSize());
+
 		vk_device_.updateDescriptorSets(
 			{
 				{
@@ -1037,6 +1050,16 @@ WorldProcessor::WorldProcessor(
 					vk::DescriptorType::eStorageBuffer,
 					nullptr,
 					&descriptor_chunk_auxiliar_data_output_buffer_info,
+					nullptr
+				},
+				{
+					world_blocks_update_descriptor_sets_[i],
+					WorldBlocksUpdateShaderBindings::chunks_light_data_buffer,
+					0u,
+					1u,
+					vk::DescriptorType::eStorageBuffer,
+					nullptr,
+					&descriptor_chunk_light_data_buffer_info,
 					nullptr
 				},
 			},
@@ -1773,6 +1796,7 @@ void WorldProcessor::UpdateWorldBlocks(
 	TaskOrganizer::ComputeTaskParams task;
 	task.input_storage_buffers.push_back(chunk_data_buffers_[src_buffer_index].GetBuffer());
 	task.input_storage_buffers.push_back(chunk_auxiliar_data_buffers_[src_buffer_index].GetBuffer());
+	task.input_storage_buffers.push_back(light_buffers_[src_buffer_index].GetBuffer());
 	task.output_storage_buffers.push_back(chunk_data_buffers_[dst_buffer_index].GetBuffer());
 	task.output_storage_buffers.push_back(chunk_auxiliar_data_buffers_[dst_buffer_index].GetBuffer());
 

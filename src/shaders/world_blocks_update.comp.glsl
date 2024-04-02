@@ -41,6 +41,11 @@ layout(binding= 3, std430) writeonly buffer chunks_auxiliar_data_output_buffer
 	uint8_t chunks_auxiliar_output_data[];
 };
 
+layout(binding= 4, std430) readonly buffer chunks_light_data_buffer
+{
+	uint8_t light_data[];
+};
+
 // Returns pair of block type and auxiliar data.
 u8vec2 TransformBlock(int block_x, int block_y, int z)
 {
@@ -385,8 +390,6 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 
 		if((block_rand & 15) == 0)
 		{
-			// TODO - check if has enough light.
-
 			int num_adjacent_grass_blocks= 0;
 
 			// Do not plant grass at top of the world and at very bottom.
@@ -395,39 +398,48 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 				// Plant only if has air abowe.
 				chunks_input_data[column_address + z_up_clamped] == c_block_type_air)
 			{
-				// Check adjacent blocks. If has grass - convert into grass.
-				for(int i= 0; i < 6; ++i)
+				// Require light to graw.
+				int light_packed= light_data[column_address + z_up_clamped];
+				int fire_light= light_packed & c_fire_light_mask;
+				int sky_light= light_packed >> c_sky_light_shift;
+				int total_light= fire_light + sky_light;
+				const int c_min_light_to_graw= 2;
+				if(total_light >= c_min_light_to_graw)
 				{
-					uint8_t z_minus_one_block_type= chunks_input_data[adjacent_columns[i] + z - 1];
-					uint8_t z_plus_zero_block_type= chunks_input_data[adjacent_columns[i] + z + 0];
-					uint8_t z_plus_one_block_type = chunks_input_data[adjacent_columns[i] + z + 1];
-					uint8_t z_plus_two_block_type = chunks_input_data[adjacent_columns[i] + z + 2];
+					// Check adjacent blocks. If has grass - convert into grass.
+					for(int i= 0; i < 6; ++i)
+					{
+						uint8_t z_minus_one_block_type= chunks_input_data[adjacent_columns[i] + z - 1];
+						uint8_t z_plus_zero_block_type= chunks_input_data[adjacent_columns[i] + z + 0];
+						uint8_t z_plus_one_block_type = chunks_input_data[adjacent_columns[i] + z + 1];
+						uint8_t z_plus_two_block_type = chunks_input_data[adjacent_columns[i] + z + 2];
 
-					if( z_minus_one_block_type == c_block_type_grass &&
-						z_plus_zero_block_type == c_block_type_air &&
-						z_plus_one_block_type  == c_block_type_air)
-					{
-						// Block below is grass and has enough air.
-						++num_adjacent_grass_blocks;
+						if( z_minus_one_block_type == c_block_type_grass &&
+							z_plus_zero_block_type == c_block_type_air &&
+							z_plus_one_block_type  == c_block_type_air)
+						{
+							// Block below is grass and has enough air.
+							++num_adjacent_grass_blocks;
+						}
+						if( z_plus_zero_block_type == c_block_type_grass &&
+							z_plus_one_block_type  == c_block_type_air)
+						{
+							// Block nearby is grass and has enough air.
+							++num_adjacent_grass_blocks;
+						}
+						if( z_plus_one_block_type == c_block_type_grass &&
+							z_plus_two_block_type == c_block_type_air &&
+							chunks_input_data[column_address + z + 2] == c_block_type_air)
+						{
+							// Block above is grass and has enough air.
+							++num_adjacent_grass_blocks;
+						}
 					}
-					if( z_plus_zero_block_type == c_block_type_grass &&
-						z_plus_one_block_type  == c_block_type_air)
-					{
-						// Block nearby is grass and has enough air.
-						++num_adjacent_grass_blocks;
-					}
-					if( z_plus_one_block_type == c_block_type_grass &&
-						z_plus_two_block_type == c_block_type_air &&
-						chunks_input_data[column_address + z + 2] == c_block_type_air)
-					{
-						// Block above is grass and has enough air.
-						++num_adjacent_grass_blocks;
-					}
+
+					// Conversion chance depends on number of grass blocks nearby.
+					if(num_adjacent_grass_blocks * block_rand >= 65536 / 2)
+						return u8vec2(c_block_type_grass, 0);
 				}
-
-				// Conversion chance depends on number of grass blocks nearby.
-				if(num_adjacent_grass_blocks * block_rand >= 65536 / 2)
-					return u8vec2(c_block_type_grass, 0);
 			}
 		}
 	}

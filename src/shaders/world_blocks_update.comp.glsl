@@ -465,9 +465,22 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 
 		if(wetness < c_min_wetness_for_grass_to_exist)
 		{
-			// If wentess is not enough - randomly make grass yellow.
-			if((block_rand & 15) == 0)
-				return u8vec2(c_block_type_grass_yellow, 0);
+			// Check if has water nearby.
+			for(int i= 0; i < 6; ++i)
+			{
+				int adjacent_block_address= adjacent_columns[i] + z;
+				if(chunks_input_data[adjacent_block_address] == c_block_type_water)
+					wetness= c_min_wetness_for_grass_to_exist;
+				if(z > 0 && chunks_input_data[adjacent_block_address - 1] == c_block_type_water)
+					wetness= c_min_wetness_for_grass_to_exist;
+			}
+
+			if(wetness < c_min_wetness_for_grass_to_exist)
+			{
+				// If wentess is not enough - randomly make grass yellow.
+				if((block_rand & 15) == 0)
+					return u8vec2(c_block_type_grass_yellow, 0);
+			}
 		}
 	}
 	else if(block_type == c_block_type_grass_yellow)
@@ -479,6 +492,19 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 
 		// Assuming areas with large amount of sky light are located under the sky and thus rain affects such areas.
 		int wetness= (light_data[column_address + z_up_clamped] >> c_sky_light_shift) & world_global_state.sky_light_based_wetness_mask;
+
+		// Check if has water nearby.
+		if(wetness < c_min_wetness_for_grass_to_exist)
+		{
+			for(int i= 0; i < 6; ++i)
+			{
+				int adjacent_block_address= adjacent_columns[i] + z;
+				if(chunks_input_data[adjacent_block_address] == c_block_type_water)
+					wetness= c_min_wetness_for_grass_to_exist;
+				if(z > 0 && chunks_input_data[adjacent_block_address - 1] == c_block_type_water)
+					wetness= c_min_wetness_for_grass_to_exist;
+			}
+		}
 
 		if(wetness >= c_min_wetness_for_grass_to_exist)
 		{

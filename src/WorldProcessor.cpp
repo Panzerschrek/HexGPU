@@ -2372,8 +2372,8 @@ void WorldProcessor::UpdatePlayer(
 	// Make sure fog is full at world borders, including possible player shift without world move.
 	player_update_uniforms.fog_distance=
 		std::min(
-			float(std::max(2u, world_size_[0] / 2 - 2)) * float(c_chunk_width) * c_space_scale_x,
-			float(std::max(2u, world_size_[1] / 2 - 2)) * float(c_chunk_width));
+			float(std::max(2u, world_size_[0] / 2 - 1)) * float(c_chunk_width) * c_space_scale_x,
+			float(std::max(2u, world_size_[1] / 2 - 1)) * float(c_chunk_width));
 
 	TaskOrganizer::ComputeTaskParams player_update_task;
 	player_update_task.input_storage_buffers.push_back(world_global_state_buffer_.GetBuffer());

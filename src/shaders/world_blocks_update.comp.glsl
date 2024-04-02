@@ -455,7 +455,7 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 	{
 		// Grass disappears if is blocked from above.
 		uint8_t block_above_type= chunks_input_data[column_address + z_up_clamped];
-		if(!(block_above_type == c_block_type_air || block_above_type == c_block_type_foliage))
+		if(!(block_above_type == c_block_type_air || block_above_type == c_block_type_foliage || block_above_type == c_block_type_fire))
 			return u8vec2(c_block_type_soil, 0);
 
 		// Grass requires some level of wetness to exist.
@@ -487,23 +487,38 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 	{
 		// Grass disappears if is blocked from above.
 		uint8_t block_above_type= chunks_input_data[column_address + z_up_clamped];
-		if(!(block_above_type == c_block_type_air || block_above_type == c_block_type_foliage))
+		if(!(block_above_type == c_block_type_air || block_above_type == c_block_type_foliage || block_above_type == c_block_type_fire))
 			return u8vec2(c_block_type_soil, 0);
 
 		// Assuming areas with large amount of sky light are located under the sky and thus rain affects such areas.
 		int wetness= (light_data[column_address + z_up_clamped] >> c_sky_light_shift) & world_global_state.sky_light_based_wetness_mask;
 
-		// Check if has water nearby.
-		if(wetness < c_min_wetness_for_grass_to_exist)
+		// Check if has water or fire nearby.
+		int total_fire_power_nearby= 0;
+		for(int i= 0; i < 6; ++i)
 		{
-			for(int i= 0; i < 6; ++i)
-			{
-				int adjacent_block_address= adjacent_columns[i] + z;
-				if(chunks_input_data[adjacent_block_address] == c_block_type_water)
-					wetness= c_min_wetness_for_grass_to_exist;
-				if(z > 0 && chunks_input_data[adjacent_block_address - 1] == c_block_type_water)
-					wetness= c_min_wetness_for_grass_to_exist;
-			}
+			int adjacent_block_address= adjacent_columns[i] + z;
+
+			if(chunks_input_data[adjacent_block_address] == c_block_type_water)
+				wetness= c_min_wetness_for_grass_to_exist;
+			if(z > 0 && chunks_input_data[adjacent_block_address - 1] == c_block_type_water)
+				wetness= c_min_wetness_for_grass_to_exist;
+
+			// Count not fire blocks nearby, but nearby and above.
+			if(z < c_chunk_height - 1 && chunks_input_data[adjacent_block_address + 1] == c_block_type_fire)
+				total_fire_power_nearby+= int(chunks_auxiliar_input_data[adjacent_block_address + 1]);
+		}
+
+		if(block_above_type == c_block_type_fire)
+			total_fire_power_nearby+= int(chunks_auxiliar_input_data[column_address + z_up_clamped]);
+		// Do not count fire below yellow grass block.
+
+		// Require more fire power to burn grass in order to minimize fire disappearing when block is burned.
+		if(total_fire_power_nearby >= c_min_fire_power_for_blocks_burning * 2)
+		{
+			// Randomly burn this yellow grass block into soil.
+			if((block_rand & 15) == 0)
+				return u8vec2(c_block_type_soil, 0);
 		}
 
 		if(wetness >= c_min_wetness_for_grass_to_exist)

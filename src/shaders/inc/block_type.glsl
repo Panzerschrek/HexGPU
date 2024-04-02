@@ -103,7 +103,7 @@ const uint8_t c_block_flammability_table[c_num_block_types]=
 	uint8_t(0), // glass_cian
 	uint8_t(0), // glass_blue
 	uint8_t(0), // glass_magenta
-	uint8_t(0)  // grass_yellow
+	uint8_t(1)  // grass_yellow
 );
 
 // If this changed, TexturesTable.hpp" must be changed too!

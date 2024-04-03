@@ -25,6 +25,7 @@ public:
 		float blocks_matrix[16]{};
 		float fog_matrix[16]{};
 		float sky_matrix[16]{};
+		float stars_matrix[16]{};
 		float fog_color[4]{};
 		float frustum_planes[5][4]{};
 		float pos[4]{};
@@ -39,11 +40,13 @@ public:
 	// This struct must be identical to the same struct in GLSL code!
 	struct WorldGlobalState
 	{
+		float stars_matrix[16]{};
 		float sky_light_color[4]{};
 		float sky_color[4]{};
 		float sun_direction[4]{};
 		float clouds_color[4]{};
 		float base_fog_color[4]{};
+		float stars_brightness= 1.0f;
 		int32_t sky_light_mask= 0;
 		int32_t sky_light_based_wetness_mask= 0;
 	};

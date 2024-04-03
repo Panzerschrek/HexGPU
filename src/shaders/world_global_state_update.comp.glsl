@@ -3,6 +3,7 @@
 #extension GL_GOOGLE_include_directive : require
 
 #include "inc/constants.glsl"
+#include "inc/matrix.glsl"
 #include "inc/world_global_state.glsl"
 #include "inc/world_rendering_constants.glsl"
 
@@ -54,6 +55,10 @@ void main()
 			0.75 * world_global_state.sky_color.rgb,
 			0.9 * world_global_state.clouds_color.rgb,
 			sqrt(rain_intensity));
+
+	world_global_state.stars_brightness= 1.0 - daynight_k;
+
+	world_global_state.stars_matrix= MakeRotationYMatrix(-sun_phase);
 
 	// Assuming sky light is zero at night.
 	world_global_state.sky_light_mask= daynight_k >= 1.0 ? 0xFFFFFFFF : 0x0;

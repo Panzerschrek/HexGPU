@@ -363,6 +363,9 @@ void UpdatePlayerMatrices()
 	// Do not upply translation to sky matrix - always keep player in the center of the sky mesh.
 	player_state.sky_matrix= rotation_and_perspective;
 
+	// Rotate stars by special matrix from global world state.
+	player_state.stars_matrix= rotation_and_perspective * world_global_state.stars_matrix;
+
 	// For fog matrix only translation and scale are required.
 	// Rotation isn't needed, since fog is spherical.
 	player_state.fog_matrix= MakeScaleMatrix(vec3(1.0 / fog_distance)) * translate_and_blocks_scale;

@@ -319,10 +319,9 @@ GraphicsPipeline CreateStarsPipeline(
 
 Buffer CreateAndFillStarsVertexBuffer(WindowVulkan& window_vulkan, GPUDataUploader& gpu_data_uploader)
 {
-	const size_t c_target_num_stars= 2048;
-
-	std::vector<StarVertex> stars;
-	stars.reserve(c_target_num_stars);
+	const size_t c_num_stars= 2048;
+	StarVertex stars[c_num_stars];
+	size_t current_star= 0;
 
 	const float c_target_radius= 1024.0f;
 
@@ -341,12 +340,13 @@ Buffer CreateAndFillStarsVertexBuffer(WindowVulkan& window_vulkan, GPUDataUpload
 
 		v.color[3]= 255;
 
-		stars.push_back(v);
+		stars[current_star]= v;
+		++current_star;
 	}
 
 	std::mt19937 rand(0);
 
-	while(stars.size() < c_target_num_stars)
+	while(current_star < c_num_stars)
 	{
 		// Generate random points inside sphere.
 		StarVertex v;
@@ -375,15 +375,16 @@ Buffer CreateAndFillStarsVertexBuffer(WindowVulkan& window_vulkan, GPUDataUpload
 
 		v.color[3]= 255;
 
-		stars.push_back(v);
+		stars[current_star]= v;
+		++current_star;
 	}
 
 	Buffer buffer(
 		window_vulkan,
-		stars.size() * sizeof(StarVertex),
+		c_num_stars * sizeof(StarVertex),
 		vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst);
 
-	gpu_data_uploader.UploadData(stars.data(), buffer.GetSize(), buffer.GetBuffer(), 0);
+	gpu_data_uploader.UploadData(stars, buffer.GetSize(), buffer.GetBuffer(), 0);
 
 	return buffer;
 }

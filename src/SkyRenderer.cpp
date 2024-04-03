@@ -323,8 +323,8 @@ Buffer CreateAndFillStarsVertexBuffer(WindowVulkan& window_vulkan, GPUDataUpload
 	{
 		StarVertex v;
 		v.pos[0]= 0.0f;
-		v.pos[1]= 0.0f;
-		v.pos[2]= c_target_radius;
+		v.pos[1]= c_target_radius;
+		v.pos[2]= 0.0f;
 
 		for(int j= 0; j < 3; ++j)
 			v.color[j]= uint8_t(std::min(c_color_blue_giant[j] * 255.0f, 255.0f));

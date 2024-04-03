@@ -58,7 +58,7 @@ void main()
 
 	world_global_state.stars_brightness= 1.0 - daynight_k;
 
-	world_global_state.stars_matrix= MakeRotationZMatrix(sun_phase);
+	world_global_state.stars_matrix= MakeRotationYMatrix(-sun_phase);
 
 	// Assuming sky light is zero at night.
 	world_global_state.sky_light_mask= daynight_k >= 1.0 ? 0xFFFFFFFF : 0x0;

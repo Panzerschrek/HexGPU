@@ -71,6 +71,27 @@ mat4 MakeRotationXMatrix(float angle)
 	return m;
 }
 
+mat4 MakeRotationYMatrix(float angle)
+{
+	float s= sin(angle);
+	float c= cos(angle);
+
+	mat4 m;
+
+	m[0][0]= c;
+	m[2][0]= s;
+	m[0][2]= -s;
+	m[2][2]= c;
+
+	m[1][1]= m[3][3]= 1.0;
+	m[0][1]= m[0][3]= 0.0;
+	m[1][0]= m[1][2]= m[1][3]= 0.0;
+	m[2][1]= m[2][3]= 0.0;
+	m[3][0]= m[3][1]= m[3][2]= 0.0;
+
+	return m;
+}
+
 mat4 MakeRotationZMatrix(float angle)
 {
 	float s= sin(angle);

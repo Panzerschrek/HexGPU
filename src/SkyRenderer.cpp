@@ -327,8 +327,20 @@ Buffer CreateAndFillStarsVertexBuffer(WindowVulkan& window_vulkan, GPUDataUpload
 		for(int j= 0; j < 3; ++j)
 			v.pos[j]*= scale_factor;
 
+		// Make more dark stars and less bright stars.
+		const float brightness= std::pow(0.1f + float(rand() & 1023) * (0.9f / 1024.0f), 1.3f) * 0.98f;
+		// Make more brown dwarfs and less blue giants.
+		const float temperature= std::pow(0.1f + float(rand() & 1023) * (0.9f / 1024.0f), 1.4f) * 0.94f;
+
+		const float c_color_brown_dwarf[]{0.5f, 0.3f, 0.2f};
+		const float c_color_blue_giant[]{0.8f, 0.9f, 1.3f};
+
 		for(int j= 0; j < 3; ++j)
-			v.color[j]= uint8_t(rand() & 255);
+		{
+			const float c= brightness * (c_color_brown_dwarf[j] * (1.0f - temperature) + c_color_blue_giant[j] * temperature);
+			v.color[j]= uint8_t(std::max(0.0f, std::min(c * 255.0f, 255.0f)));
+		}
+
 		v.color[3]= 255;
 
 		stars.push_back(v);

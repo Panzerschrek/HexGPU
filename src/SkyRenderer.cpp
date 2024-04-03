@@ -22,6 +22,7 @@ struct SkyShaderUniforms
 	float sky_color[4]{};
 	float sun_direction[4]{};
 	float clouds_color[4]{};
+	float stars_brightness= 1.0f;
 };
 
 struct CloudsUniforms
@@ -181,7 +182,7 @@ GraphicsPipeline CreateStarsPipeline(
 			0u,
 			vk::DescriptorType::eUniformBuffer,
 			1u,
-			vk::ShaderStageFlagBits::eVertex,
+			vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
 		},
 	};
 
@@ -268,10 +269,12 @@ GraphicsPipeline CreateStarsPipeline(
 		0.0f,
 		1.0f);
 
+	// Use simple alpha-blending.
+	// Do not modify dst alpha.
 	const vk::PipelineColorBlendAttachmentState pipeline_color_blend_attachment_state(
-		VK_FALSE,
-		vk::BlendFactor::eOne, vk::BlendFactor::eZero, vk::BlendOp::eAdd,
-		vk::BlendFactor::eOne, vk::BlendFactor::eZero, vk::BlendOp::eAdd,
+		VK_TRUE,
+		vk::BlendFactor::eSrcAlpha, vk::BlendFactor::eOneMinusSrcAlpha, vk::BlendOp::eAdd,
+		vk::BlendFactor::eZero, vk::BlendFactor::eOne, vk::BlendOp::eAdd,
 		vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
 
 	const vk::PipelineColorBlendStateCreateInfo pipeline_color_blend_state_create_info(
@@ -547,6 +550,11 @@ void SkyRenderer::PrepareFrame(TaskOrganizer& task_organizer)
 						offsetof(WorldProcessor::WorldGlobalState, clouds_color),
 						offsetof(SkyShaderUniforms, clouds_color),
 						sizeof(float) * 4
+					},
+					{
+						offsetof(WorldProcessor::WorldGlobalState, stars_brightness),
+						offsetof(SkyShaderUniforms, stars_brightness),
+						sizeof(float)
 					},
 				});
 		};

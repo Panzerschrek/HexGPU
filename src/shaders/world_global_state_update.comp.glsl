@@ -55,6 +55,8 @@ void main()
 			0.9 * world_global_state.clouds_color.rgb,
 			sqrt(rain_intensity));
 
+	world_global_state.stars_brightness= 1.0 - daynight_k;
+
 	// Assuming sky light is zero at night.
 	world_global_state.sky_light_mask= daynight_k >= 1.0 ? 0xFFFFFFFF : 0x0;
 

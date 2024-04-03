@@ -21,7 +21,6 @@ The order represents importance and/or dependency.
 * Plates (half-blocks)
 * Vertically-splitted half-blocks
 * Day-night cycle - change day time each tick
-* Stars (at night)
 * Rain/snow
 * More block types
 * Extinguish fire during rain

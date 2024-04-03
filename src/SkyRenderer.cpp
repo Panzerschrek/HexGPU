@@ -19,6 +19,7 @@ namespace CloudsShaderBindings
 struct SkyShaderUniforms
 {
 	float view_matrix[16]{};
+	float stars_matrix[16]{};
 	float sky_color[4]{};
 	float sun_direction[4]{};
 	float clouds_color[4]{};
@@ -527,6 +528,11 @@ void SkyRenderer::PrepareFrame(TaskOrganizer& task_organizer)
 					{
 						offsetof(WorldProcessor::PlayerState, sky_matrix),
 						offsetof(SkyShaderUniforms, view_matrix),
+						sizeof(float) * 16
+					},
+					{
+						offsetof(WorldProcessor::PlayerState, stars_matrix),
+						offsetof(SkyShaderUniforms, stars_matrix),
 						sizeof(float) * 16
 					},
 				});

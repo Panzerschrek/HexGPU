@@ -17,5 +17,5 @@ layout(location=0) out vec4 f_color;
 void main()
 {
 	f_color= color;
-	gl_Position= uniforms.view_matrix * vec4(pos, 1.0);
+	gl_Position= uniforms.stars_matrix * vec4(pos, 1.0);
 }

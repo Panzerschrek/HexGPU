@@ -307,6 +307,26 @@ Buffer CreateAndFillStarsVertexBuffer(WindowVulkan& window_vulkan, GPUDataUpload
 {
 	std::vector<StarVertex> stars;
 
+	const float c_target_radius= 1024.0f;
+
+	const float c_color_brown_dwarf[]{0.5f, 0.3f, 0.2f};
+	const float c_color_blue_giant[]{0.8f, 0.9f, 1.3f};
+
+	// Add polar star.
+	{
+		StarVertex v;
+		v.pos[0]= 0.0f;
+		v.pos[1]= 0.0f;
+		v.pos[2]= c_target_radius;
+
+		for(int j= 0; j < 3; ++j)
+			v.color[j]= uint8_t(std::min(c_color_blue_giant[j] * 255.0f, 255.0f));
+
+		v.color[3]= 255;
+
+		stars.push_back(v);
+	}
+
 	std::mt19937 rand(0);
 
 	while(stars.size() < 2048u)
@@ -317,7 +337,6 @@ Buffer CreateAndFillStarsVertexBuffer(WindowVulkan& window_vulkan, GPUDataUpload
 		for(int j= 0; j < 3; ++j)
 			v.pos[j]= float((int32_t(rand()) & 2047) - 1024);
 
-		const float c_target_radius= 1024.0f;
 
 		float square_radius= v.pos[0] * v.pos[0] + v.pos[1] * v.pos[1] + v.pos[2] * v.pos[2];
 		if(square_radius >= c_target_radius * c_target_radius || square_radius == 0.0f)
@@ -331,9 +350,6 @@ Buffer CreateAndFillStarsVertexBuffer(WindowVulkan& window_vulkan, GPUDataUpload
 		const float brightness= std::pow(0.1f + float(rand() & 1023) * (0.9f / 1024.0f), 1.3f) * 0.98f;
 		// Make more brown dwarfs and less blue giants.
 		const float temperature= std::pow(0.1f + float(rand() & 1023) * (0.9f / 1024.0f), 1.4f) * 0.94f;
-
-		const float c_color_brown_dwarf[]{0.5f, 0.3f, 0.2f};
-		const float c_color_blue_giant[]{0.8f, 0.9f, 1.3f};
 
 		for(int j= 0; j < 3; ++j)
 		{

@@ -305,7 +305,10 @@ GraphicsPipeline CreateStarsPipeline(
 
 Buffer CreateAndFillStarsVertexBuffer(WindowVulkan& window_vulkan, GPUDataUploader& gpu_data_uploader)
 {
+	const size_t c_target_num_stars= 2048;
+
 	std::vector<StarVertex> stars;
+	stars.reserve(c_target_num_stars);
 
 	const float c_target_radius= 1024.0f;
 
@@ -329,14 +332,13 @@ Buffer CreateAndFillStarsVertexBuffer(WindowVulkan& window_vulkan, GPUDataUpload
 
 	std::mt19937 rand(0);
 
-	while(stars.size() < 2048u)
+	while(stars.size() < c_target_num_stars)
 	{
 		// Generate random points inside sphere.
 		StarVertex v;
 
 		for(int j= 0; j < 3; ++j)
 			v.pos[j]= float((int32_t(rand()) & 2047) - 1024);
-
 
 		float square_radius= v.pos[0] * v.pos[0] + v.pos[1] * v.pos[1] + v.pos[2] * v.pos[2];
 		if(square_radius >= c_target_radius * c_target_radius || square_radius == 0.0f)

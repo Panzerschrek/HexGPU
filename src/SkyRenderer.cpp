@@ -2,6 +2,7 @@
 #include "GlobalDescriptorPool.hpp"
 #include "ShaderList.hpp"
 #include "VulkanUtils.hpp"
+#include <random>
 
 namespace HexGPU
 {
@@ -304,15 +305,25 @@ Buffer CreateAndFillStarsVertexBuffer(WindowVulkan& window_vulkan, GPUDataUpload
 {
 	std::vector<StarVertex> stars;
 
-	for(int i= 0; i < 64; ++i)
-	{
-		float angle= float(i) / 64.0f * 2.0f * 3.1415926535f;
+	std::mt19937 rand(0);
 
+	while(stars.size() < 2048u)
+	{
+		// Generate random points inside sphere.
 		StarVertex v;
-		v.pos[0]= std::sin(angle) * 1024.0f;
-		v.pos[1]= std::cos(angle) * 1024.0f;
-		v.pos[2]= 0.0f;
-		v.pos[3]= 0.0f;
+
+		for(int j= 0; j < 3; ++j)
+			v.pos[j]= float((int32_t(rand()) & 2047) - 1024);
+
+		const float c_target_radius= 1024.0f;
+
+		float square_radius= v.pos[0] * v.pos[0] + v.pos[1] * v.pos[1] + v.pos[2] * v.pos[2];
+		if(square_radius >= c_target_radius * c_target_radius || square_radius == 0.0f)
+			continue;
+
+		const float scale_factor= c_target_radius / std::sqrt(square_radius);
+		for(int j= 0; j < 3; ++j)
+			v.pos[j]*= scale_factor;
 
 		stars.push_back(v);
 	}

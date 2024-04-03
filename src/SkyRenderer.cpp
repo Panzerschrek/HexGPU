@@ -31,7 +31,8 @@ struct CloudsUniforms
 
 struct StarVertex
 {
-	float pos[4]{};
+	float pos[3]{};
+	uint8_t color[4]{};
 };
 
 GraphicsPipeline CreateSkyPipeline(
@@ -220,7 +221,8 @@ GraphicsPipeline CreateStarsPipeline(
 
 	const vk::VertexInputAttributeDescription vertex_input_attribute_description[]
 	{
-		{0u, 0u, vk::Format::eR32G32B32A32Sfloat, 0u},
+		{0u, 0u, vk::Format::eR32G32B32Sfloat, offsetof(StarVertex, pos)},
+		{1u, 0u, vk::Format::eR8G8B8A8Unorm, offsetof(StarVertex, color)},
 	};
 
 	const vk::PipelineVertexInputStateCreateInfo pipiline_vertex_input_state_create_info(
@@ -324,6 +326,10 @@ Buffer CreateAndFillStarsVertexBuffer(WindowVulkan& window_vulkan, GPUDataUpload
 		const float scale_factor= c_target_radius / std::sqrt(square_radius);
 		for(int j= 0; j < 3; ++j)
 			v.pos[j]*= scale_factor;
+
+		for(int j= 0; j < 3; ++j)
+			v.color[j]= uint8_t(rand() & 255);
+		v.color[3]= 255;
 
 		stars.push_back(v);
 	}

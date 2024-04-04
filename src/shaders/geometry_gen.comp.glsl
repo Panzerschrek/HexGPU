@@ -477,31 +477,145 @@ void main()
 		quads[quad_index]= quad_south;
 		quads[quad_index + 1]= quad_north;
 	}
-	if( block_value == c_block_type_water &&
-		block_value_north != c_block_type_water &&
-		optical_density_north != c_optical_density_solid)
+
+	if( block_value == c_block_type_water)
 	{
-		// Add north water side quad.
-		Quad quad;
-
-		quad.vertices[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(z + 1), 0.0);
-		quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 1), 0.0);
-		quad.vertices[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 0), 0.0);
-		quad.vertices[3].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(z + 0), 0.0);
-
 		const int16_t tex_index= c_block_texture_table[uint(c_block_type_water)].b;
-
 		ivec2 tc_base= ivec2(base_tc_x, z * 2);
 
-		int16_t light= RepackAndScaleLight(light_buffer[block_address_north], 267);
+		if(block_value_north != c_block_type_water && optical_density_north != c_optical_density_solid)
+		{
+			// Add north water side quad.
+			Quad quad;
 
-		quad.vertices[0].tex_coord= i16vec4(int16_t(tc_base.x + 0), int16_t(tc_base.y + 2), tex_index, light);
-		quad.vertices[1].tex_coord= i16vec4(int16_t(tc_base.x + 2), int16_t(tc_base.y + 2), tex_index, light);
-		quad.vertices[2].tex_coord= i16vec4(int16_t(tc_base.x + 2), int16_t(tc_base.y + 0), tex_index, light);
-		quad.vertices[3].tex_coord= i16vec4(int16_t(tc_base.x + 0), int16_t(tc_base.y + 0), tex_index, light);
+			quad.vertices[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(z + 1), 0.0);
+			quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 1), 0.0);
+			quad.vertices[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 0), 0.0);
+			quad.vertices[3].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(z + 0), 0.0);
 
-		uint quad_index= quads_offset + atomicAdd(chunk_draw_info[chunk_index].num_quads, 1);
-		quads[quad_index]= quad;
+			int16_t light= RepackAndScaleLight(light_buffer[block_address_north], 267);
+
+			quad.vertices[0].tex_coord= i16vec4(int16_t(tc_base.x + 0), int16_t(tc_base.y + 2), tex_index, light);
+			quad.vertices[1].tex_coord= i16vec4(int16_t(tc_base.x + 2), int16_t(tc_base.y + 2), tex_index, light);
+			quad.vertices[2].tex_coord= i16vec4(int16_t(tc_base.x + 2), int16_t(tc_base.y + 0), tex_index, light);
+			quad.vertices[3].tex_coord= i16vec4(int16_t(tc_base.x + 0), int16_t(tc_base.y + 0), tex_index, light);
+
+			uint quad_index= quads_offset + atomicAdd(chunk_draw_info[chunk_index].num_quads, 1);
+			quads[quad_index]= quad;
+		}
+		if(block_value_north_east != c_block_type_water && optical_density_north_east != c_optical_density_solid)
+		{
+			// Add north-east water side quad.
+			Quad quad;
+
+			quad.vertices[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 1), 0.0);
+			quad.vertices[1].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(z + 1), 0.0);
+			quad.vertices[2].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(z + 0), 0.0);
+			quad.vertices[3].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 0), 0.0);
+
+			int16_t light= RepackAndScaleLight(light_buffer[block_address_north_east], 262);
+
+			quad.vertices[0].tex_coord= i16vec4(int16_t(tc_base.x + 2), int16_t(tc_base.y + 2), tex_index, light);
+			quad.vertices[1].tex_coord= i16vec4(int16_t(tc_base.x + 4), int16_t(tc_base.y + 2), tex_index, light);
+			quad.vertices[2].tex_coord= i16vec4(int16_t(tc_base.x + 4), int16_t(tc_base.y + 0), tex_index, light);
+			quad.vertices[3].tex_coord= i16vec4(int16_t(tc_base.x + 2), int16_t(tc_base.y + 0), tex_index, light);
+
+			uint quad_index= quads_offset + atomicAdd(chunk_draw_info[chunk_index].num_quads, 1);
+			quads[quad_index]= quad;
+		}
+		if(block_value_south_east != c_block_type_water && optical_density_south_east != c_optical_density_solid)
+		{
+			// Add south-east water side quad.
+			Quad quad;
+
+			quad.vertices[0].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(z + 1), 0.0);
+			quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z + 1), 0.0);
+			quad.vertices[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z + 0), 0.0);
+			quad.vertices[3].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(z + 0), 0.0);
+
+			int16_t light= RepackAndScaleLight(light_buffer[block_address_south_east], 257);
+
+			quad.vertices[0].tex_coord= i16vec4(int16_t(tc_base.x + 4), int16_t(tc_base.y + 2), tex_index, light);
+			quad.vertices[1].tex_coord= i16vec4(int16_t(tc_base.x + 2), int16_t(tc_base.y + 2), tex_index, light);
+			quad.vertices[2].tex_coord= i16vec4(int16_t(tc_base.x + 2), int16_t(tc_base.y + 0), tex_index, light);
+			quad.vertices[3].tex_coord= i16vec4(int16_t(tc_base.x + 4), int16_t(tc_base.y + 0), tex_index, light);
+
+			uint quad_index= quads_offset + atomicAdd(chunk_draw_info[chunk_index].num_quads, 1);
+			quads[quad_index]= quad;
+		}
+
+		int side_y_base= block_y + ((block_x + 1) & 1);
+		int west_x_clamped= max(block_x - 1, 0);
+
+		int south_block_address= GetBlockFullAddress(ivec3(block_x, max(block_y - 1, 0), z), world_size_chunks);
+		int south_west_block_address= GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 1, max_world_coord.y)), z), world_size_chunks);
+		int north_west_block_address= GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 0, max_world_coord.y)), z), world_size_chunks);
+
+		uint8_t block_value_south= chunks_data[south_block_address];
+		if(block_value_south != c_block_type_water && c_block_optical_density_table[uint(block_value_south)] != c_optical_density_solid)
+		{
+			// Add south water side quad.
+			Quad quad;
+
+			quad.vertices[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z + 0), 0.0);
+			quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z + 1), 0.0);
+			quad.vertices[2].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(z + 1), 0.0);
+			quad.vertices[3].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(z + 0), 0.0);
+
+			int16_t light= RepackAndScaleLight(light_buffer[south_block_address], 267);
+
+			quad.vertices[0].tex_coord= i16vec4(int16_t(tc_base.x + 2), int16_t(tc_base.y + 0), tex_index, light);
+			quad.vertices[1].tex_coord= i16vec4(int16_t(tc_base.x + 2), int16_t(tc_base.y + 2), tex_index, light);
+			quad.vertices[2].tex_coord= i16vec4(int16_t(tc_base.x + 0), int16_t(tc_base.y + 2), tex_index, light);
+			quad.vertices[3].tex_coord= i16vec4(int16_t(tc_base.x + 0), int16_t(tc_base.y + 0), tex_index, light);
+
+			uint quad_index= quads_offset + atomicAdd(chunk_draw_info[chunk_index].num_quads, 1);
+			quads[quad_index]= quad;
+		}
+
+		uint8_t block_value_south_west= chunks_data[south_west_block_address];
+		if(block_value_south_west != c_block_type_water && c_block_optical_density_table[uint(block_value_south_west)] != c_optical_density_solid)
+		{
+			// Add south-west water side quad.
+			Quad quad;
+
+			quad.vertices[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(z + 0), 0.0);
+			quad.vertices[1].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(z + 1), 0.0);
+			quad.vertices[2].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(z + 1), 0.0);
+			quad.vertices[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(z + 0), 0.0);
+
+			int16_t light= RepackAndScaleLight(light_buffer[south_west_block_address], 262);
+
+			quad.vertices[0].tex_coord= i16vec4(int16_t(tc_base.x + 1), int16_t(tc_base.y + 0), tex_index, light);
+			quad.vertices[1].tex_coord= i16vec4(int16_t(tc_base.x + 1), int16_t(tc_base.y + 2), tex_index, light);
+			quad.vertices[2].tex_coord= i16vec4(int16_t(tc_base.x - 1), int16_t(tc_base.y + 2), tex_index, light);
+			quad.vertices[3].tex_coord= i16vec4(int16_t(tc_base.x - 1), int16_t(tc_base.y + 0), tex_index, light);
+
+			uint quad_index= quads_offset + atomicAdd(chunk_draw_info[chunk_index].num_quads, 1);
+			quads[quad_index]= quad;
+		}
+
+		uint8_t block_value_north_west= chunks_data[north_west_block_address];
+		if(block_value_north_west != c_block_type_water && c_block_optical_density_table[uint(block_value_north_west)] != c_optical_density_solid)
+		{
+			// Add north-west water side quad.
+			Quad quad;
+
+			quad.vertices[0].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(z + 1), 0.0);
+			quad.vertices[1].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(z + 1), 0.0);
+			quad.vertices[2].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(z + 0), 0.0);
+			quad.vertices[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(z + 0), 0.0);
+
+			int16_t light= RepackAndScaleLight(light_buffer[north_west_block_address], 262);
+
+			quad.vertices[0].tex_coord= i16vec4(int16_t(tc_base.x - 1), int16_t(tc_base.y + 2), tex_index, light);
+			quad.vertices[1].tex_coord= i16vec4(int16_t(tc_base.x + 1), int16_t(tc_base.y + 2), tex_index, light);
+			quad.vertices[2].tex_coord= i16vec4(int16_t(tc_base.x + 1), int16_t(tc_base.y + 0), tex_index, light);
+			quad.vertices[3].tex_coord= i16vec4(int16_t(tc_base.x - 1), int16_t(tc_base.y + 0), tex_index, light);
+
+			uint quad_index= quads_offset + atomicAdd(chunk_draw_info[chunk_index].num_quads, 1);
+			quads[quad_index]= quad;
+		}
 	}
 
 	if(block_value == c_block_type_fire)

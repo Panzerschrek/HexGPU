@@ -103,9 +103,48 @@ void main()
 			// Add two water hexagon quads.
 			atomicAdd(chunk_draw_info[chunk_index].new_water_num_quads, 2);
 		}
+
 		if(block_value_north != c_block_type_water && optical_density_north != c_optical_density_solid)
 		{
 			// Add north water side quad.
+			atomicAdd(chunk_draw_info[chunk_index].new_num_quads, 1);
+		}
+		if(block_value_north_east != c_block_type_water && optical_density_north_east != c_optical_density_solid)
+		{
+			// Add north-east water side quad.
+			atomicAdd(chunk_draw_info[chunk_index].new_num_quads, 1);
+		}
+		if(block_value_south_east != c_block_type_water && optical_density_south_east != c_optical_density_solid)
+		{
+			// Add south-east water side quad.
+			atomicAdd(chunk_draw_info[chunk_index].new_num_quads, 1);
+		}
+
+		int side_y_base= block_y + ((block_x + 1) & 1);
+		int west_x_clamped= max(block_x - 1, 0);
+
+		int south_block_address= GetBlockFullAddress(ivec3(block_x, max(block_y - 1, 0), z), world_size_chunks);
+		int south_west_block_address= GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 1, max_world_coord.y)), z), world_size_chunks);
+		int north_west_block_address= GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 0, max_world_coord.y)), z), world_size_chunks);
+
+		uint8_t block_value_south= chunks_data[south_block_address];
+		if(block_value_south != c_block_type_water && c_block_optical_density_table[uint(block_value_south)] != c_optical_density_solid)
+		{
+			// Add south water side quad.
+			atomicAdd(chunk_draw_info[chunk_index].new_num_quads, 1);
+		}
+
+		uint8_t block_value_south_west= chunks_data[south_west_block_address];
+		if(block_value_south_west != c_block_type_water && c_block_optical_density_table[uint(block_value_south_west)] != c_optical_density_solid)
+		{
+			// Add south-west water side quad.
+			atomicAdd(chunk_draw_info[chunk_index].new_num_quads, 1);
+		}
+
+		uint8_t block_value_north_west= chunks_data[north_west_block_address];
+		if(block_value_north_west != c_block_type_water && c_block_optical_density_table[uint(block_value_north_west)] != c_optical_density_solid)
+		{
+			// Add north-west water side quad.
 			atomicAdd(chunk_draw_info[chunk_index].new_num_quads, 1);
 		}
 	}

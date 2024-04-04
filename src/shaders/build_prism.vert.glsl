@@ -6,6 +6,8 @@
 
 #include "inc/block_type.glsl"
 
+const float z_scale= 256.0;
+
 // Vertices of a hexogonal prism.
 const vec3 c_vertices[12]= vec3[12]
 (
@@ -16,12 +18,12 @@ const vec3 c_vertices[12]= vec3[12]
 	vec3(3.0, 2.0, 0.0),
 	vec3(1.0, 2.0, 0.0),
 
-	vec3(1.0, 0.0, 1.0),
-	vec3(3.0, 0.0, 1.0),
-	vec3(4.0, 1.0, 1.0),
-	vec3(0.0, 1.0, 1.0),
-	vec3(3.0, 2.0, 1.0),
-	vec3(1.0, 2.0, 1.0)
+	vec3(1.0, 0.0, z_scale),
+	vec3(3.0, 0.0, z_scale),
+	vec3(4.0, 1.0, z_scale),
+	vec3(0.0, 1.0, z_scale),
+	vec3(3.0, 2.0, z_scale),
+	vec3(1.0, 2.0, z_scale)
 );
 
 // Indices of a hexogonal prism triangles.
@@ -81,7 +83,7 @@ layout(location = 1) out vec4 f_stripes;
 void main()
 {
 	vec3 v= c_vertices[c_indices[gl_VertexIndex]];
-	vec3 pos_corrected= v + vec3(build_pos.xyz) * vec3(3.0, 2.0, 256.0);
+	vec3 pos_corrected= v + vec3(build_pos.xyz) * vec3(3.0, 2.0, z_scale);
 	pos_corrected.y+= float((build_pos.x ^ 1) & 1);
 	gl_Position= view_matrix * vec4(pos_corrected, 1.0);
 
@@ -90,5 +92,5 @@ void main()
 	// Highlight active build prism side.
 	f_alpha= direction == build_pos.w ? 0.7 : 0.3;
 
-	f_stripes= vec4(2.0, 3.0, 3.0, 6.0) * vec4(v.x, v.y + (1.0 / 3.0) * v.x, v.y - (1.0 / 3.0) * v.x, v.z);
+	f_stripes= vec4(2.0, 3.0, 3.0, 6.0) * vec4(v.x, v.y + (1.0 / 3.0) * v.x, v.y - (1.0 / 3.0) * v.x, v.z / z_scale);
 }

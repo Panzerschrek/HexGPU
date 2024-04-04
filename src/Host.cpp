@@ -317,15 +317,20 @@ void Host::DrawBlockSelectionUI()
 
 	const uint32_t num_block_types_shown= uint32_t(BlockType::NumBlockTypes) - 1;
 
+	const uint32_t num_columns= 2;
+	const float column_width= 220.0f;
+
+	const float window_width= style.WindowPadding.x * 2.0f + float(num_columns) * column_width;
+
 	const float window_height=
 		style.WindowPadding.y * 2.0f +
-		(font->FontSize + style.ItemSpacing.y) * float(num_block_types_shown + 1);
+		(font->FontSize + style.ItemSpacing.y) * float((num_block_types_shown + (num_columns - 1)) / num_columns + 1);
 
 	ImGui::PushFont(font);
 
 	ImGui::SetNextWindowPos({128.0f, 64.0f});
 
-	ImGui::SetNextWindowSize({200.0f, window_height});
+	ImGui::SetNextWindowSize({window_width, window_height});
 
 	ImGui::SetNextWindowBgAlpha(0.25f);
 	ImGui::Begin(
@@ -340,6 +345,9 @@ void Host::DrawBlockSelectionUI()
 			selected_block_type_= BlockType(i);
 			blocks_selection_menu_active_= false; // Deactivete block selection menu when block is selected.
 		}
+		const size_t column= (i - 1) % num_columns;
+		if(column != num_columns - 1)
+			ImGui::SameLine(column_width * float(column + 1));
 	}
 
 	ImGui::End();

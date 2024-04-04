@@ -71,6 +71,10 @@ int16_t RepackAndScaleLight(uint8_t light_packed, int scale)
 	return int16_t(fire_light_scaled | (sky_light_scaled << 8));
 }
 
+// Scale z coordinate to avoid fractional Z (for water, grass, etc).
+const int z_shift= 8;
+const int z_one= 1 << z_shift;
+
 void main()
 {
 	// Generate quads geoemtry.
@@ -115,6 +119,8 @@ void main()
 	int base_x= 3 * ((chunk_global_position.x << c_chunk_width_log2) + int(invocation.x));
 	int base_y= 2 * ((chunk_global_position.y << c_chunk_width_log2) + int(invocation.y)) - (block_x & 1) + 1;
 
+	int base_z= z << z_shift;
+
 	int base_tc_x= 4 * ((chunk_global_position.x << c_chunk_width_log2) + int(invocation.x));
 
 	if(optical_density != optical_density_up)
@@ -124,12 +130,12 @@ void main()
 		// Calculate hexagon vertices.
 		WorldVertex v[6];
 
-		v[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(z + 1), 0.0);
-		v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z + 1), 0.0);
-		v[2].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(z + 1), 0.0);
-		v[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(z + 1), 0.0);
-		v[4].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 1), 0.0);
-		v[5].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(z + 1), 0.0);
+		v[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(base_z + z_one), 0.0);
+		v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(base_z + z_one), 0.0);
+		v[2].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(base_z + z_one), 0.0);
+		v[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(base_z + z_one), 0.0);
+		v[4].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(base_z + z_one), 0.0);
+		v[5].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(base_z + z_one), 0.0);
 
 		int16_t tex_index=
 			optical_density < optical_density_up
@@ -178,10 +184,10 @@ void main()
 		// Add north quad.
 		WorldVertex v[4];
 
-		v[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 0), 0.0);
-		v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 1), 0.0);
-		v[2].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(z + 1), 0.0);
-		v[3].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(z + 0), 0.0);
+		v[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(base_z + 0), 0.0);
+		v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(base_z + z_one), 0.0);
+		v[2].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(base_z + z_one), 0.0);
+		v[3].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(base_z + 0), 0.0);
 
 		int16_t tex_index= c_block_texture_table[optical_density < optical_density_north ? int(block_value) : int(block_value_north)].b;
 
@@ -217,10 +223,10 @@ void main()
 		// Add north-east quad.
 		WorldVertex v[4];
 
-		v[0].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(z + 0), 0.0);
-		v[1].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(z + 1), 0.0);
-		v[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 1), 0.0);
-		v[3].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 0), 0.0);
+		v[0].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(base_z + 0), 0.0);
+		v[1].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(base_z + z_one), 0.0);
+		v[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(base_z + z_one), 0.0);
+		v[3].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(base_z + 0), 0.0);
 
 		int16_t tex_index= c_block_texture_table[optical_density < optical_density_north_east ? int(block_value) : int(block_value_north_east)].b;
 
@@ -255,10 +261,10 @@ void main()
 	{
 		WorldVertex v[4];
 
-		v[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z + 0), 0.0);
-		v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z + 1), 0.0);
-		v[2].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(z + 1), 0.0);
-		v[3].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(z + 0), 0.0);
+		v[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(base_z + 0), 0.0);
+		v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(base_z + z_one), 0.0);
+		v[2].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(base_z + z_one), 0.0);
+		v[3].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(base_z + 0), 0.0);
 
 		int16_t tex_index= c_block_texture_table[optical_density < optical_density_south_east ? int(block_value) : int(block_value_south_east)].b;
 
@@ -317,10 +323,10 @@ void main()
 		{
 			Quad quad;
 
-			quad.vertices[0].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(z * 2 + 2), 0.0);
-			quad.vertices[1].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(z * 2 + 3), 0.0);
-			quad.vertices[2].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(z * 2 + 3), 0.0);
-			quad.vertices[3].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(z * 2 + 2), 0.0);
+			quad.vertices[0].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(base_z + z_one), 0.0);
+			quad.vertices[1].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(base_z + z_one + z_one / 2), 0.0);
+			quad.vertices[2].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(base_z + z_one + z_one / 2), 0.0);
+			quad.vertices[3].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(base_z + z_one), 0.0);
 			quad.vertices[0].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(1), tex_index, light);
 			quad.vertices[1].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(2), tex_index, light);
 			quad.vertices[2].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(2), tex_index, light);
@@ -333,10 +339,10 @@ void main()
 		{
 			Quad quad;
 
-			quad.vertices[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(z * 2 + 2), 0.0);
-			quad.vertices[1].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(z * 2 + 3), 0.0);
-			quad.vertices[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z * 2 + 3), 0.0);
-			quad.vertices[3].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z * 2 + 2), 0.0);
+			quad.vertices[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(base_z + z_one), 0.0);
+			quad.vertices[1].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(base_z + z_one + z_one / 2), 0.0);
+			quad.vertices[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(base_z + z_one + z_one / 2), 0.0);
+			quad.vertices[3].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(base_z + z_one), 0.0);
 			quad.vertices[0].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(1), tex_index, light);
 			quad.vertices[1].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(2), tex_index, light);
 			quad.vertices[2].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(2), tex_index, light);
@@ -349,10 +355,10 @@ void main()
 		{
 			Quad quad;
 
-			quad.vertices[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(z * 2 + 2), 0.0);
-			quad.vertices[1].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(z * 2 + 3), 0.0);
-			quad.vertices[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z * 2 + 3), 0.0);
-			quad.vertices[3].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z * 2 + 2), 0.0);
+			quad.vertices[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(base_z + z_one), 0.0);
+			quad.vertices[1].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(base_z + z_one + z_one / 2), 0.0);
+			quad.vertices[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(base_z + z_one + z_one / 2), 0.0);
+			quad.vertices[3].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(base_z + z_one), 0.0);
 			quad.vertices[0].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(1), tex_index, light);
 			quad.vertices[1].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(2), tex_index, light);
 			quad.vertices[2].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(2), tex_index, light);
@@ -426,7 +432,6 @@ void main()
 			}
 		}
 
-		const int z_shift= 8;
 		for(int i= 0; i < 6; ++i) // Calculate vertex water level.
 		{
 			if(upper_block_is_water[i])
@@ -488,10 +493,10 @@ void main()
 			// Add north water side quad.
 			Quad quad;
 
-			quad.vertices[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(z + 1), 0.0);
-			quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 1), 0.0);
-			quad.vertices[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 0), 0.0);
-			quad.vertices[3].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(z + 0), 0.0);
+			quad.vertices[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(base_z + z_one), 0.0);
+			quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(base_z + z_one), 0.0);
+			quad.vertices[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(base_z + 0), 0.0);
+			quad.vertices[3].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(base_z + 0), 0.0);
 
 			int16_t light= RepackAndScaleLight(light_buffer[block_address_north], 267);
 
@@ -508,10 +513,10 @@ void main()
 			// Add north-east water side quad.
 			Quad quad;
 
-			quad.vertices[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 1), 0.0);
-			quad.vertices[1].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(z + 1), 0.0);
-			quad.vertices[2].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(z + 0), 0.0);
-			quad.vertices[3].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(z + 0), 0.0);
+			quad.vertices[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(base_z + z_one), 0.0);
+			quad.vertices[1].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(base_z + z_one), 0.0);
+			quad.vertices[2].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(base_z + 0), 0.0);
+			quad.vertices[3].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(base_z + 0), 0.0);
 
 			int16_t light= RepackAndScaleLight(light_buffer[block_address_north_east], 262);
 
@@ -528,10 +533,10 @@ void main()
 			// Add south-east water side quad.
 			Quad quad;
 
-			quad.vertices[0].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(z + 1), 0.0);
-			quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z + 1), 0.0);
-			quad.vertices[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z + 0), 0.0);
-			quad.vertices[3].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(z + 0), 0.0);
+			quad.vertices[0].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(base_z + z_one), 0.0);
+			quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(base_z + z_one), 0.0);
+			quad.vertices[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(base_z + 0), 0.0);
+			quad.vertices[3].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(base_z + 0), 0.0);
 
 			int16_t light= RepackAndScaleLight(light_buffer[block_address_south_east], 257);
 
@@ -557,10 +562,10 @@ void main()
 			// Add south water side quad.
 			Quad quad;
 
-			quad.vertices[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z + 0), 0.0);
-			quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(z + 1), 0.0);
-			quad.vertices[2].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(z + 1), 0.0);
-			quad.vertices[3].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(z + 0), 0.0);
+			quad.vertices[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(base_z + 0), 0.0);
+			quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(base_z + z_one), 0.0);
+			quad.vertices[2].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(base_z + z_one), 0.0);
+			quad.vertices[3].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(base_z + 0), 0.0);
 
 			int16_t light= RepackAndScaleLight(light_buffer[south_block_address], 267);
 
@@ -579,10 +584,10 @@ void main()
 			// Add south-west water side quad.
 			Quad quad;
 
-			quad.vertices[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(z + 0), 0.0);
-			quad.vertices[1].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(z + 1), 0.0);
-			quad.vertices[2].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(z + 1), 0.0);
-			quad.vertices[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(z + 0), 0.0);
+			quad.vertices[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(base_z + 0), 0.0);
+			quad.vertices[1].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(base_z + z_one), 0.0);
+			quad.vertices[2].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(base_z + z_one), 0.0);
+			quad.vertices[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(base_z + 0), 0.0);
 
 			int16_t light= RepackAndScaleLight(light_buffer[south_west_block_address], 262);
 
@@ -601,10 +606,10 @@ void main()
 			// Add north-west water side quad.
 			Quad quad;
 
-			quad.vertices[0].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(z + 1), 0.0);
-			quad.vertices[1].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(z + 1), 0.0);
-			quad.vertices[2].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(z + 0), 0.0);
-			quad.vertices[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(z + 0), 0.0);
+			quad.vertices[0].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(base_z + z_one), 0.0);
+			quad.vertices[1].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(base_z + z_one), 0.0);
+			quad.vertices[2].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(base_z + 0), 0.0);
+			quad.vertices[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(base_z + 0), 0.0);
 
 			int16_t light= RepackAndScaleLight(light_buffer[north_west_block_address], 262);
 

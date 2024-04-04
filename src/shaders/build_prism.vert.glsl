@@ -81,7 +81,7 @@ layout(location = 1) out vec4 f_stripes;
 void main()
 {
 	vec3 v= c_vertices[c_indices[gl_VertexIndex]];
-	vec3 pos_corrected= v + vec3(build_pos.xyz) * vec3(3.0, 2.0, 1.0);
+	vec3 pos_corrected= v + vec3(build_pos.xyz) * vec3(3.0, 2.0, 256.0);
 	pos_corrected.y+= float((build_pos.x ^ 1) & 1);
 	gl_Position= view_matrix * vec4(pos_corrected, 1.0);
 

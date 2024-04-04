@@ -26,11 +26,6 @@ struct SkyShaderUniforms
 	float stars_brightness= 1.0f;
 };
 
-struct StarsUniforms
-{
-	float point_size= 1.0f;
-};
-
 struct CloudsUniforms
 {
 	float tex_coord_shift[2]{};
@@ -173,6 +168,7 @@ GraphicsPipeline CreateSkyPipeline(
 
 GraphicsPipeline CreateStarsPipeline(
 	const vk::Device vk_device,
+	const bool use_supersampling,
 	const vk::SampleCountFlagBits samples,
 	const vk::Extent2D viewport_size,
 	const vk::RenderPass render_pass)
@@ -198,17 +194,18 @@ GraphicsPipeline CreateStarsPipeline(
 				vk::DescriptorSetLayoutCreateFlags(),
 				uint32_t(std::size(descriptor_set_layout_bindings)), descriptor_set_layout_bindings));
 
-	const vk::PushConstantRange push_constant_range(
-		vk::ShaderStageFlagBits::eVertex,
-		0u,
-		sizeof(StarsUniforms));
-
 	pipeline.pipeline_layout=
 		vk_device.createPipelineLayoutUnique(
 			vk::PipelineLayoutCreateInfo(
 				vk::PipelineLayoutCreateFlags(),
 				1u, &*pipeline.descriptor_set_layout,
-				1u, &push_constant_range));
+				0u, nullptr));
+
+	const float point_size= use_supersampling ? 2.0f : 1.0f;
+
+	const vk::SpecializationMapEntry specialization_entry(0, 0, sizeof(float));
+
+	const vk::SpecializationInfo specialization_info(1u, &specialization_entry, sizeof(point_size), &point_size);
 
 	const vk::PipelineShaderStageCreateInfo shader_stage_create_info[]
 	{
@@ -216,7 +213,8 @@ GraphicsPipeline CreateStarsPipeline(
 			vk::PipelineShaderStageCreateFlags(),
 			vk::ShaderStageFlagBits::eVertex,
 			*pipeline.shader_vert,
-			"main"
+			"main",
+			&specialization_info,
 		},
 		{
 			vk::PipelineShaderStageCreateFlags(),
@@ -400,7 +398,6 @@ SkyRenderer::SkyRenderer(
 	: vk_device_(window_vulkan.GetVulkanDevice())
 	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, world_processor_(world_processor)
-	, use_supersampling_(world_render_pass.UseSupersampling())
 	, clouds_texture_generator_(window_vulkan, global_descriptor_pool)
 	, uniform_buffer_(
 		window_vulkan,
@@ -417,6 +414,7 @@ SkyRenderer::SkyRenderer(
 	, stars_pipeline_(
 		CreateStarsPipeline(
 			vk_device_,
+			world_render_pass.UseSupersampling(),
 			world_render_pass.GetSamples(),
 			world_render_pass.GetFramebufferSize(),
 			world_render_pass.GetRenderPass()))
@@ -624,15 +622,6 @@ void SkyRenderer::DrawStars(const vk::CommandBuffer command_buffer)
 		{});
 
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *stars_pipeline_.pipeline);
-
-	StarsUniforms uniforms;
-	uniforms.point_size= use_supersampling_ ? 2.0f : 1.0f;
-
-	command_buffer.pushConstants(
-		*stars_pipeline_.pipeline_layout,
-		vk::ShaderStageFlagBits::eVertex,
-		0,
-		sizeof(StarsUniforms), static_cast<const void*>(&uniforms));
 
 	const auto num_vertices= stars_vertex_buffer_.GetSize() / sizeof(StarVertex);
 

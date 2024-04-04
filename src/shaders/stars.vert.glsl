@@ -4,10 +4,7 @@
 
 #include "inc/sky_shader_uniforms.glsl"
 
-layout(push_constant) uniform uniforms_block
-{
-	float point_size;
-};
+layout(constant_id = 0) const float point_size = 1.0;
 
 layout(binding= 0) uniform uniforms_block_variable
 {

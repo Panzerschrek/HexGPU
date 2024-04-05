@@ -369,122 +369,134 @@ void main()
 		}
 	}
 
-	if(block_value == c_block_type_water && block_value_up != c_block_type_water)
+	if(block_value == c_block_type_water)
 	{
-		// Add two water hexagon quads.
-
-		// Calculate average water level for each vertex.
-		// If block above adjacent is water - use maximum water level.
-		// If adjacent block if air - use minimum water level.
-		// Doing so we ensure that water surface is almost perfectly smooth.
-
 		int side_y_base= block_y + ((block_x + 1) & 1);
 		int west_x_clamped= max(block_x - 1, 0);
 
-		int adjacent_blocks[6]= int[6](
-			block_address_north,
-			block_address_north_east,
-			block_address_south_east,
-			// south
-			GetBlockFullAddress(ivec3(block_x, max(block_y - 1, 0), z), world_size_chunks),
-			// south-west
-			GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 1, max_world_coord.y)), z), world_size_chunks),
-			// north-west
-			GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 0, max_world_coord.y)), z), world_size_chunks) );
+		int south_block_address= GetBlockFullAddress(ivec3(block_x, max(block_y - 1, 0), z), world_size_chunks);
+		int south_west_block_address= GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 1, max_world_coord.y)), z), world_size_chunks);
+		int north_west_block_address= GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 0, max_world_coord.y)), z), world_size_chunks);
 
-		int water_level= int(chunks_auxiliar_data[block_address]);
-
-		bool upper_block_is_water[6]= bool[6](false, false, false, false, false, false);
-		bool adjacent_block_is_air[6]= bool[6](false, false, false, false, false, false);
-		int vertex_water_level[6]= int[6](water_level, water_level, water_level, water_level, water_level, water_level);
-		int vertex_water_block_count[6]= int[6](1, 1, 1, 1, 1, 1);
-
-		for(int i= 0; i < 6; ++i) // For adjacent blocks
+		int vertex_water_level[6];
+		if(block_value_up == c_block_type_water)
 		{
-			int adjacent_block_address= adjacent_blocks[i];
+			for(int i= 0; i < 6; ++i)
+				vertex_water_level[i]= base_z + z_one;
+		}
+		else
+		{
+			// Calculate average water level for each vertex.
+			// If block above adjacent is water - use maximum water level.
+			// If adjacent block if air - use minimum water level.
+			// Doing so we ensure that water surface is almost perfectly smooth.
 
-			const int c_next_vertex_index_table[6]= int[6](1, 2, 3, 4, 5, 0);
+			int water_level= int(chunks_auxiliar_data[block_address]);
 
-			int v0= i;
-			int v1= c_next_vertex_index_table[i];
+			for(int i= 0; i < 6; ++i)
+				vertex_water_level[i]= water_level;
 
-			if( z < c_chunk_height - 1 && chunks_data[adjacent_block_address + 1] == c_block_type_water)
+			int adjacent_blocks[6]= int[6](
+				block_address_north,
+				block_address_north_east,
+				block_address_south_east,
+				south_block_address,
+				south_west_block_address,
+				north_west_block_address );
+
+			bool upper_block_is_water[6]= bool[6](false, false, false, false, false, false);
+			bool adjacent_block_is_air[6]= bool[6](false, false, false, false, false, false);
+			int vertex_water_block_count[6]= int[6](1, 1, 1, 1, 1, 1);
+
+			for(int i= 0; i < 6; ++i) // For adjacent blocks
 			{
-				upper_block_is_water[v0]= true;
-				upper_block_is_water[v1]= true;
+				int adjacent_block_address= adjacent_blocks[i];
+
+				const int c_next_vertex_index_table[6]= int[6](1, 2, 3, 4, 5, 0);
+
+				int v0= i;
+				int v1= c_next_vertex_index_table[i];
+
+				if( z < c_chunk_height - 1 && chunks_data[adjacent_block_address + 1] == c_block_type_water)
+				{
+					upper_block_is_water[v0]= true;
+					upper_block_is_water[v1]= true;
+				}
+				else
+				{
+					uint8_t adjacent_block_type= chunks_data[adjacent_block_address];
+					if(adjacent_block_type == c_block_type_air)
+					{
+						adjacent_block_is_air[v0]= true;
+						adjacent_block_is_air[v1]= true;
+					}
+					else if(adjacent_block_type == c_block_type_water)
+					{
+						int level= int(chunks_auxiliar_data[adjacent_block_address]);
+						vertex_water_level[v0]+= level;
+						vertex_water_level[v1]+= level;
+						++vertex_water_block_count[v0];
+						++vertex_water_block_count[v1];
+					}
+				}
 			}
-			else
+
+			for(int i= 0; i < 6; ++i) // Calculate vertex water level.
 			{
-				uint8_t adjacent_block_type= chunks_data[adjacent_block_address];
-				if(adjacent_block_type == c_block_type_air)
-				{
-					adjacent_block_is_air[v0]= true;
-					adjacent_block_is_air[v1]= true;
-				}
-				else if(adjacent_block_type == c_block_type_water)
-				{
-					int level= int(chunks_auxiliar_data[adjacent_block_address]);
-					vertex_water_level[v0]+= level;
-					vertex_water_level[v1]+= level;
-					++vertex_water_block_count[v0];
-					++vertex_water_block_count[v1];
-				}
+				if(upper_block_is_water[i])
+					vertex_water_level[i]= ((z + 1) << z_shift) + 1;
+				else if(adjacent_block_is_air[i])
+					vertex_water_level[i]= (z << z_shift) + 1;
+				else
+					vertex_water_level[i]= (z << z_shift) + (vertex_water_level[i] / vertex_water_block_count[i]);
 			}
 		}
 
-		for(int i= 0; i < 6; ++i) // Calculate vertex water level.
+		if(block_value_up != c_block_type_water)
 		{
-			if(upper_block_is_water[i])
-				vertex_water_level[i]= ((z + 1) << z_shift) + 1;
-			else if(adjacent_block_is_air[i])
-				vertex_water_level[i]= (z << z_shift) + 1;
-			else
-				vertex_water_level[i]= (z << z_shift) + (vertex_water_level[i] / vertex_water_block_count[i]);
+			// Add two water hexagon quads.
+
+			// Calculate hexagon vertices.
+			WorldVertex v[6];
+			v[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(vertex_water_level[4]), 0.0);
+			v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(vertex_water_level[3]), 0.0);
+			v[2].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(vertex_water_level[2]), 0.0);
+			v[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(vertex_water_level[5]), 0.0);
+			v[4].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(vertex_water_level[1]), 0.0);
+			v[5].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(vertex_water_level[0]), 0.0);
+
+			const uint tex_index= uint(c_block_texture_table[uint(c_block_type_water)].x);
+
+			ivec2 tc_base= ivec2(base_x, base_y);
+
+			// Use light of this block.
+			int16_t light= RepackAndScaleLight(light_buffer[block_address], 272);
+
+			v[0].tex_coord= i16vec4(int16_t(tc_base.x + 1), int16_t(tc_base.y + 0), tex_index, light);
+			v[1].tex_coord= i16vec4(int16_t(tc_base.x + 3), int16_t(tc_base.y + 0), tex_index, light);
+			v[2].tex_coord= i16vec4(int16_t(tc_base.x + 4), int16_t(tc_base.y + 1), tex_index, light);
+			v[3].tex_coord= i16vec4(int16_t(tc_base.x + 0), int16_t(tc_base.y + 1), tex_index, light);
+			v[4].tex_coord= i16vec4(int16_t(tc_base.x + 3), int16_t(tc_base.y + 2), tex_index, light);
+			v[5].tex_coord= i16vec4(int16_t(tc_base.x + 1), int16_t(tc_base.y + 2), tex_index, light);
+
+			// Create quads from hexagon vertices. Two vertices are shared.
+			Quad quad_south, quad_north;
+
+			quad_south.vertices[0]= v[0];
+			quad_south.vertices[1]= v[1];
+			quad_south.vertices[2]= v[2];
+			quad_south.vertices[3]= v[3];
+
+			quad_north.vertices[0]= v[3];
+			quad_north.vertices[1]= v[2];
+			quad_north.vertices[2]= v[4];
+			quad_north.vertices[3]= v[5];
+
+			uint quad_index= chunk_draw_info[chunk_index].first_water_quad + atomicAdd(chunk_draw_info[chunk_index].num_water_quads, 2);
+			quads[quad_index]= quad_south;
+			quads[quad_index + 1]= quad_north;
 		}
 
-		// Calculate hexagon vertices.
-		WorldVertex v[6];
-		v[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(vertex_water_level[4]), 0.0);
-		v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(vertex_water_level[3]), 0.0);
-		v[2].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(vertex_water_level[2]), 0.0);
-		v[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(vertex_water_level[5]), 0.0);
-		v[4].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(vertex_water_level[1]), 0.0);
-		v[5].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(vertex_water_level[0]), 0.0);
-
-		const uint tex_index= uint(c_block_texture_table[uint(c_block_type_water)].x);
-
-		ivec2 tc_base= ivec2(base_x, base_y);
-
-		// Use light of this block.
-		int16_t light= RepackAndScaleLight(light_buffer[block_address], 272);
-
-		v[0].tex_coord= i16vec4(int16_t(tc_base.x + 1), int16_t(tc_base.y + 0), tex_index, light);
-		v[1].tex_coord= i16vec4(int16_t(tc_base.x + 3), int16_t(tc_base.y + 0), tex_index, light);
-		v[2].tex_coord= i16vec4(int16_t(tc_base.x + 4), int16_t(tc_base.y + 1), tex_index, light);
-		v[3].tex_coord= i16vec4(int16_t(tc_base.x + 0), int16_t(tc_base.y + 1), tex_index, light);
-		v[4].tex_coord= i16vec4(int16_t(tc_base.x + 3), int16_t(tc_base.y + 2), tex_index, light);
-		v[5].tex_coord= i16vec4(int16_t(tc_base.x + 1), int16_t(tc_base.y + 2), tex_index, light);
-
-		// Create quads from hexagon vertices. Two vertices are shared.
-		Quad quad_south, quad_north;
-
-		quad_south.vertices[0]= v[0];
-		quad_south.vertices[1]= v[1];
-		quad_south.vertices[2]= v[2];
-		quad_south.vertices[3]= v[3];
-
-		quad_north.vertices[0]= v[3];
-		quad_north.vertices[1]= v[2];
-		quad_north.vertices[2]= v[4];
-		quad_north.vertices[3]= v[5];
-
-		uint quad_index= chunk_draw_info[chunk_index].first_water_quad + atomicAdd(chunk_draw_info[chunk_index].num_water_quads, 2);
-		quads[quad_index]= quad_south;
-		quads[quad_index + 1]= quad_north;
-	}
-
-	if( block_value == c_block_type_water)
-	{
 		const int16_t tex_index= c_block_texture_table[uint(c_block_type_water)].b;
 		ivec2 tc_base= ivec2(base_tc_x, z * 2);
 
@@ -493,10 +505,10 @@ void main()
 			// Add north water side quad.
 			Quad quad;
 
-			quad.vertices[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(base_z + z_one), 0.0);
-			quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(base_z + z_one), 0.0);
-			quad.vertices[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(base_z + 0), 0.0);
-			quad.vertices[3].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(base_z + 0), 0.0);
+			quad.vertices[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(vertex_water_level[0]), 0.0);
+			quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(vertex_water_level[1]), 0.0);
+			quad.vertices[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(base_z), 0.0);
+			quad.vertices[3].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(base_z), 0.0);
 
 			int16_t light= RepackAndScaleLight(light_buffer[block_address_north], 267);
 
@@ -513,10 +525,10 @@ void main()
 			// Add north-east water side quad.
 			Quad quad;
 
-			quad.vertices[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(base_z + z_one), 0.0);
-			quad.vertices[1].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(base_z + z_one), 0.0);
-			quad.vertices[2].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(base_z + 0), 0.0);
-			quad.vertices[3].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(base_z + 0), 0.0);
+			quad.vertices[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(vertex_water_level[1]), 0.0);
+			quad.vertices[1].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(vertex_water_level[2]), 0.0);
+			quad.vertices[2].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(base_z), 0.0);
+			quad.vertices[3].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(base_z), 0.0);
 
 			int16_t light= RepackAndScaleLight(light_buffer[block_address_north_east], 262);
 
@@ -533,10 +545,10 @@ void main()
 			// Add south-east water side quad.
 			Quad quad;
 
-			quad.vertices[0].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(base_z + z_one), 0.0);
-			quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(base_z + z_one), 0.0);
-			quad.vertices[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(base_z + 0), 0.0);
-			quad.vertices[3].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(base_z + 0), 0.0);
+			quad.vertices[0].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(vertex_water_level[2]), 0.0);
+			quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(vertex_water_level[3]), 0.0);
+			quad.vertices[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(base_z), 0.0);
+			quad.vertices[3].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(base_z), 0.0);
 
 			int16_t light= RepackAndScaleLight(light_buffer[block_address_south_east], 257);
 
@@ -549,23 +561,16 @@ void main()
 			quads[quad_index]= quad;
 		}
 
-		int side_y_base= block_y + ((block_x + 1) & 1);
-		int west_x_clamped= max(block_x - 1, 0);
-
-		int south_block_address= GetBlockFullAddress(ivec3(block_x, max(block_y - 1, 0), z), world_size_chunks);
-		int south_west_block_address= GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 1, max_world_coord.y)), z), world_size_chunks);
-		int north_west_block_address= GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 0, max_world_coord.y)), z), world_size_chunks);
-
 		uint8_t block_value_south= chunks_data[south_block_address];
 		if(block_value_south != c_block_type_water && c_block_optical_density_table[uint(block_value_south)] != c_optical_density_solid)
 		{
 			// Add south water side quad.
 			Quad quad;
 
-			quad.vertices[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(base_z + 0), 0.0);
-			quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(base_z + z_one), 0.0);
-			quad.vertices[2].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(base_z + z_one), 0.0);
-			quad.vertices[3].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(base_z + 0), 0.0);
+			quad.vertices[0].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(base_z), 0.0);
+			quad.vertices[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(vertex_water_level[3]), 0.0);
+			quad.vertices[2].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(vertex_water_level[4]), 0.0);
+			quad.vertices[3].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(base_z), 0.0);
 
 			int16_t light= RepackAndScaleLight(light_buffer[south_block_address], 267);
 
@@ -584,10 +589,10 @@ void main()
 			// Add south-west water side quad.
 			Quad quad;
 
-			quad.vertices[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(base_z + 0), 0.0);
-			quad.vertices[1].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(base_z + z_one), 0.0);
-			quad.vertices[2].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(base_z + z_one), 0.0);
-			quad.vertices[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(base_z + 0), 0.0);
+			quad.vertices[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(base_z), 0.0);
+			quad.vertices[1].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(vertex_water_level[4]), 0.0);
+			quad.vertices[2].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(vertex_water_level[5]), 0.0);
+			quad.vertices[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(base_z), 0.0);
 
 			int16_t light= RepackAndScaleLight(light_buffer[south_west_block_address], 262);
 
@@ -606,10 +611,10 @@ void main()
 			// Add north-west water side quad.
 			Quad quad;
 
-			quad.vertices[0].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(base_z + z_one), 0.0);
-			quad.vertices[1].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(base_z + z_one), 0.0);
-			quad.vertices[2].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(base_z + 0), 0.0);
-			quad.vertices[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(base_z + 0), 0.0);
+			quad.vertices[0].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(vertex_water_level[5]), 0.0);
+			quad.vertices[1].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(vertex_water_level[0]), 0.0);
+			quad.vertices[2].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(base_z), 0.0);
+			quad.vertices[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(base_z), 0.0);
 
 			int16_t light= RepackAndScaleLight(light_buffer[north_west_block_address], 262);
 

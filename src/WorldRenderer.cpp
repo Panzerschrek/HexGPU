@@ -41,12 +41,6 @@ namespace FireDrawShaderBindings
 	const ShaderBindingIndex sampler= 1;
 }
 
-namespace GrassDrawShaderBindings
-{
-	const ShaderBindingIndex uniform_buffer= 0;
-	const ShaderBindingIndex sampler= 1;
-}
-
 struct DrawIndirectBufferBuildUniforms
 {
 	int32_t world_size_chunks[2]{};
@@ -497,7 +491,7 @@ WorldRenderer::WorldRenderer(
 			{
 				{
 					grass_descriptor_set_,
-					GrassDrawShaderBindings::uniform_buffer,
+					DrawShaderBindings::uniform_buffer,
 					0u,
 					1u,
 					vk::DescriptorType::eUniformBuffer,
@@ -507,7 +501,7 @@ WorldRenderer::WorldRenderer(
 				},
 				{
 					grass_descriptor_set_,
-					GrassDrawShaderBindings::sampler,
+					DrawShaderBindings::sampler,
 					0u,
 					1u,
 					vk::DescriptorType::eCombinedImageSampler,
@@ -1151,7 +1145,7 @@ GraphicsPipeline WorldRenderer::CreateGrassDrawPipeline(
 {
 	GraphicsPipeline pipeline;
 
-	pipeline.shader_vert= CreateShader(vk_device, ShaderNames::grass_vert);
+	pipeline.shader_vert= CreateShader(vk_device, ShaderNames::world_vert);
 	pipeline.shader_frag=
 		CreateShader(
 			vk_device,
@@ -1160,13 +1154,13 @@ GraphicsPipeline WorldRenderer::CreateGrassDrawPipeline(
 	const vk::DescriptorSetLayoutBinding descriptor_set_layout_bindings[]
 	{
 		{
-			GrassDrawShaderBindings::uniform_buffer,
+			DrawShaderBindings::uniform_buffer,
 			vk::DescriptorType::eUniformBuffer,
 			1u,
 			vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
 		},
 		{
-			GrassDrawShaderBindings::sampler,
+			DrawShaderBindings::sampler,
 			vk::DescriptorType::eCombinedImageSampler,
 			1u,
 			vk::ShaderStageFlagBits::eFragment,

@@ -100,6 +100,12 @@ void main()
 	{
 		// Add two snow quads.
 		atomicAdd(chunk_draw_info[chunk_index].new_num_quads, 2);
+
+		if(z > 0 && c_block_optical_density_table[uint(chunks_data[block_address - 1])] != c_optical_density_solid)
+		{
+			// Add two lower snow quads.
+			atomicAdd(chunk_draw_info[chunk_index].new_num_quads, 2);
+		}
 	}
 
 	if(block_value == c_block_type_water)

@@ -23,7 +23,7 @@ void main()
 	vec3 wave1= (s1 * 0.4 + 0.6) * vec3(0.05, 0.15, 0.25);
 	vec3 wave2= (s2 * 0.4 + 0.6) * vec3(0.1, 0.17, 0.23);
 
-	vec4 color= vec4(base + wave0 + wave1 + wave2, 0.5);
+	vec4 color= vec4(base + wave0 + wave1 + wave2, 0.6);
 
 	imageStore(out_image, texel_coord, color);
 }

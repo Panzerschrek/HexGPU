@@ -371,6 +371,8 @@ void main()
 
 	if(block_value == c_block_type_water)
 	{
+		const int16_t tex_index= c_block_texture_table[uint(c_block_type_water)].b;
+
 		int side_y_base= block_y + ((block_x + 1) & 1);
 		int west_x_clamped= max(block_x - 1, 0);
 
@@ -465,8 +467,6 @@ void main()
 			v[4].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(vertex_water_level[1]), 0.0);
 			v[5].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(vertex_water_level[0]), 0.0);
 
-			const uint tex_index= uint(c_block_texture_table[uint(c_block_type_water)].x);
-
 			ivec2 tc_base= ivec2(base_x, base_y);
 
 			// Use light of this block.
@@ -497,7 +497,6 @@ void main()
 			quads[quad_index + 1]= quad_north;
 		}
 
-		const int16_t tex_index= c_block_texture_table[uint(c_block_type_water)].b;
 		ivec2 tc_base= ivec2(base_tc_x, z * 2);
 
 		if(block_value_north != c_block_type_water && optical_density_north != c_optical_density_solid)
@@ -520,6 +519,7 @@ void main()
 			uint quad_index= quads_offset + atomicAdd(chunk_draw_info[chunk_index].num_quads, 1);
 			quads[quad_index]= quad;
 		}
+
 		if(block_value_north_east != c_block_type_water && optical_density_north_east != c_optical_density_solid)
 		{
 			// Add north-east water side quad.
@@ -540,6 +540,7 @@ void main()
 			uint quad_index= quads_offset + atomicAdd(chunk_draw_info[chunk_index].num_quads, 1);
 			quads[quad_index]= quad;
 		}
+
 		if(block_value_south_east != c_block_type_water && optical_density_south_east != c_optical_density_solid)
 		{
 			// Add south-east water side quad.

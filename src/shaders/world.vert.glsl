@@ -30,7 +30,9 @@ void main()
 	f_light.x= float(int(tex_coord.w) & 0xFF) * c_light_scale;
 	f_light.y= float(uint(uint16_t(tex_coord.w)) >> 8) * c_light_scale;
 
-	f_fog_coord= (uniforms.fog_matrix * vec4(pos, 1.0)).xyz;
+	vec4 pos4= vec4(pos, 1.0);
 
-	gl_Position= uniforms.view_matrix * vec4(pos, 1.0);
+	f_fog_coord= (uniforms.fog_matrix * pos4).xyz;
+
+	gl_Position= uniforms.view_matrix * pos4;
 }

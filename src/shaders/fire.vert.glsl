@@ -13,7 +13,7 @@ layout(binding= 0) uniform uniforms_block
 	WorldShaderUniforms uniforms;
 };
 
-layout(location=0) in vec4 pos;
+layout(location=0) in vec3 pos;
 layout(location=1) in i16vec4 tex_coord;
 
 layout(location= 0) out vec2 f_tex_coord;
@@ -27,7 +27,9 @@ void main()
 	// TODO - maybe use greater factor to show fire growing slower?
 	f_fire_power= min(1.0, float(tex_coord.w) * (1.0 / float(c_min_fire_power_for_fire_to_spread)));
 
-	f_fog_coord= (uniforms.fog_matrix * vec4(pos.xyz, 1.0)).xyz;
+	vec4 pos4= vec4(pos, 1.0);
 
-	gl_Position= uniforms.view_matrix * vec4(pos.xyz, 1.0);
+	f_fog_coord= (uniforms.fog_matrix * pos4).xyz;
+
+	gl_Position= uniforms.view_matrix * pos4;
 }

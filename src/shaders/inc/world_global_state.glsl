@@ -10,4 +10,5 @@ struct WorldGlobalState
 	float stars_brightness;
 	int sky_light_mask; // zero at night, all ones at day
 	int sky_light_based_wetness_mask; // zero at drought, all ones otherwise
+	int snow_z_level; // Snow may form on blocks equal to this level or above. Should be greater than 0.
 };

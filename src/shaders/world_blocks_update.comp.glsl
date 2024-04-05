@@ -247,6 +247,16 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 					return u8vec2(c_block_type_fire, c_initial_fire_power);
 			}
 		}
+
+		// Try to convert into snow.
+		if(z >= world_global_state.snow_z_level && (block_rand & 15) == 0)
+		{
+			// Create snow only on solid surfaces.
+			int adjacent_block_address= column_address + z - 1;
+			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
+			if(c_block_optical_density_table[uint(adjacent_block_type)] == c_optical_density_solid)
+				return u8vec2(c_block_type_snow, 0);
+		}
 	}
 	else if(block_type == c_block_type_sand)
 	{
@@ -462,7 +472,11 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 	{
 		// Grass disappears if is blocked from above.
 		uint8_t block_above_type= chunks_input_data[column_address + z_up_clamped];
-		if(!(block_above_type == c_block_type_air || block_above_type == c_block_type_foliage || block_above_type == c_block_type_fire))
+		if(!(
+			block_above_type == c_block_type_air ||
+			block_above_type == c_block_type_snow ||
+			block_above_type == c_block_type_foliage ||
+			block_above_type == c_block_type_fire))
 			return u8vec2(c_block_type_soil, 0);
 
 		// Grass requires some level of wetness to exist.
@@ -494,7 +508,11 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 	{
 		// Grass disappears if is blocked from above.
 		uint8_t block_above_type= chunks_input_data[column_address + z_up_clamped];
-		if(!(block_above_type == c_block_type_air || block_above_type == c_block_type_foliage || block_above_type == c_block_type_fire))
+		if(!(
+			block_above_type == c_block_type_air ||
+			block_above_type == c_block_type_snow ||
+			block_above_type == c_block_type_foliage ||
+			block_above_type == c_block_type_fire))
 			return u8vec2(c_block_type_soil, 0);
 
 		// Assuming areas with large amount of sky light are located under the sky and thus rain affects such areas.

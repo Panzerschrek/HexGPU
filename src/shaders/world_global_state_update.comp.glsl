@@ -12,6 +12,7 @@ layout(push_constant) uniform uniforms_block
 	float time_of_day; // In range 0 - 1
 	float rain_intensity;
 	float drought_intensity;
+	float winter_intensity;
 };
 
 layout(binding= 0, std430) buffer world_global_state_buffer
@@ -64,4 +65,6 @@ void main()
 	world_global_state.sky_light_mask= daynight_k >= 1.0 ? 0xFFFFFFFF : 0x0;
 
 	world_global_state.sky_light_based_wetness_mask= drought_intensity > 0.0 ? 0x0 : 0xFFFFFFFF;
+
+	world_global_state.snow_z_level= winter_intensity > 0.0 ? 1 : 255;
 }

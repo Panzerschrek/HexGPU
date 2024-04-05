@@ -373,17 +373,52 @@ void main()
 	{
 		// Add two snow quads.
 
+		// Calculate snow level for vertices.
+		// Make level almost zero at edges.
+
+		int side_y_base= block_y + ((block_x + 1) & 1);
+		int west_x_clamped= max(block_x - 1, 0);
+
+		int south_block_address= GetBlockFullAddress(ivec3(block_x, max(block_y - 1, 0), z), world_size_chunks);
+		int south_west_block_address= GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 1, max_world_coord.y)), z), world_size_chunks);
+		int north_west_block_address= GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 0, max_world_coord.y)), z), world_size_chunks);
+
+		int snow_z= base_z + z_one / 3;
+		int vertex_snow_level[6]= int[6](snow_z, snow_z, snow_z, snow_z, snow_z, snow_z);
+
+		int adjacent_blocks[6]= int[6](
+			block_address_north,
+			block_address_north_east,
+			block_address_south_east,
+			south_block_address,
+			south_west_block_address,
+			north_west_block_address );
+
+		for(int i= 0; i < 6; ++i) // For adjacent blocks
+		{
+			const int c_next_vertex_index_table[6]= int[6](1, 2, 3, 4, 5, 0);
+
+			int v0= i;
+			int v1= c_next_vertex_index_table[i];
+
+			uint8_t adjacent_block_type= chunks_data[adjacent_blocks[i]];
+			if(adjacent_block_type != c_block_type_snow &&
+				c_block_optical_density_table[uint(adjacent_block_type)] != c_optical_density_solid)
+			{
+				vertex_snow_level[v0]= base_z + 1;
+				vertex_snow_level[v1]= base_z + 1;
+			}
+		}
+
 		// Calculate hexagon vertices.
 		WorldVertex v[6];
 
-		int snow_z= base_z + z_one / 4;
-
-		v[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(snow_z), 0.0);
-		v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(snow_z), 0.0);
-		v[2].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(snow_z), 0.0);
-		v[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(snow_z), 0.0);
-		v[4].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(snow_z), 0.0);
-		v[5].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(snow_z), 0.0);
+		v[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(vertex_snow_level[4]), 0.0);
+		v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(vertex_snow_level[3]), 0.0);
+		v[2].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(vertex_snow_level[2]), 0.0);
+		v[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(vertex_snow_level[5]), 0.0);
+		v[4].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(vertex_snow_level[1]), 0.0);
+		v[5].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(vertex_snow_level[0]), 0.0);
 
 		const int16_t tex_index= c_block_texture_table[int(c_block_type_snow)].r;
 

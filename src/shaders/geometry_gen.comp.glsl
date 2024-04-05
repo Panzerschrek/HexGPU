@@ -399,15 +399,15 @@ void main()
 
 			for(int i= 0; i < 6; ++i) // For adjacent blocks
 			{
-				const int c_next_vertex_index_table[6]= int[6](1, 2, 3, 4, 5, 0);
-
-				int v0= i;
-				int v1= c_next_vertex_index_table[i];
-
 				uint8_t adjacent_block_type= chunks_data[adjacent_blocks[i]];
 				if(adjacent_block_type != c_block_type_snow &&
 					c_block_optical_density_table[uint(adjacent_block_type)] == c_optical_density_air)
 				{
+					const int c_next_vertex_index_table[6]= int[6](1, 2, 3, 4, 5, 0);
+
+					int v0= i;
+					int v1= c_next_vertex_index_table[i];
+
 					vertex_snow_level[v0]= base_z;
 					vertex_snow_level[v1]= base_z;
 				}

@@ -737,13 +737,11 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 	}
 	else if(block_type == c_block_type_snow)
 	{
-		// Snow can exist only direct under sky and only if it's winter.
+		// Snow can exist only direct under the sky.
 		int light_packed= light_data[column_address + z_up_clamped];
 		int sky_light= light_packed >> c_sky_light_shift;
 
-		bool can_exist=
-			sky_light == c_max_sky_light &&
-			z >= world_global_state.snow_z_level;
+		bool can_exist= sky_light == c_max_sky_light && z >= world_global_state.snow_z_level;
 
 		if(!can_exist && (block_rand & 15) == 0)
 			return u8vec2(c_block_type_air, uint8_t(0));

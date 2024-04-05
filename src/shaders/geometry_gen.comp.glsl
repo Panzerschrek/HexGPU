@@ -123,7 +123,7 @@ void main()
 
 	int base_tc_x= 4 * ((chunk_global_position.x << c_chunk_width_log2) + int(invocation.x));
 
-	if(optical_density != optical_density_up)
+	if(optical_density != optical_density_up && block_value_up != c_block_type_snow)
 	{
 		// Add two hexagon quads.
 
@@ -374,7 +374,7 @@ void main()
 		// Add two snow quads.
 
 		// Calculate snow level for vertices.
-		// Make level almost zero at edges.
+		// Make level zero at edges.
 
 		int side_y_base= block_y + ((block_x + 1) & 1);
 		int west_x_clamped= max(block_x - 1, 0);
@@ -403,10 +403,10 @@ void main()
 
 			uint8_t adjacent_block_type= chunks_data[adjacent_blocks[i]];
 			if(adjacent_block_type != c_block_type_snow &&
-				c_block_optical_density_table[uint(adjacent_block_type)] != c_optical_density_solid)
+				c_block_optical_density_table[uint(adjacent_block_type)] == c_optical_density_air)
 			{
-				vertex_snow_level[v0]= base_z + 1;
-				vertex_snow_level[v1]= base_z + 1;
+				vertex_snow_level[v0]= base_z;
+				vertex_snow_level[v1]= base_z;
 			}
 		}
 

@@ -66,7 +66,7 @@ void main()
 	uint8_t optical_density_north_east= c_block_optical_density_table[int(block_value_north_east)];
 	uint8_t optical_density_south_east= c_block_optical_density_table[int(block_value_south_east)];
 
-	if(optical_density != optical_density_up)
+	if(optical_density != optical_density_up && block_value_up != c_block_type_snow)
 	{
 		// Add two hexagon quads.
 		atomicAdd(chunk_draw_info[chunk_index].new_num_quads, 2);

@@ -497,6 +497,53 @@ void main()
 			quads[quad_index + 1]= quad_north;
 		}
 
+		if(z > 0)
+		{
+			uint8_t block_value_down= chunks_data[block_address - 1];
+			if(block_value_down != c_block_type_water && c_block_optical_density_table[uint(block_value_down)] != c_optical_density_solid)
+			{
+				// Add two water bottom quads.
+
+				// Calculate hexagon vertices.
+				WorldVertex v[6];
+				v[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(base_z), 0.0);
+				v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(base_z), 0.0);
+				v[2].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(base_z), 0.0);
+				v[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(base_z), 0.0);
+				v[4].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(base_z), 0.0);
+				v[5].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(base_z), 0.0);
+
+				ivec2 tc_base= ivec2(base_x, base_y);
+
+				// Use light of block below.
+				int16_t light= RepackAndScaleLight(light_buffer[block_address - 1], 272);
+
+				v[0].tex_coord= i16vec4(int16_t(tc_base.x + 1), int16_t(tc_base.y + 0), tex_index, light);
+				v[1].tex_coord= i16vec4(int16_t(tc_base.x + 3), int16_t(tc_base.y + 0), tex_index, light);
+				v[2].tex_coord= i16vec4(int16_t(tc_base.x + 4), int16_t(tc_base.y + 1), tex_index, light);
+				v[3].tex_coord= i16vec4(int16_t(tc_base.x + 0), int16_t(tc_base.y + 1), tex_index, light);
+				v[4].tex_coord= i16vec4(int16_t(tc_base.x + 3), int16_t(tc_base.y + 2), tex_index, light);
+				v[5].tex_coord= i16vec4(int16_t(tc_base.x + 1), int16_t(tc_base.y + 2), tex_index, light);
+
+				// Create quads from hexagon vertices. Two vertices are shared.
+				Quad quad_south, quad_north;
+
+				quad_south.vertices[0]= v[2];
+				quad_south.vertices[1]= v[1];
+				quad_south.vertices[2]= v[0];
+				quad_south.vertices[3]= v[3];
+
+				quad_north.vertices[0]= v[4];
+				quad_north.vertices[1]= v[2];
+				quad_north.vertices[2]= v[3];
+				quad_north.vertices[3]= v[5];
+
+				uint quad_index= quads_offset + atomicAdd(chunk_draw_info[chunk_index].num_quads, 2);
+				quads[quad_index]= quad_south;
+				quads[quad_index + 1]= quad_north;
+			}
+		}
+
 		ivec2 tc_base= ivec2(base_tc_x, z * 2);
 
 		if(block_value_north != c_block_type_water && optical_density_north != c_optical_density_solid)

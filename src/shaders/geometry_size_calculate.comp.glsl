@@ -104,16 +104,28 @@ void main()
 			atomicAdd(chunk_draw_info[chunk_index].new_water_num_quads, 2);
 		}
 
+		if(z > 0)
+		{
+			uint8_t block_value_down= chunks_data[block_address - 1];
+			if(block_value_down != c_block_type_water && c_block_optical_density_table[uint(block_value_down)] != c_optical_density_solid)
+			{
+				// Add two water bottom quads.
+				atomicAdd(chunk_draw_info[chunk_index].new_num_quads, 2);
+			}
+		}
+
 		if(block_value_north != c_block_type_water && optical_density_north != c_optical_density_solid)
 		{
 			// Add north water side quad.
 			atomicAdd(chunk_draw_info[chunk_index].new_num_quads, 1);
 		}
+
 		if(block_value_north_east != c_block_type_water && optical_density_north_east != c_optical_density_solid)
 		{
 			// Add north-east water side quad.
 			atomicAdd(chunk_draw_info[chunk_index].new_num_quads, 1);
 		}
+
 		if(block_value_south_east != c_block_type_water && optical_density_south_east != c_optical_density_solid)
 		{
 			// Add south-east water side quad.

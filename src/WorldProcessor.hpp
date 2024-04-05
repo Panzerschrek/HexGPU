@@ -49,6 +49,7 @@ public:
 		float stars_brightness= 1.0f;
 		int32_t sky_light_mask= 0;
 		int32_t sky_light_based_wetness_mask= 0;
+		int32_t snow_z_level= 0;
 	};
 
 public:

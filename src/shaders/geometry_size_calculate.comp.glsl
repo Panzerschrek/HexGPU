@@ -66,7 +66,7 @@ void main()
 	uint8_t optical_density_north_east= c_block_optical_density_table[int(block_value_north_east)];
 	uint8_t optical_density_south_east= c_block_optical_density_table[int(block_value_south_east)];
 
-	if(optical_density != optical_density_up)
+	if(optical_density != optical_density_up && block_value_up != c_block_type_snow)
 	{
 		// Add two hexagon quads.
 		atomicAdd(chunk_draw_info[chunk_index].new_num_quads, 2);
@@ -90,10 +90,22 @@ void main()
 		atomicAdd(chunk_draw_info[chunk_index].new_num_quads, 1);
 	}
 
-	if(block_value == c_block_type_grass || block_value == c_block_type_grass_yellow)
+	if((block_value == c_block_type_grass || block_value == c_block_type_grass_yellow) && block_value_up != c_block_type_snow)
 	{
 		// Add tall grass quads. Each grass block has exactly two of them.
 		atomicAdd(chunk_draw_info[chunk_index].new_grass_num_quads, 2);
+	}
+
+	if(block_value == c_block_type_snow)
+	{
+		// Add two snow quads.
+		atomicAdd(chunk_draw_info[chunk_index].new_num_quads, 2);
+
+		if(z > 0 && c_block_optical_density_table[uint(chunks_data[block_address - 1])] != c_optical_density_solid)
+		{
+			// Add two lower snow quads.
+			atomicAdd(chunk_draw_info[chunk_index].new_num_quads, 2);
+		}
 	}
 
 	if(block_value == c_block_type_water)

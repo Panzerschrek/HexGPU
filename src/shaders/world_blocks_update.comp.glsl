@@ -54,6 +54,17 @@ layout(binding= 5, std430) readonly buffer world_global_state_buffer
 
 const int c_min_wetness_for_grass_to_exist= 3;
 
+bool CanPlaceSnowOnThisBlock(uint8_t block_type)
+{
+	return
+		block_type != c_block_type_air &&
+		block_type != c_block_type_fire &&
+		block_type != c_block_type_water &&
+		block_type != c_block_type_snow;
+}
+
+const int c_max_fire_light_for_snow_to_exist= 7;
+
 // Returns pair of block type and auxiliar data.
 u8vec2 TransformBlock(int block_x, int block_y, int z)
 {
@@ -246,6 +257,20 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 				if(total_fire_power_nearby >= c_min_fire_power_for_fire_to_spread)
 					return u8vec2(c_block_type_fire, c_initial_fire_power);
 			}
+		}
+
+		// Try to convert into snow.
+		if(z >= world_global_state.snow_z_level &&
+			(block_rand & 15) == 0 &&
+			CanPlaceSnowOnThisBlock(chunks_input_data[column_address + z - 1]))
+		{
+			// Snow can exist only direct under sky.
+			int light_packed= light_data[column_address + z_up_clamped];
+			int sky_light= light_packed >> c_sky_light_shift;
+			int fire_light= light_packed & c_fire_light_mask;
+
+			if(sky_light == c_max_sky_light && fire_light <= c_max_fire_light_for_snow_to_exist)
+				return u8vec2(c_block_type_snow, 0);
 		}
 	}
 	else if(block_type == c_block_type_sand)
@@ -462,7 +487,11 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 	{
 		// Grass disappears if is blocked from above.
 		uint8_t block_above_type= chunks_input_data[column_address + z_up_clamped];
-		if(!(block_above_type == c_block_type_air || block_above_type == c_block_type_foliage || block_above_type == c_block_type_fire))
+		if(!(
+			block_above_type == c_block_type_air ||
+			block_above_type == c_block_type_snow ||
+			block_above_type == c_block_type_foliage ||
+			block_above_type == c_block_type_fire))
 			return u8vec2(c_block_type_soil, 0);
 
 		// Grass requires some level of wetness to exist.
@@ -494,7 +523,11 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 	{
 		// Grass disappears if is blocked from above.
 		uint8_t block_above_type= chunks_input_data[column_address + z_up_clamped];
-		if(!(block_above_type == c_block_type_air || block_above_type == c_block_type_foliage || block_above_type == c_block_type_fire))
+		if(!(
+			block_above_type == c_block_type_air ||
+			block_above_type == c_block_type_snow ||
+			block_above_type == c_block_type_foliage ||
+			block_above_type == c_block_type_fire))
 			return u8vec2(c_block_type_soil, 0);
 
 		// Assuming areas with large amount of sky light are located under the sky and thus rain affects such areas.
@@ -701,6 +734,26 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 		fire_power= min(fire_power, 255);
 
 		return u8vec2(c_block_type_fire, uint8_t(fire_power));
+	}
+	else if(block_type == c_block_type_snow)
+	{
+		// Snow can exist only direct under the sky.
+		int light_packed= light_data[column_address + z_up_clamped];
+		int sky_light= light_packed >> c_sky_light_shift;
+
+		bool can_exist= sky_light == c_max_sky_light && z >= world_global_state.snow_z_level;
+
+		if(!can_exist && (block_rand & 15) == 0)
+			return u8vec2(c_block_type_air, uint8_t(0));
+
+		// Immediately remove snow if block below can't be used for snow placement.
+		if(!CanPlaceSnowOnThisBlock(chunks_input_data[column_address + z - 1]))
+			return u8vec2(c_block_type_air, uint8_t(0));
+
+		// Immediately remove snow if has too much heat.
+		int fire_light= light_packed & c_fire_light_mask;
+		if(fire_light > c_max_fire_light_for_snow_to_exist)
+			return u8vec2(c_block_type_air, uint8_t(0));
 	}
 
 	// Common case when block type isn't chanhed.

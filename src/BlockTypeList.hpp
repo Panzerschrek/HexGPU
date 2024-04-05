@@ -27,6 +27,7 @@ BLOCK_PROCESS_FUNC(GlassCian)
 BLOCK_PROCESS_FUNC(GlassBlue)
 BLOCK_PROCESS_FUNC(GlassMagenta)
 BLOCK_PROCESS_FUNC(GrassYellow)
+BLOCK_PROCESS_FUNC(Snow)
 
 // Put new block types at the end
 

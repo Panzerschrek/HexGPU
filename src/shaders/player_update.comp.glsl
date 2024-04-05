@@ -433,7 +433,10 @@ void main()
 		if(IsPosInsidePlayerWorldWindow(pos_in_window))
 		{
 			int address_in_window= GetAddressOfBlockInPlayerWorldWindow(pos_in_window);
-			if(player_world_window.window_data[address_in_window] == c_block_type_air)
+			uint8_t destination_block_type= player_world_window.window_data[address_in_window];
+			if( destination_block_type == c_block_type_air ||
+				destination_block_type == c_block_type_fire ||
+				destination_block_type == c_block_type_snow)
 			{
 				WorldBlockExternalUpdate update;
 				update.position= ivec4(player_state.build_pos.xyz, 0);

@@ -123,7 +123,7 @@ void main()
 
 	int base_tc_x= 4 * ((chunk_global_position.x << c_chunk_width_log2) + int(invocation.x));
 
-	if(optical_density != optical_density_up)
+	if(optical_density != optical_density_up && block_value_up != c_block_type_snow)
 	{
 		// Add two hexagon quads.
 
@@ -296,7 +296,7 @@ void main()
 		quads[quad_index]= quad;
 	}
 
-	if(block_value == c_block_type_grass || block_value == c_block_type_grass_yellow)
+	if((block_value == c_block_type_grass || block_value == c_block_type_grass_yellow) && block_value_up != c_block_type_snow)
 	{
 		// Add tall grass quads.
 
@@ -366,6 +366,133 @@ void main()
 
 			uint quad_index= chunk_draw_info[chunk_index].first_grass_quad + atomicAdd(chunk_draw_info[chunk_index].num_grass_quads, 1);
 			quads[quad_index]= quad;
+		}
+	}
+
+	if(block_value == c_block_type_snow)
+	{
+		// Add two snow quads.
+
+		const int16_t tex_index= c_block_texture_table[int(c_block_type_snow)].r;
+
+		{
+			// Calculate snow level for vertices.
+			// Make level zero at edges.
+
+			int side_y_base= block_y + ((block_x + 1) & 1);
+			int west_x_clamped= max(block_x - 1, 0);
+
+			int south_block_address= GetBlockFullAddress(ivec3(block_x, max(block_y - 1, 0), z), world_size_chunks);
+			int south_west_block_address= GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 1, max_world_coord.y)), z), world_size_chunks);
+			int north_west_block_address= GetBlockFullAddress(ivec3(west_x_clamped, max(0, min(side_y_base - 0, max_world_coord.y)), z), world_size_chunks);
+
+			int snow_z= base_z + z_one / 3;
+			int vertex_snow_level[6]= int[6](snow_z, snow_z, snow_z, snow_z, snow_z, snow_z);
+
+			int adjacent_blocks[6]= int[6](
+				block_address_north,
+				block_address_north_east,
+				block_address_south_east,
+				south_block_address,
+				south_west_block_address,
+				north_west_block_address );
+
+			for(int i= 0; i < 6; ++i) // For adjacent blocks
+			{
+				uint8_t adjacent_block_type= chunks_data[adjacent_blocks[i]];
+				if(adjacent_block_type != c_block_type_snow &&
+					c_block_optical_density_table[uint(adjacent_block_type)] == c_optical_density_air)
+				{
+					const int c_next_vertex_index_table[6]= int[6](1, 2, 3, 4, 5, 0);
+
+					int v0= i;
+					int v1= c_next_vertex_index_table[i];
+
+					vertex_snow_level[v0]= base_z;
+					vertex_snow_level[v1]= base_z;
+				}
+			}
+
+			// Calculate hexagon vertices.
+			WorldVertex v[6];
+
+			v[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(vertex_snow_level[4]), 0.0);
+			v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(vertex_snow_level[3]), 0.0);
+			v[2].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(vertex_snow_level[2]), 0.0);
+			v[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(vertex_snow_level[5]), 0.0);
+			v[4].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(vertex_snow_level[1]), 0.0);
+			v[5].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(vertex_snow_level[0]), 0.0);
+
+			ivec2 tc_base= ivec2(base_x, base_y);
+
+			int16_t light= RepackAndScaleLight(light_buffer[block_address_up], 272);
+
+			v[0].tex_coord= i16vec4(int16_t(tc_base.x + 1), int16_t(tc_base.y + 0), tex_index, light);
+			v[1].tex_coord= i16vec4(int16_t(tc_base.x + 3), int16_t(tc_base.y + 0), tex_index, light);
+			v[2].tex_coord= i16vec4(int16_t(tc_base.x + 4), int16_t(tc_base.y + 1), tex_index, light);
+			v[3].tex_coord= i16vec4(int16_t(tc_base.x + 0), int16_t(tc_base.y + 1), tex_index, light);
+			v[4].tex_coord= i16vec4(int16_t(tc_base.x + 3), int16_t(tc_base.y + 2), tex_index, light);
+			v[5].tex_coord= i16vec4(int16_t(tc_base.x + 1), int16_t(tc_base.y + 2), tex_index, light);
+
+			// Create quads from hexagon vertices. Two vertices are shared.
+			Quad quad_south;
+			quad_south.vertices[0]= v[0];
+			quad_south.vertices[1]= v[1];
+			quad_south.vertices[2]= v[2];
+			quad_south.vertices[3]= v[3];
+
+			Quad quad_north;
+			quad_north.vertices[0]= v[3];
+			quad_north.vertices[1]= v[2];
+			quad_north.vertices[2]= v[4];
+			quad_north.vertices[3]= v[5];
+
+			uint quad_index= quads_offset + atomicAdd(chunk_draw_info[chunk_index].num_quads, 2);
+			quads[quad_index]= quad_south;
+			quads[quad_index + 1]= quad_north;
+		}
+
+		if(z > 0 && c_block_optical_density_table[uint(chunks_data[block_address - 1])] != c_optical_density_solid)
+		{
+			// Add two lower snow quads.
+
+			// Calculate hexagon vertices.
+			WorldVertex v[6];
+			v[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(base_z), 0.0);
+			v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(base_z), 0.0);
+			v[2].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(base_z), 0.0);
+			v[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(base_z), 0.0);
+			v[4].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(base_z), 0.0);
+			v[5].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(base_z), 0.0);
+
+			ivec2 tc_base= ivec2(base_x, base_y);
+
+			// Use light of block below.
+			int16_t light= RepackAndScaleLight(light_buffer[block_address - 1], 272);
+
+			v[0].tex_coord= i16vec4(int16_t(tc_base.x + 1), int16_t(tc_base.y + 0), tex_index, light);
+			v[1].tex_coord= i16vec4(int16_t(tc_base.x + 3), int16_t(tc_base.y + 0), tex_index, light);
+			v[2].tex_coord= i16vec4(int16_t(tc_base.x + 4), int16_t(tc_base.y + 1), tex_index, light);
+			v[3].tex_coord= i16vec4(int16_t(tc_base.x + 0), int16_t(tc_base.y + 1), tex_index, light);
+			v[4].tex_coord= i16vec4(int16_t(tc_base.x + 3), int16_t(tc_base.y + 2), tex_index, light);
+			v[5].tex_coord= i16vec4(int16_t(tc_base.x + 1), int16_t(tc_base.y + 2), tex_index, light);
+
+			// Create quads from hexagon vertices. Two vertices are shared.
+			Quad quad_south, quad_north;
+
+			quad_south.vertices[0]= v[2];
+			quad_south.vertices[1]= v[1];
+			quad_south.vertices[2]= v[0];
+			quad_south.vertices[3]= v[3];
+
+			quad_north.vertices[0]= v[4];
+			quad_north.vertices[1]= v[2];
+			quad_north.vertices[2]= v[3];
+			quad_north.vertices[3]= v[5];
+
+			uint quad_index= quads_offset + atomicAdd(chunk_draw_info[chunk_index].num_quads, 2);
+			quads[quad_index]= quad_south;
+			quads[quad_index + 1]= quad_north;
 		}
 	}
 

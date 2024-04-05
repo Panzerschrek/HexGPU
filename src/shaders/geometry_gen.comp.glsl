@@ -296,7 +296,7 @@ void main()
 		quads[quad_index]= quad;
 	}
 
-	if(block_value == c_block_type_grass || block_value == c_block_type_grass_yellow)
+	if((block_value == c_block_type_grass || block_value == c_block_type_grass_yellow) && block_value_up != c_block_type_snow)
 	{
 		// Add tall grass quads.
 

@@ -14,7 +14,6 @@ The order represents importance and/or dependency.
 * Player physics - limit velocity vector on collisions
 * Trees generation with variable density
 * Procedural tree models
-* Snow blocks
 * Ice blocks
 * Burn wooden blocks first into charcoal blocks
 * Chunk vertices allocator - make it faster (remove linear complexity)

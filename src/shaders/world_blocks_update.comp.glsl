@@ -63,6 +63,8 @@ bool CanPlaceSnowOnThisBlock(uint8_t block_type)
 		block_type != c_block_type_snow;
 }
 
+const int c_max_fire_light_for_snow_to_exist= 7;
+
 // Returns pair of block type and auxiliar data.
 u8vec2 TransformBlock(int block_x, int block_y, int z)
 {
@@ -265,8 +267,9 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 			// Snow can exist only direct under sky.
 			int light_packed= light_data[column_address + z_up_clamped];
 			int sky_light= light_packed >> c_sky_light_shift;
+			int fire_light= light_packed & c_fire_light_mask;
 
-			if(sky_light == c_max_sky_light)
+			if(sky_light == c_max_sky_light && fire_light <= c_max_fire_light_for_snow_to_exist)
 				return u8vec2(c_block_type_snow, 0);
 		}
 	}
@@ -747,6 +750,11 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 
 		// Immediately remove snow if block below can't be used for snow placement.
 		if(!CanPlaceSnowOnThisBlock(chunks_input_data[column_address + z - 1]))
+			return u8vec2(c_block_type_air, uint8_t(0));
+
+		// Immediately remove snow if has too much heat.
+		int fire_light= light_packed & c_fire_light_mask;
+		if(fire_light > c_max_fire_light_for_snow_to_exist)
 			return u8vec2(c_block_type_air, uint8_t(0));
 	}
 

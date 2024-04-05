@@ -54,6 +54,15 @@ layout(binding= 5, std430) readonly buffer world_global_state_buffer
 
 const int c_min_wetness_for_grass_to_exist= 3;
 
+bool CanPlaceSnowOnThisBlock(uint8_t block_type)
+{
+	return
+		block_type != c_block_type_air &&
+		block_type != c_block_type_fire &&
+		block_type != c_block_type_water &&
+		block_type != c_block_type_snow;
+}
+
 // Returns pair of block type and auxiliar data.
 u8vec2 TransformBlock(int block_x, int block_y, int z)
 {
@@ -249,20 +258,16 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 		}
 
 		// Try to convert into snow.
-		if(z >= world_global_state.snow_z_level && (block_rand & 15) == 0)
+		if(z >= world_global_state.snow_z_level &&
+			(block_rand & 15) == 0 &&
+			CanPlaceSnowOnThisBlock(chunks_input_data[column_address + z - 1]))
 		{
-			// Create snow only on solid surfaces.
-			int adjacent_block_address= column_address + z - 1;
-			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
-			if(c_block_optical_density_table[uint(adjacent_block_type)] == c_optical_density_solid)
-			{
-				// Snow can exist only direct under sky.
-				int light_packed= light_data[column_address + z_up_clamped];
-				int sky_light= light_packed >> c_sky_light_shift;
+			// Snow can exist only direct under sky.
+			int light_packed= light_data[column_address + z_up_clamped];
+			int sky_light= light_packed >> c_sky_light_shift;
 
-				if(sky_light == c_max_sky_light)
-					return u8vec2(c_block_type_snow, 0);
-			}
+			if(sky_light == c_max_sky_light)
+				return u8vec2(c_block_type_snow, 0);
 		}
 	}
 	else if(block_type == c_block_type_sand)
@@ -733,9 +738,15 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 		int light_packed= light_data[column_address + z_up_clamped];
 		int sky_light= light_packed >> c_sky_light_shift;
 
-		bool can_exist= sky_light == c_max_sky_light && z >= world_global_state.snow_z_level;
+		bool can_exist=
+			sky_light == c_max_sky_light &&
+			z >= world_global_state.snow_z_level;
 
 		if(!can_exist && (block_rand & 15) == 0)
+			return u8vec2(c_block_type_air, uint8_t(0));
+
+		// Immediately remove snow if block below can't be used for snow placement.
+		if(!CanPlaceSnowOnThisBlock(chunks_input_data[column_address + z - 1]))
 			return u8vec2(c_block_type_air, uint8_t(0));
 	}
 

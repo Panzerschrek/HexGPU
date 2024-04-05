@@ -6,8 +6,6 @@ The order represents importance and/or dependency.
 * Smooth lighting - average block light values at each vertex
 * Run SPIR-V optimizer for compiled shaders
 * Use background thread for chunk data compression/decompression
-* Water blocks side polygons
-* Twostage water rendering - back faces than front faces, in order to achieve somewhat good transparency ordering
 * When uderwater reduce fog distance and use other fog color
 * Increase water level in non-full water blocks under the sky when it's raining
 * Player physics - add gravity
@@ -16,6 +14,8 @@ The order represents importance and/or dependency.
 * Player physics - limit velocity vector on collisions
 * Trees generation with variable density
 * Procedural tree models
+* Snow blocks
+* Ice blocks
 * Burn wooden blocks first into charcoal blocks
 * Chunk vertices allocator - make it faster (remove linear complexity)
 * Plates (half-blocks)

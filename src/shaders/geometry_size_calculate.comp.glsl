@@ -96,6 +96,12 @@ void main()
 		atomicAdd(chunk_draw_info[chunk_index].new_grass_num_quads, 2);
 	}
 
+	if(block_value == c_block_type_snow)
+	{
+		// Add two snow quads.
+		atomicAdd(chunk_draw_info[chunk_index].new_num_quads, 2);
+	}
+
 	if(block_value == c_block_type_water)
 	{
 		if(block_value_up != c_block_type_water)

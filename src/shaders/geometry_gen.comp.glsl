@@ -369,6 +369,53 @@ void main()
 		}
 	}
 
+	if(block_value == c_block_type_snow)
+	{
+		// Add two snow quads.
+
+		// Calculate hexagon vertices.
+		WorldVertex v[6];
+
+		int snow_z= base_z + z_one / 4;
+
+		v[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(snow_z), 0.0);
+		v[1].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(snow_z), 0.0);
+		v[2].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(snow_z), 0.0);
+		v[3].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(snow_z), 0.0);
+		v[4].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(snow_z), 0.0);
+		v[5].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(snow_z), 0.0);
+
+		const int16_t tex_index= c_block_texture_table[int(c_block_type_snow)].r;
+
+		ivec2 tc_base= ivec2(base_x, base_y);
+
+		int16_t light= RepackAndScaleLight(light_buffer[block_address_up], 272);
+
+		v[0].tex_coord= i16vec4(int16_t(tc_base.x + 1), int16_t(tc_base.y + 0), tex_index, light);
+		v[1].tex_coord= i16vec4(int16_t(tc_base.x + 3), int16_t(tc_base.y + 0), tex_index, light);
+		v[2].tex_coord= i16vec4(int16_t(tc_base.x + 4), int16_t(tc_base.y + 1), tex_index, light);
+		v[3].tex_coord= i16vec4(int16_t(tc_base.x + 0), int16_t(tc_base.y + 1), tex_index, light);
+		v[4].tex_coord= i16vec4(int16_t(tc_base.x + 3), int16_t(tc_base.y + 2), tex_index, light);
+		v[5].tex_coord= i16vec4(int16_t(tc_base.x + 1), int16_t(tc_base.y + 2), tex_index, light);
+
+		// Create quads from hexagon vertices. Two vertices are shared.
+		Quad quad_south;
+		quad_south.vertices[0]= v[0];
+		quad_south.vertices[1]= v[1];
+		quad_south.vertices[2]= v[2];
+		quad_south.vertices[3]= v[3];
+
+		Quad quad_north;
+		quad_north.vertices[0]= v[3];
+		quad_north.vertices[1]= v[2];
+		quad_north.vertices[2]= v[4];
+		quad_north.vertices[3]= v[5];
+
+		uint quad_index= quads_offset + atomicAdd(chunk_draw_info[chunk_index].num_quads, 2);
+		quads[quad_index]= quad_south;
+		quads[quad_index + 1]= quad_north;
+	}
+
 	if(block_value == c_block_type_water)
 	{
 		const int16_t tex_index= c_block_texture_table[uint(c_block_type_water)].b;

@@ -53,7 +53,7 @@ const uint8_t c_block_optical_density_table[c_num_block_types]=
 	c_optical_density_semisolid, // glass_blue
 	c_optical_density_semisolid, // glass_magenta
 	c_optical_density_solid, // grass_yellow
-	c_optical_density_solid // snow
+	c_optical_density_air // snow
 );
 
 const uint8_t c_block_own_light_table[c_num_block_types]=

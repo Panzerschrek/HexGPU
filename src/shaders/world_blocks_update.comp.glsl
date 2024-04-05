@@ -255,7 +255,14 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 			int adjacent_block_address= column_address + z - 1;
 			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
 			if(c_block_optical_density_table[uint(adjacent_block_type)] == c_optical_density_solid)
-				return u8vec2(c_block_type_snow, 0);
+			{
+				// Snow can exist only direct under sky.
+				int light_packed= light_data[column_address + z_up_clamped];
+				int sky_light= light_packed >> c_sky_light_shift;
+
+				if(sky_light == c_max_sky_light)
+					return u8vec2(c_block_type_snow, 0);
+			}
 		}
 	}
 	else if(block_type == c_block_type_sand)
@@ -719,6 +726,17 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 		fire_power= min(fire_power, 255);
 
 		return u8vec2(c_block_type_fire, uint8_t(fire_power));
+	}
+	else if(block_type == c_block_type_snow)
+	{
+		// Snow can exist only direct under sky and only if it's winter.
+		int light_packed= light_data[column_address + z_up_clamped];
+		int sky_light= light_packed >> c_sky_light_shift;
+
+		bool can_exist= sky_light == c_max_sky_light && z >= world_global_state.snow_z_level;
+
+		if(!can_exist && (block_rand & 15) == 0)
+			return u8vec2(c_block_type_air, uint8_t(0));
 	}
 
 	// Common case when block type isn't chanhed.

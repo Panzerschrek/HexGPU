@@ -347,6 +347,10 @@ ComputePipeline CreateGeometryGenPipeline(const vk::Device vk_device, const vk::
 		"\nnumAvailableVgprs: ", statistics.numAvailableVgprs,
 		"\nnumAvailableSgprs: ", statistics.numAvailableSgprs);
 
+	const auto disassembly_info= vk_device.getShaderInfoAMD(*pipeline.pipeline, vk::ShaderStageFlagBits::eCompute, vk::ShaderInfoTypeAMD::eDisassembly, dispatch);
+	const std::string disassemnly(disassembly_info.data(), disassembly_info.data() + disassembly_info.size());
+	Log::Info("disassembly:\n", disassemnly);
+
 	return pipeline;
 }
 

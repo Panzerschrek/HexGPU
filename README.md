@@ -39,11 +39,11 @@ Do not forget to init/update submodules before building!
 
 ### System requirements
 
-Vulkan 1.1 support int the system is required.
+Vulkan 1.1 support in the system is required.
 Some Vulkan extension are also needed, like 8bit/16bit integers.
 Generally the game should work on any modern GPU (AMD, nVidia, Intel).
 
-Video memory requiremens are for now in orders of hundreds of megabytes.
+Video memory requirements are for now in orders of hundreds of megabytes.
 More memory for bigger active world size is required.
 
 
@@ -54,7 +54,8 @@ Game world is pseudo-randomly generated and is somewhat unlimited.
 The number of block types is for now very poor - around 20.
 
 It's possible to specify time of day via debug menu.
-But for now this affects only the sky and world lighting, but not the game logic itself.
+Weather conditions may be specified too.
+This sometimes affects game logic.
 
 World state is automatically saved on disk, default directory is named _world_ (make sure it exists).
 

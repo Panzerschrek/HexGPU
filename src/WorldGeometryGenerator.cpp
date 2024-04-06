@@ -1,6 +1,7 @@
 #include "WorldGeometryGenerator.hpp"
 #include "Constants.hpp"
 #include "GlobalDescriptorPool.hpp"
+#include "Log.hpp"
 #include "Math.hpp"
 #include "ShaderList.hpp"
 #include "VulkanUtils.hpp"
@@ -267,7 +268,7 @@ ComputePipeline CreateGeometryAllocatePipeline(const vk::Device vk_device)
 	return pipeline;
 }
 
-ComputePipeline CreateGeometryGenPipeline(const vk::Device vk_device)
+ComputePipeline CreateGeometryGenPipeline(const vk::Device vk_device, const vk::Instance vk_instance)
 {
 	ComputePipeline pipeline;
 
@@ -330,6 +331,22 @@ ComputePipeline CreateGeometryGenPipeline(const vk::Device vk_device)
 
 	pipeline.pipeline= CreateComputePipeline(vk_device, *pipeline.shader, *pipeline.pipeline_layout);
 
+	vk::DispatchLoaderDynamic dispatch(vk_instance);
+	const auto info= vk_device.getShaderInfoAMD(*pipeline.pipeline, vk::ShaderStageFlagBits::eCompute, vk::ShaderInfoTypeAMD::eStatistics, dispatch);
+
+	const vk::ShaderStatisticsInfoAMD& statistics= *reinterpret_cast<const vk::ShaderStatisticsInfoAMD*>(info.data());
+	Log::Info(
+		"Shader statistics:",
+		"\nnumUsedVgprs: ", statistics.resourceUsage.numUsedVgprs,
+		"\nnumUsedSgprs: ", statistics.resourceUsage.numUsedSgprs,
+		"\nldsSizePerLocalWorkGroup: ", statistics.resourceUsage.ldsSizePerLocalWorkGroup,
+		"\nldsUsageSizeInBytes: ", statistics.resourceUsage.ldsUsageSizeInBytes,
+		"\nscratchMemUsageInBytes: ", statistics.resourceUsage.scratchMemUsageInBytes,
+		"\nnumPhysicalVgprs: ", statistics.numPhysicalVgprs,
+		"\nnumPhysicalSgprs: ", statistics.numPhysicalSgprs,
+		"\nnumAvailableVgprs: ", statistics.numAvailableVgprs,
+		"\nnumAvailableSgprs: ", statistics.numAvailableSgprs);
+
 	return pipeline;
 }
 
@@ -378,7 +395,7 @@ WorldGeometryGenerator::WorldGeometryGenerator(
 	, geometry_allocate_pipeline_(CreateGeometryAllocatePipeline(vk_device_))
 	, geometry_allocate_descriptor_set_(
 		CreateDescriptorSet(vk_device_, global_descriptor_pool, *geometry_allocate_pipeline_.descriptor_set_layout))
-	, geometry_gen_pipeline_(CreateGeometryGenPipeline(vk_device_))
+	, geometry_gen_pipeline_(CreateGeometryGenPipeline(vk_device_, window_vulkan.GetVulkanInstance()))
 	, geometry_gen_descriptor_sets_{
 		CreateDescriptorSet(vk_device_, global_descriptor_pool, *geometry_gen_pipeline_.descriptor_set_layout),
 		CreateDescriptorSet(vk_device_, global_descriptor_pool, *geometry_gen_pipeline_.descriptor_set_layout)}

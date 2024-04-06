@@ -228,7 +228,7 @@ WindowVulkan::WindowVulkan(const SystemWindow& system_window, Settings& settings
 		queue_family_index,
 		1u, &queue_priority);
 
-	const char* const device_extension_names[]{ VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+	const char* const device_extension_names[]{ VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_AMD_SHADER_INFO_EXTENSION_NAME };
 
 	const vk::PhysicalDeviceFeatures physical_device_features= GetRequiredDeviceFeatures();
 

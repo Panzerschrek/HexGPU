@@ -296,80 +296,82 @@ void main()
 		quads[quad_index]= quad;
 	}
 
-	if((block_value == c_block_type_grass || block_value == c_block_type_grass_yellow) && block_value_up != c_block_type_snow)
+	if(block_value == c_block_type_grass || block_value == c_block_type_grass_yellow)
 	{
-		// Add tall grass quads.
-
-		int16_t light= RepackAndScaleLight(light_buffer[block_address_up], 272);
-
-		int16_t tex_index= int16_t(block_value == c_block_type_grass ? 28 : 30);
-
-		// Calculate pseudo-random orientation using such formula.
-		// It is fast and doesn't depend on global block coordinates (is periodical within the chunk).
-		// It doesn't give exact distribution for all 3 orientations, but it's fine enough.
-		int orientation_rand= (block_x ^ block_y) & 15;
-
-		const bvec3 quads_table[16]= bvec3[16](
-			bvec3(true, true, false), bvec3(true, false, true), bvec3(false, true, true),
-			bvec3(true, true, false), bvec3(true, false, true), bvec3(false, true, true),
-			bvec3(true, true, false), bvec3(true, false, true), bvec3(false, true, true),
-			bvec3(true, true, false), bvec3(true, false, true), bvec3(false, true, true),
-			bvec3(true, true, false), bvec3(true, false, true), bvec3(false, true, true),
-			bvec3(true, true, false));
-
-		bvec3 quads_vec= quads_table[orientation_rand];
-
-		if(quads_vec.x)
+		if(block_value_up != c_block_type_snow)
 		{
-			Quad quad;
+			// Add tall grass quads.
 
-			quad.vertices[0].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(base_z + z_one), 0);
-			quad.vertices[1].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(base_z + z_one + z_one / 2), 0);
-			quad.vertices[2].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(base_z + z_one + z_one / 2), 0);
-			quad.vertices[3].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(base_z + z_one), 0);
-			quad.vertices[0].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(1), tex_index, light);
-			quad.vertices[1].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(2), tex_index, light);
-			quad.vertices[2].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(2), tex_index, light);
-			quad.vertices[3].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(1), tex_index, light);
+			int16_t light= RepackAndScaleLight(light_buffer[block_address_up], 272);
 
-			uint quad_index= chunk_draw_info[chunk_index].first_grass_quad + atomicAdd(chunk_draw_info[chunk_index].num_grass_quads, 1);
-			quads[quad_index]= quad;
-		}
-		if(quads_vec.y)
-		{
-			Quad quad;
+			int16_t tex_index= int16_t(block_value == c_block_type_grass ? 28 : 30);
 
-			quad.vertices[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(base_z + z_one), 0);
-			quad.vertices[1].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(base_z + z_one + z_one / 2), 0);
-			quad.vertices[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(base_z + z_one + z_one / 2), 0);
-			quad.vertices[3].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(base_z + z_one), 0);
-			quad.vertices[0].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(1), tex_index, light);
-			quad.vertices[1].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(2), tex_index, light);
-			quad.vertices[2].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(2), tex_index, light);
-			quad.vertices[3].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(1), tex_index, light);
+			// Calculate pseudo-random orientation using such formula.
+			// It is fast and doesn't depend on global block coordinates (is periodical within the chunk).
+			// It doesn't give exact distribution for all 3 orientations, but it's fine enough.
+			int orientation_rand= (block_x ^ block_y) & 15;
 
-			uint quad_index= chunk_draw_info[chunk_index].first_grass_quad + atomicAdd(chunk_draw_info[chunk_index].num_grass_quads, 1);
-			quads[quad_index]= quad;
-		}
-		if(quads_vec.z)
-		{
-			Quad quad;
+			const bvec3 quads_table[16]= bvec3[16](
+				bvec3(true, true, false), bvec3(true, false, true), bvec3(false, true, true),
+				bvec3(true, true, false), bvec3(true, false, true), bvec3(false, true, true),
+				bvec3(true, true, false), bvec3(true, false, true), bvec3(false, true, true),
+				bvec3(true, true, false), bvec3(true, false, true), bvec3(false, true, true),
+				bvec3(true, true, false), bvec3(true, false, true), bvec3(false, true, true),
+				bvec3(true, true, false));
 
-			quad.vertices[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(base_z + z_one), 0);
-			quad.vertices[1].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(base_z + z_one + z_one / 2), 0);
-			quad.vertices[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(base_z + z_one + z_one / 2), 0);
-			quad.vertices[3].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(base_z + z_one), 0);
-			quad.vertices[0].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(1), tex_index, light);
-			quad.vertices[1].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(2), tex_index, light);
-			quad.vertices[2].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(2), tex_index, light);
-			quad.vertices[3].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(1), tex_index, light);
+			bvec3 quads_vec= quads_table[orientation_rand];
 
-			uint quad_index= chunk_draw_info[chunk_index].first_grass_quad + atomicAdd(chunk_draw_info[chunk_index].num_grass_quads, 1);
-			quads[quad_index]= quad;
+			if(quads_vec.x)
+			{
+				Quad quad;
+
+				quad.vertices[0].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(base_z + z_one), 0);
+				quad.vertices[1].pos= i16vec4(int16_t(base_x + 0), int16_t(base_y + 1), int16_t(base_z + z_one + z_one / 2), 0);
+				quad.vertices[2].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(base_z + z_one + z_one / 2), 0);
+				quad.vertices[3].pos= i16vec4(int16_t(base_x + 4), int16_t(base_y + 1), int16_t(base_z + z_one), 0);
+				quad.vertices[0].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(1), tex_index, light);
+				quad.vertices[1].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(2), tex_index, light);
+				quad.vertices[2].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(2), tex_index, light);
+				quad.vertices[3].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(1), tex_index, light);
+
+				uint quad_index= chunk_draw_info[chunk_index].first_grass_quad + atomicAdd(chunk_draw_info[chunk_index].num_grass_quads, 1);
+				quads[quad_index]= quad;
+			}
+			if(quads_vec.y)
+			{
+				Quad quad;
+
+				quad.vertices[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(base_z + z_one), 0);
+				quad.vertices[1].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 0), int16_t(base_z + z_one + z_one / 2), 0);
+				quad.vertices[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(base_z + z_one + z_one / 2), 0);
+				quad.vertices[3].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 2), int16_t(base_z + z_one), 0);
+				quad.vertices[0].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(1), tex_index, light);
+				quad.vertices[1].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(2), tex_index, light);
+				quad.vertices[2].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(2), tex_index, light);
+				quad.vertices[3].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(1), tex_index, light);
+
+				uint quad_index= chunk_draw_info[chunk_index].first_grass_quad + atomicAdd(chunk_draw_info[chunk_index].num_grass_quads, 1);
+				quads[quad_index]= quad;
+			}
+			if(quads_vec.z)
+			{
+				Quad quad;
+
+				quad.vertices[0].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(base_z + z_one), 0);
+				quad.vertices[1].pos= i16vec4(int16_t(base_x + 1), int16_t(base_y + 2), int16_t(base_z + z_one + z_one / 2), 0);
+				quad.vertices[2].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(base_z + z_one + z_one / 2), 0);
+				quad.vertices[3].pos= i16vec4(int16_t(base_x + 3), int16_t(base_y + 0), int16_t(base_z + z_one), 0);
+				quad.vertices[0].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(1), tex_index, light);
+				quad.vertices[1].tex_coord= i16vec4(int16_t(base_tc_x + 0), int16_t(2), tex_index, light);
+				quad.vertices[2].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(2), tex_index, light);
+				quad.vertices[3].tex_coord= i16vec4(int16_t(base_tc_x + 4), int16_t(1), tex_index, light);
+
+				uint quad_index= chunk_draw_info[chunk_index].first_grass_quad + atomicAdd(chunk_draw_info[chunk_index].num_grass_quads, 1);
+				quads[quad_index]= quad;
+			}
 		}
 	}
-
-	if(block_value == c_block_type_snow)
+	else if(block_value == c_block_type_snow)
 	{
 		// Add two snow quads.
 
@@ -495,8 +497,7 @@ void main()
 			quads[quad_index + 1]= quad_north;
 		}
 	}
-
-	if(block_value == c_block_type_water)
+	else if(block_value == c_block_type_water)
 	{
 		const int16_t tex_index= c_block_texture_table[uint(c_block_type_water)].b;
 
@@ -802,8 +803,7 @@ void main()
 			quads[quad_index]= quad;
 		}
 	}
-
-	if(block_value == c_block_type_fire)
+	else if(block_value == c_block_type_fire)
 	{
 		// Add fire quads.
 

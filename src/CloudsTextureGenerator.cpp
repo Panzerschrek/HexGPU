@@ -56,7 +56,6 @@ ComputePipeline CreateCloudsTextureGenPipeline(const vk::Device vk_device)
 
 CloudsTextureGenerator::CloudsTextureGenerator(WindowVulkan& window_vulkan, const vk::DescriptorPool global_descriptor_pool)
 	: vk_device_(window_vulkan.GetVulkanDevice())
-	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, gen_pipeline_(CreateCloudsTextureGenPipeline(vk_device_))
 	, gen_descriptor_set_(
 		CreateDescriptorSet(vk_device_, global_descriptor_pool, *gen_pipeline_.descriptor_set_layout))

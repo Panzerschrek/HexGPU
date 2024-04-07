@@ -177,7 +177,6 @@ WorldRenderer::WorldRenderer(
 	const WorldProcessor& world_processor,
 	const vk::DescriptorPool global_descriptor_pool)
 	: vk_device_(window_vulkan.GetVulkanDevice())
-	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, world_processor_(world_processor)
 	, world_size_(world_processor.GetWorldSize())
 	, geometry_generator_(window_vulkan, world_processor, global_descriptor_pool)

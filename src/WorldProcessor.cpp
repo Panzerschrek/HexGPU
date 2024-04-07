@@ -708,7 +708,6 @@ WorldProcessor::WorldProcessor(
 	: vk_device_(window_vulkan.GetVulkanDevice())
 	, command_pool_(window_vulkan.GetCommandPool())
 	, queue_(window_vulkan.GetQueue())
-	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, world_size_(ReadWorldSize(settings))
 	, world_seed_(int32_t(settings.GetOrSetInt("g_world_seed")))
 	, structures_buffer_(window_vulkan, gpu_data_uploader, GenStructures())

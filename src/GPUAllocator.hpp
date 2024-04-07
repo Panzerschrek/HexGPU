@@ -22,7 +22,6 @@ public:
 
 private:
 	const vk::Device vk_device_;
-	const uint32_t queue_family_index_;
 
 	const uint32_t total_memory_units_;
 	const Buffer allocator_data_buffer_;

@@ -17,7 +17,6 @@ uint32_t CalculateAllocatorDataSize(const uint32_t total_memory_units)
 
 GPUAllocator::GPUAllocator(WindowVulkan& window_vulkan, const uint32_t total_memory_units)
 	: vk_device_(window_vulkan.GetVulkanDevice())
-	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, total_memory_units_(total_memory_units)
 	, allocator_data_buffer_(
 		window_vulkan,

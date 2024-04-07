@@ -99,7 +99,6 @@ private:
 
 private:
 	const vk::Device vk_device_;
-	const uint32_t queue_family_index_;
 
 	const vk::UniqueImage image_;
 	const vk::UniqueDeviceMemory image_memory_;

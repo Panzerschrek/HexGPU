@@ -17,7 +17,6 @@ namespace TextureGenShaderBindings
 
 WorldTexturesGenerator::WorldTexturesGenerator(WindowVulkan& window_vulkan, const vk::DescriptorPool global_descriptor_pool)
 	: vk_device_(window_vulkan.GetVulkanDevice())
-	, queue_family_index_(window_vulkan.GetQueueFamilyIndex())
 	, image_(vk_device_.createImageUnique(
 		vk::ImageCreateInfo(
 			vk::ImageCreateFlags(),

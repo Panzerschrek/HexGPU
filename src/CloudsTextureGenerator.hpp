@@ -19,7 +19,6 @@ public:
 
 private:
 	const vk::Device vk_device_;
-	const uint32_t queue_family_index_;
 
 	const ComputePipeline gen_pipeline_;
 	const vk::DescriptorSet gen_descriptor_set_;

@@ -23,7 +23,6 @@ public:
 
 private:
 	const vk::Device vk_device_;
-	const uint32_t queue_family_index_;
 	const WorldProcessor& world_processor_;
 
 	const Buffer uniform_buffer_;

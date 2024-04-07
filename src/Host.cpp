@@ -245,16 +245,12 @@ bool Host::Loop()
 	const Clock::time_point tick_end_time= Clock::now();
 	const auto frame_dt= tick_end_time - tick_start_time;
 
-	// std::cout << "\rframe time: " << std::chrono::duration_cast<std::chrono::milliseconds>(frame_dt).count() << "ms" << std::endl;
-
-	const float max_fps= std::max(1.0f, std::min(settings_.GetReal("r_max_fps", 120.0f), 500.0f));
+	const float max_fps= std::max(1.0f, std::min(settings_.GetReal("r_max_fps", 120.0f), 1000.0f));
 	settings_.SetReal("r_max_fps", max_fps);
 
 	const std::chrono::milliseconds min_frame_duration(uint32_t(1000.0f / max_fps));
 	if(frame_dt <= min_frame_duration)
-	{
 		std::this_thread::sleep_for(min_frame_duration - frame_dt);
-	}
 
 	return false;
 }
@@ -422,9 +418,7 @@ void Host::DrawDebugParamsUI()
 		ImGui::SliderInt("Snow Z level", &debug_params_.snow_z_level, 1, 128);
 		ImGui::Checkbox("Frame rate world update", &debug_params_.frame_rate_world_update);
 	}
-
 	ImGui::End();
-
 }
 
 } // namespace HexGPU

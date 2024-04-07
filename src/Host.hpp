@@ -2,7 +2,6 @@
 #include "BuildPrismRenderer.hpp"
 #include "ImGuiWrapper.hpp"
 #include "SkyRenderer.hpp"
-#include "TaskOrganizer.hpp"
 #include "TicksCounter.hpp"
 #include "WorldRenderer.hpp"
 #include <chrono>
@@ -19,7 +18,6 @@ public:
 	bool Loop();
 
 private:
-
 	void DrawFPS();
 	void DrawUI();
 	void DrawBlockSelectionUI();
@@ -30,6 +28,7 @@ private:
 private:
 	using Clock= std::chrono::steady_clock;
 
+private:
 	Settings settings_;
 	SystemWindow system_window_;
 	WindowVulkan window_vulkan_;

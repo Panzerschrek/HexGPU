@@ -275,11 +275,14 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 	}
 	else if(block_type == c_block_type_sand)
 	{
-		// If sand block has air below, it falls down and is replaced with air.
-		// This should match air block logic.
-		if(is_block_falling_tick &&
-			z > 0 && chunks_input_data[column_address + z - 1] == c_block_type_air)
-			return u8vec2(c_block_type_air, 0);
+		// If sand block has air or snow below, it falls down and is replaced with air.
+		// This should match air and snow block logic.
+		if(is_block_falling_tick && z > 0)
+		{
+			uint8_t block_below_type= chunks_input_data[column_address + z - 1];
+			if(block_below_type == c_block_type_air || block_below_type == c_block_type_snow)
+				return u8vec2(c_block_type_air, 0);
+		}
 	}
 	else if(block_type == c_block_type_water)
 	{
@@ -737,6 +740,10 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 	}
 	else if(block_type == c_block_type_snow)
 	{
+		if(is_block_falling_tick &&
+			z < c_chunk_height - 1 && chunks_input_data[column_address + z_up_clamped] == c_block_type_sand)
+			return u8vec2(c_block_type_sand, 0); // Replaced with falling sand.
+
 		// Snow can exist only direct under the sky.
 		int light_packed= light_data[column_address + z_up_clamped];
 		int sky_light= light_packed >> c_sky_light_shift;

@@ -27,7 +27,8 @@ const int c_num_block_types=									 22;
 
 const uint8_t c_optical_density_solid= uint8_t(0);
 const uint8_t c_optical_density_semisolid= uint8_t(1);
-const uint8_t c_optical_density_air= uint8_t(2);
+const uint8_t c_optical_density_glass= uint8_t(2);
+const uint8_t c_optical_density_air= uint8_t(3);
 
 const uint8_t c_block_optical_density_table[c_num_block_types]=
 	uint8_t[c_num_block_types]
@@ -44,14 +45,14 @@ const uint8_t c_block_optical_density_table[c_num_block_types]=
 	c_optical_density_air, // water
 	c_optical_density_solid, // sand
 	c_optical_density_air, // fire
-	c_optical_density_semisolid, // glass_white
-	c_optical_density_semisolid, // glass_grey
-	c_optical_density_semisolid, // glass_red
-	c_optical_density_semisolid, // glass_yellow
-	c_optical_density_semisolid, // glass_green
-	c_optical_density_semisolid, // glass_cian
-	c_optical_density_semisolid, // glass_blue
-	c_optical_density_semisolid, // glass_magenta
+	c_optical_density_glass, // glass_white
+	c_optical_density_glass, // glass_grey
+	c_optical_density_glass, // glass_red
+	c_optical_density_glass, // glass_yellow
+	c_optical_density_glass, // glass_green
+	c_optical_density_glass, // glass_cian
+	c_optical_density_glass, // glass_blue
+	c_optical_density_glass, // glass_magenta
 	c_optical_density_solid, // grass_yellow
 	c_optical_density_air // snow
 );

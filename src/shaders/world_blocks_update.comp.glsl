@@ -774,6 +774,39 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 		if(fire_light > c_max_fire_light_for_snow_to_exist)
 			return u8vec2(c_block_type_air, uint8_t(0));
 	}
+	else if(block_type == c_block_type_maze_cell)
+	{
+		int total_fire_power_nearby= 0;
+		for(int i= 0; i < 6; ++i)
+		{
+			int adjacent_block_address= adjacent_columns[i] + z;
+			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
+			if(adjacent_block_type == c_block_type_fire)
+				total_fire_power_nearby+= int(chunks_auxiliar_input_data[adjacent_block_address]);
+		}
+
+		if(z < c_chunk_height - 1)
+		{
+			int adjacent_block_address= column_address + z + 1;
+			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
+			if(adjacent_block_type == c_block_type_fire)
+				total_fire_power_nearby+= int(chunks_auxiliar_input_data[adjacent_block_address]);
+		}
+		if(z > 0)
+		{
+			int adjacent_block_address= column_address + z - 1;
+			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
+			if(adjacent_block_type == c_block_type_fire)
+				total_fire_power_nearby+= int(chunks_auxiliar_input_data[adjacent_block_address]);
+		}
+
+		if(total_fire_power_nearby >= c_min_fire_power_for_blocks_burning)
+		{
+			// Burn this maze cell block if has fire nearby.
+			if((block_rand & 15) == 0)
+				return u8vec2(c_block_type_fire, uint8_t(c_initial_fire_power));
+		}
+	}
 
 	// Common case when block type isn't chanhed.
 	return u8vec2(block_type, chunks_auxiliar_input_data[column_address + z]);

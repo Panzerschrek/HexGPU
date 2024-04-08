@@ -159,6 +159,9 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 		int total_flammability_nearby= 0;
 		int max_maze_cell_power_nearby= 0;
 		int num_maze_cells_nearby= 0;
+		int num_non_linked_diagonal_maze_cells= 0;
+		int num_non_linked_diagonal_maze_cells_up= 0;
+		bool has_maze_cell_down= false;
 
 		for(int i= 0; i < 6; ++i) // For adjacent blocks.
 		{
@@ -198,6 +201,23 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 				if(num_maze_cells_nearby == 1)
 					max_maze_cell_power_nearby= int(chunks_auxiliar_input_data[adjacent_block_address]);
 			}
+
+			if( adjacent_block_type != c_block_type_maze_cell)
+			{
+				if(z < c_chunk_height - 1)
+				{
+					if(chunks_input_data[adjacent_block_address + 1]== c_block_type_maze_cell)
+					{
+						++num_non_linked_diagonal_maze_cells;
+						++num_non_linked_diagonal_maze_cells_up;
+					}
+				}
+				if(z > 0)
+				{
+					if(chunks_input_data[adjacent_block_address - 1]== c_block_type_maze_cell)
+						++num_non_linked_diagonal_maze_cells;
+				}
+			}
 		}
 		if(z < c_chunk_height - 1)
 		{
@@ -216,6 +236,11 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 
 			if(adjacent_block_type == c_block_type_fire)
 				total_fire_power_nearby+= int(chunks_auxiliar_input_data[adjacent_block_address]);
+			else if(adjacent_block_type == c_block_type_maze_cell)
+			{
+				has_maze_cell_down= true;
+				max_maze_cell_power_nearby= int(chunks_auxiliar_input_data[adjacent_block_address]);
+			}
 		}
 
 		// Perform water flow in water flow tick. This should have highest priority!
@@ -231,12 +256,16 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 		}
 
 		// Try to convert into maze cell.
-		if(num_maze_cells_nearby == 1 && max_maze_cell_power_nearby > 1)
+		if(max_maze_cell_power_nearby > 1)
 		{
-			// Perform conversiom in 2x2 grid only for one block, in order to avoid creating two maze cells in adjacent blocks (which violates maze rule).
-			int grid_cell= (block_x & 1) | ((block_y & 1) << 1);
-			if(((current_tick >> 1) & 3) == grid_cell && (block_rand & 15) == 0)
-				return u8vec2(c_block_type_maze_cell, uint8_t(max_maze_cell_power_nearby - 1));
+			if((has_maze_cell_down && num_maze_cells_nearby == 0 && num_non_linked_diagonal_maze_cells_up == 0) ||
+				(!has_maze_cell_down && num_maze_cells_nearby == 1 && num_non_linked_diagonal_maze_cells == 0))
+			{
+				// Perform conversiom in 2x2 grid only for one block, in order to avoid creating two maze cells in adjacent blocks (which violates maze rule).
+				int grid_cell= (block_x & 1) | ((block_y & 1) << 1);
+				if(((current_tick >> 1) & 3) == grid_cell && (block_rand & 15) == 0)
+					return u8vec2(c_block_type_maze_cell, uint8_t(max_maze_cell_power_nearby - 1));
+			}
 		}
 
 		// Try to convert into fire.

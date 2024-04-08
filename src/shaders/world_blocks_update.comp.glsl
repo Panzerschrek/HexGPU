@@ -159,6 +159,7 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 		int total_flammability_nearby= 0;
 		int max_maze_cell_power_nearby= 0;
 		int num_maze_cells_nearby= 0;
+		int maze_cell_direction= 0;
 
 		for(int i= 0; i < 6; ++i) // For adjacent blocks.
 		{
@@ -195,7 +196,11 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 			else if(adjacent_block_type == c_block_type_maze_cell)
 			{
 				++num_maze_cells_nearby;
-				max_maze_cell_power_nearby= max(max_maze_cell_power_nearby, int(chunks_auxiliar_input_data[adjacent_block_address]));
+				if(num_maze_cells_nearby == 1)
+				{
+					maze_cell_direction= i;
+					max_maze_cell_power_nearby= int(chunks_auxiliar_input_data[adjacent_block_address]);
+				}
 			}
 		}
 		if(z < c_chunk_height - 1)
@@ -232,7 +237,8 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 		// Try to convert into maze cell.
 		if(num_maze_cells_nearby == 1 && max_maze_cell_power_nearby > 1)
 		{
-			if((block_rand & 63) == 0)
+			// Perform conversion one tick only for one direction, in order to avoid adding new maze cells in adjacent blocks.
+			if(((current_tick >> 1) & 7) == maze_cell_direction && (block_rand & 7) == 0)
 			{
 				return u8vec2(c_block_type_maze_cell, uint8_t(max_maze_cell_power_nearby - 1));
 			}

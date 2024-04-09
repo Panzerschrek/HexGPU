@@ -160,12 +160,12 @@ bool ChunksStorage::SaveRegion(const Region& region, const std::string& file_nam
 
 			chunk_header.block_data_offset= offset;
 			chunk_header.block_data_size= uint32_t(chunk_data.blocks.size());
-			file.write(chunk_data.blocks.data(), ssize_t(chunk_data.blocks.size()));
+			file.write(chunk_data.blocks.data(), std::streamsize(chunk_data.blocks.size()));
 			offset+= uint32_t(chunk_data.blocks.size());
 
 			chunk_header.auxiliar_data_offset= offset;
 			chunk_header.auxiliar_data_size= uint32_t(chunk_data.auxiliar_data.size());
-			file.write(chunk_data.auxiliar_data.data(), ssize_t(chunk_data.auxiliar_data.size()));
+			file.write(chunk_data.auxiliar_data.data(), std::streamsize(chunk_data.auxiliar_data.size()));
 			offset+= uint32_t(chunk_data.auxiliar_data.size());
 		}
 	}

@@ -157,7 +157,7 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 		int flow_in= 0;
 		int total_fire_power_nearby= 0;
 		int total_flammability_nearby= 0;
-		int max_maze_cell_power_nearby= 0;
+		int maze_cell_data= 0;
 		int num_maze_cells_nearby= 0;
 		int num_non_linked_diagonal_maze_cells= 0;
 		int num_non_linked_diagonal_maze_cells_up= 0;
@@ -200,7 +200,7 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 			{
 				++num_maze_cells_nearby;
 				if(num_maze_cells_nearby == 1)
-					max_maze_cell_power_nearby= int(chunks_auxiliar_input_data[adjacent_block_address]);
+					maze_cell_data= int(chunks_auxiliar_input_data[adjacent_block_address]);
 			}
 
 			if( adjacent_block_type != c_block_type_maze_cell)
@@ -242,7 +242,7 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 			else if(adjacent_block_type == c_block_type_maze_cell)
 			{
 				has_maze_cell_down= true;
-				max_maze_cell_power_nearby= int(chunks_auxiliar_input_data[adjacent_block_address]);
+				maze_cell_data= int(chunks_auxiliar_input_data[adjacent_block_address]);
 			}
 		}
 
@@ -259,15 +259,19 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 		}
 
 		// Try to convert into maze cell.
-		if(max_maze_cell_power_nearby > 1 && !has_maze_cell_up)
+		if((maze_cell_data & c_maze_cell_enable_grow_mask) != 0 && !has_maze_cell_up)
 		{
-			if((has_maze_cell_down && num_maze_cells_nearby == 0 && num_non_linked_diagonal_maze_cells_up == 0) ||
-				(!has_maze_cell_down && num_maze_cells_nearby == 1 && num_non_linked_diagonal_maze_cells == 0))
+			int power= maze_cell_data & c_maze_cell_power_mask;
+			if(power > 1)
 			{
-				// Perform conversiom in 2x2x2 grid only for one block, in order to avoid creating two maze cells in adjacent blocks (which violates maze rule).
-				int grid_cell= (block_x & 1) | ((block_y & 1) << 1) | ((z & 1) << 2);
-				if(((current_tick >> 1) & 7) == grid_cell && (block_rand & 7) == 0)
-					return u8vec2(c_block_type_maze_cell, uint8_t(max_maze_cell_power_nearby - 1));
+				if((has_maze_cell_down && num_maze_cells_nearby == 0 && num_non_linked_diagonal_maze_cells_up == 0) ||
+					(!has_maze_cell_down && num_maze_cells_nearby == 1 && num_non_linked_diagonal_maze_cells == 0))
+				{
+					// Perform conversiom in 2x2x2 grid only for one block, in order to avoid creating two maze cells in adjacent blocks (which violates maze rule).
+					int grid_cell= (block_x & 1) | ((block_y & 1) << 1) | ((z & 1) << 2);
+					if(((current_tick >> 1) & 7) == grid_cell && (block_rand & 7) == 0)
+						return u8vec2(c_block_type_maze_cell, uint8_t(power - 1));
+				}
 			}
 		}
 
@@ -814,12 +818,15 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 	else if(block_type == c_block_type_maze_cell)
 	{
 		int total_fire_power_nearby= 0;
+		int num_maze_cells_nearby= 0;
 		for(int i= 0; i < 6; ++i)
 		{
 			int adjacent_block_address= adjacent_columns[i] + z;
 			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
 			if(adjacent_block_type == c_block_type_fire)
 				total_fire_power_nearby+= int(chunks_auxiliar_input_data[adjacent_block_address]);
+			else if(adjacent_block_type == c_block_type_maze_cell)
+				++num_maze_cells_nearby;
 		}
 
 		if(z < c_chunk_height - 1)
@@ -835,6 +842,8 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 			uint8_t adjacent_block_type= chunks_input_data[adjacent_block_address];
 			if(adjacent_block_type == c_block_type_fire)
 				total_fire_power_nearby+= int(chunks_auxiliar_input_data[adjacent_block_address]);
+			else if(adjacent_block_type == c_block_type_maze_cell)
+				++num_maze_cells_nearby;
 		}
 
 		if(total_fire_power_nearby >= c_min_fire_power_for_blocks_burning)
@@ -843,6 +852,14 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 			if((block_rand & 15) == 0)
 				return u8vec2(c_block_type_fire, uint8_t(c_initial_fire_power));
 		}
+
+		int maze_cell_data= int(chunks_auxiliar_input_data[column_address + z]);
+		if(num_maze_cells_nearby < 3)
+			maze_cell_data|= c_maze_cell_enable_grow_mask;
+		else
+			maze_cell_data&= ~c_maze_cell_enable_grow_mask;
+
+		return u8vec2(c_block_type_maze_cell, uint8_t(maze_cell_data));
 	}
 
 	// Common case when block type isn't chanhed.

@@ -162,6 +162,7 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 		int num_non_linked_diagonal_maze_cells= 0;
 		int num_non_linked_diagonal_maze_cells_up= 0;
 		bool has_maze_cell_down= false;
+		bool has_maze_cell_up= false;
 
 		for(int i= 0; i < 6; ++i) // For adjacent blocks.
 		{
@@ -227,6 +228,8 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 
 			if(adjacent_block_type == c_block_type_fire)
 				total_fire_power_nearby+= int(chunks_auxiliar_input_data[adjacent_block_address]);
+			else if(adjacent_block_type == c_block_type_maze_cell)
+				has_maze_cell_up= true;
 		}
 		if(z > 0)
 		{
@@ -256,7 +259,7 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 		}
 
 		// Try to convert into maze cell.
-		if(max_maze_cell_power_nearby > 1)
+		if(max_maze_cell_power_nearby > 1 && !has_maze_cell_up)
 		{
 			if((has_maze_cell_down && num_maze_cells_nearby == 0 && num_non_linked_diagonal_maze_cells_up == 0) ||
 				(!has_maze_cell_down && num_maze_cells_nearby == 1 && num_non_linked_diagonal_maze_cells == 0))

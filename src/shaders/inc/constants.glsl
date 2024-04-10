@@ -29,7 +29,7 @@ const int c_initial_fire_power= 1;
 const int c_min_fire_power_for_fire_to_spread= 32;
 const int c_min_fire_power_for_blocks_burning= 64; // TODO - make this different for different block types.
 
-const int c_max_maze_cell_power= 20;
+const int c_max_maze_cell_power= 10;
 const int c_maze_cell_power_mask= 0x7F;
 const int c_maze_cell_enable_grow_mask= 0x80;
 

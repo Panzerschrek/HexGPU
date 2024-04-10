@@ -265,7 +265,7 @@ u8vec2 TransformBlock(int block_x, int block_y, int z)
 			if(power > 1)
 			{
 				if((has_maze_cell_down && num_maze_cells_nearby == 0 && num_non_linked_diagonal_maze_cells_up == 0) ||
-					(!has_maze_cell_down && num_maze_cells_nearby == 1 && num_non_linked_diagonal_maze_cells == 0))
+					(!has_maze_cell_down && num_maze_cells_nearby == 1 && num_non_linked_diagonal_maze_cells == 0 && power <= 5))
 				{
 					// Perform conversiom in 2x2x2 grid only for one block, in order to avoid creating two maze cells in adjacent blocks (which violates maze rule).
 					int grid_cell= (block_x & 1) | ((block_y & 1) << 1) | ((z & 1) << 2);

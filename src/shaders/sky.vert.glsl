@@ -6,9 +6,9 @@
 
 // Use for sky mesh a pyramid with square base.
 
-const float c_skybox_half_size= 512.0;
-const float c_pyramid_height= 1024.0;
-const float c_pyramid_depth= -512.0;
+const float c_skybox_half_size= 1024.0;
+const float c_pyramid_height= 2048.0;
+const float c_pyramid_depth= -1024.0;
 
 const vec3 c_sky_vertices[5]= vec3[5]
 (

@@ -346,7 +346,7 @@ void PushUpdateIntoQueue(WorldBlockExternalUpdate update)
 void UpdatePlayerMatrices()
 {
 	const float z_near= 0.075; // TODO - calculate it based on FOV and nearby colliders.
-	const float z_far= 2048.0;
+	const float z_far= 4096.0;
 
 	mat4 rotation_and_perspective=
 		MakePerspectiveProjectionMatrix(aspect, c_fov_y, z_near, z_far) *

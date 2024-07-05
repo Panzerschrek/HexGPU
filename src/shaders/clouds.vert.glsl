@@ -6,9 +6,9 @@
 
 // Use for clouds mesh a pyramid with square base.
 
-const float c_pyramid_half_width= 512.0;
-const float c_pyramid_height= 1024.0;
-const float c_pyramid_depth= -128.0;
+const float c_pyramid_half_width= 1024.0;
+const float c_pyramid_height= 2048.0;
+const float c_pyramid_depth= -256.0;
 
 const vec3 c_vertices[5]= vec3[5]
 (

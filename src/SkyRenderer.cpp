@@ -321,7 +321,7 @@ Buffer CreateAndFillStarsVertexBuffer(WindowVulkan& window_vulkan, GPUDataUpload
 	StarVertex stars[c_num_stars];
 	size_t current_star= 0;
 
-	const float c_target_radius= 1024.0f;
+	const float c_target_radius= 2048.0f;
 
 	const float c_color_brown_dwarf[]{0.5f, 0.3f, 0.2f};
 	const float c_color_blue_giant[]{0.8f, 0.9f, 1.3f};

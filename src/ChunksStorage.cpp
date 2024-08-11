@@ -1,6 +1,7 @@
 #include "ChunksStorage.hpp"
 #include "Log.hpp"
 #include "Math.hpp"
+#include <algorithm>
 #include <cstring>
 
 namespace HexGPU

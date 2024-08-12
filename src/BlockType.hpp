@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include <string_view>
 
 namespace HexGPU
@@ -34,7 +35,7 @@ inline const char* BlockTypeToString(const BlockType block_type)
 	case BlockType::Unknown: return "unknown";
 	};
 
-	return "invalud";
+	return "invalid";
 }
 
 // If this changed, GLSL code must be changed too!
